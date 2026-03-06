@@ -1,0 +1,10 @@
+# ohter files can only judged by leads team
+* @ai-kids-care-team/leads
+
+# common folder
+/docs/ @ai-kids-care-team/leads
+
+# 3 teams
+/ai/ @ai-kids-care-team/ai
+/frontend/ @ai-kids-care-team/frontend
+/backend/ @ai-kids-care-team/backend
