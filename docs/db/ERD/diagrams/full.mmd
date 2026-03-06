@@ -1,0 +1,47 @@
+---
+config:
+  layout: elk
+---
+erDiagram
+  KINDERGARTEN ||--o{ CLASS_ENTITY : has
+  KINDERGARTEN ||--o{ CHILD : has
+  KINDERGARTEN ||--o{ TEACHER : has
+  KINDERGARTEN ||--o{ GUARDIAN : has
+  KINDERGARTEN ||--o{ ROOM : has
+  KINDERGARTEN ||--o{ CCTV_CAMERA : has
+
+  USER_ACCOUNT ||--o{ TEACHER : identity
+  USER_ACCOUNT ||--o{ GUARDIAN : identity
+  USER_ACCOUNT ||--o{ USER_KINDERGARTEN_MEMBERSHIP : joins
+  USER_ACCOUNT ||--o{ USER_ROLE_ASSIGNMENT : roles
+
+  CLASS_ENTITY ||--o{ CHILD_CLASS_ASSIGNMENT : assigns
+  CHILD ||--o{ CHILD_CLASS_ASSIGNMENT : history
+
+  CLASS_ENTITY ||--o{ CLASS_TEACHER_ASSIGNMENT : assigns
+  TEACHER ||--o{ CLASS_TEACHER_ASSIGNMENT : history
+
+  CHILD ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
+  GUARDIAN ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
+
+  ROOM ||--o{ ROOM_CAMERA_ASSIGNMENT : hosts
+  CCTV_CAMERA ||--o{ ROOM_CAMERA_ASSIGNMENT : deployed
+
+  CCTV_CAMERA ||--|| CAMERA_STREAM : stream
+
+  AI_MODEL ||--o{ DETECTION_SESSION : runs
+  CCTV_CAMERA ||--o{ DETECTION_SESSION : source
+  DETECTION_SESSION ||--o{ DETECTION_EVENT : outputs
+  ROOM ||--o{ DETECTION_EVENT : location
+  CCTV_CAMERA ||--o{ DETECTION_EVENT : observed
+
+  DETECTION_EVENT ||--o{ EVENT_REVIEW : reviewed
+  DETECTION_EVENT ||--o{ EVENT_EVIDENCE : evidence
+
+  DETECTION_EVENT ||--o{ NOTIFICATION : triggers
+  USER_ACCOUNT ||--o{ NOTIFICATION : receives
+  USER_ACCOUNT ||--o{ DEVICE_TOKEN : devices
+  USER_ACCOUNT ||--o{ NOTIFICATION_RULE : rules
+
+  USER_ACCOUNT ||--o{ AUDIT_LOG : actions
+  KINDERGARTEN ||--o{ AUDIT_LOG : tenant

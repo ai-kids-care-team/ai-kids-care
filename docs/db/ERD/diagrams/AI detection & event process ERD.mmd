@@ -1,0 +1,191 @@
+---
+config:
+  layout: elk
+---
+erDiagram
+  kindergarten {
+    bigint kindergarten_id PK "유치원 ID"
+    varchar name "유치원명"
+    varchar address "주소"
+    varchar region_code "지역 코드(행정구역/내부 코드)"
+    varchar code "유치원 코드(내부/기관 식별용)"
+    varchar contact_name "담당자 이름"
+    varchar contact_phone "담당자 전화번호"
+    varchar contact_email "담당자 이메일"
+    varchar status "상태(운영/중지/폐원 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  room {
+    bigint room_id PK
+    bigint kindergarten_id FK
+    varchar name "공간/교실 이름"
+    varchar room_code "공간 코드(내부 식별용)"
+    varchar location_note "위치 설명(층/동/출입구 등)"
+    varchar room_type "공간 유형(교실/복도/현관/놀이터 등)"
+    varchar status "상태(사용/미사용/폐쇄 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  cctv_camera {
+    bigint camera_id PK "카메라 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    varchar serial_no "카메라 시리얼 번호/제조사 식별자"
+    varchar camera_name "카메라 이름/별칭 또는 표시 이름"
+    varchar model "모델명"
+    varchar created_by_user_id "등록한 사용자 ID(문자열로 저장된 사용자 식별자)"
+    varchar status "상태(ACTIVE/INACTIVE/RETIRED 등)"
+    timestamptz last_seen_at "마지막 접속/하트비트 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  ai_model {
+    bigint model_id PK "AI 모델 ID"
+    varchar name "모델 이름"
+    varchar version "모델 버전"
+    varchar status "모델 상태(예: ACTIVE/DEPRECATED 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  detection_session {
+    bigint session_id PK "탐지 세션 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint camera_id FK "카메라 ID(CCTV_CAMERA.camera_id)"
+    bigint model_id FK "모델 ID(AI_MODEL.model_id)"
+    timestamptz started_at "세션 시작 일시"
+    timestamptz ended_at "세션 종료 일시"
+    varchar status "세션 상태(예: RUNNING/ENDED/FAILED 등)"
+    int avg_latency_ms "평균 지연 시간(ms)"
+    float inference_fps "추론 처리 FPS"
+  }
+
+  detection_event {
+    bigint event_id PK "탐지 이벤트 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint camera_id FK "카메라 ID(CCTV_CAMERA.camera_id)"
+    bigint room_id FK "룸/구역 ID(ROOM 테이블 FK 가정)"
+    bigint session_id FK "탐지 세션 ID(DETECTION_SESSION.session_id)"
+    varchar event_type "이벤트 유형(탐지 카테고리/코드)"
+    int severity "심각도(정수 등급)"
+    float confidence "신뢰도(0~1)"
+    timestamptz detected_at "탐지 발생 일시"
+    timestamptz start_time "이벤트 시작 시각"
+    timestamptz end_time "이벤트 종료 시각"
+    varchar status "이벤트 상태(NEW/ACKED/RESOLVED/FALSE_POSITIVE)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  event_review {
+    bigint review_id PK "이벤트 리뷰/처리 ID"
+    bigint event_id FK "이벤트 ID(DETECTION_EVENT.event_id)"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint user_id FK "처리 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar action "처리 액션(ACK/RESOLVE/MARK_FALSE_POSITIVE/REOPEN)"
+    varchar result_status "처리 결과 상태(액션 후 이벤트 상태 등)"
+    varchar comment "코멘트/메모"
+    timestamptz created_at "생성 일시"
+  }
+
+  event_evidence {
+    bigint evidence_id PK "증거 자료 ID"
+    bigint event_id FK "이벤트 ID(DETECTION_EVENT.event_id)"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    varchar type "증거 유형(IMAGE/VIDEO)"
+    varchar storage_uri "저장 위치 URI(internal MinIO/NAS 등)"
+    varchar mime_type "MIME 타입(예: image/jpeg, video/mp4)"
+    timestamptz created_at "생성 일시"
+    timestamptz retention_until "보관 만료 예정 일시"
+    boolean hold "보관 홀드 여부(만료/삭제 방지 플래그)"
+    varchar hash "무결성 확인용 해시(파일 해시)"
+  }
+
+  user_account {
+    bigint user_id PK "사용자 계정 ID"
+    varchar login_id "로그인 ID(사용자 식별자)"
+    varchar password_hash "비밀번호 해시"
+    varchar status "계정 상태(ACTIVE/LOCKED/DISABLED 등)"
+    timestamptz last_login_at "마지막 로그인 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  device_token {
+    bigint device_id PK "디바이스 토큰 ID"
+    bigint user_id FK "사용자 ID(USER_ACCOUNT.user_id)"
+    varchar platform "플랫폼(IOS/ANDROID)"
+    varchar push_token "푸시 토큰(APNs/FCM 등)"
+    varchar status "토큰 상태(예: ACTIVE/EXPIRED/REVOKED 등)"
+    timestamptz last_seen_at "마지막 사용/갱신 일시"
+    timestamptz created_at "생성 일시"
+  }
+
+  notification_rule {
+    bigint rule_id PK "알림 규칙 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint user_id FK "규칙 소유/대상 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar scope_type "규칙 적용 범위(ROOM/CAMERA/KINDERGARTEN)"
+    bigint scope_id "범위 ID(scope_type에 따른 room_id/camera_id/kindergarten_id 등)"
+    varchar event_type "대상 이벤트 유형"
+    int min_severity "최소 심각도(이 값 이상만 알림)"
+    varchar quiet_hours_json "방해금지 시간 설정(JSON 문자열)"
+    boolean enabled "규칙 활성화 여부"
+    timestamptz created_at "생성 일시"
+  }
+
+  notification {
+    bigint notification_id PK "알림 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint event_id FK "관련 이벤트 ID(DETECTION_EVENT.event_id)"
+    bigint recipient_user_id FK "수신자 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar channel "전송 채널(PUSH/SMS/EMAIL)"
+    varchar title "알림 제목"
+    varchar body "알림 본문"
+    varchar status "전송 상태(QUEUED/SENT/FAILED)"
+    timestamptz sent_at "전송 완료/시도 일시"
+    varchar fail_reason "실패 사유"
+    int retry_count "재시도 횟수"
+    timestamptz created_at "생성 일시"
+  }
+
+  audit_log {
+    bigint audit_id PK "감사/추적 로그 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    bigint user_id FK "행위 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar action "행위(예: CREATE/UPDATE/DELETE/LOGIN 등)"
+    varchar resource_type "대상 리소스 유형(테이블/도메인명 등)"
+    bigint resource_id "대상 리소스 ID"
+    varchar ip "요청 IP"
+    varchar user_agent "User-Agent"
+    timestamptz created_at "생성 일시"
+  }
+  kindergarten ||--o{ room : has
+  kindergarten ||--o{ cctv_camera : has
+
+  kindergarten ||--o{ detection_session : tenant
+  kindergarten ||--o{ detection_event : tenant
+
+  ai_model ||--o{ detection_session : runs
+  cctv_camera ||--o{ detection_session : source
+
+  detection_session ||--o{ detection_event : outputs
+  cctv_camera ||--o{ detection_event : observed_by
+  room ||--o{ detection_event : occurs_in
+
+  detection_event ||--o{ event_review : reviewed
+  detection_event ||--o{ event_evidence : evidence
+
+  user_account ||--o{ event_review : actor
+  user_account ||--o{ device_token : has
+  user_account ||--o{ notification_rule : owns
+  user_account ||--o{ notification : receives
+  user_account ||--o{ audit_log : actions
+
+  detection_event ||--o{ notification : triggers
+  kindergarten ||--o{ notification_rule : has
+  kindergarten ||--o{ notification : emits
+  kindergarten ||--o{ audit_log : writes
