@@ -10,5 +10,5 @@
 
 ## AI detection & event process ERD
 
-![AI detection & evenet process](pics/AI-detection& evenet-process.png)
+![AI detection & evenet process](pics/AI-detection&evenet-process.png)
 
