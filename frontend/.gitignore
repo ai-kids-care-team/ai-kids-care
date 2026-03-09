@@ -1,34 +1,277 @@
 ######################################################################
-# Frontend (TypeScript / JavaScript / Node / React) - .gitignore
+# Common (all stacks)
 ######################################################################
+# OS / Editor / Misc
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# ---------- Dependencies ----------
+*.swp
+*.swo
+*.swn
+*~
+*.tmp
+*.bak
+
+# Logs
+*.log
+logs/
+log/
+
+# Runtime data / pid
+*.pid
+*.seed
+*.pid.lock
+
+# Secrets / env files (commit templates separately if needed)
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+
+# Certificates / keys (avoid committing secrets)
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+######################################################################
+# IDEs
+######################################################################
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Eclipse / STS (Spring Tool Suite)
+.project
+.classpath
+.settings/
+.factorypath
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+######################################################################
+# Git tooling / local configs
+######################################################################
+# Optional: ignore local-only tool configs
+# .tool-versions
+
+######################################################################
+# Python (AI) - keep your existing section (original content)
+######################################################################
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# UV / Poetry / PDM
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder / Rope
+.spyderproject
+.spyproject
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy / pyre / pytype
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Cython debug
+cython_debug/
+
+# Ruff
+.ruff_cache/
+
+# PyPI config
+.pypirc
+
+# Cursor
+.cursorignore
+.cursorindexingignore
+
+######################################################################
+# Java / Spring Boot (Backend)
+######################################################################
+# Compiled class files
+*.class
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# Keep Maven wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+**/build/
+!**/src/**/build/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+
+# Spring Boot runtime
+# (e.g. generated logs already covered; keep typical local files)
+# application-local.yml should be ignored if it contains secrets:
+application-local.yml
+application-local.yaml
+
+######################################################################
+# Node.js / Frontend (React, TS/JS)
+######################################################################
+# Dependencies
 node_modules/
-bower_components/
 jspm_packages/
+bower_components/
 
-# ---------- Package manager caches / metadata ----------
-.npm/
-.pnpm-store/
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-
-# ---------- Build outputs ----------
+# Build outputs
 dist/
 build/
 out/
-
-# Framework-specific
 .next/
 .nuxt/
-.gatsby/
 .svelte-kit/
+.coverage/
+coverage/
 
-# ---------- Tool caches ----------
+# Cache
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
 .cache/
 .parcel-cache/
 .rspack-cache/
@@ -37,53 +280,36 @@ out/
 .stylelintcache
 .turbo/
 .nx/cache/
-.swc/
-.rollup.cache/
+.storybook/cache/
 
-# ---------- Coverage / test outputs ----------
-coverage/
-.nyc_output/
-junit.xml
-test-results/
-playwright-report/
-playwright/.cache/
-cypress/videos/
-cypress/screenshots/
-
-# ---------- TypeScript ----------
+# TypeScript
 *.tsbuildinfo
 
-# ---------- Logs ----------
-*.log
+# React / CRA / Gatsby / Others
+public/build/
+.gatsby/
+.gatsby-cache/
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# ---------- Env files (secrets) ----------
-.env
-.env.*
-!.env.example
-!.env.template
-!.env.sample
+# Env files (frontend variants are already covered by .env.* above)
+# .env.development.local etc. will be ignored by .env.*
 
-# ---------- Local HTTPS / certs (if any) ----------
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
+######################################################################
+# Monorepo / Workspace tooling (optional)
+######################################################################
+# Lerna / Turborepo / Nx artifacts
+lerna-debug.log*
+.turbo/
+.nx/cache/
 
-# ---------- IDE / editor ----------
-.vscode/
-.idea/
-*.iml
-
-# ---------- OS junk ----------
-.DS_Store
-Thumbs.db
-
-# ---------- Misc ----------
-*.swp
-*~
+######################################################################
+# Optional: local docker volumes / runtime folders (adjust per repo)
+######################################################################
+# docker-data/
+# volumes/
