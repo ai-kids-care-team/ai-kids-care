@@ -1,0 +1,18 @@
+type: object
+required:
+  - channel
+  - to
+  - purpose
+properties:
+  channel:
+    type: string
+    enum:
+      - EMAIL
+      - SMS
+  to:
+    type: string
+  purpose:
+    type: string
+    enum:
+      - REGISTER
+      - RESET_PASSWORD

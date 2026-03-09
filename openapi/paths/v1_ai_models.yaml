@@ -1,0 +1,31 @@
+get:
+  tags:
+    - AI
+  security:
+    - bearerAuth: []
+  summary: List AI models
+  parameters:
+    - $ref: ../components/parameters/LimitQuery.yaml
+    - $ref: ../components/parameters/OffsetQuery.yaml
+    - name: status
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/StatusEnum.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - items
+              - meta
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: ../components/schemas/AiModel.yaml
+              meta:
+                $ref: ../components/schemas/PaginationMeta.yaml

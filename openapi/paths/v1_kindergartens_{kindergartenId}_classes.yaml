@@ -1,0 +1,53 @@
+get:
+  tags:
+    - Classes
+  security:
+    - bearerAuth: []
+  summary: List classes
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - $ref: ../components/parameters/LimitQuery.yaml
+    - $ref: ../components/parameters/OffsetQuery.yaml
+    - name: status
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/StatusEnum.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - items
+              - meta
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: ../components/schemas/ClassEntity.yaml
+              meta:
+                $ref: ../components/schemas/PaginationMeta.yaml
+post:
+  tags:
+    - Classes
+  security:
+    - bearerAuth: []
+  summary: Create class
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateClassRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ClassEntity.yaml

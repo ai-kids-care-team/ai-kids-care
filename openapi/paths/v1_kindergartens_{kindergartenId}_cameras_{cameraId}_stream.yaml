@@ -1,0 +1,27 @@
+put:
+  tags:
+    - Cameras
+  security:
+    - bearerAuth: []
+  summary: Upsert camera stream settings
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - name: cameraId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpsertCameraStreamRequest.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CameraStream.yaml

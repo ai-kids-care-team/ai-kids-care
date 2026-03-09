@@ -1,0 +1,56 @@
+get:
+  tags:
+    - Children
+    - Guardians
+  security:
+    - bearerAuth: []
+  summary: Get one child-guardian relationship
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - $ref: ../components/parameters/ChildIdPath.yaml
+    - $ref: ../components/parameters/GuardianIdPath.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ChildGuardianRelationship.yaml
+patch:
+  tags:
+    - Children
+    - Guardians
+  security:
+    - bearerAuth: []
+  summary: Update child-guardian relationship (metadata / dates)
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - $ref: ../components/parameters/ChildIdPath.yaml
+    - $ref: ../components/parameters/GuardianIdPath.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateChildGuardianRelationshipRequest.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ChildGuardianRelationship.yaml
+delete:
+  tags:
+    - Children
+    - Guardians
+  security:
+    - bearerAuth: []
+  summary: Delete child-guardian relationship
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - $ref: ../components/parameters/ChildIdPath.yaml
+    - $ref: ../components/parameters/GuardianIdPath.yaml
+  responses:
+    '204':
+      description: No Content
