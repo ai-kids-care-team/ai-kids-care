@@ -1,0 +1,14 @@
+post:
+  tags:
+    - Auth
+  security: []
+  summary: Logout (revoke refresh token)
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LogoutRequest.yaml
+  responses:
+    '204':
+      description: No Content

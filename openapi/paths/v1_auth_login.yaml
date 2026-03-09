@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Auth
+  security: []
+  summary: Login
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LoginRequest.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TokenResponse.yaml
+    '401':
+      description: Invalid credentials or account not ACTIVE
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ErrorResponse.yaml

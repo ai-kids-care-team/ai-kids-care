@@ -1,0 +1,20 @@
+type: object
+properties:
+  role:
+    type: string
+    nullable: true
+  startDate:
+    type: string
+    format: date
+  endDate:
+    type: string
+    format: date
+    nullable: true
+  reason:
+    type: string
+    nullable: true
+  note:
+    type: string
+    nullable: true
+  status:
+    $ref: ./StatusEnum.yaml

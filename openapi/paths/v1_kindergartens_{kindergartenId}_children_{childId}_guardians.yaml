@@ -1,0 +1,35 @@
+get:
+  tags:
+    - Children
+    - Guardians
+  security:
+    - bearerAuth: []
+  summary: List guardians of a child
+  parameters:
+    - $ref: ../components/parameters/KindergartenIdPath.yaml
+    - $ref: ../components/parameters/ChildIdPath.yaml
+    - $ref: ../components/parameters/LimitQuery.yaml
+    - $ref: ../components/parameters/OffsetQuery.yaml
+    - name: activeAt
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - items
+              - meta
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: ../components/schemas/ChildGuardianRelationship.yaml
+              meta:
+                $ref: ../components/schemas/PaginationMeta.yaml

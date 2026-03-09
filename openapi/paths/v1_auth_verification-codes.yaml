@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Auth
+  security: []
+  summary: Send OTP verification code
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/SendVerificationCodeRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SendVerificationCodeResponse.yaml
+    '429':
+      description: Rate limited
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ErrorResponse.yaml

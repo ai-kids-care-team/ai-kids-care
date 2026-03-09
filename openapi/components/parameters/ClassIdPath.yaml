@@ -1,0 +1,6 @@
+name: classId
+in: path
+required: true
+schema:
+  type: integer
+  format: int64

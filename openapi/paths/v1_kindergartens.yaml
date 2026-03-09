@@ -1,0 +1,50 @@
+get:
+  tags:
+    - Kindergartens
+  security:
+    - bearerAuth: []
+  summary: List kindergartens
+  parameters:
+    - $ref: ../components/parameters/LimitQuery.yaml
+    - $ref: ../components/parameters/OffsetQuery.yaml
+    - name: status
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/StatusEnum.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - items
+              - meta
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: ../components/schemas/Kindergarten.yaml
+              meta:
+                $ref: ../components/schemas/PaginationMeta.yaml
+post:
+  tags:
+    - Kindergartens
+  security:
+    - bearerAuth: []
+  summary: Create kindergarten
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateKindergartenRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Kindergarten.yaml
