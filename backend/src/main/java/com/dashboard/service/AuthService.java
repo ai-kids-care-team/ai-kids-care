@@ -2,7 +2,6 @@ package com.dashboard.service;
 
 import com.dashboard.dto.LoginRequest;
 import com.dashboard.dto.LoginResponse;
-import com.dashboard.dto.ChildLookupResponse;
 import com.dashboard.dto.SignupRequest;
 import com.dashboard.dto.SignupResponse;
 import com.dashboard.entity.User;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +21,6 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final ChildLookupService childLookupService;
     private final GuardianBindingService guardianBindingService;
     private final CommonCodeService commonCodeService;
 
@@ -107,10 +104,5 @@ public class AuthService {
         User saved = userRepository.saveAndFlush(user);
         guardianBindingService.bindGuardianToChild(saved, request);
         return new SignupResponse(saved.getUserId(), saved.getLoginId(), saved.getStatus());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ChildLookupResponse> searchChildrenByName(String name) {
-        return childLookupService.searchChildrenByName(name);
     }
 }
