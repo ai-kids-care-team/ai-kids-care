@@ -40,7 +40,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateKindergartenRequest.yaml
+          $ref: ../components/schemas/KindergartenCreateRequest.yaml
   responses:
     '201':
       description: Created

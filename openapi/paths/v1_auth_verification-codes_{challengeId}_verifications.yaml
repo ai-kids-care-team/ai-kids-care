@@ -1,0 +1,37 @@
+post:
+  tags:
+    - Auth
+  security: []
+  summary: Verify OTP code
+  parameters:
+    - name: challengeId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Verification challenge identifier returned by create endpoint
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/VerifyVerificationCodeRequest.yaml
+  responses:
+    '200':
+      description: Verified. Returns a short-lived token for the next step.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/VerifyVerificationCodeResponse.yaml
+    '400':
+      description: Invalid or expired code (or validation error)
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ErrorResponse.yaml
+    '429':
+      description: Too many attempts / rate limited
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ErrorResponse.yaml

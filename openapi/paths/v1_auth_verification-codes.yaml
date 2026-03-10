@@ -8,14 +8,14 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/SendVerificationCodeRequest.yaml
+          $ref: ../components/schemas/VerificationCodeCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/SendVerificationCodeResponse.yaml
+            $ref: ../components/schemas/VerificationCodeCreateResponse.yaml
     '429':
       description: Rate limited
       content:

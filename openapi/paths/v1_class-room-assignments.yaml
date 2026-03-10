@@ -1,12 +1,11 @@
 get:
   tags:
     - Classes
-    - Teachers
+    - Rooms
   security:
     - bearerAuth: []
-  summary: List class-teacher assignments
+  summary: List class-room assignments
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: classId
@@ -15,7 +14,7 @@ get:
       schema:
         type: integer
         format: int64
-    - name: teacherId
+    - name: roomId
       in: query
       required: false
       schema:
@@ -31,7 +30,10 @@ get:
       required: false
       schema:
         type: string
-        format: date
+        format: date-time
+      description: >-
+        Return assignments where startAt <= activeAt and (endAt is null or endAt
+        >= activeAt).
   responses:
     '200':
       description: OK
@@ -46,34 +48,62 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/ClassTeacherAssignment.yaml
+                  $ref: ../components/schemas/ClassRoomAssignment.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
     - Classes
-    - Teachers
+    - Rooms
   security:
     - bearerAuth: []
-  summary: Create class-teacher assignment
-  parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
+  summary: Create class-room assignment
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateClassTeacherAssignmentRequest.yaml
+          $ref: ../components/schemas/ClassRoomAssignmentCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ClassTeacherAssignment.yaml
+            $ref: ../components/schemas/ClassRoomAssignment.yaml
     '409':
       description: Conflict (overlap)
       content:
         application/json:
           schema:
             $ref: ../components/schemas/ErrorResponse.yaml
+patch:
+  tags:
+    - Classes
+    - Rooms
+  security:
+    - bearerAuth: []
+  summary: Update class-room assignment (end/close or edit purpose/note)
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateClassRoomAssignmentRequest.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ClassRoomAssignment.yaml
+delete:
+  tags:
+    - Classes
+    - Rooms
+  security:
+    - bearerAuth: []
+  summary: Delete class-room assignment
+  responses:
+    '204':
+      description: No Content

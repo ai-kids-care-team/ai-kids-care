@@ -58,7 +58,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateChildGuardianRelationshipRequest.yaml
+          $ref: ../components/schemas/ChildGuardianRelationshipCreateRequest.yaml
   responses:
     '201':
       description: Created
