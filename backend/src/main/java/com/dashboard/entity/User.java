@@ -1,6 +1,7 @@
 package com.dashboard.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,10 +12,11 @@ import java.time.Instant;
 @Table(name = "user_account")
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long userId;
 
@@ -33,44 +35,42 @@ public class User {
     @Column(name = "user_tel", nullable = false)
     private String userTel;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StatusEnum status;
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public User(Long userId, String userName, String loginId, String passwordHash, String userEmail, String userTel, String status) {
-        this.userId = userId;
+    public User(String userName, String loginId, String passwordHash,
+                                String userEmail, String userTel) {
         this.userName = userName;
         this.loginId = loginId;
         this.passwordHash = passwordHash;
         this.userEmail = userEmail;
         this.userTel = userTel;
-        this.status = status;
+        this.status = StatusEnum.ACTIVE;
     }
 
     @PrePersist
-    public void onCreate() {
+    void onCreate() {
         Instant now = Instant.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
-        if (lastLoginAt == null) {
-            lastLoginAt = now;
-        }
+        this.createdAt = (this.createdAt == null) ? now : this.createdAt;
+        this.updatedAt = (this.updatedAt == null) ? now : this.updatedAt;
     }
 
     @PreUpdate
-    public void onUpdate() {
-        updatedAt = Instant.now();
+    void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    public void recordLogin(Instant at) {
+        this.lastLoginAt = at;
     }
 }

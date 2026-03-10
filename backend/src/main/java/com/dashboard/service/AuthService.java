@@ -4,6 +4,7 @@ import com.dashboard.dto.LoginRequest;
 import com.dashboard.dto.LoginResponse;
 import com.dashboard.dto.SignupRequest;
 import com.dashboard.dto.SignupResponse;
+import com.dashboard.entity.StatusEnum;
 import com.dashboard.entity.User;
 import com.dashboard.repository.UserRepository;
 import com.dashboard.security.JwtUtil;
@@ -87,19 +88,11 @@ public class AuthService {
             throw new RuntimeException("이미 사용 중인 로그인 ID입니다.");
         }
 
-        Long nextUserId = userRepository.findMaxUserId() + 1;
-        Instant now = Instant.now();
-        User user = new User();
-        user.setUserId(nextUserId);
-        user.setUserName(request.getName().trim());
-        user.setLoginId(loginId);
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setUserEmail(request.getEmail().trim());
-        user.setUserTel(request.getPhone().trim());
-        user.setStatus("ACTIVE");
-        user.setLastLoginAt(now);
-        user.setCreatedAt(now);
-        user.setUpdatedAt(now);
+        String userName = request.getName().trim();
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+        String userEmail = request.getEmail().trim();
+        String userTel = request.getPhone().trim();
+        User user = new User(userName, loginId, passwordHash, userEmail, userTel);
 
         User saved = userRepository.saveAndFlush(user);
         guardianBindingService.bindGuardianToChild(saved, request);
