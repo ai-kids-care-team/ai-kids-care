@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/app/api/apiClient';
 import { DashboardMetric } from '@/app/types/api';
-import { getDashboardMetrics } from '@/lib/apiClient';
+import { getDashboardMetrics } from '@/app/api/apiClient';
 // import { getDashboardMetrics, DashboardMetric } from '@/types/api';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -486,9 +486,9 @@ export default function DashboardPage() {
 // import { useState, useEffect } from 'react';
 // import { useRouter } from 'next/navigation';
 // import { useAuth } from '@/app/context/AuthContext';
-// import { apiClient } from '@/lib/apiClient'; // 👈 추가: 실제 API 통신 클라이언트
+// import { apiClient } from '@/app/api/apiClient'; // 👈 추가: 실제 API 통신 클라이언트
 // import { DashboardMetric } from '@/types/api';
-// import { getDashboardMetrics } from '@/lib/apiClient';
+// import { getDashboardMetrics } from '@/app/api/apiClient';
 //// import { getDashboardMetrics, DashboardMetric } from '@/types/api';
 // import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 // import { ChevronLeft, ChevronRight } from 'lucide-react';

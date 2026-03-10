@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { LogOut, Settings, UserCircle, Bell } from 'lucide-react'; // 👈 Bell 아이콘 추가
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { apiClient } from '@/lib/apiClient'; // 👈 API 클라이언트 추가
+import { apiClient } from '@/app/api/apiClient'; // 👈 API 클라이언트 추가
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/app/api/apiClient';
 import { TopBar } from '../components/TopBar';
 import { User, Lock, Save, AlertCircle } from 'lucide-react';
 

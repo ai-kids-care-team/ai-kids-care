@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Shield, Mail, ArrowLeft } from 'lucide-react';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/app/api/apiClient';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
