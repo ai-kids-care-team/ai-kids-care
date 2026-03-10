@@ -46,9 +46,11 @@ const MEMBER_TYPES: Array<{ value: MemberType; label: string; description: strin
   { value: 'PLATFORM_IT_ADMIN', label: '플랫폼 관리자', description: '시스템 운영 및 모니터링' },
 ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
-  ? process.env.NEXT_PUBLIC_API_URL
-  : 'http://localhost:8081';
+// const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
+//   ? process.env.NEXT_PUBLIC_API_URL
+//   : 'http://localhost:8081';
+
+const API_URL = 'http://localhost:8081';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -60,6 +62,14 @@ export default function SignupPage() {
     email: '',
     phone: '',
   });
+
+  // 인증 관련 추가 상태 (현재는 UI에서 숨겨둠)
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
+
   const [memberType, setMemberType] = useState<MemberType>('GUARDIAN');
   const [childNameKeyword, setChildNameKeyword] = useState('');
   const [selectedChild, setSelectedChild] = useState<ChildLookupItem | null>(null);
@@ -81,20 +91,15 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredRelationshipOptions = useMemo(() => {
-    if (!gender) {
-      return relationshipOptions;
-    }
+    if (!gender) return relationshipOptions;
     return relationshipOptions.filter((option) => {
-      if (option.code === 'OTHER') {
-        return true;
-      }
-      if (!option.parentCode) {
-        return true;
-      }
+      if (option.code === 'OTHER') return true;
+      if (!option.parentCode) return true;
       return option.parentCode.toUpperCase() === gender;
     });
   }, [relationshipOptions, gender]);
 
+  // 💡 폼 유효성 검사 (인증 여부 조건 제외)
   const isValid = useMemo(() => {
     return (
       form.name.trim() &&
@@ -103,6 +108,7 @@ export default function SignupPage() {
       form.confirmPassword.trim() &&
       form.email.trim() &&
       form.phone.trim() &&
+      // isVerified && // 👈 인증 완료 필수 조건 임시 주석 처리
       rrnFirst6.length === 6 &&
       rrnBack7.length === 7 &&
       !!gender &&
@@ -115,6 +121,63 @@ export default function SignupPage() {
 
   const onChange = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (key === 'phone') {
+      setIsCodeSent(false);
+      setIsVerified(false);
+      setVerificationCode('');
+      setVerificationMessage('');
+    }
+  };
+
+  const handleSendVerificationCode = async () => {
+    if (!form.phone.trim()) {
+      setVerificationMessage('연락처를 입력해주세요.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerificationMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/v1/auth/verification-codes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'PHONE', target: form.phone }),
+      });
+
+      if (!response.ok) throw new Error('인증코드 발송에 실패했습니다.');
+
+      setIsCodeSent(true);
+      setVerificationMessage('인증코드가 발송되었습니다. (3분 이내 입력)');
+    } catch (err) {
+      setVerificationMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode.trim()) return;
+
+    setIsVerifying(true);
+    setVerificationMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/v1/auth/verification-codes/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: form.phone, code: verificationCode }),
+      });
+
+      if (!response.ok) throw new Error('잘못된 인증코드이거나 만료되었습니다.');
+
+      setIsVerified(true);
+      setVerificationMessage('연락처 인증이 완료되었습니다.');
+    } catch (err) {
+      setVerificationMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const onRrnBack7Change = (value: string) => {
@@ -134,9 +197,7 @@ export default function SignupPage() {
   useEffect(() => {
     const fetchCommonCodes = async (group: string): Promise<CommonCodeItem[]> => {
       const response = await fetch(`${API_URL}/api/auth/common-codes?group=${encodeURIComponent(group)}`);
-      if (!response.ok) {
-        throw new Error(`공통코드 조회 실패: ${group}`);
-      }
+      if (!response.ok) throw new Error(`공통코드 조회 실패: ${group}`);
       return response.json() as Promise<CommonCodeItem[]>;
     };
 
@@ -147,14 +208,10 @@ export default function SignupPage() {
           fetchCommonCodes('GUARDIAN_RELATIONSHIP'),
         ]);
 
-        if (genderCodes.length > 0) {
-          setGenderOptions(genderCodes);
-        }
-        if (relationshipCodes.length > 0) {
-          setRelationshipOptions(relationshipCodes);
-        }
+        if (genderCodes.length > 0) setGenderOptions(genderCodes);
+        if (relationshipCodes.length > 0) setRelationshipOptions(relationshipCodes);
       } catch {
-        // fallback constants are kept intentionally when API fails
+        // fallback
       }
     };
 
@@ -181,14 +238,10 @@ export default function SignupPage() {
     setIsChildSearching(true);
     try {
       const response = await fetch(`${API_URL}/api/auth/children?name=${encodeURIComponent(trimmed)}`);
-      if (!response.ok) {
-        throw new Error('아이 조회에 실패했습니다.');
-      }
+      if (!response.ok) throw new Error('아이 조회에 실패했습니다.');
       const data = (await response.json()) as ChildLookupItem[];
       setChildSearchResults(data);
-      if (data.length === 0) {
-        setChildSearchError('검색 결과가 없습니다.');
-      }
+      if (data.length === 0) setChildSearchError('검색 결과가 없습니다.');
     } catch (err) {
       setChildSearchResults([]);
       setChildSearchError(err instanceof Error ? err.message : '아이 조회에 실패했습니다.');
@@ -203,9 +256,7 @@ export default function SignupPage() {
     setChildSearchResults([]);
     setChildSearchError('');
     setIsChildPopupOpen(true);
-    if (keyword) {
-      void searchChildren(keyword);
-    }
+    if (keyword) void searchChildren(keyword);
   };
 
   const handleChildNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -230,6 +281,14 @@ export default function SignupPage() {
       return;
     }
 
+    // 💡 연락처 인증 확인 로직 임시 주석 처리
+    /*
+    if (!isVerified) {
+      setError('연락처 인증을 완료해주세요.');
+      return;
+    }
+    */
+
     if (form.password !== form.confirmPassword) {
       setError('비밀번호와 비밀번호 확인이 일치하지 않습니다.');
       return;
@@ -253,7 +312,7 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
+      const response = await fetch(`${API_URL}/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -354,17 +413,59 @@ export default function SignupPage() {
                 required
               />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-300">연락처</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => onChange('phone', e.target.value)}
-                className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-cyan-500"
-                placeholder="010-0000-0000"
-                required
-              />
+
+            {/* 💡 연락처 UI 수정 영역 (인증 버튼 및 입력칸 숨김) */}
+            <div className="flex flex-col gap-2">
+              <label className="block text-sm font-medium text-slate-300">연락처</label>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => onChange('phone', e.target.value)}
+                  // disabled={isVerified} 임시 해제
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-cyan-500"
+                  placeholder="010-0000-0000"
+                  required
+                />
+                {/* <button
+                  type="button"
+                  onClick={handleSendVerificationCode}
+                  disabled={isVerifying || isVerified || !form.phone}
+                  className="whitespace-nowrap rounded-lg border border-cyan-500 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
+                >
+                  {isVerified ? '인증완료' : isCodeSent ? '재발송' : '인증번호 발송'}
+                </button>
+                */}
+              </div>
+
+              {/* {isCodeSent && !isVerified && (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-cyan-500"
+                    placeholder="인증번호 6자리"
+                    maxLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyCode}
+                    disabled={isVerifying || !verificationCode}
+                    className="whitespace-nowrap rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500 disabled:opacity-50"
+                  >
+                    {isVerifying ? '확인 중...' : '확인'}
+                  </button>
+                </div>
+              )}
+              {verificationMessage && (
+                <p className={`text-xs ${isVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {verificationMessage}
+                </p>
+              )}
+              */}
             </div>
+
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-300">비밀번호</label>
               <input

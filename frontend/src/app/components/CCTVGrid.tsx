@@ -1,11 +1,60 @@
 'use client';
 
-
+import { useEffect, useRef } from 'react';
+import Hls from 'hls.js'; // 👈 hls.js 라이브러리 추가
 import { Camera, Circle, Eye, Maximize2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import type { Camera as CameraType } from '../types/anomaly';
+
+// 💡 HLS 비디오 스트리밍을 처리하는 내부 컴포넌트
+function HlsVideoPlayer({ streamUrl }: { streamUrl: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !streamUrl) return;
+
+    let hls: Hls;
+
+    // HLS.js가 지원되는 브라우저 (대부분의 모던 브라우저)
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true, // 실시간 CCTV에 맞게 지연시간 최소화
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch((e) => console.log('자동 재생 방지됨', e));
+      });
+    }
+    // Safari처럼 HLS를 네이티브로 지원하는 브라우저
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch((e) => console.log('자동 재생 방지됨', e));
+      });
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy(); // 메모리 누수 방지
+      }
+    };
+  }, [streamUrl]);
+
+  return (
+    <video
+      ref={videoRef}
+      className="absolute inset-0 w-full h-full object-cover pointer-events-none" // 클릭 방해 금지
+      autoPlay
+      muted
+      playsInline
+    />
+  );
+}
 
 interface CCTVGridProps {
   cameras: CameraType[];
@@ -26,13 +75,17 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
           className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all group relative"
           onClick={() => onCameraSelect?.(camera.id)}
         >
-          {/* Video Feed Placeholder */}
-          <div className="relative aspect-video bg-gray-900">
-            {/* Simulated video feed */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Camera className="w-16 h-16 text-gray-700" />
-            </div>
-            
+          <div className="relative aspect-video bg-gray-900 overflow-hidden">
+
+            {/* 💡 streamUrl이 있으면 실제 영상 재생, 없으면 기존 아이콘 표시 */}
+            {camera.streamUrl ? (
+              <HlsVideoPlayer streamUrl={camera.streamUrl} />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Camera className="w-16 h-16 text-gray-700" />
+              </div>
+            )}
+
             {/* Recording Indicator */}
             {camera.isRecording && camera.status === 'online' && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-red-600 px-2 py-1 rounded">
@@ -40,12 +93,12 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
                 <span className="text-white text-xs font-semibold">REC</span>
               </div>
             )}
-            
+
             {/* Camera ID */}
             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-mono">
               {camera.id}
             </div>
-            
+
             {/* Status Badge */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2">
               {camera.status === 'online' ? (
@@ -56,16 +109,12 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
                 <Badge variant="secondary" className="backdrop-blur-sm">점검중</Badge>
               )}
             </div>
-            
+
             {/* Timestamp overlay */}
             <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-mono">
               {new Date().toLocaleString('ko-KR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
                 hour12: false
               })}
             </div>
@@ -75,8 +124,6 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
               <Button
                 size="sm"
                 className="bg-white/90 hover:bg-white text-gray-900"
-
-                  // 👇 e의 타입을 명시적으로 지정합니다.
                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   onCameraSelect?.(camera.id);
@@ -88,11 +135,10 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
               <Button
                 size="sm"
                 variant="outline"
-                className="bg-white/90 hover:bg-white text-gray-900"
-                  // 👇 e의 타입을 명시적으로 지정합니다.
+                className="bg-white/90 hover:bg-white text-gray-900 z-10"
                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
-                  onCameraSelect?.(camera.id);
+                  onCameraFullscreen?.(camera.id); // 전체화면 핸들러로 수정
                 }}
               >
                 <Maximize2 className="w-4 h-4 mr-1" />
@@ -100,17 +146,13 @@ export function CCTVGrid({ cameras, onCameraSelect, onCameraFullscreen, layout =
               </Button>
             </div>
           </div>
-          
+
           {/* Camera Info */}
           <div className="p-3 bg-white">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-sm text-gray-900">
-                  {camera.name}
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {camera.location}
-                </p>
+                <h3 className="font-semibold text-sm text-gray-900">{camera.name}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{camera.location}</p>
               </div>
             </div>
           </div>
