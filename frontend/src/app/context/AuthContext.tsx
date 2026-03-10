@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { UserRole } from '../types/anomaly';
-import { apiClient } from '@/lib/apiClient'; // 👈 새로 만든 API 클라이언트 불러오기
+import { apiClient } from '@/app/api/apiClient'; // 👈 새로 만든 API 클라이언트 불러오기
 
 interface User {
   id: string;

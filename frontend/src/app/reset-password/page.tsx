@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Shield, KeyRound, Lock, ArrowLeft } from 'lucide-react';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/app/api/apiClient';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
