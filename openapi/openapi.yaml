@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.2
 info:
   title: Kindergarten CCTV AI Safety Platform API
   version: 1.0.0
@@ -6,9 +6,7 @@ info:
     API spec aligned with latest DBML where all status fields use status_enum:
     ACTIVE | PENDING | DISABLED.
 servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/none-2b3-161/AI-Kids-Care/1.0.0
-  - url: https://api.example.com
+  - url: https://localhost:8000/api/
 tags:
   - name: Auth
   - name: Users
@@ -23,12 +21,6 @@ tags:
   - name: Detections
   - name: Notifications
   - name: Audit
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
 paths:
   /v1/auth/register:
     $ref: paths/v1_auth_register.yaml
@@ -109,3 +101,9 @@ paths:
     $ref: paths/v1_kindergartens_{kindergartenId}_guardians_{guardianId}.yaml
   /v1/kindergartens/{kindergartenId}/children/{childId}/guardians:
     $ref: paths/v1_kindergartens_{kindergartenId}_children_{childId}_guardians.yaml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
