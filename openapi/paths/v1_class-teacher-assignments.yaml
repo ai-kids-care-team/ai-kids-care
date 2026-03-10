@@ -1,24 +1,20 @@
 get:
   tags:
     - Classes
-    - Children
+    - Teachers
   security:
     - bearerAuth: []
-  summary: List child-class assignments
-  description: >
-    Backed by child_class_assignment. Use for history queries or current
-    placement.
+  summary: List class-teacher assignments
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: childId
+    - name: classId
       in: query
       required: false
       schema:
         type: integer
         format: int64
-    - name: classId
+    - name: teacherId
       in: query
       required: false
       schema:
@@ -35,9 +31,6 @@ get:
       schema:
         type: string
         format: date
-      description: >-
-        Return assignments where startDate <= activeAt and (endDate is null or
-        endDate >= activeAt).
   responses:
     '200':
       description: OK
@@ -52,34 +45,63 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/ChildClassAssignment.yaml
+                  $ref: ../components/schemas/ClassTeacherAssignment.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
     - Classes
-    - Children
+    - Teachers
   security:
     - bearerAuth: []
-  summary: Create child-class assignment
-  parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
+  summary: Create class-teacher assignment
+  parameters: null
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateChildClassAssignmentRequest.yaml
+          $ref: ../components/schemas/ClassTeacherAssignmentCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ChildClassAssignment.yaml
+            $ref: ../components/schemas/ClassTeacherAssignment.yaml
     '409':
-      description: Conflict (overlapping assignment, etc.)
+      description: Conflict (overlap)
       content:
         application/json:
           schema:
             $ref: ../components/schemas/ErrorResponse.yaml
+patch:
+  tags:
+    - Classes
+    - Teachers
+  security:
+    - bearerAuth: []
+  summary: Update class-teacher assignment (end/close or edit role)
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateClassTeacherAssignmentRequest.yaml
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ClassTeacherAssignment.yaml
+delete:
+  tags:
+    - Classes
+    - Teachers
+  security:
+    - bearerAuth: []
+  summary: Delete class-teacher assignment
+  responses:
+    '204':
+      description: No Content

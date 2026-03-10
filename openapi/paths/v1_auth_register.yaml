@@ -8,14 +8,14 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/RegisterRequest.yaml
+          $ref: ../components/schemas/AuthRegisterRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/RegisterResponse.yaml
+            $ref: ../components/schemas/AuthRegisterResponse.yaml
     '400':
       description: Validation error
       content:

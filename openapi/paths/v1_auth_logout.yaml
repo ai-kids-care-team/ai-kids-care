@@ -8,7 +8,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/LogoutRequest.yaml
+          $ref: ../components/schemas/AuthLogoutRequest.yaml
   responses:
     '204':
       description: No Content

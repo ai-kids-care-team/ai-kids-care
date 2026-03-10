@@ -1,11 +1,10 @@
 get:
   tags:
-    - Classes
+    - Cameras
   security:
     - bearerAuth: []
-  summary: List classes
+  summary: List cameras
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: status
@@ -27,15 +26,15 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/ClassEntity.yaml
+                  $ref: ../components/schemas/Camera.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
-    - Classes
+    - Cameras
   security:
     - bearerAuth: []
-  summary: Create class
+  summary: Create camera
   parameters:
     - $ref: ../components/parameters/KindergartenIdPath.yaml
   requestBody:
@@ -43,11 +42,11 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateClassRequest.yaml
+          $ref: ../components/schemas/CameraCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ClassEntity.yaml
+            $ref: ../components/schemas/Camera.yaml

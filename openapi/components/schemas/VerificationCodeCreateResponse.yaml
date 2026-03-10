@@ -1,9 +1,9 @@
 type: object
 required:
-  - verificationId
+  - challengeId
   - expiresAt
 properties:
-  verificationId:
+  challengeId:
     type: string
   expiresAt:
     type: string

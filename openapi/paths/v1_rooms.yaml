@@ -1,11 +1,10 @@
 get:
   tags:
-    - Cameras
+    - Rooms
   security:
     - bearerAuth: []
-  summary: List cameras
+  summary: List rooms
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: status
@@ -27,27 +26,25 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/Camera.yaml
+                  $ref: ../components/schemas/Room.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
-    - Cameras
+    - Rooms
   security:
     - bearerAuth: []
-  summary: Create camera
-  parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
+  summary: Create room
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateCameraRequest.yaml
+          $ref: ../components/schemas/RoomCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/Camera.yaml
+            $ref: ../components/schemas/Room.yaml

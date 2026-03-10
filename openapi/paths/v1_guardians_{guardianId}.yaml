@@ -5,7 +5,6 @@ get:
     - bearerAuth: []
   summary: Get guardian
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   responses:
     '200':
@@ -27,7 +26,6 @@ patch:
     - bearerAuth: []
   summary: Update guardian
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   requestBody:
     required: true
@@ -64,7 +62,6 @@ delete:
     Prefer soft disable via PATCH status=DISABLED. Delete only for admin
     corrections.
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   responses:
     '204':

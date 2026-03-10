@@ -1,6 +1,0 @@
-type: object
-required:
-  - verified
-properties:
-  verified:
-    type: boolean

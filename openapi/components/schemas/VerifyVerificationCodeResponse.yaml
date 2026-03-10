@@ -1,0 +1,12 @@
+type: object
+required:
+  - verificationToken
+  - expiresAt
+properties:
+  verificationToken:
+    type: string
+    description: Short-lived token proving the challenge was verified
+  expiresAt:
+    type: string
+    format: date-time
+    description: Token expiration time (UTC recommended)

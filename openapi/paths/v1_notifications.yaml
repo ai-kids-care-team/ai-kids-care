@@ -5,7 +5,6 @@ get:
     - bearerAuth: []
   summary: List notifications
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: status

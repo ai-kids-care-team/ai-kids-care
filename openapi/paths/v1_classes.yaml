@@ -1,11 +1,10 @@
 get:
   tags:
-    - Rooms
+    - Classes
   security:
     - bearerAuth: []
-  summary: List rooms
+  summary: List classes
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: status
@@ -27,27 +26,25 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/Room.yaml
+                  $ref: ../components/schemas/ClassEntity.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
-    - Rooms
+    - Classes
   security:
     - bearerAuth: []
-  summary: Create room
-  parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
+  summary: Create class
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateRoomRequest.yaml
+          $ref: ../components/schemas/ClassCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/Room.yaml
+            $ref: ../components/schemas/ClassEntity.yaml

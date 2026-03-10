@@ -6,7 +6,6 @@ get:
     - bearerAuth: []
   summary: Get one child-guardian relationship
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/ChildIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   responses:
@@ -24,7 +23,6 @@ patch:
     - bearerAuth: []
   summary: Update child-guardian relationship (metadata / dates)
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/ChildIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   requestBody:
@@ -48,7 +46,6 @@ delete:
     - bearerAuth: []
   summary: Delete child-guardian relationship
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/ChildIdPath.yaml
     - $ref: ../components/parameters/GuardianIdPath.yaml
   responses:
