@@ -19,3 +19,7 @@ server:
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
   expiration: 86400000
+
+logging:
+  level:
+    root: DEBUG

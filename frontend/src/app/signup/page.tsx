@@ -48,9 +48,9 @@ const MEMBER_TYPES: Array<{ value: MemberType; label: string; description: strin
 
 // const API_URL = process.env.NEXT_PUBLIC_API_URL !== undefined
 //   ? process.env.NEXT_PUBLIC_API_URL
-//   : 'http://localhost:8081';
+//   : 'http://localhost:8080';
 
-const API_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -139,7 +139,7 @@ export default function SignupPage() {
     setVerificationMessage('');
 
     try {
-      const response = await fetch(`${API_URL}/v1/auth/verification-codes`, {
+      const response = await fetch(`${API_BASE_URL}/auth/verification-codes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'PHONE', target: form.phone }),
@@ -163,7 +163,7 @@ export default function SignupPage() {
     setVerificationMessage('');
 
     try {
-      const response = await fetch(`${API_URL}/v1/auth/verification-codes/verify`, {
+      const response = await fetch(`${API_BASE_URL}/auth/verification-codes/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target: form.phone, code: verificationCode }),
@@ -196,7 +196,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     const fetchCommonCodes = async (group: string): Promise<CommonCodeItem[]> => {
-      const response = await fetch(`${API_URL}/api/auth/common-codes?group=${encodeURIComponent(group)}`);
+      const response = await fetch(`${API_BASE_URL}/auth/common-codes?group=${encodeURIComponent(group)}`);
       if (!response.ok) throw new Error(`공통코드 조회 실패: ${group}`);
       return response.json() as Promise<CommonCodeItem[]>;
     };
@@ -237,7 +237,7 @@ export default function SignupPage() {
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/children?name=${encodeURIComponent(trimmed)}`);
+      const response = await fetch(`${API_BASE_URL}/children?name=${encodeURIComponent(trimmed)}`);
       if (!response.ok) throw new Error('아이 조회에 실패했습니다.');
       const data = (await response.json()) as ChildLookupItem[];
       setChildSearchResults(data);
@@ -312,7 +312,7 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/v1/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

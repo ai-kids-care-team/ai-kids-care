@@ -18,17 +18,17 @@ docker compose up -d
 ```
 
 - **프론트엔드**: http://localhost (로그인: `/login`, 회원가입: `/signup`)
-- **백엔드 API**: http://localhost:8081
+- **백엔드 API**: http://localhost:8080
 - **테스트 계정**: admin / password
 
 ### 실행 방식별 접속 주소
 
 - **Docker 실행(`docker compose up`)**
   - 프론트엔드: `http://localhost` (80)
-  - 백엔드 API: `http://localhost:8081`
+  - 백엔드 API: `http://localhost:8080`
 - **로컬 개발(`npm run dev`)**
   - 프론트엔드: `http://localhost:3000`
-  - 백엔드 API: `http://localhost:8081` (기본 compose 기준)
+  - 백엔드 API: `http://localhost:8080` (기본 compose 기준)
 
 ### 로컬 개발
 
@@ -74,7 +74,7 @@ npm run dev
 
 ## 포트 충돌 시
 
-`docker-compose.yml`에서 backend 포트를 변경할 수 있습니다 (기본: 8081).
+`docker-compose.yml`에서 backend 포트를 변경할 수 있습니다 (기본: 8080).
 
 
 # 1)  컨테이너 삭제 docker compose down
@@ -101,8 +101,8 @@ docker compose build frontend --no-cache && docker compose up -d frontend
 
 
 
-## windows 방화벽에서 8081 열기
-netsh advfirewall firewall add rule name="Open Port 8081" dir=in action=allow protocol=TCP localport=8081
+## windows 방화벽에서 8080 열기
+netsh advfirewall firewall add rule name="Open Port 8080" dir=in action=allow protocol=TCP localport=8080
 
-## windows 방화벽에서 8081 삭제
-netsh advfirewall firewall delete rule name="Open Port 8081"
+## windows 방화벽에서 8080 삭제
+netsh advfirewall firewall delete rule name="Open Port 8080"

@@ -5,7 +5,7 @@ import { DashboardMetric } from '@/app/types/api'; // 추가: 대시보드 타�
 //const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com';
 // 변경 후
 //const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -41,7 +41,7 @@ apiClient.interceptors.response.use(
         if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
 
         // 토큰 갱신 API 호출 (openapi 명세서 기준)
-        const { data } = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken, // 백엔드 설계에 따라 Header나 Cookie로 보낼 수도 있음
         });
 
