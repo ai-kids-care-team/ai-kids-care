@@ -48,8 +48,8 @@ paths:
     $ref: paths/v1_kindergartens_{kindergartenId}.yaml
   /v1/kindergartens/{kindergartenId}/classes:
     $ref: paths/v1_kindergartens_{kindergartenId}_classes.yaml
-  /v1/kindergartens/{kindergartenId}/children:
-    $ref: paths/v1_kindergartens_{kindergartenId}_children.yaml
+  /v1/children:
+    $ref: paths/v1_children.yaml
   /v1/kindergartens/{kindergartenId}/rooms:
     $ref: paths/v1_kindergartens_{kindergartenId}_rooms.yaml
   /v1/kindergartens/{kindergartenId}/cameras:

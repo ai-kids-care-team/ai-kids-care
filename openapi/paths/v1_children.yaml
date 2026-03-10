@@ -5,7 +5,6 @@ get:
     - bearerAuth: []
   summary: List children
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
     - name: status
@@ -41,8 +40,6 @@ post:
   security:
     - bearerAuth: []
   summary: Create child
-  parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
   requestBody:
     required: true
     content:
