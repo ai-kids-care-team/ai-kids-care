@@ -117,6 +117,8 @@ export interface Camera {
   location: string;
   status: 'online' | 'offline' | 'maintenance';
   isRecording: boolean;
+  // 👇 이 줄을 추가해 주세요!
+  streamUrl?: string | null;
   category: 'entrance' | 'classroom' | 'playground' | 'corridor' | 'office' | 'parking';
   assignedTeacher?: string; // For classroom cameras
 }
