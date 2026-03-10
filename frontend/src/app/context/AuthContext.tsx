@@ -24,6 +24,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_BASE_URL = 'http://localhost:8080/api/v1';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // 👈 fetch 대신 apiClient 사용 (baseUrl은 apiClient 내부에서 처리됨)
-      const response = await apiClient.post('/v1/auth/login', {
+      const response = await apiClient.post(`${API_BASE_URL}/auth/login`, {
         loginId: username,
         password
       });
@@ -125,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       // 서버측 토큰 만료 처리 (에러가 나도 무시하고 클라이언트 데이터는 지움)
-      await apiClient.post('/v1/auth/logout');
+      await apiClient.post('${API_BASE_URL}/auth/logout');
     } catch (error) {
       console.error('로그아웃 API 호출 에러:', error);
     } finally {
