@@ -50,7 +50,7 @@ const MEMBER_TYPES: Array<{ value: MemberType; label: string; description: strin
 //   ? process.env.NEXT_PUBLIC_API_URL
 //   : 'http://localhost:8081';
 
-const API_URL = 'http://localhost:8081';
+const API_URL = 'http://localhost:8080';
 
 export default function SignupPage() {
   const router = useRouter();
