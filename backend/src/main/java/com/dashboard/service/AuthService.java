@@ -88,11 +88,10 @@ public class AuthService {
             throw new RuntimeException("이미 사용 중인 로그인 ID입니다.");
         }
 
-        String userName = request.getName().trim();
         String passwordHash = passwordEncoder.encode(request.getPassword());
         String userEmail = request.getEmail().trim();
         String userTel = request.getPhone().trim();
-        User user = new User(userName, loginId, passwordHash, userEmail, userTel);
+        User user = new User(loginId, passwordHash, userEmail, userTel);
 
         User saved = userRepository.saveAndFlush(user);
         guardianBindingService.bindGuardianToChild(saved, request);
