@@ -1,0 +1,23 @@
+type: object
+properties:
+  name:
+    type: string
+    description: 모델 이름
+  version:
+    type: string
+    description: 모델 버전
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 모델 상태
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시

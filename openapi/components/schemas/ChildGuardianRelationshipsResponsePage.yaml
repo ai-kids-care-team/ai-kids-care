@@ -1,0 +1,23 @@
+type: object
+required:
+  - items
+  - page
+  - size
+  - total
+properties:
+  items:
+    type: array
+    items:
+      $ref: ./ChildGuardianRelationshipsResponse.yaml
+  page:
+    type: integer
+    format: int32
+    minimum: 0
+  size:
+    type: integer
+    format: int32
+    minimum: 1
+  total:
+    type: integer
+    format: int64
+    minimum: 0

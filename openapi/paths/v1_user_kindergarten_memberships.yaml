@@ -1,0 +1,58 @@
+get:
+  tags:
+    - UserKindergartenMemberships
+  operationId: listUserKindergartenMemberships
+  summary: List user_kindergarten_memberships
+  parameters:
+    - name: page
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/UserKindergartenMembershipsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
+post:
+  tags:
+    - UserKindergartenMemberships
+  operationId: createUserKindergartenMemberships
+  summary: Create user_kindergarten_memberships
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UserKindergartenMembershipsCreateRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/UserKindergartenMembershipsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

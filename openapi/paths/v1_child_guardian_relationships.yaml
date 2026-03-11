@@ -1,53 +1,58 @@
 get:
   tags:
-    - Children
-    - Guardians
-  security:
-    - bearerAuth: []
-  summary: Get one child-guardian relationship
+    - ChildGuardianRelationships
+  operationId: listChildGuardianRelationships
+  summary: List child_guardian_relationships
   parameters:
-    - $ref: ../components/parameters/ChildIdPath.yaml
-    - $ref: ../components/parameters/GuardianIdPath.yaml
+    - name: page
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
   responses:
     '200':
       description: OK
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ChildGuardianRelationship.yaml
-patch:
+            $ref: ../components/schemas/ChildGuardianRelationshipsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
+post:
   tags:
-    - Children
-    - Guardians
-  security:
-    - bearerAuth: []
-  summary: Update child-guardian relationship (metadata / dates)
-  parameters:
-    - $ref: ../components/parameters/ChildIdPath.yaml
-    - $ref: ../components/parameters/GuardianIdPath.yaml
+    - ChildGuardianRelationships
+  operationId: createChildGuardianRelationships
+  summary: Create child_guardian_relationships
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/UpdateChildGuardianRelationshipRequest.yaml
+          $ref: ../components/schemas/ChildGuardianRelationshipsCreateRequest.yaml
   responses:
-    '200':
-      description: OK
+    '201':
+      description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ChildGuardianRelationship.yaml
-delete:
-  tags:
-    - Children
-    - Guardians
-  security:
-    - bearerAuth: []
-  summary: Delete child-guardian relationship
-  parameters:
-    - $ref: ../components/parameters/ChildIdPath.yaml
-    - $ref: ../components/parameters/GuardianIdPath.yaml
-  responses:
-    '204':
-      description: No Content
+            $ref: ../components/schemas/ChildGuardianRelationshipsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
