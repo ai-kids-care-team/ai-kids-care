@@ -1,4 +1,8 @@
-Enum status_enum  {
+//============================================================
+// Enums
+//============================================================
+
+Enum status_enum {
   ACTIVE [note: "활성화 상태"]
   PENDING [note: "대기 상태"]
   DISABLED [note: "비활성화 상태"]
@@ -6,7 +10,7 @@ Enum status_enum  {
 
 Enum user_role_enum{
   GUARDIAN [note: "양육자"]
-  TEACHER [note: "유치원"]
+  TEACHER [note: "선생님"]
   KINDERGARTEN_ADMIN [note: "유치원원장"]
   PLATFORM_IT_ADMIN [note: "시스템관리자"]
   SUPERADMIN [note: "행정청"]
@@ -23,7 +27,38 @@ Enum notification_target_type{
   KINDERGARTEN [note: "KINDERGARTEN"]
 }
 
-Table user_account {
+Enum event_status_enum{
+  OPEN [note: "신규/미처리"]
+  ACKNOWLEDGED [note: "확인(열람/인지)"]
+  IN_REVIEW [note: "처리/검토 중"]
+  RESOLVED [note: "처리 완료"]
+  DISMISSED [note: "오탐/무시 처리"]
+  ESCALATED [note: "상향/보고"]
+}
+
+Enum notification_status_enum{
+  QUEUED [note: "대기"]
+  SENDING [note: "전송중"]
+  SENT [note: "전송완료(프로바이더 요청 성공)"]
+  DELIVERED [note: "도달(가능한 채널에서)"]
+  READ [note: "읽음(인앱/푸시 등)"]
+  FAILED [note: "실패"]
+  CANCELED [note: "취소"]
+}
+
+Enum camera_stream_type_enum{
+  MAIN [note: "메인 스트림"]
+  SUB [note: "서브 스트림"]
+  SNAPSHOT [note: "스냅샷/정지화면"]
+  RECORDING [note: "녹화/저장용"]
+  OTHER [note: "기타"]
+}
+
+//============================================================
+// Tables
+//============================================================
+
+Table users {
   user_id bigint [pk, increment, note: "사용자 계정 ID"]
   login_id varchar [unique, note: "로그인 ID(사용자 식별자)"]
   email varchar [note: "사용자 이메일"]
@@ -41,7 +76,7 @@ Table user_account {
   }
 }
 
-Table kindergarten {
+Table kindergartens {
   kindergarten_id bigint [pk, increment, note: "유치원 ID"]
   name varchar [note: "유치원명"]
   address varchar [note: "주소"]
@@ -56,7 +91,7 @@ Table kindergarten {
   updated_at timestamptz [default: "now()", note: "수정 일시"]
 }
 
-Table class_entity {
+Table classes {
   class_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   name varchar [note: "반/학급 이름"]
@@ -73,7 +108,7 @@ Table class_entity {
   }
 }
 
-Table child {
+Table children {
   child_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   name varchar [note: "원아 이름"]
@@ -94,7 +129,7 @@ Table child {
   }
 }
 
-Table child_class_assignment {
+Table child_class_assignments {
   assignment_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   child_id bigint [not null]
@@ -114,7 +149,7 @@ Table child_class_assignment {
   }
 }
 
-Table teacher {
+Table teachers {
   teacher_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   user_id bigint [not null]
@@ -134,10 +169,11 @@ Table teacher {
   Indexes {
     (kindergarten_id, teacher_id) [unique, name: "uq_teacher_kg_teacherid"]
     (kindergarten_id, staff_no) [unique, name: "uq_teacher_kg_staffno"]
+    (user_id) [unique, name: "uq_teacher_user_id"]
   }
 }
 
-Table superadmin {
+Table superadmins {
   superadmin_id bigint [pk, increment, note: "슈퍼어드민 ID"]
   user_id bigint [not null, note: "사용자 ID"]
   name varchar [not null, note: "담당자 이름"]
@@ -150,10 +186,7 @@ Table superadmin {
   }
 }
 
-Ref: superadmin.user_id > user_account.user_id
-
-
-Table class_teacher_assignment {
+Table class_teacher_assignments {
   assignment_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   class_id bigint [not null]
@@ -173,7 +206,7 @@ Table class_teacher_assignment {
   }
 }
 
-Table room {
+Table rooms {
   room_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   name varchar [note: "공간/교실 이름"]
@@ -189,7 +222,7 @@ Table room {
   }
 }
 
-Table class_room_assignment {
+Table class_room_assignments {
   assignment_id bigint [pk, increment, note: "반-공간 배정 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(테넌트/필터링용)"]
   class_id bigint [not null, note: "반 ID"]
@@ -208,7 +241,7 @@ Table class_room_assignment {
   }
 }
 
-Table cctv_camera {
+Table cctv_cameras {
   camera_id bigint [pk, increment, note: "카메라 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   serial_no varchar [note: "카메라 시리얼 번호/제조사 식별자"]
@@ -225,7 +258,7 @@ Table cctv_camera {
   }
 }
 
-Table room_camera_assignment {
+Table room_camera_assignments {
   assignment_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   camera_id bigint [not null]
@@ -240,7 +273,7 @@ Table room_camera_assignment {
   }
 }
 
-Table guardian {
+Table guardians {
   guardian_id bigint [pk, increment]
   kindergarten_id bigint [not null]
   user_id bigint [not null]
@@ -255,14 +288,15 @@ Table guardian {
 
   Indexes {
     (kindergarten_id, guardian_id) [unique, name: "uq_guardian_kg_guardianid"]
+    (user_id) [unique, name: "uq_guardian_user_id"]
   }
 }
 
-Table child_guardian_relationship {
+Table child_guardian_relationships {
   kindergarten_id bigint [not null]
   child_id bigint [not null]
   guardian_id bigint [not null]
-  
+
   relationship varchar [note: "관계(부/모/조부모/후견인 등)"]
   is_primary boolean [note: "주 보호자 여부"]
   priority int [note: "우선순위(연락/권한 순서)"]
@@ -275,10 +309,11 @@ Table child_guardian_relationship {
     (kindergarten_id, child_id, guardian_id) [pk, name: "pk_child_guardian"]
     (kindergarten_id, child_id) [name: "idx_cgr_child"]
     (kindergarten_id, guardian_id) [name: "idx_cgr_guardian"]
+    (kindergarten_id, child_id, is_primary) [name: "idx_cgr_child_primary"]
   }
 }
 
-Table user_kindergarten_membership {
+Table user_kindergarten_memberships {
   membership_id bigint [pk, increment, note: "멤버십 ID"]
   user_id bigint [not null, note: "사용자 ID(USER_ACCOUNT.user_id)"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
@@ -287,9 +322,13 @@ Table user_kindergarten_membership {
   left_at timestamptz [note: "탈퇴/종료 일시"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
   updated_at timestamptz [default: "now()", note: "수정 일시"]
+
+  Indexes {
+    (kindergarten_id, user_id) [unique, name: "uq_ukm_kg_user"]
+  }
 }
 
-Table user_role_assignment {
+Table user_role_assignments {
   role_assignment_id bigint [pk, increment, note: "권한 할당 ID"]
   user_id bigint [not null, note: "대상 사용자 ID(USER_ACCOUNT.user_id)"]
   role user_role_enum [note: "역할(GUARDIAN/TEACHER/KINDERGARTEN_ADMIN/PLATFORM_IT_ADMIN/SUPERADMIN)"]
@@ -299,22 +338,46 @@ Table user_role_assignment {
   granted_at timestamptz [default: "now()", note: "권한 부여 일시"]
   granted_by_user_id bigint [note: "권한 부여자 사용자 ID(USER_ACCOUNT.user_id)"]
   revoked_at timestamptz [note: "권한 회수 일시"]
+
+  Indexes {
+    (user_id, role, scope_type, scope_id) [unique, name: "uq_ura_user_role_scope"]
+    (scope_type, scope_id, status) [name: "idx_ura_scope_status"]
+  }
 }
 
-Table camera_stream {
-  camera_id bigint [pk, increment, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
+//------------------------------------------------------------
+// camera_streams: 다중 stream 지원
+//------------------------------------------------------------
+
+Table camera_streams {
+  stream_id bigint [pk, increment, note: "스트림 ID(다중 스트림 지원)"]
+  kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
+  camera_id bigint [not null, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
+
+  stream_type camera_stream_type_enum [note: "스트림 타입(메인/서브 등)"]
   stream_url varchar [note: "스트림 URL(예: RTSP/HTTP 엔드포인트)"]
   stream_user varchar [note: "스트림 인증 사용자명"]
   stream_password_encrypted varchar [note: "스트림 인증 비밀번호(암호화 저장)"]
   protocol varchar [note: "스트림 프로토콜(RTSP/HTTP)"]
   fps int [note: "스트림 FPS(초당 프레임 수)"]
   resolution varchar [note: "해상도(예: 1920x1080)"]
+
+  is_primary boolean [note: "대표 스트림 여부(카메라당 1개 권장)"]
   enabled boolean [note: "스트림 사용 여부"]
+  status status_enum [note: "스트림 상태(운영/비활성 등)"]
+
   created_at timestamptz [default: "now()", note: "생성 일시"]
   updated_at timestamptz [default: "now()", note: "수정 일시"]
+
+  Indexes {
+    (kindergarten_id, camera_id) [name: "idx_stream_camera"]
+    (kindergarten_id, camera_id, enabled) [name: "idx_stream_camera_enabled"]
+    (kindergarten_id, camera_id, is_primary) [name: "idx_stream_camera_primary"]
+    (kindergarten_id, camera_id, stream_id) [unique, name: "uq_stream_kg_camera_streamid"]
+  }
 }
 
-Table ai_model {
+Table ai_models {
   model_id bigint [pk, increment, note: "AI 모델 ID"]
   name varchar [note: "모델 이름"]
   version varchar [note: "모델 버전"]
@@ -323,10 +386,11 @@ Table ai_model {
   updated_at timestamptz [default: "now()", note: "수정 일시"]
 }
 
-Table detection_session {
+Table detection_sessions {
   session_id bigint [pk, increment, note: "탐지 세션 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   camera_id bigint [not null, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
+  stream_id bigint [not null, note: "스트림 ID(CAMERA_STREAM.stream_id), 다중 스트림 중 선택"]
   model_id bigint [not null, note: "모델 ID(AI_MODEL.model_id)"]
   started_at timestamptz [default: "now()", note: "세션 시작 일시"]
   ended_at timestamptz [note: "세션 종료 일시"]
@@ -335,10 +399,11 @@ Table detection_session {
   inference_fps float [note: "추론 처리 FPS"]
   Indexes {
     (kindergarten_id, session_id) [unique, name: "uq_session_kg_sessionid"]
+    (kindergarten_id, camera_id, started_at) [name: "idx_session_camera_time"]
   }
 }
 
-Table detection_event {
+Table detection_events {
   event_id bigint [pk, increment, note: "탐지 이벤트 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   camera_id bigint [not null, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
@@ -350,21 +415,26 @@ Table detection_event {
   detected_at timestamptz [default: "now()", note: "탐지 발생 일시"]
   start_time timestamptz [note: "이벤트 시작 시각"]
   end_time timestamptz [note: "이벤트 종료 시각"]
-  status status_enum [note: "이벤트 상태"]
+  status event_status_enum [note: "이벤트 상태(세분화)"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
-  updated_at timestamptz [default: "now()", note: "수정 일시"] 
+  updated_at timestamptz [default: "now()", note: "수정 일시"]
+
   Indexes {
     (kindergarten_id, event_id) [unique, name: "uq_event_kg_eventid"]
+    (kindergarten_id, room_id, detected_at) [name: "idx_event_room_time"]
+    (kindergarten_id, camera_id, detected_at) [name: "idx_event_camera_time"]
+    (kindergarten_id, status, detected_at) [name: "idx_event_status_time"]
   }
 }
 
-Table event_review {
+Table event_reviews {
   review_id bigint [pk, increment, note: "이벤트 리뷰/처리 ID"]
   event_id bigint [not null, note: "이벤트 ID(DETECTION_EVENT.event_id)"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   user_id bigint [not null, note: "처리 사용자 ID(USER_ACCOUNT.user_id)"]
   action varchar [note: "처리 액션(ACK/RESOLVE/MARK_FALSE_POSITIVE/REOPEN)"]
-  result_status status_enum [note: "처리 결과 상태(액션 후 이벤트 상태 등)"]
+  from_status event_status_enum [note: "처리 전 이벤트 상태"]
+  result_status event_status_enum [note: "처리 결과 상태(액션 후 이벤트 상태 등)"]
   comment varchar [note: "코멘트/메모"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
   Indexes {
@@ -372,7 +442,7 @@ Table event_review {
   }
 }
 
-Table event_evidence {
+Table event_evidence_files {
   evidence_id bigint [pk, increment, note: "증거 자료 ID"]
   event_id bigint [not null, note: "이벤트 ID(DETECTION_EVENT.event_id)"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
@@ -388,7 +458,7 @@ Table event_evidence {
   }
 }
 
-Table device_token {
+Table device_tokens {
   device_id bigint [pk, increment, note: "디바이스 토큰 ID"]
   user_id bigint [not null, note: "사용자 ID(USER_ACCOUNT.user_id)"]
   platform varchar [note: "플랫폼(IOS/ANDROID)"]
@@ -396,9 +466,14 @@ Table device_token {
   status status_enum [note: "토큰 상태"]
   last_seen_at timestamptz [note: "마지막 사용/갱신 일시"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
+
+  Indexes {
+    (platform, push_token) [unique, name: "uq_device_tokens_platform_push_token"]
+    (user_id, status) [name: "idx_device_tokens_user_status"]
+  }
 }
 
-Table notification_rule {
+Table notification_rules {
   rule_id bigint [pk, increment, note: "알림 규칙 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   user_id bigint [not null, note: "규칙 소유/대상 사용자 ID(USER_ACCOUNT.user_id)"]
@@ -415,7 +490,7 @@ Table notification_rule {
   }
 }
 
-Table notification {
+Table notifications {
   notification_id bigint [pk, increment, note: "알림 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   event_id bigint [not null, note: "관련 이벤트 ID(DETECTION_EVENT.event_id)"]
@@ -423,7 +498,9 @@ Table notification {
   channel varchar [note: "전송 채널(PUSH/SMS/EMAIL)"]
   title varchar [note: "알림 제목"]
   body varchar [note: "알림 본문"]
-  status status_enum [note: "전송 상태"]
+  status notification_status_enum [note: "전송 상태(세분화)"]
+
+  dedupe_key varchar [note: "중복 방지 키(멱등성 키, 애플리케이션에서 생성)"]
   sent_at timestamptz [note: "전송 완료/시도 일시"]
   fail_reason varchar [note: "실패 사유"]
   retry_count int [note: "재시도 횟수"]
@@ -432,10 +509,12 @@ Table notification {
   Indexes {
     (kindergarten_id, recipient_user_id, created_at) [name: "idx_notif_recipient_time"]
     (kindergarten_id, event_id) [name: "idx_notif_event"]
+    (kindergarten_id, status, created_at) [name: "idx_notif_status_time"]
+    (kindergarten_id, dedupe_key) [unique, name: "uq_notifications_dedupe"]
   }
 }
 
-Table audit_log {
+Table audit_logs {
   audit_id bigint [pk, increment, note: "감사/추적 로그 ID"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   user_id bigint [not null, note: "행위 사용자 ID(USER_ACCOUNT.user_id)"]
@@ -447,70 +526,82 @@ Table audit_log {
   created_at timestamptz [default: "now()", note: "생성 일시"]
 }
 
-// =====================
-// Refs (relationships)
-// =====================
-Ref: class_entity.kindergarten_id > kindergarten.kindergarten_id
-Ref: room.kindergarten_id > kindergarten.kindergarten_id
-Ref: cctv_camera.kindergarten_id > kindergarten.kindergarten_id
-Ref: teacher.kindergarten_id > kindergarten.kindergarten_id
-Ref: guardian.kindergarten_id > kindergarten.kindergarten_id
-Ref: child.kindergarten_id > kindergarten.kindergarten_id
+//============================================================
+// Refs (relationships) - 강한 테넌트 일관성(복합 FK 중심)
+//============================================================
 
-Ref: user_role_assignment.user_id > user_account.user_id
+Ref: superadmins.user_id > users.user_id
 
-Ref: guardian.user_id > user_account.user_id
-Ref: teacher.user_id > user_account.user_id
+Ref: classes.kindergarten_id > kindergartens.kindergarten_id
+Ref: rooms.kindergarten_id > kindergartens.kindergarten_id
+Ref: cctv_cameras.kindergarten_id > kindergartens.kindergarten_id
+Ref: teachers.kindergarten_id > kindergartens.kindergarten_id
+Ref: guardians.kindergarten_id > kindergartens.kindergarten_id
+Ref: children.kindergarten_id > kindergartens.kindergarten_id
 
-Ref: camera_stream.camera_id - cctv_camera.camera_id
+Ref: guardians.user_id > users.user_id
+Ref: teachers.user_id > users.user_id
 
-Ref: detection_session.model_id > ai_model.model_id
+Ref: cctv_cameras.created_by_user_id > users.user_id
+Ref: child_class_assignments.created_by_user_id > users.user_id
+Ref: class_teacher_assignments.created_by_user_id > users.user_id
+Ref: class_room_assignments.created_by_user_id > users.user_id
 
-Ref: event_review.user_id > user_account.user_id
-Ref: event_review.(kindergarten_id, event_id)   > detection_event.(kindergarten_id, event_id)
-Ref: event_evidence.(kindergarten_id, event_id) > detection_event.(kindergarten_id, event_id)
-Ref: notification.(kindergarten_id, event_id)   > detection_event.(kindergarten_id, event_id)
-
-Ref: device_token.user_id > user_account.user_id
-
-Ref: notification_rule.kindergarten_id > kindergarten.kindergarten_id
-Ref: notification_rule.user_id > user_account.user_id
-Ref: notification.recipient_user_id > user_account.user_id
-
-Ref: audit_log.kindergarten_id > kindergarten.kindergarten_id
-Ref: audit_log.user_id > user_account.user_id
-
-Ref: cctv_camera.created_by_user_id > user_account.user_id
-
-// CLASS_TEACHER_ASSIGNMENT
-Ref: class_teacher_assignment.(kindergarten_id, class_id)   > class_entity.(kindergarten_id, class_id)
-Ref: class_teacher_assignment.(kindergarten_id, teacher_id) > teacher.(kindergarten_id, teacher_id)
-
-// CHILD_GUARDIAN_RELATIONSHIP
-Ref: child_guardian_relationship.(kindergarten_id, child_id)    > child.(kindergarten_id, child_id)
-Ref: child_guardian_relationship.(kindergarten_id, guardian_id) > guardian.(kindergarten_id, guardian_id)
+// USER_ROLE_ASSIGNMENT
+Ref: user_role_assignments.user_id > users.user_id
+Ref: user_role_assignments.granted_by_user_id > users.user_id
 
 // USER_KINDERGARTEN_MEMBERSHIP
-Ref: user_kindergarten_membership.user_id > user_account.user_id
-Ref: user_kindergarten_membership.kindergarten_id > kindergarten.kindergarten_id
+Ref: user_kindergarten_memberships.user_id > users.user_id
+Ref: user_kindergarten_memberships.kindergarten_id > kindergartens.kindergarten_id
 
-// CLASS_ROOM_ASSIGNMENT 
-Ref: class_room_assignment.(kindergarten_id, class_id) > class_entity.(kindergarten_id, class_id)
-Ref: class_room_assignment.(kindergarten_id, room_id) > room.(kindergarten_id, room_id)
+// CAMERA_STREAM
+Ref: camera_streams.(kindergarten_id, camera_id) > cctv_cameras.(kindergarten_id, camera_id)
+
+// CLASS_TEACHER_ASSIGNMENT
+Ref: class_teacher_assignments.(kindergarten_id, class_id)   > classes.(kindergarten_id, class_id)
+Ref: class_teacher_assignments.(kindergarten_id, teacher_id) > teachers.(kindergarten_id, teacher_id)
+
+// CHILD_GUARDIAN_RELATIONSHIP
+Ref: child_guardian_relationships.(kindergarten_id, child_id)    > children.(kindergarten_id, child_id)
+Ref: child_guardian_relationships.(kindergarten_id, guardian_id) > guardians.(kindergarten_id, guardian_id)
+
+// CLASS_ROOM_ASSIGNMENT
+Ref: class_room_assignments.(kindergarten_id, class_id) > classes.(kindergarten_id, class_id)
+Ref: class_room_assignments.(kindergarten_id, room_id)  > rooms.(kindergarten_id, room_id)
 
 // CHILD_CLASS_ASSIGNMENT
-Ref: child_class_assignment.(kindergarten_id, child_id) > child.(kindergarten_id, child_id)
-Ref: child_class_assignment.(kindergarten_id, class_id) > class_entity.(kindergarten_id, class_id)
+Ref: child_class_assignments.(kindergarten_id, child_id) > children.(kindergarten_id, child_id)
+Ref: child_class_assignments.(kindergarten_id, class_id) > classes.(kindergarten_id, class_id)
 
-// ROOM_CAMERA_ASSIGNMENT 
-Ref: room_camera_assignment.(kindergarten_id, room_id)  > room.(kindergarten_id, room_id)
-Ref: room_camera_assignment.(kindergarten_id, camera_id)> cctv_camera.(kindergarten_id, camera_id)
+// ROOM_CAMERA_ASSIGNMENT
+Ref: room_camera_assignments.(kindergarten_id, room_id)   > rooms.(kindergarten_id, room_id)
+Ref: room_camera_assignments.(kindergarten_id, camera_id) > cctv_cameras.(kindergarten_id, camera_id)
 
 // DETECTION_SESSION
-Ref: detection_session.kindergarten_id > kindergarten.kindergarten_id
-Ref: detection_session.(kindergarten_id, camera_id) > cctv_camera.(kindergarten_id, camera_id)
+Ref: detection_sessions.kindergarten_id > kindergartens.kindergarten_id
+Ref: detection_sessions.(kindergarten_id, camera_id) > cctv_cameras.(kindergarten_id, camera_id)
+Ref: detection_sessions.(kindergarten_id, camera_id, stream_id) > camera_streams.(kindergarten_id, camera_id, stream_id)
+Ref: detection_sessions.model_id > ai_models.model_id
 
 // DETECTION_EVENT
-Ref: detection_event.(kindergarten_id, session_id) > detection_session.(kindergarten_id, session_id)
-Ref: detection_event.(kindergarten_id, camera_id)  > cctv_camera.(kindergarten_id, camera_id)
-Ref: detection_event.(kindergarten_id, room_id)    > room.(kindergarten_id, room_id)
+Ref: detection_events.(kindergarten_id, session_id) > detection_sessions.(kindergarten_id, session_id)
+Ref: detection_events.(kindergarten_id, camera_id)  > cctv_cameras.(kindergarten_id, camera_id)
+Ref: detection_events.(kindergarten_id, room_id)    > rooms.(kindergarten_id, room_id)
+
+// EVENT_REVIEW / EVIDENCE / NOTIFICATION
+Ref: event_reviews.user_id > users.user_id
+Ref: event_reviews.(kindergarten_id, event_id) > detection_events.(kindergarten_id, event_id)
+
+Ref: event_evidence_files.(kindergarten_id, event_id) > detection_events.(kindergarten_id, event_id)
+
+Ref: notifications.(kindergarten_id, event_id) > detection_events.(kindergarten_id, event_id)
+Ref: notifications.recipient_user_id > users.user_id
+
+Ref: notification_rules.kindergarten_id > kindergartens.kindergarten_id
+Ref: notification_rules.user_id > users.user_id
+
+Ref: device_tokens.user_id > users.user_id
+
+Ref: audit_logs.kindergarten_id > kindergartens.kindergarten_id
+Ref: audit_logs.user_id > users.user_id
