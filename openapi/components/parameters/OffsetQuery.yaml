@@ -1,7 +1,0 @@
-name: offset
-in: query
-required: false
-schema:
-  type: integer
-  default: 0
-  minimum: 0

@@ -1,0 +1,20 @@
+type: object
+properties:
+  user_id:
+    type: integer
+    format: int64
+    description: 사용자 ID
+  name:
+    type: string
+    description: 담당자 이름
+  department:
+    type: string
+    description: 행정청+부서 이름 e.g.서울시청 아동담당관
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시

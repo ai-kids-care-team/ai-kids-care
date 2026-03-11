@@ -1,0 +1,44 @@
+type: object
+properties:
+  event_id:
+    type: integer
+    format: int64
+    description: 이벤트 ID(DETECTION_EVENT.event_id)
+  kindergarten_id:
+    type: integer
+    format: int64
+    description: 유치원 ID(KINDERGARTEN.kindergarten_id)
+  user_id:
+    type: integer
+    format: int64
+    description: 처리 사용자 ID(USER_ACCOUNT.user_id)
+  action:
+    type: string
+    description: 처리 액션(ACK/RESOLVE/MARK_FALSE_POSITIVE/REOPEN)
+  from_status:
+    type: string
+    enum:
+      - OPEN
+      - ACKNOWLEDGED
+      - IN_REVIEW
+      - RESOLVED
+      - DISMISSED
+      - ESCALATED
+    description: 처리 전 이벤트 상태
+  result_status:
+    type: string
+    enum:
+      - OPEN
+      - ACKNOWLEDGED
+      - IN_REVIEW
+      - RESOLVED
+      - DISMISSED
+      - ESCALATED
+    description: 처리 결과 상태(액션 후 이벤트 상태 등)
+  comment:
+    type: string
+    description: 코멘트/메모
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시

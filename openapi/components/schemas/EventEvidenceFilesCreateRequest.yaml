@@ -1,0 +1,36 @@
+type: object
+properties:
+  event_id:
+    type: integer
+    format: int64
+    description: 이벤트 ID(DETECTION_EVENT.event_id)
+  kindergarten_id:
+    type: integer
+    format: int64
+    description: 유치원 ID(KINDERGARTEN.kindergarten_id)
+  type:
+    type: string
+    description: 증거 유형(IMAGE/VIDEO)
+  storage_uri:
+    type: string
+    description: 저장 위치 URI(internal MinIO/NAS 등)
+  mime_type:
+    type: string
+    description: 'MIME 타입(예: image/jpeg, video/mp4)'
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  retention_until:
+    type: string
+    format: date-time
+    description: 보관 만료 예정 일시
+  hold:
+    type: boolean
+    description: 보관 홀드 여부(만료/삭제 방지 플래그)
+  hash:
+    type: string
+    description: 무결성 확인용 해시(파일 해시)
+required:
+  - event_id
+  - kindergarten_id

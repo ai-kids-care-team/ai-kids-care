@@ -1,37 +1,58 @@
 get:
   tags:
     - Notifications
-  security:
-    - bearerAuth: []
+  operationId: listNotifications
   summary: List notifications
   parameters:
-    - $ref: ../components/parameters/LimitQuery.yaml
-    - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: status
+    - name: page
       in: query
-      required: false
-      schema:
-        $ref: ../components/schemas/StatusEnum.yaml
-    - name: recipientUserId
-      in: query
-      required: false
       schema:
         type: integer
-        format: int64
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
   responses:
     '200':
       description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - items
-              - meta
-            properties:
-              items:
-                type: array
-                items:
-                  $ref: ../components/schemas/Notification.yaml
-              meta:
-                $ref: ../components/schemas/PaginationMeta.yaml
+            $ref: ../components/schemas/NotificationsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
+post:
+  tags:
+    - Notifications
+  operationId: createNotifications
+  summary: Create notifications
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/NotificationsCreateRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/NotificationsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

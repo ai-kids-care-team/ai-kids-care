@@ -1,0 +1,62 @@
+type: object
+properties:
+  teacher_id:
+    type: integer
+    format: int64
+  kindergarten_id:
+    type: integer
+    format: int64
+  user_id:
+    type: integer
+    format: int64
+  staff_no:
+    type: string
+    description: 직원 번호(원내 사번)
+  name:
+    type: string
+    description: 교사 이름
+  gender:
+    type: string
+    description: 성별
+  emergency_contact_name:
+    type: string
+    description: 비상 연락처 이름
+  emergency_contact_phone:
+    type: string
+    description: 비상 연락처 전화번호
+  rrn_encrypted:
+    type: string
+    description: 주민등록번호 암호문(암호화 저장)
+  rrn_first6:
+    type: string
+    description: 주민등록번호 앞 6자리(생년월일, 검색/중복확인용)
+  level:
+    type: string
+    description: '직급(예: 원장/부원장/일반교사 등)'
+  start_date:
+    type: string
+    format: date
+    description: 근무 시작일
+  end_date:
+    type: string
+    format: date
+    description: 근무 종료일
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 재직 상태
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시
+required:
+  - teacher_id
+  - kindergarten_id
+  - user_id

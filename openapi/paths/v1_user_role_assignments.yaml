@@ -1,0 +1,58 @@
+get:
+  tags:
+    - UserRoleAssignments
+  operationId: listUserRoleAssignments
+  summary: List user_role_assignments
+  parameters:
+    - name: page
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/UserRoleAssignmentsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
+post:
+  tags:
+    - UserRoleAssignments
+  operationId: createUserRoleAssignments
+  summary: Create user_role_assignments
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UserRoleAssignmentsCreateRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/UserRoleAssignmentsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

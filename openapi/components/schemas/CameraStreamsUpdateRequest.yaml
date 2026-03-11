@@ -1,0 +1,59 @@
+type: object
+properties:
+  kindergarten_id:
+    type: integer
+    format: int64
+    description: 유치원 ID(KINDERGARTEN.kindergarten_id)
+  camera_id:
+    type: integer
+    format: int64
+    description: 카메라 ID(CCTV_CAMERA.camera_id)
+  stream_type:
+    type: string
+    enum:
+      - MAIN
+      - SUB
+      - SNAPSHOT
+      - RECORDING
+      - OTHER
+    description: 스트림 타입(메인/서브 등)
+  stream_url:
+    type: string
+    description: '스트림 URL(예: RTSP/HTTP 엔드포인트)'
+  stream_user:
+    type: string
+    description: 스트림 인증 사용자명
+  stream_password_encrypted:
+    type: string
+    description: 스트림 인증 비밀번호(암호화 저장)
+  protocol:
+    type: string
+    description: 스트림 프로토콜(RTSP/HTTP)
+  fps:
+    type: integer
+    format: int32
+    description: 스트림 FPS(초당 프레임 수)
+  resolution:
+    type: string
+    description: '해상도(예: 1920x1080)'
+  is_primary:
+    type: boolean
+    description: 대표 스트림 여부(카메라당 1개 권장)
+  enabled:
+    type: boolean
+    description: 스트림 사용 여부
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 스트림 상태(운영/비활성 등)
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시

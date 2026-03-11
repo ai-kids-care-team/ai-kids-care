@@ -1,0 +1,58 @@
+get:
+  tags:
+    - EventReviews
+  operationId: listEventReviews
+  summary: List event_reviews
+  parameters:
+    - name: page
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
+  responses:
+    '200':
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/EventReviewsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
+post:
+  tags:
+    - EventReviews
+  operationId: createEventReviews
+  summary: Create event_reviews
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/EventReviewsCreateRequest.yaml
+  responses:
+    '201':
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/EventReviewsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

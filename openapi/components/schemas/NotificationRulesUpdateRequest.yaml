@@ -1,0 +1,38 @@
+type: object
+properties:
+  kindergarten_id:
+    type: integer
+    format: int64
+    description: 유치원 ID(KINDERGARTEN.kindergarten_id)
+  user_id:
+    type: integer
+    format: int64
+    description: 규칙 소유/대상 사용자 ID(USER_ACCOUNT.user_id)
+  target_type:
+    type: string
+    enum:
+      - ROOM
+      - CAMERA
+      - KINDERGARTEN
+    description: 규칙 적용 범위(ROOM/CAMERA/KINDERGARTEN)
+  target_id:
+    type: integer
+    format: int64
+    description: 범위 ID(target_type에 따른 room_id/camera_id/kindergarten_id 등)
+  event_type:
+    type: string
+    description: 대상 이벤트 유형
+  min_severity:
+    type: integer
+    format: int32
+    description: 최소 심각도(이 값 이상만 알림)
+  quiet_hours_json:
+    type: string
+    description: 방해금지 시간 설정(JSON 문자열)
+  enabled:
+    type: boolean
+    description: 규칙 활성화 여부
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
