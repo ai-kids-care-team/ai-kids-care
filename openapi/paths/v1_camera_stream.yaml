@@ -5,7 +5,6 @@ put:
     - bearerAuth: []
   summary: Upsert camera stream settings
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - name: cameraId
       in: path
       required: true

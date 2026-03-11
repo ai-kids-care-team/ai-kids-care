@@ -1,24 +1,28 @@
 get:
   tags:
-    - Detections
+    - Audit
   security:
     - bearerAuth: []
-  summary: List detection sessions
+  summary: List audit logs
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: status
-      in: query
-      required: false
-      schema:
-        $ref: ../components/schemas/StatusEnum.yaml
-    - name: cameraId
+    - name: userId
       in: query
       required: false
       schema:
         type: integer
         format: int64
+    - name: action
+      in: query
+      required: false
+      schema:
+        type: string
+    - name: resourceType
+      in: query
+      required: false
+      schema:
+        type: string
   responses:
     '200':
       description: OK
@@ -33,6 +37,6 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/DetectionSession.yaml
+                  $ref: ../components/schemas/AuditLog.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml

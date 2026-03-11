@@ -1,7 +1,7 @@
 openapi: 3.0.2
 info:
   title: Kindergarten CCTV AI Safety Platform API
-  version: 1.0.0
+  version: 2.0.1
   description: >
     API spec aligned with latest DBML where all status fields use status_enum:
     ACTIVE | PENDING | DISABLED.
@@ -11,10 +11,10 @@ tags:
   - name: Auth
   - name: Users
   - name: Kindergartens
-  - name: Classes
-  - name: Children
-  - name: Teachers
   - name: Guardians
+  - name: Children
+  - name: Classes
+  - name: Teachers
   - name: Rooms
   - name: Cameras
   - name: AI
@@ -30,77 +30,62 @@ paths:
     $ref: paths/v1_auth_refresh.yaml
   /v1/auth/logout:
     $ref: paths/v1_auth_logout.yaml
-  /v1/auth/password/change:
-    $ref: paths/v1_auth_password_change.yaml
-  /v1/auth/password/forgot:
-    $ref: paths/v1_auth_password_forgot.yaml
-  /v1/auth/password/reset:
-    $ref: paths/v1_auth_password_reset.yaml
+  /v1/auth/password:
+    $ref: paths/v1_auth_password.yaml
+  /v1/auth/password-resets:
+    $ref: paths/v1_auth_password-resets.yaml
+  /v1/auth/password-resets/{resetToken}:
+    $ref: paths/v1_auth_password-resets_{resetToken}.yaml
   /v1/auth/verification-codes:
     $ref: paths/v1_auth_verification-codes.yaml
-  /v1/auth/verification-codes/verify:
-    $ref: paths/v1_auth_verification-codes_verify.yaml
+  /v1/auth/verification-codes/{challengeId}/verifications:
+    $ref: paths/v1_auth_verification-codes_{challengeId}_verifications.yaml
   /v1/users/me:
     $ref: paths/v1_users_me.yaml
   /v1/kindergartens:
     $ref: paths/v1_kindergartens.yaml
   /v1/kindergartens/{kindergartenId}:
     $ref: paths/v1_kindergartens_{kindergartenId}.yaml
-  /v1/kindergartens/{kindergartenId}/classes:
-    $ref: paths/v1_kindergartens_{kindergartenId}_classes.yaml
+  /v1/classes:
+    $ref: paths/v1_classes.yaml
   /v1/children:
     $ref: paths/v1_children.yaml
-  /v1/kindergartens/{kindergartenId}/rooms:
-    $ref: paths/v1_kindergartens_{kindergartenId}_rooms.yaml
-  /v1/kindergartens/{kindergartenId}/cameras:
-    $ref: paths/v1_kindergartens_{kindergartenId}_cameras.yaml
-  /v1/kindergartens/{kindergartenId}/cameras/{cameraId}/stream:
-    $ref: paths/v1_kindergartens_{kindergartenId}_cameras_{cameraId}_stream.yaml
+  /v1/rooms:
+    $ref: paths/v1_rooms.yaml
+  /v1/cameras:
+    $ref: paths/v1_cameras.yaml
+  /v1/camera_stream:
+    $ref: paths/v1_camera_stream.yaml
   /v1/ai/models:
     $ref: paths/v1_ai_models.yaml
-  /v1/kindergartens/{kindergartenId}/detection-sessions:
-    $ref: paths/v1_kindergartens_{kindergartenId}_detection-sessions.yaml
-  /v1/kindergartens/{kindergartenId}/events:
-    $ref: paths/v1_kindergartens_{kindergartenId}_events.yaml
-  /v1/kindergartens/{kindergartenId}/notifications:
-    $ref: paths/v1_kindergartens_{kindergartenId}_notifications.yaml
-  /v1/kindergartens/{kindergartenId}/audit-logs:
-    $ref: paths/v1_kindergartens_{kindergartenId}_audit-logs.yaml
-  /v1/kindergartens/{kindergartenId}/child-class-assignments:
-    $ref: paths/v1_kindergartens_{kindergartenId}_child-class-assignments.yaml
-  /v1/kindergartens/{kindergartenId}/child-class-assignments/{assignmentId}:
-    $ref: >-
-      paths/v1_kindergartens_{kindergartenId}_child-class-assignments_{assignmentId}.yaml
-  /v1/kindergartens/{kindergartenId}/class-teacher-assignments:
-    $ref: paths/v1_kindergartens_{kindergartenId}_class-teacher-assignments.yaml
-  /v1/kindergartens/{kindergartenId}/class-teacher-assignments/{assignmentId}:
-    $ref: >-
-      paths/v1_kindergartens_{kindergartenId}_class-teacher-assignments_{assignmentId}.yaml
-  /v1/kindergartens/{kindergartenId}/class-room-assignments:
-    $ref: paths/v1_kindergartens_{kindergartenId}_class-room-assignments.yaml
-  /v1/kindergartens/{kindergartenId}/class-room-assignments/{assignmentId}:
-    $ref: >-
-      paths/v1_kindergartens_{kindergartenId}_class-room-assignments_{assignmentId}.yaml
-  /v1/kindergartens/{kindergartenId}/room-camera-assignments:
-    $ref: paths/v1_kindergartens_{kindergartenId}_room-camera-assignments.yaml
-  /v1/kindergartens/{kindergartenId}/room-camera-assignments/{assignmentId}:
-    $ref: >-
-      paths/v1_kindergartens_{kindergartenId}_room-camera-assignments_{assignmentId}.yaml
+  /v1/detection-sessions:
+    $ref: paths/v1_detection-sessions.yaml
+  /v1/events:
+    $ref: paths/v1_events.yaml
+  /v1/notifications:
+    $ref: paths/v1_notifications.yaml
+  /v1/audit-logs:
+    $ref: paths/v1_audit-logs.yaml
+  /v1/child-class-assignments:
+    $ref: paths/v1_child-class-assignments.yaml
+  /v1/class-teacher-assignments:
+    $ref: paths/v1_class-teacher-assignments.yaml
+  /v1/class-room-assignments:
+    $ref: paths/v1_class-room-assignments.yaml
+  /v1/room-camera-assignments:
+    $ref: paths/v1_room-camera-assignments.yaml
   /v1/kindergartens/{kindergartenId}/child-guardian-relationships:
     $ref: paths/v1_kindergartens_{kindergartenId}_child-guardian-relationships.yaml
-  /v1/kindergartens/{kindergartenId}/children/{childId}/guardians/{guardianId}:
-    $ref: >-
-      paths/v1_kindergartens_{kindergartenId}_children_{childId}_guardians_{guardianId}.yaml
-  /v1/kindergartens/{kindergartenId}/teachers:
-    $ref: paths/v1_kindergartens_{kindergartenId}_teachers.yaml
-  /v1/kindergartens/{kindergartenId}/teachers/{teacherId}:
-    $ref: paths/v1_kindergartens_{kindergartenId}_teachers_{teacherId}.yaml
-  /v1/kindergartens/{kindergartenId}/guardians:
-    $ref: paths/v1_kindergartens_{kindergartenId}_guardians.yaml
-  /v1/kindergartens/{kindergartenId}/guardians/{guardianId}:
-    $ref: paths/v1_kindergartens_{kindergartenId}_guardians_{guardianId}.yaml
-  /v1/kindergartens/{kindergartenId}/children/{childId}/guardians:
-    $ref: paths/v1_kindergartens_{kindergartenId}_children_{childId}_guardians.yaml
+  /v1/child_guardian_relationships:
+    $ref: paths/v1_child_guardian_relationships.yaml
+  /v1/teachers:
+    $ref: paths/v1_teachers.yaml
+  /v1/teachers/{teacherId}:
+    $ref: paths/v1_teachers_{teacherId}.yaml
+  /v1/guardians:
+    $ref: paths/v1_guardians.yaml
+  /v1/guardians/{guardianId}:
+    $ref: paths/v1_guardians_{guardianId}.yaml
 components:
   securitySchemes:
     bearerAuth:

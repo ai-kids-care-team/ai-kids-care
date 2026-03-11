@@ -1,21 +1,23 @@
 get:
   tags:
-    - Children
-    - Guardians
+    - Detections
   security:
     - bearerAuth: []
-  summary: List guardians of a child
+  summary: List detection sessions
   parameters:
-    - $ref: ../components/parameters/KindergartenIdPath.yaml
-    - $ref: ../components/parameters/ChildIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: activeAt
+    - name: status
       in: query
       required: false
       schema:
-        type: string
-        format: date
+        $ref: ../components/schemas/StatusEnum.yaml
+    - name: cameraId
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int64
   responses:
     '200':
       description: OK
@@ -30,6 +32,6 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/ChildGuardianRelationship.yaml
+                  $ref: ../components/schemas/DetectionSession.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml

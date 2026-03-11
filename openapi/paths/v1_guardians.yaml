@@ -54,7 +54,7 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateGuardianRequest.yaml
+          $ref: ../components/schemas/GuardianCreateRequest.yaml
   responses:
     '201':
       description: Created

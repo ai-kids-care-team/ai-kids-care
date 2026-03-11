@@ -1,40 +1,34 @@
 get:
   tags:
-    - Classes
-    - Rooms
+    - Teachers
   security:
     - bearerAuth: []
-  summary: List class-room assignments
+  summary: List teachers
   parameters:
     - $ref: ../components/parameters/KindergartenIdPath.yaml
     - $ref: ../components/parameters/LimitQuery.yaml
     - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: classId
-      in: query
-      required: false
-      schema:
-        type: integer
-        format: int64
-    - name: roomId
-      in: query
-      required: false
-      schema:
-        type: integer
-        format: int64
     - name: status
       in: query
       required: false
       schema:
         $ref: ../components/schemas/StatusEnum.yaml
-    - name: activeAt
+    - name: userId
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int64
+    - name: staffNo
       in: query
       required: false
       schema:
         type: string
-        format: date-time
-      description: >-
-        Return assignments where startAt <= activeAt and (endAt is null or endAt
-        >= activeAt).
+    - name: name
+      in: query
+      required: false
+      schema:
+        type: string
   responses:
     '200':
       description: OK
@@ -49,16 +43,15 @@ get:
               items:
                 type: array
                 items:
-                  $ref: ../components/schemas/ClassRoomAssignment.yaml
+                  $ref: ../components/schemas/Teacher.yaml
               meta:
                 $ref: ../components/schemas/PaginationMeta.yaml
 post:
   tags:
-    - Classes
-    - Rooms
+    - Teachers
   security:
     - bearerAuth: []
-  summary: Create class-room assignment
+  summary: Create teacher
   parameters:
     - $ref: ../components/parameters/KindergartenIdPath.yaml
   requestBody:
@@ -66,16 +59,22 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/CreateClassRoomAssignmentRequest.yaml
+          $ref: ../components/schemas/TeacherCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/ClassRoomAssignment.yaml
+            $ref: ../components/schemas/Teacher.yaml
+    '400':
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ErrorResponse.yaml
     '409':
-      description: Conflict (overlap)
+      description: Conflict (e.g., user already mapped as teacher in this kindergarten)
       content:
         application/json:
           schema:

@@ -14,5 +14,10 @@ properties:
   purpose:
     type: string
     enum:
-      - REGISTER
-      - RESET_PASSWORD
+      - SIGNUP
+      - PASSWORD_RESET
+      - VERIFY_EMAIL
+      - VERIFY_PHONE
+      - CHANGE_EMAIL
+      - CHANGE_PHONE
+      - MFA_LOGIN
