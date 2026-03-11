@@ -1,55 +1,58 @@
 get:
   tags:
     - Children
-  security:
-    - bearerAuth: []
+  operationId: listChildren
   summary: List children
   parameters:
-    - $ref: ../components/parameters/LimitQuery.yaml
-    - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: status
+    - name: page
       in: query
-      required: false
       schema:
-        $ref: ../components/schemas/StatusEnum.yaml
-    - name: childNo
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
       in: query
-      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
       schema:
         type: string
+      description: e.g. created_at,desc
   responses:
     '200':
       description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - items
-              - meta
-            properties:
-              items:
-                type: array
-                items:
-                  $ref: ../components/schemas/Child.yaml
-              meta:
-                $ref: ../components/schemas/PaginationMeta.yaml
+            $ref: ../components/schemas/ChildrenResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
 post:
   tags:
     - Children
-  security:
-    - bearerAuth: []
-  summary: Create child
+  operationId: createChildren
+  summary: Create children
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/ChildCreateRequest.yaml
+          $ref: ../components/schemas/ChildrenCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/Child.yaml
+            $ref: ../components/schemas/ChildrenResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

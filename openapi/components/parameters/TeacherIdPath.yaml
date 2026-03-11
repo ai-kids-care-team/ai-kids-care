@@ -1,6 +1,0 @@
-name: teacherId
-in: path
-required: true
-schema:
-  type: integer
-  format: int64

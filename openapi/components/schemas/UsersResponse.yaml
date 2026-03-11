@@ -1,0 +1,39 @@
+type: object
+properties:
+  user_id:
+    type: integer
+    format: int64
+    description: 사용자 계정 ID
+  login_id:
+    type: string
+    description: 로그인 ID(사용자 식별자)
+  email:
+    type: string
+    description: 사용자 이메일
+  phone:
+    type: string
+    description: 사용자 휴대폰 번호
+  password_hash:
+    type: string
+    description: 비밀번호 해시
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 계정 상태
+  last_login_at:
+    type: string
+    format: date-time
+    description: 마지막 로그인 일시
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시
+required:
+  - user_id

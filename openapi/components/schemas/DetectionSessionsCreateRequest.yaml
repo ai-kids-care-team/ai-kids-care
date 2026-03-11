@@ -1,0 +1,46 @@
+type: object
+properties:
+  kindergarten_id:
+    type: integer
+    format: int64
+    description: 유치원 ID(KINDERGARTEN.kindergarten_id)
+  camera_id:
+    type: integer
+    format: int64
+    description: 카메라 ID(CCTV_CAMERA.camera_id)
+  stream_id:
+    type: integer
+    format: int64
+    description: 스트림 ID(CAMERA_STREAM.stream_id), 다중 스트림 중 선택
+  model_id:
+    type: integer
+    format: int64
+    description: 모델 ID(AI_MODEL.model_id)
+  started_at:
+    type: string
+    format: date-time
+    description: 세션 시작 일시
+  ended_at:
+    type: string
+    format: date-time
+    description: 세션 종료 일시
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 세션 상태
+  avg_latency_ms:
+    type: integer
+    format: int32
+    description: 평균 지연 시간(ms)
+  inference_fps:
+    type: number
+    format: double
+    description: 추론 처리 FPS
+required:
+  - kindergarten_id
+  - camera_id
+  - stream_id
+  - model_id

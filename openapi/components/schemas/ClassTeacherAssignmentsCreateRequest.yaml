@@ -1,0 +1,51 @@
+type: object
+properties:
+  kindergarten_id:
+    type: integer
+    format: int64
+  class_id:
+    type: integer
+    format: int64
+  teacher_id:
+    type: integer
+    format: int64
+  role:
+    type: string
+    description: 반 내 역할(담임/부담임/보조 등)
+  start_date:
+    type: string
+    format: date
+    description: 배정 시작일
+  end_date:
+    type: string
+    format: date
+    description: 배정 종료일
+  reason:
+    type: string
+    description: 변경 사유
+  note:
+    type: string
+    description: 비고/메모
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - PENDING
+      - DISABLED
+    description: 배정 상태
+  created_by_user_id:
+    type: integer
+    format: int64
+    description: 생성자 사용자 ID
+  created_at:
+    type: string
+    format: date-time
+    description: 생성 일시
+  updated_at:
+    type: string
+    format: date-time
+    description: 수정 일시
+required:
+  - kindergarten_id
+  - class_id
+  - teacher_id

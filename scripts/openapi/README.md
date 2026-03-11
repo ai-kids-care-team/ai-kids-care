@@ -2,10 +2,10 @@
 python gen_openapi_pg16.py `
     --dsn "postgresql://kids_user:kids_pass@localhost:5432/kids_postgres_db" `
     --schemas public `
-    --base-path /api/v1 `
+    --base-path /v1 `
     --title "KG CCTV Platform API" `
     --version "0.1.0" `
-    --server-url "http://localhost:8080" `
+    --server-url "http://localhost:8080/api" `
     --out openapi.yaml
 ```
 

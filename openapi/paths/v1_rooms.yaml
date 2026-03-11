@@ -1,50 +1,58 @@
 get:
   tags:
     - Rooms
-  security:
-    - bearerAuth: []
+  operationId: listRooms
   summary: List rooms
   parameters:
-    - $ref: ../components/parameters/LimitQuery.yaml
-    - $ref: ../components/parameters/OffsetQuery.yaml
-    - name: status
+    - name: page
       in: query
-      required: false
       schema:
-        $ref: ../components/schemas/StatusEnum.yaml
+        type: integer
+        format: int32
+        minimum: 0
+    - name: size
+      in: query
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+    - name: sort
+      in: query
+      schema:
+        type: string
+      description: e.g. created_at,desc
   responses:
     '200':
       description: OK
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - items
-              - meta
-            properties:
-              items:
-                type: array
-                items:
-                  $ref: ../components/schemas/Room.yaml
-              meta:
-                $ref: ../components/schemas/PaginationMeta.yaml
+            $ref: ../components/schemas/RoomsResponsePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
 post:
   tags:
     - Rooms
-  security:
-    - bearerAuth: []
-  summary: Create room
+  operationId: createRooms
+  summary: Create rooms
   requestBody:
     required: true
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/RoomCreateRequest.yaml
+          $ref: ../components/schemas/RoomsCreateRequest.yaml
   responses:
     '201':
       description: Created
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/Room.yaml
+            $ref: ../components/schemas/RoomsResponse.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml
