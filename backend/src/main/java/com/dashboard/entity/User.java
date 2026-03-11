@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.Instant;
 
@@ -35,8 +37,8 @@ public class User {
     @Column(name = "user_tel", nullable = false)
     private String userTel;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "status", columnDefinition = "status_enum", nullable = false)
     private StatusEnum status;
 
     @Column(name = "last_login_at")
@@ -48,8 +50,7 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public User(String userName, String loginId, String passwordHash,
-                                String userEmail, String userTel) {
+    public User(String userName, String loginId, String passwordHash, String userEmail, String userTel) {
         this.userName = userName;
         this.loginId = loginId;
         this.passwordHash = passwordHash;
