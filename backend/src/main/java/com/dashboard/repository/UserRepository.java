@@ -18,7 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
             SELECT ura.role
-            FROM user_role_assignment ura
+            FROM user_role_assignments ura
             WHERE ura.user_id = :userId
             ORDER BY ura.granted_at DESC NULLS LAST, ura.role_assignment_id DESC
             LIMIT 1
