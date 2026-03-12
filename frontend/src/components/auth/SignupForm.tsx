@@ -308,7 +308,7 @@ export function SignupForm() {
 
         <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <Link
-            href="/src/app/(auth)/login"
+            href="/login"
             className="rounded-lg border border-slate-600 px-4 py-2 text-center text-slate-300 hover:bg-slate-700"
           >
             로그인으로 돌아가기
