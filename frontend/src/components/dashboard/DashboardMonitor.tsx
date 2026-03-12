@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SystemMetrics } from './SystemMetrics';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { switchRole } from '@/store/slices/userSlice';
+// 💡 [수정된 부분] setCredentials 액션을 추가로 임포트합니다.
+import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { CCTVGrid } from '@/components/monitoring/CCTVGrid';
 import { CameraDetailModal } from '@/components/monitoring/CameraDetailModal';
 import { FullscreenView } from '@/components/monitoring/FullscreenView';
@@ -18,6 +19,7 @@ import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
 import type { Camera, AnomalyEvent, AnomalyType } from '@/types/anomaly';
 import { rolePermissions } from '@/types/anomaly';
+import { useRouter } from 'next/navigation'; // 리다이렉트를 위해 추가
 
 const KINDERGARTEN_ID = '1';
 
@@ -50,8 +52,44 @@ const generateMockEvents = (): AnomalyEvent[] => {
 };
 
 export function DashboardMonitor() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
+
+  // 인증 대기 상태
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // 💡 [수정된 부분] 새로고침 시 LocalStorage에서 유저/토큰 정보 복구
+  useEffect(() => {
+    // 1. 이미 Redux 스토어에 유저가 존재하면 로딩 즉시 해제
+    if (user) {
+      setIsAuthChecking(false);
+      return;
+    }
+
+    // 2. Redux에 유저가 없다면 (새로고침 직후) LocalStorage 확인
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+
+    // 💡 [수정] storedUser와 storedToken이 모두 존재할 때만 실행하도록 변경
+    if (storedUser && storedToken) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        // 3. 백업된 정보가 있으면 Redux 스토어에 복구
+        // 이제 storedToken은 무조건 string임이 보장되므로 빨간 줄이 사라집니다.
+        dispatch(setCredentials({ user: parsedUser, token: storedToken }));
+      } catch (error) {
+        console.error("로컬스토리지 데이터 파싱 실패", error);
+        // 데이터가 손상되었다면 비워버림
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+
+    // 복구 시도가 모두 끝났으므로 로딩 해제
+    setIsAuthChecking(false);
+  }, [user, dispatch]);
+  // ---------------------------------------------------------
 
   // RTK Query를 이용한 10초 주기 실시간 자동 갱신
   const { data: serverCameras, isError: isCameraError } = useGetCamerasQuery(KINDERGARTEN_ID, { skip: !user });
@@ -97,7 +135,23 @@ export function DashboardMonitor() {
     }
   }, [serverEvents, isEventError]);
 
-  if (!user) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  // 💡 [수정된 부분] 로딩 및 비로그인 상태 UI 처리
+  if (isAuthChecking) {
+    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return (
+        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">로그인이 필요합니다</h2>
+            <p className="text-sm text-gray-500">세션이 만료되었거나 로그인 정보가 없습니다.</p>
+          </div>
+          <Button onClick={() => router.push('/login')}>로그인 페이지로 이동</Button>
+        </div>
+    );
+  }
+
   const permissions = rolePermissions[user.role];
 
   // UI 핸들러들
@@ -173,7 +227,7 @@ export function DashboardMonitor() {
               </div>
 
               {/*<div className="border-t border-gray-200 pt-8 mt-4">*/}
-              {/*  <SystemMetrics metrics={metrics} isError={isMetricsError} />*/}
+              {/* <SystemMetrics metrics={metrics} isError={isMetricsError} />*/}
               {/*</div>*/}
 
             </main>
