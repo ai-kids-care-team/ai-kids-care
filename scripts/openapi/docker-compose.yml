@@ -34,9 +34,11 @@ services:
           "--dsn", "postgresql://postgres:postgres@pg16:5432/appdb",
           "--schemas", "public",
           "--base-path", "/v1",
-          "--title", "KG CCTV Platform API",
-          "--version", "2.0.3",
+          "--title", "AI Kids Care API",
+          "--version", "2.0.4",
           "--server-url", "http://localhost:8080/api",
-          "--out", "/work/openapi.yaml"
+          "--out", "/work/openapi.yaml",
+          "--update-exclude-suffixes", "created_at,created_by",
+          "--create-exclude-suffixes", "created_at,updated_at"
         ]
       restart: "no"
