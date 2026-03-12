@@ -102,7 +102,7 @@ export function ResetPasswordForm() {
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/src/app/(auth)/login" className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">
+        <Link href="/login" className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 font-medium transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           로그인으로 돌아가기
         </Link>

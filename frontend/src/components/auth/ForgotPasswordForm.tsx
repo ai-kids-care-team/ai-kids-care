@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
           <div className="bg-emerald-50 text-emerald-700 p-4 rounded-lg mb-6">
             비밀번호 재설정 안내 메일(또는 인증코드)이 발송되었습니다. 이메일함을 확인해 주세요.
           </div>
-          <Link href="/src/app/(auth)/reset-password" className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors">
+          <Link href="/reset-password" className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors">
             인증코드 입력하기
           </Link>
         </div>

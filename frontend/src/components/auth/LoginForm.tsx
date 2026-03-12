@@ -116,12 +116,12 @@ export function LoginForm() {
       </form>
 
       <div className="mt-4 text-center">
-        <Link href="/src/app/(auth)/signup" className="text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors">
+        <Link href="/signup" className="text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors">
           아직 계정이 없으신가요? 회원가입 하러가기
         </Link>
       </div>
       <div className="mt-2 text-center">
-        <Link href="/src/app/(auth)/forgot-password" className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
+        <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
           비밀번호를 잊으셨나요?
         </Link>
       </div>
