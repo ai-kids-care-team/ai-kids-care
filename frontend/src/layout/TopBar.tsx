@@ -55,6 +55,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
 
   const handleLogout = () => {
     dispatch(logout());
+    localStorage.removeItem('user'); // 👈 로컬스토리지 백업 데이터 삭제 추가
     router.push('/login');
   };
 
