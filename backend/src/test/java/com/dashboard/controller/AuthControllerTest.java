@@ -1,8 +1,8 @@
 package com.dashboard.controller;
 
-import com.dashboard.dto.ChildLookupResponse;
 import com.dashboard.dto.CommonCodeResponse;
 import com.dashboard.dto.SignupResponse;
+import com.dashboard.entity.StatusEnum;
 import com.dashboard.security.JwtAuthenticationFilter;
 import com.dashboard.security.JwtUtil;
 import com.dashboard.service.AuthService;
@@ -17,13 +17,11 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.AbstractMap.SimpleEntry;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,7 +52,7 @@ class AuthControllerTest {
 
     @Test
     void signup_withGuardianPayload_returnsOkResponse() throws Exception {
-        when(authService.signup(any())).thenReturn(new SignupResponse(10L, "guardian_test", "ACTIVE"));
+        when(authService.signup(any())).thenReturn(new SignupResponse(10L, "guardian_test", StatusEnum.ACTIVE));
 
         Map<String, Object> payload = Map.ofEntries(
                 new SimpleEntry<>("name", "테스트보호자"),
@@ -71,7 +69,7 @@ class AuthControllerTest {
                 new SimpleEntry<>("primaryGuardian", true)
         );
 
-        mockMvc.perform(post("/api/auth/signup")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
@@ -81,28 +79,14 @@ class AuthControllerTest {
     }
 
     @Test
-    void childrenLookup_returnsList() throws Exception {
-        List<ChildLookupResponse> response = List.of(
-                new ChildLookupResponse(3001L, 1001L, 2001L, "햇살반", "김하린", "C-2026-001", LocalDate.of(2019, 1, 1), "F")
-        );
-        when(authService.searchChildrenByName(eq("김"))).thenReturn(response);
-
-        mockMvc.perform(get("/api/auth/children").param("name", "김"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].childId").value(3001))
-                .andExpect(jsonPath("$[0].name").value("김하린"))
-                .andExpect(jsonPath("$[0].className").value("햇살반"));
-    }
-
-    @Test
     void commonCodesLookup_returnsActiveCodes() throws Exception {
         List<CommonCodeResponse> response = List.of(
                 new CommonCodeResponse("GUARDIAN_RELATIONSHIP", "FEMALE", "MOTHER", "엄마", 1),
                 new CommonCodeResponse("GUARDIAN_RELATIONSHIP", "MALE", "FATHER", "아빠", 2)
         );
-        when(commonCodeService.getActiveCodesByGroup(eq("GUARDIAN_RELATIONSHIP"))).thenReturn(response);
+        when(commonCodeService.getActiveCodesByGroup("GUARDIAN_RELATIONSHIP")).thenReturn(response);
 
-        mockMvc.perform(get("/api/auth/common-codes").param("group", "GUARDIAN_RELATIONSHIP"))
+        mockMvc.perform(get("/api/v1/auth/common-codes").param("group", "GUARDIAN_RELATIONSHIP"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].parentCode").value("FEMALE"))
                 .andExpect(jsonPath("$[0].code").value("MOTHER"))

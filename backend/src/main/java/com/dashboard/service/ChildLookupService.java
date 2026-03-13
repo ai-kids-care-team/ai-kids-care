@@ -27,17 +27,25 @@ public class ChildLookupService {
                 """
                 SELECT c.child_id,
                        c.kindergarten_id,
-                       c.class_id,
-                       ce.name AS class_name,
+                       cca.class_id,
+                       cls.name AS class_name,
                        c.name,
                        c.child_no,
                        c.birth_date,
                        c.gender
-                  FROM child c
-             LEFT JOIN class_entity ce
-                    ON ce.class_id = c.class_id
-                   AND ce.kindergarten_id = c.kindergarten_id
-                 WHERE c.name ILIKE '%' || ? || '%'
+                  FROM children c
+             LEFT JOIN LATERAL (
+                    SELECT a.class_id
+                      FROM child_class_assignments a
+                     WHERE a.kindergarten_id = c.kindergarten_id
+                       AND a.child_id = c.child_id
+                     ORDER BY a.assignment_id DESC
+                     LIMIT 1
+                 ) cca ON TRUE
+             LEFT JOIN classes cls
+                    ON cls.class_id = cca.class_id
+                   AND cls.kindergarten_id = c.kindergarten_id
+                 WHERE LOWER(c.name) LIKE CONCAT('%', LOWER(?), '%')
                  ORDER BY c.child_id
                  LIMIT 50
                 """,
