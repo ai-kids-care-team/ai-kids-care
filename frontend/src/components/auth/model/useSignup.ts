@@ -37,6 +37,7 @@ const FALLBACK_RELATIONSHIP_OPTIONS: CommonCodeItem[] = [
 ];
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
+const LEGACY_API_BASE_URL = 'http://localhost:8080/api';
 
 export function useSignup() {
   const router = useRouter();
@@ -227,9 +228,38 @@ export function useSignup() {
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/children?name=${encodeURIComponent(trimmed)}`);
-      if (!response.ok) throw new Error('아이 조회에 실패했습니다.');
-      const data = await response.json();
+      const encodedName = encodeURIComponent(trimmed);
+      const candidateUrls = [
+        `${API_BASE_URL}/children?name=${encodedName}`,
+        `${API_BASE_URL}/auth/children?name=${encodedName}`,
+        `${LEGACY_API_BASE_URL}/auth/children?name=${encodedName}`,
+      ];
+
+      let data: ChildLookupItem[] | null = null;
+      let lastStatus: number | null = null;
+
+      for (const url of candidateUrls) {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+          lastStatus = response.status;
+          continue;
+        }
+
+        data = await response.json();
+        break;
+      }
+
+      if (!data) {
+        if (lastStatus === 401) {
+          throw new Error('아이 조회 권한이 없습니다. 백엔드 공개 조회 경로를 확인해주세요.');
+        }
+        throw new Error('아이 조회에 실패했습니다.');
+      }
+
       setChildSearchResults(data);
       if (data.length === 0) setChildSearchError('검색 결과가 없습니다.');
     } catch (err) {
