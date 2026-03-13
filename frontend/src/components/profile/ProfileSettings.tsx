@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// 💡 ArrowLeft 아이콘 추가 임포트
 import { User, Lock, Save, AlertCircle, ArrowLeft } from 'lucide-react';
 
 import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { switchRole } from '@/store/slices/userSlice';
+// 💡 [수정] setCredentials 액션 추가
+import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { useChangePasswordMutation } from '@/services/apis/auth.api';
 import { TopBar } from '@/layout/TopBar';
 
@@ -23,9 +23,42 @@ export function ProfileSettings() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // 인증되지 않은 사용자 접근 제어
+  // 💡 [추가] 인증 상태 확인 로딩
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // 💡 [추가] 대시보드와 동일한 LocalStorage 복구 로직
+  useEffect(() => {
+    if (user) {
+      setIsAuthChecking(false);
+      return;
+    }
+
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+
+    if (storedUser && storedToken) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        dispatch(setCredentials({ user: parsedUser, token: storedToken }));
+      } catch (error) {
+        console.error("로컬스토리지 데이터 파싱 실패", error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+
+    setIsAuthChecking(false);
+  }, [user, dispatch]);
+
+
+  // 💡 [수정] 복구 중일 때는 로딩 화면 표시
+  if (isAuthChecking) {
+    return <div className="h-screen flex items-center justify-center bg-slate-50">로딩 중...</div>;
+  }
+
+  // 💡 [수정] 복구가 끝났는데도 유저가 없다면 올바른 경로('/login')로 쫓아냄
   if (!isAuthenticated || !user) {
-    router.replace('/auth/login');
+    router.replace('/login'); // /auth/login에서 /login으로 수정
     return null;
   }
 
@@ -58,8 +91,6 @@ export function ProfileSettings() {
         <TopBar currentRole={user.role} username={user.name} onRoleChange={handleRoleChange} />
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-10">
-
-          {/* 💡 대시보드로 돌아가기 버튼 추가 */}
           <button
               onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 text-slate-500 hover:text-purple-600 mb-6 transition-colors font-medium text-sm"
