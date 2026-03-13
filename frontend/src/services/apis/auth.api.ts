@@ -74,6 +74,7 @@ export const authApi = baseApi.injectEndpoints({
       query: (group) => `/auth/common-codes?group=${encodeURIComponent(group)}`,
     }),
     searchChildren: build.query<ChildLookupItem[], string>({
+      // 백엔드 버전별 차이 대응: 기본 경로는 /v1/children
       query: (keyword) => `/children?name=${encodeURIComponent(keyword)}`,
     }),
   }),

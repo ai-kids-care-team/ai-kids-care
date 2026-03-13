@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SystemMetrics } from './SystemMetrics';
-import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { switchRole } from '@/store/slices/userSlice';
+import { useAppSelector } from '@/store/hook';
 import { CCTVGrid} from '@/components/monitoring/CCTVGrid';
 import { CameraDetailModal} from '@/components/monitoring/CameraDetailModal';
 import { FullscreenView } from '@/components/monitoring/FullscreenView';
@@ -13,10 +12,9 @@ import { useGetEventsQuery, useUpdateEventStatusMutation} from '@/services/apis/
 import { EventDetailModal } from '@/components/events/EventDetailModal';
 import { useGetDashboardMetricsQuery } from '@/services/apis/metrics.api';
 import { RightPanel } from '@/components/monitoring/RightPanel';
-import { TopBar } from '@/layout/TopBar';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
-import type { Camera, AnomalyEvent, AnomalyType } from '@/types/anomaly';
+import type { Camera, AnomalyEvent, AnomalyType, UserRole } from '@/types/anomaly';
 import { rolePermissions } from '@/types/anomaly';
 
 const KINDERGARTEN_ID = '1';
@@ -49,8 +47,9 @@ const generateMockEvents = (): AnomalyEvent[] => {
   ] as AnomalyEvent[]).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
 export function DashboardMonitor() {
-  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
+  const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
+  const currentUserName = user?.name ?? '게스트';
 
   // RTK Query를 이용한 10초 주기 실시간 자동 갱신
   const { data: serverCameras, isError: isCameraError } = useGetCamerasQuery(KINDERGARTEN_ID, { skip: !user });
@@ -72,13 +71,12 @@ export function DashboardMonitor() {
 
   // 카메라 데이터 권한 필터링 및 하이브리드 적용
   useEffect(() => {
-    if (!user) return;
-    const permissions = rolePermissions[user.role];
+    const permissions = rolePermissions[currentRole];
     let sourceCameras = isCameraError || !serverCameras ? allCameras : serverCameras;
 
     if (!permissions.canViewAllCameras && permissions.canViewOwnClassroom) {
-      if (user.role === 'teacher') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
-      else if (user.role === 'guardian') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
+      if (currentRole === 'teacher') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
+      else if (currentRole === 'guardian') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
     }
 
     if (categoryFilter === 'all') setFilteredCameras(sourceCameras);
@@ -86,7 +84,7 @@ export function DashboardMonitor() {
     else setFilteredCameras(sourceCameras.filter(c => c.category === categoryFilter));
 
     setCurrentPage(1);
-  }, [user, serverCameras, isCameraError, categoryFilter]);
+  }, [currentRole, serverCameras, isCameraError, categoryFilter]);
 
   // 이벤트 데이터 하이브리드 적용
   useEffect(() => {
@@ -97,8 +95,7 @@ export function DashboardMonitor() {
     }
   }, [serverEvents, isEventError]);
 
-  if (!user) return null;
-  const permissions = rolePermissions[user.role];
+  const permissions = rolePermissions[currentRole];
 
   // UI 핸들러들
   const handleEventStatusChange = async (status: AnomalyEvent['status']) => {
@@ -132,11 +129,8 @@ export function DashboardMonitor() {
   return (
     <>
       <div className="h-screen flex flex-col bg-gray-50">
-        <TopBar currentRole={user.role} username={user.name} onRoleChange={(r) => dispatch(switchRole(r))} />
-
+        
         <div className="flex-1 flex overflow-hidden">
-          <Sidebar currentRole={user.role} userName={user.name} cameraStats={cameraStats} onCategoryFilter={setCategoryFilter} currentCategory={categoryFilter} />
-
           <main className="flex-1 p-6 overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -167,7 +161,7 @@ export function DashboardMonitor() {
           </main>
 
           <RightPanel
-            events={localEvents} onEventClick={(id) => setSelectedEvent(localEvents.find(e => e.id === id) || null)} currentRole={user.role}
+            events={localEvents} onEventClick={(id) => setSelectedEvent(localEvents.find(e => e.id === id) || null)} currentRole={currentRole}
             onLayoutChange={setLayout} currentLayout={layout} isRecording={isRecording} onRecordingToggle={() => setIsRecording(!isRecording)}
             onQuickFullscreen={() => { if (filteredCameras.length > 0) setFullscreenCamera(filteredCameras[0]) }}
             onQuickPause={() => setIsVideoPaused(!isVideoPaused)} onQuickDownload={() => alert('다운로드')} isVideoPaused={isVideoPaused}
