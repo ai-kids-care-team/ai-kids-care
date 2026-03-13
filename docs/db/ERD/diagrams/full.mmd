@@ -3,45 +3,47 @@ config:
   layout: elk
 ---
 erDiagram
-  KINDERGARTEN ||--o{ CLASS_ENTITY : has
-  KINDERGARTEN ||--o{ CHILD : has
-  KINDERGARTEN ||--o{ TEACHER : has
-  KINDERGARTEN ||--o{ GUARDIAN : has
-  KINDERGARTEN ||--o{ ROOM : has
-  KINDERGARTEN ||--o{ CCTV_CAMERA : has
+  kindergartens ||--o{ classes : has
+  kindergartens ||--o{ children : has
+  kindergartens ||--o{ teachers : has
+  kindergartens ||--o{ guardians : has
+  kindergartens ||--o{ rooms : has
+  kindergartens ||--o{ cctv_cameras : has
 
-  USER_ACCOUNT ||--o{ TEACHER : identity
-  USER_ACCOUNT ||--o{ GUARDIAN : identity
-  USER_ACCOUNT ||--o{ USER_KINDERGARTEN_MEMBERSHIP : joins
-  USER_ACCOUNT ||--o{ USER_ROLE_ASSIGNMENT : roles
+  users ||--o{ teachers : identity
+  users ||--o{ guardians : identity
+  users ||--o{ user_kindergarten_memberships : joins
+  users ||--o{ user_role_assignments : roles
 
-  CLASS_ENTITY ||--o{ CHILD_CLASS_ASSIGNMENT : assigns
-  CHILD ||--o{ CHILD_CLASS_ASSIGNMENT : history
+  classes ||--o{ child_class_assignments : assigns
+  children ||--o{ child_class_assignments : history
 
-  CLASS_ENTITY ||--o{ CLASS_TEACHER_ASSIGNMENT : assigns
-  TEACHER ||--o{ CLASS_TEACHER_ASSIGNMENT : history
+  classes ||--o{ class_teacher_assignments : assigns
+  teachers ||--o{ class_teacher_assignments : history
 
-  CHILD ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
-  GUARDIAN ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
+  children ||--o{ child_guardian_relationships : relates
+  guardians ||--o{ child_guardian_relationships : relates
 
-  ROOM ||--o{ ROOM_CAMERA_ASSIGNMENT : hosts
-  CCTV_CAMERA ||--o{ ROOM_CAMERA_ASSIGNMENT : deployed
+  rooms ||--o{ room_camera_assignments : hosts
+  cctv_cameras ||--o{ room_camera_assignments : deployed
 
-  CCTV_CAMERA ||--|| CAMERA_STREAM : stream
+  cctv_cameras ||--|| camera_streams : stream
 
-  AI_MODEL ||--o{ DETECTION_SESSION : runs
-  CCTV_CAMERA ||--o{ DETECTION_SESSION : source
-  DETECTION_SESSION ||--o{ DETECTION_EVENT : outputs
-  ROOM ||--o{ DETECTION_EVENT : location
-  CCTV_CAMERA ||--o{ DETECTION_EVENT : observed
+  ai_models ||--o{ detection_sessions : runs
+  cctv_cameras ||--o{ detection_sessions : source
+  detection_sessions ||--o{ detection_events : outputs
+  rooms ||--o{ detection_events : location
+  cctv_cameras ||--o{ detection_events : observed
 
-  DETECTION_EVENT ||--o{ EVENT_REVIEW : reviewed
-  DETECTION_EVENT ||--o{ EVENT_EVIDENCE : evidence
+  detection_events ||--o{ event_reviews : reviewed
+  detection_events ||--o{ event_evidence_files : evidence
 
-  DETECTION_EVENT ||--o{ NOTIFICATION : triggers
-  USER_ACCOUNT ||--o{ NOTIFICATION : receives
-  USER_ACCOUNT ||--o{ DEVICE_TOKEN : devices
-  USER_ACCOUNT ||--o{ NOTIFICATION_RULE : rules
+  detection_events ||--o{ notifications : triggers
+  users ||--o{ notifications : receives
+  users ||--o{ device_tokens : devices
+  users ||--o{ notification_rules : rules
 
-  USER_ACCOUNT ||--o{ AUDIT_LOG : actions
-  KINDERGARTEN ||--o{ AUDIT_LOG : tenant
+  users ||--o{ audit_logs : actions
+  kindergartens ||--o{ audit_logs : tenant
+
+    users ||--o{ superadmins : identity

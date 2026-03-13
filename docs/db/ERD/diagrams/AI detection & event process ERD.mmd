@@ -3,7 +3,7 @@ config:
   layout: elk
 ---
 erDiagram
-  kindergarten {
+  kindergartens {
     bigint kindergarten_id PK "유치원 ID"
     varchar name "유치원명"
     varchar address "주소"
@@ -17,7 +17,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  room {
+  rooms {
     bigint room_id PK
     bigint kindergarten_id FK
     varchar name "공간/교실 이름"
@@ -29,7 +29,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  cctv_camera {
+  cctv_cameras {
     bigint camera_id PK "카메라 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     varchar serial_no "카메라 시리얼 번호/제조사 식별자"
@@ -42,7 +42,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  ai_model {
+  ai_models {
     bigint model_id PK "AI 모델 ID"
     varchar name "모델 이름"
     varchar version "모델 버전"
@@ -51,7 +51,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  detection_session {
+  detection_sessions {
     bigint session_id PK "탐지 세션 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     bigint camera_id FK "카메라 ID(CCTV_CAMERA.camera_id)"
@@ -63,7 +63,7 @@ erDiagram
     float inference_fps "추론 처리 FPS"
   }
 
-  detection_event {
+  detection_events {
     bigint event_id PK "탐지 이벤트 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     bigint camera_id FK "카메라 ID(CCTV_CAMERA.camera_id)"
@@ -80,7 +80,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  event_review {
+  event_reviews {
     bigint review_id PK "이벤트 리뷰/처리 ID"
     bigint event_id FK "이벤트 ID(DETECTION_EVENT.event_id)"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
@@ -91,7 +91,7 @@ erDiagram
     timestamptz created_at "생성 일시"
   }
 
-  event_evidence {
+  event_evidence_files {
     bigint evidence_id PK "증거 자료 ID"
     bigint event_id FK "이벤트 ID(DETECTION_EVENT.event_id)"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
@@ -104,7 +104,7 @@ erDiagram
     varchar hash "무결성 확인용 해시(파일 해시)"
   }
 
-  user_account {
+  users {
     bigint user_id PK "사용자 계정 ID"
     varchar login_id "로그인 ID(사용자 식별자)"
     varchar password_hash "비밀번호 해시"
@@ -114,7 +114,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  device_token {
+  device_tokens {
     bigint device_id PK "디바이스 토큰 ID"
     bigint user_id FK "사용자 ID(USER_ACCOUNT.user_id)"
     varchar platform "플랫폼(IOS/ANDROID)"
@@ -124,7 +124,7 @@ erDiagram
     timestamptz created_at "생성 일시"
   }
 
-  notification_rule {
+  notification_rules {
     bigint rule_id PK "알림 규칙 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     bigint user_id FK "규칙 소유/대상 사용자 ID(USER_ACCOUNT.user_id)"
@@ -137,7 +137,7 @@ erDiagram
     timestamptz created_at "생성 일시"
   }
 
-  notification {
+  notifications {
     bigint notification_id PK "알림 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     bigint event_id FK "관련 이벤트 ID(DETECTION_EVENT.event_id)"
@@ -152,7 +152,7 @@ erDiagram
     timestamptz created_at "생성 일시"
   }
 
-  audit_log {
+  audit_logs {
     bigint audit_id PK "감사/추적 로그 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     bigint user_id FK "행위 사용자 ID(USER_ACCOUNT.user_id)"
@@ -163,29 +163,29 @@ erDiagram
     varchar user_agent "User-Agent"
     timestamptz created_at "생성 일시"
   }
-  kindergarten ||--o{ room : has
-  kindergarten ||--o{ cctv_camera : has
+  kindergartens ||--o{ rooms : has
+  kindergartens ||--o{ cctv_cameras : has
 
-  kindergarten ||--o{ detection_session : tenant
-  kindergarten ||--o{ detection_event : tenant
+  kindergartens ||--o{ detection_sessions : tenant
+  kindergartens ||--o{ detection_events : tenant
 
-  ai_model ||--o{ detection_session : runs
-  cctv_camera ||--o{ detection_session : source
+  ai_models ||--o{ detection_sessions : runs
+  cctv_cameras ||--o{ detection_sessions : source
 
-  detection_session ||--o{ detection_event : outputs
-  cctv_camera ||--o{ detection_event : observed_by
-  room ||--o{ detection_event : occurs_in
+  detection_sessions ||--o{ detection_events : outputs
+  cctv_cameras ||--o{ detection_events : observed_by
+  rooms ||--o{ detection_events : occurs_in
 
-  detection_event ||--o{ event_review : reviewed
-  detection_event ||--o{ event_evidence : evidence
+  detection_events ||--o{ event_reviews : reviewed
+  detection_events ||--o{ event_evidence_files : evidence
 
-  user_account ||--o{ event_review : actor
-  user_account ||--o{ device_token : has
-  user_account ||--o{ notification_rule : owns
-  user_account ||--o{ notification : receives
-  user_account ||--o{ audit_log : actions
+  users ||--o{ event_reviews : actor
+  users ||--o{ device_tokens : has
+  users ||--o{ notification_rules : owns
+  users ||--o{ notifications : receives
+  users ||--o{ audit_logs : actions
 
-  detection_event ||--o{ notification : triggers
-  kindergarten ||--o{ notification_rule : has
-  kindergarten ||--o{ notification : emits
-  kindergarten ||--o{ audit_log : writes
+  detection_events ||--o{ notifications : triggers
+  kindergartens ||--o{ notification_rules : has
+  kindergartens ||--o{ notifications : emits
+  kindergartens ||--o{ audit_logs : writes
