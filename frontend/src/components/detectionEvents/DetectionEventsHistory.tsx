@@ -5,9 +5,9 @@ import { Search, Calendar, Filter, ChevronLeft, ChevronRight, AlertCircle } from
 
 import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { switchRole } from '@/store/slices/userSlice';
-//import { useGetEventLogsQuery, useUpdateEventStatusMutation } from '@/entities/events';
+//import { useGetEventLogsQuery, useUpdateEventStatusMutation } from '@/entities/detectionEvents';
 import { useGetEventsQuery, useUpdateEventStatusMutation } from '@/services/apis/event.api';
-import { EventDetailModal } from '@/components/events/EventDetailModal';
+import { DetectionEventsDetailModal } from '@/components/detectionEvents/DetectionEventsDetailModal';
 import { TopBar } from '@/layout/TopBar';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
@@ -16,7 +16,7 @@ import { rolePermissions } from '@/types/anomaly';
 
 const KINDERGARTEN_ID = '1';
 
-export function EventHistory() {
+export function DetectionEventsHistory() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
 
@@ -251,7 +251,7 @@ export function EventHistory() {
       </div>
 
       {selectedEvent && (
-        <EventDetailModal
+        <DetectionEventsDetailModal
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onStatusChange={handleEventStatusChange}

@@ -6,11 +6,22 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080/api/v1',
     prepareHeaders: (headers, { getState }) => {
-      // Redux 스토어에서 토큰을 가져와 헤더에 주입 (기존 AuthContext의 토큰 관리 대체)
-      const token = (getState() as RootState).user.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+      // 1. 먼저 Redux 스토어에서 토큰을 찾습니다.
+      let token = (getState() as RootState).user.token;
+
+      // 2. 💡 새로고침으로 인해 Redux가 날아갔다면? 브라우저 저장소에서 찾아옵니다.
+      // (Next.js의 SSR 환경 에러를 방지하기 위해 typeof window !== 'undefined' 체크 추가)
+      if (!token && typeof window !== 'undefined') {
+        // 프로젝트에서 로그인 시 토큰을 저장해둔 방식에 맞게 가져오세요.
+        // 예: localStorage.getItem('accessToken') 또는 sessionStorage.getItem('token') 등
+        token = localStorage.getItem('token');
       }
+
+      // 3. 토큰이 존재하면 헤더에 주입합니다.
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+
       return headers;
     },
   }),

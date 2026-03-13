@@ -55,6 +55,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
 
   const handleLogout = () => {
     dispatch(logout());
+    localStorage.removeItem('user'); // 👈 로컬스토리지 백업 데이터 삭제 추가
     router.push('/login');
   };
 
@@ -75,7 +76,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
               <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/20 mr-1 rounded-full w-9 h-9 p-0">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-purple-600 animate-pulse"></span>
+                    <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-purple-600 animate-pulse"></span>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -83,37 +84,37 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
               <div className="flex items-center justify-between px-4 py-3">
                 <DropdownMenuLabel className="p-0 font-bold text-slate-800 text-base">최근 알림</DropdownMenuLabel>
                 {unreadCount > 0 && (
-                  <button onClick={handleMarkAllAsRead} className="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors">
-                    모두 읽음
-                  </button>
+                    <button onClick={handleMarkAllAsRead} className="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors">
+                      모두 읽음
+                    </button>
                 )}
               </div>
               <DropdownMenuSeparator className="mb-0" />
 
               <div className="max-h-[300px] overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-slate-500">
-                    새로운 알림이 없습니다.
-                  </div>
+                    <div className="py-8 text-center text-sm text-slate-500">
+                      새로운 알림이 없습니다.
+                    </div>
                 ) : (
-                  notifications.map((notif: any) => (
-                    <div
-                      key={notif.id}
-                      className={`flex flex-col items-start gap-1 p-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer ${notif.isRead ? 'opacity-60' : 'bg-purple-50/50'}`}
-                    >
-                      <div className="flex justify-between w-full items-start gap-2">
+                    notifications.map((notif: any) => (
+                        <div
+                            key={notif.id}
+                            className={`flex flex-col items-start gap-1 p-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer ${notif.isRead ? 'opacity-60' : 'bg-purple-50/50'}`}
+                        >
+                          <div className="flex justify-between w-full items-start gap-2">
                         <span className="font-semibold text-sm text-slate-900 leading-tight">
                           {notif.title}
                         </span>
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap pt-0.5">
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap pt-0.5">
                           {new Date(notif.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                      </div>
-                      <span className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          </div>
+                          <span className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                         {notif.message}
                       </span>
-                    </div>
-                  ))
+                        </div>
+                    ))
                 )}
               </div>
             </DropdownMenuContent>
@@ -149,7 +150,14 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
           )}
 
           <div className="flex items-center gap-1 ml-1 pl-3 border-l border-white/20">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 w-9 h-9 p-0 rounded-full">
+            {/* 프로필 페이지로 이동하는 onClick 이벤트 추가 */}
+            <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20 w-9 h-9 p-0 rounded-full"
+                onClick={() => router.push('/profile')}
+                title="프로필 설정"
+            >
               <Settings className="w-4 h-4" />
             </Button>
             <Button
