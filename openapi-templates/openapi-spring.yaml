@@ -1,0 +1,18 @@
+generatorName: spring
+inputSpec: docs/db/OpenAPI/openapi.yaml
+outputDir: generated/spring
+templateDir: openapi-templates/spring
+
+library: spring-boot
+
+apiPackage: com.ai_kids_care.v1.api
+modelPackage: com.ai_kids_care.v1.model
+invokerPackage: com.ai_kids_care.v1.invoker
+
+additionalProperties:
+  hideGenerationTimestamp: true
+  controllerPackage: com.ai_kids_care.v1.controller
+  useSpringBoot3: true
+  useTags: true
+  useSpringController: true
+  delegatePattern: false
