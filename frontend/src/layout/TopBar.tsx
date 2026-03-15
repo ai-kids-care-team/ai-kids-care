@@ -69,7 +69,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   const { data: menuItems = [] } = useGetMenusQuery(menuRoleType);
   const fallbackMenus = [
     { menuId: -1, menuName: '대시보드', path: '/dashboard' },
-    { menuId: -2, menuName: '공지사항', path: '/notices' },
+    { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
   const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
 
@@ -96,9 +96,11 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
             <Link href="/" className="text-lg font-semibold tracking-tight hover:text-green-200 transition-colors">
               AI Kids Care
             </Link>
-            <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/40 font-normal">
-              {roleLabels[currentRole]}
-            </Badge>
+            {!isGuest && (
+              <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/40 font-normal">
+                {roleLabels[currentRole]}
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

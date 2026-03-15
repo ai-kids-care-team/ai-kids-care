@@ -5,13 +5,14 @@
 BEGIN;
 
 -- 1) kindergarten
-INSERT INTO kindergartens (kindergarten_id, name, address, region_code, code, contact_name, contact_phone,
+INSERT INTO kindergartens (kindergarten_id, name, address, region_code, code,business_registration_no, contact_name, contact_phone,
                            contact_email, status, created_at, updated_at)
 SELECT 1001,
        '해맑은유치원',
        '서울시 강남구 테헤란로 100',
        'KR-11',
        'KG-1001',
+       '1234567890123',
        '원장 김해맑',
        '02-1234-5678',
        'admin@haemalg.kr',

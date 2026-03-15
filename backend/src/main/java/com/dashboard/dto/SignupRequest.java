@@ -21,4 +21,13 @@ public class SignupRequest {
     private String relationship;
     private String customRelationship;
     private Boolean primaryGuardian;
+    private String department;
+    private Long kindergartenId;
+    private String staffNo;
+    private String gender;
+    private String emergencyContactName;
+    private String emergencyContactPhone;
+    private String level;
+    private String startDate;
+    private String endDate;
 }

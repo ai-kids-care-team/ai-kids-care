@@ -12,6 +12,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByLoginId(String loginId);
 
     boolean existsByLoginId(String loginId);
+    boolean existsByEmail(String email);
 
     @Query("SELECT COALESCE(MAX(u.userId), 0) FROM User u")
     Long findMaxUserId();

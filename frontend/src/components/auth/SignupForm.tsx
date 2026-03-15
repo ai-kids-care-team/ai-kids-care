@@ -1,8 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import { useSignup } from './model/useSignup';
 import { GuardianForm } from './(signup)/GuardianForm';
+import { KindergartenForm } from './(signup)/KindergartenForm';
+import { SuperadminForm } from './(signup)/SuperadminForm';
+import { PlatformItAdminForm } from './(signup)/PlatformItAdminForm';
 
 const MEMBER_TYPES = [
   { value: 'GUARDIAN', label: '양육자', description: '자녀 정보 조회 및 알림 확인', icon: '👨‍👩‍👧' },
@@ -13,16 +16,70 @@ const MEMBER_TYPES = [
 
 export function SignupForm() {
   const {
-    form, onChange, memberType, setMemberType,
+    form, onChange, memberType, handleMemberTypeChange,
     verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
     handleSendVerificationCode, handleVerifyCode,
     childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
     childSearchKeyword, setChildSearchKeyword, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
+    kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
+    kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,
+    searchKindergartens, openKindergartenPopup, selectKindergarten,
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
+    teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, isSubmitting, isValid, handleSubmit
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit
   } = useSignup();
+  const startDateInputRef = useRef<HTMLInputElement | null>(null);
+  const endDateInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const keyOrder: Array<keyof typeof fieldErrors> = [
+      'name',
+      'loginId',
+      'email',
+      'phone',
+      'password',
+      'confirmPassword',
+      'child',
+      'kindergarten',
+      'rrn',
+      'relationship',
+      'department',
+      'staffNo',
+      'level',
+      'emergencyContactName',
+      'emergencyContactPhone',
+      'startDate',
+      'endDate',
+      'agreeTerms',
+    ];
+
+    const targetKey = keyOrder.find((key) => !!fieldErrors[key]);
+    if (!targetKey) return;
+
+    if (targetKey === 'startDate') {
+      startDateInputRef.current?.focus();
+      startDateInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (targetKey === 'endDate') {
+      endDateInputRef.current?.focus();
+      endDateInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const fieldNameMap: Partial<Record<keyof typeof fieldErrors, string>> = {
+      child: 'childNameKeyword',
+      kindergarten: 'kindergartenKeyword',
+      rrn: 'rrnFirst6',
+    };
+
+    const targetName = fieldNameMap[targetKey] ?? targetKey;
+    const targetElement = document.querySelector(`[name="${targetName}"]`) as HTMLElement | null;
+    targetElement?.focus();
+    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [fieldErrors]);
 
   return (
     <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
@@ -33,7 +90,7 @@ export function SignupForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         <section>
           <div className="mb-3 flex items-end justify-between">
             <h2 className="text-sm font-semibold text-slate-800">회원유형</h2>
@@ -46,7 +103,7 @@ export function SignupForm() {
                 <button
                   key={type.value}
                   type="button"
-                  onClick={() => setMemberType(type.value as any)}
+                  onClick={() => handleMemberTypeChange(type.value)}
                   className={`relative rounded-xl border p-4 text-left transition-all ${
                     selected
                       ? 'border-emerald-500 bg-emerald-50 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]'
@@ -99,31 +156,65 @@ export function SignupForm() {
             setCustomRelationship={setCustomRelationship}
             isPrimaryGuardian={isPrimaryGuardian}
             setIsPrimaryGuardian={setIsPrimaryGuardian}
+            fieldErrors={fieldErrors}
+          />
+        )}
+
+        {memberType === 'SUPERADMIN' && (
+          <SuperadminForm
+            form={form}
+            onChange={onChange}
+            fieldErrors={fieldErrors}
+          />
+        )}
+
+        {memberType === 'KINDERGARTEN' && (
+          <KindergartenForm
+            form={form}
+            onChange={onChange}
+            kindergartenKeyword={kindergartenKeyword}
+            setKindergartenKeyword={setKindergartenKeyword}
+            selectedKindergarten={selectedKindergarten}
+            openKindergartenPopup={openKindergartenPopup}
+            rrnFirst6={rrnFirst6}
+            setRrnFirst6={setRrnFirst6}
+            rrnBack7={rrnBack7}
+            onRrnBack7Change={onRrnBack7Change}
+            gender={gender}
+            genderOptions={genderOptions}
+            teacherLevelOptions={teacherLevelOptions}
+            startDateInputRef={startDateInputRef}
+            endDateInputRef={endDateInputRef}
+            fieldErrors={fieldErrors}
+          />
+        )}
+
+        {memberType === 'PLATFORM_IT_ADMIN' && (
+          <PlatformItAdminForm
+            form={form}
+            onChange={onChange}
+            fieldErrors={fieldErrors}
           />
         )}
 
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
+            name="agreeTerms"
             checked={agreeTerms}
             onChange={(e) => setAgreeTerms(e.target.checked)}
             className="h-4 w-4 rounded border-slate-300 bg-white"
           />
           서비스 이용약관 및 개인정보 처리방침에 동의합니다.
         </label>
+        {fieldErrors.agreeTerms && <p className="text-xs text-red-500">{fieldErrors.agreeTerms}</p>}
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-          <Link
-            href="/login"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-center text-slate-700 hover:bg-slate-100"
-          >
-            로그인으로 돌아가기
-          </Link>
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
-            disabled={!isValid || isSubmitting}
+            disabled={isSubmitting}
             className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? '가입 처리 중...' : '회원가입'}
@@ -133,7 +224,7 @@ export function SignupForm() {
 
       {isChildPopupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-[96vw] max-w-[1400px] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-900">아이 찾기</h2>
               <button
@@ -162,7 +253,7 @@ export function SignupForm() {
               <button
                 type="button"
                 onClick={() => searchChildren(childSearchKeyword)}
-                className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
+                className="min-w-16 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
               >
                 검색
               </button>
@@ -172,7 +263,7 @@ export function SignupForm() {
             {isChildSearching && <p className="mb-3 text-sm text-slate-600">검색 중...</p>}
 
             <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
-              <table className="min-w-full text-sm text-slate-700">
+              <table className="min-w-[1200px] whitespace-nowrap text-sm text-slate-700">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-600">
                   <tr>
                     <th className="px-3 py-2 text-left">ID</th>
@@ -197,7 +288,7 @@ export function SignupForm() {
                         <button
                           type="button"
                           onClick={() => selectChild(child)}
-                          className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500"
+                          className="whitespace-nowrap rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500"
                         >
                           선택
                         </button>
@@ -207,6 +298,99 @@ export function SignupForm() {
                   {childSearchResults.length === 0 && !isChildSearching && (
                     <tr>
                       <td className="px-3 py-6 text-center text-slate-500" colSpan={7}>
+                        검색 결과가 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isKindergartenPopupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-slate-900">유치원 찾기</h2>
+              <button
+                type="button"
+                onClick={() => setIsKindergartenPopupOpen(false)}
+                className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100"
+              >
+                닫기
+              </button>
+            </div>
+
+            <div className="mb-4 flex flex-col gap-3 md:flex-row">
+              <input
+                type="text"
+                value={kindergartenSearchKeyword}
+                onChange={(e) => setKindergartenSearchKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchKindergartens(kindergartenSearchKeyword);
+                  }
+                }}
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                placeholder="유치원명 또는 사업자번호 검색 (ex) 해맑은유치원"
+              />
+              <button
+                type="button"
+                onClick={() => searchKindergartens(kindergartenSearchKeyword)}
+                className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
+              >
+                검색
+              </button>
+            </div>
+
+            {kindergartenSearchError && <p className="mb-3 text-sm text-amber-600">{kindergartenSearchError}</p>}
+            {isKindergartenSearching && <p className="mb-3 text-sm text-slate-600">검색 중...</p>}
+
+            <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
+              <table className="min-w-full text-sm text-slate-700">
+                <thead className="bg-slate-100 text-xs uppercase text-slate-600">
+                  <tr>
+                    <th className="px-3 py-2 text-left">ID</th>
+                    <th className="px-3 py-2 text-left">유치원명</th>
+                    <th className="px-3 py-2 text-left">유치원코드</th>
+                    <th className="px-3 py-2 text-left">지역코드</th>
+                    <th className="px-3 py-2 text-left">사업자번호</th>
+                    <th className="px-3 py-2 text-left">주소</th>
+                    <th className="px-3 py-2 text-left">담당자</th>
+                    <th className="px-3 py-2 text-left">담당자연락처</th>
+                    <th className="px-3 py-2 text-left">담당자이메일</th>
+                    <th className="px-3 py-2 text-left">선택</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kindergartenSearchResults.map((kindergarten) => (
+                    <tr key={kindergarten.kindergartenId} className="border-t border-slate-200">
+                      <td className="px-3 py-2">{kindergarten.kindergartenId}</td>
+                      <td className="px-3 py-2">{kindergarten.name}</td>
+                      <td className="px-3 py-2">{kindergarten.code ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.regionCode ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.businessRegistrationNo ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.address ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.contactName ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.contactPhone ?? '-'}</td>
+                      <td className="px-3 py-2">{kindergarten.contactEmail ?? '-'}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => selectKindergarten(kindergarten)}
+                          className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500"
+                        >
+                          선택
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {kindergartenSearchResults.length === 0 && !isKindergartenSearching && (
+                    <tr>
+                      <td className="px-3 py-6 text-center text-slate-500" colSpan={10}>
                         검색 결과가 없습니다.
                       </td>
                     </tr>
