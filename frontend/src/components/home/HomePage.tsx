@@ -6,6 +6,7 @@ import { Bell, ChevronRight } from 'lucide-react';
 import { HeroSlider } from '@/components/home/HeroSlider';
 import { LoginModal } from '@/components/home/LoginModal';
 import { Footer } from '@/layout/Footer';
+import { useAppSelector } from '@/store/hook';
 
 
 const notices = [
@@ -43,6 +44,7 @@ const notices = [
 
 export function HomePage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { user } = useAppSelector((state) => state.user);
 
   return (
     <>
@@ -106,13 +108,23 @@ export function HomePage() {
                       <ChevronRight className="w-4 h-4" />
                     </Link>
 
-                    <button
-                      className="w-full flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsLoginModalOpen(true)}
-                    >
-                      <span className="text-sm">로그인</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    {!user ? (
+                      <button
+                        className="w-full flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsLoginModalOpen(true)}
+                      >
+                        <span className="text-sm">로그인</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <Link
+                        href="/dashboard"
+                        className="flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="text-sm">대시보드</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    )}
 
                     <button className="w-full flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
                       <span className="text-sm">고객센터</span>

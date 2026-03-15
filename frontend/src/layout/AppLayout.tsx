@@ -12,10 +12,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const { user } = useAppSelector((state) => state.user);
     const pathname = usePathname();
 
-    const hiddenTopBarRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
+    const hiddenTopBarRoutes = ['/login', '/forgot-password', '/reset-password'];
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
     const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
-    const username = user?.name ?? '게스트';
+    const username = user?.name ?? user?.username ?? '게스트';
 
     return (
         <div className="h-screen flex flex-col">
@@ -24,11 +24,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <TopBar
                     currentRole={currentRole}
                     username={username}
-                    onRoleChange={(r) => dispatch(switchRole(r))}
+                    onRoleChange={user ? (r) => dispatch(switchRole(r)) : undefined}
                 />
             )}
 
-            <div className="flex-1 overflow-hidden">
+            <div className={`flex-1 ${pathname === '/signup' ? 'overflow-auto' : 'overflow-hidden'}`}>
                 {children}
             </div>
 

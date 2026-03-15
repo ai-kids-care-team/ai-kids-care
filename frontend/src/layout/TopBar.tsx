@@ -3,6 +3,7 @@
 import { LogIn, LogOut, Settings, UserCircle, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
 import { useAppSelector, useAppDispatch } from '@/store/hook';
@@ -21,6 +22,7 @@ import {
 import type { UserRole } from '@/types/anomaly';
 import { roleLabels } from '@/types/anomaly';
 import { useGetMenusQuery } from '@/services/apis/menu.api';
+import { LoginModal } from '@/components/home/LoginModal';
 
 interface TopBarProps {
   currentRole: UserRole;
@@ -51,6 +53,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isGuest = !user;
 
   // RTK Query를 이용한 알림 데이터 패칭 (30초마다 갱신)
@@ -82,14 +85,17 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
 
   const handleLogout = () => {
     dispatch(logout());
-    router.push('/login');
+    router.push('/');
   };
 
   return (
+    <>
       <div className="relative z-10 shadow-md">
         <div className="bg-[#006b52] text-white px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold tracking-tight">햇살유치원 CCTV 관리</h1>
+            <Link href="/" className="text-lg font-semibold tracking-tight hover:text-green-200 transition-colors">
+              AI Kids Care
+            </Link>
             <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/40 font-normal">
               {roleLabels[currentRole]}
             </Badge>
@@ -182,7 +188,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
                   variant="ghost"
                   size="sm"
                   className="text-white hover:bg-red-500/80 hover:text-white gap-1.5 px-3 rounded-md transition-colors"
-                  onClick={isGuest ? () => router.push('/login') : handleLogout}
+                  onClick={isGuest ? () => setIsLoginModalOpen(true) : handleLogout}
               >
                 {isGuest ? <LogIn className="w-4 h-4" /> : <LogOut className="w-4 h-4" />}
                 <span className="text-sm font-medium hidden sm:inline-block">
@@ -208,6 +214,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
           </div>
         </div>
       </div>
-
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+    </>
   );
 }

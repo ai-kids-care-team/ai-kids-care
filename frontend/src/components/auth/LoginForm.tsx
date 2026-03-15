@@ -8,6 +8,17 @@ import { Eye, EyeOff, Shield } from 'lucide-react';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
+import type { UserRole } from '@/types/anomaly';
+
+const mapBackendRoleToFrontendRole = (role: string): UserRole => {
+  const normalized = String(role ?? '').trim().toUpperCase();
+
+  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') return 'super_admin';
+  if (normalized === 'PLATFORM_IT_ADMIN' || normalized === 'SYSTEM_ADMIN') return 'system_admin';
+  if (normalized === 'KINDERGARTEN_ADMIN' || normalized === 'ADMIN') return 'admin';
+  if (normalized === 'TEACHER') return 'teacher';
+  return 'guardian';
+};
 
 export function LoginForm() {
   const router = useRouter();
@@ -37,7 +48,7 @@ export function LoginForm() {
           username: responseLoginId, // 👈 타입 에러 해결을 위해 추가!
           loginId: responseLoginId,
           name: responseLoginId, // 백엔드가 이름을 안 주므로 임시로 아이디를 이름 대신 표시
-          role: role.toLowerCase() // "ADMIN"을 "admin"으로 변환 (대시보드 권한 체크용)
+          role: mapBackendRoleToFrontendRole(role),
       };
 
       // 3. 조립한 user와 token을 저장
