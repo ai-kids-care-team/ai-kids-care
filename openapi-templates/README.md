@@ -1,4 +1,10 @@
 ```
+# 查看参数
+npm install @openapitools/openapi-generator-cli -g
+openapi-generator-cli version-manager set 7.20.0
+
+openapi-generator-cli config-help -g spring
+
 openapi-generator-cli author template -g spring -o openapi-templates/spring
 
 openapi-generator-cli generate -c .\openapi-templates\openapi-spring.yaml

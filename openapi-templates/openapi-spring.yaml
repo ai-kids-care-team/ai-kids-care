@@ -1,5 +1,5 @@
 generatorName: spring
-inputSpec: docs/db/OpenAPI/openapi.yaml
+inputSpec: docs/OpenAPI/openapi.yaml
 outputDir: generated/spring
 templateDir: openapi-templates/spring
 
@@ -16,3 +16,4 @@ additionalProperties:
   useTags: true
   useSpringController: true
   delegatePattern: false
+  useResponseEntity: false
