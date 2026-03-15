@@ -2,6 +2,7 @@ package com.dashboard.exception;
 
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +23,14 @@ public class GlobalExceptionHandler {
         String raw = extractMessage(ex);
         String mappedMessage = mapDuplicateMessage(raw);
         return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", mappedMessage));
+    }
+
+    @ExceptionHandler(BadSqlGrammarException.class)
+    public ResponseEntity<Map<String, String>> handleBadSqlGrammarException(BadSqlGrammarException ex) {
+        String raw = extractMessage(ex);
+        String mappedMessage = mapSqlGrammarMessage(raw);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", mappedMessage));
     }
 
@@ -69,5 +78,15 @@ public class GlobalExceptionHandler {
         }
 
         return message.isBlank() ? "요청 처리 중 오류가 발생했습니다." : message;
+    }
+
+    private String mapSqlGrammarMessage(String raw) {
+        String message = raw == null ? "" : raw;
+
+        if (message.contains("FROM child")) {
+            return "아이 정보 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+        }
+
+        return "요청을 처리하는 중 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
     }
 }

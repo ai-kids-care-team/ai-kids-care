@@ -65,7 +65,6 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   const [markAllAsReadApi] = useMarkAllNotificationsAsReadMutation();
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
   const menuRoleType = isGuest ? 'ALL' : mapFrontendRoleToMenuRole(currentRole);
-  console.log('[TopBar] menuRoleType:', menuRoleType);
   const { data: menuItems = [] } = useGetMenusQuery(menuRoleType);
   const fallbackMenus = [
     { menuId: -1, menuName: '대시보드', path: '/dashboard' },

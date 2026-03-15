@@ -10,12 +10,12 @@ import { FullscreenView } from '@/components/monitoring/FullscreenView';
 import { useGetCamerasQuery} from '@/services/apis/camera.api';
 import { useGetEventsQuery, useUpdateEventStatusMutation} from '@/services/apis/event.api';
 import { EventDetailModal } from '@/components/events/EventDetailModal';
-import { useGetDashboardMetricsQuery } from '@/services/apis/metrics.api';
 import { RightPanel } from '@/components/monitoring/RightPanel';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
 import type { Camera, AnomalyEvent, AnomalyType, UserRole } from '@/types/anomaly';
 import { rolePermissions } from '@/types/anomaly';
+import type { SystemMetricItem } from './SystemMetrics';
 
 const KINDERGARTEN_ID = '1';
 
@@ -46,6 +46,16 @@ const generateMockEvents = (): AnomalyEvent[] => {
     { id: 'EVT-003', timestamp: new Date(Date.now() - 45 * 60000), cameraId: 'CAM-002', cameraName: '놀이터', type: 'Wander', confidence: 78, location: '야외 놀이공간', status: 'resolved', severity: 'low' }
   ] as AnomalyEvent[]).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
+
+const SYSTEM_METRICS: SystemMetricItem[] = [
+  { id: 'm1', metricName: 'CPU 사용률', value: 65.5, unit: '%', createdAt: new Date().toISOString() },
+  { id: 'm2', metricName: '메모리 사용량', value: 78.2, unit: '%', createdAt: new Date().toISOString() },
+  { id: 'm3', metricName: '디스크 사용량', value: 45.0, unit: '%', createdAt: new Date().toISOString() },
+  { id: 'm4', metricName: '네트워크 트래픽', value: 120.5, unit: 'Mbps', createdAt: new Date().toISOString() },
+  { id: 'm5', metricName: 'API 응답 시간', value: 95.0, unit: 'ms', createdAt: new Date().toISOString() },
+  { id: 'm6', metricName: '활성 사용자', value: 234.0, unit: '명', createdAt: new Date().toISOString() },
+];
+
 export function DashboardMonitor() {
   const { user } = useAppSelector((state) => state.user);
   const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
@@ -55,7 +65,6 @@ export function DashboardMonitor() {
   const { data: serverCameras, isError: isCameraError } = useGetCamerasQuery(KINDERGARTEN_ID, { skip: !user });
   const { data: serverEvents, isError: isEventError } = useGetEventsQuery({ kindergartenId: KINDERGARTEN_ID }, { skip: !user, pollingInterval: 10000 });
   //const { data: serverEvents, isError: isEventError } = useGetEventsQuery(KINDERGARTEN_ID, { skip: !user, pollingInterval: 10000 });
-  const { data: metrics, isError: isMetricsError } = useGetDashboardMetricsQuery(undefined, { skip: !user, pollingInterval: 10000 });
   const [updateEventStatus] = useUpdateEventStatusMutation();
 
   const [localEvents, setLocalEvents] = useState<AnomalyEvent[]>([]);
@@ -155,7 +164,7 @@ export function DashboardMonitor() {
 
             {/* 💡 기존의 길고 지저분했던 MetricGauge 함수와 렌더링 코드를 단 한 줄로 대체했습니다. */}
             <div className="border-t border-gray-200 pt-8 mt-4">
-              <SystemMetrics metrics={metrics} isError={isMetricsError} />
+              <SystemMetrics metrics={SYSTEM_METRICS} />
             </div>
 
           </main>

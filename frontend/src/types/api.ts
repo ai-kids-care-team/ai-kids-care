@@ -182,18 +182,3 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
 }
-
-// ============================================================================
-// 5. 대시보드 (Dashboard)
-// ============================================================================
-
-export interface DashboardMetric {
-  id?: string | number;   // 👈 테이블 key와 id 출력용
-  title?: string;
-  metricName?: string;    // 👈 테이블 이름 출력용
-  value: number;
-  unit?: string;
-  trend?: string;
-  trendValue?: string;
-  [key: string]: any;     // 👈 기타 미정의 속성 통과용
-}

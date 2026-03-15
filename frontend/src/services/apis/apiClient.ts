@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { DashboardMetric } from '@/types/api'; // 추가: 대시보드 타입 임포트
 
 // 환경변수에 설정된 API 주소를 사용하거나 기본값 사용
 //const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com';
@@ -31,13 +30,18 @@ apiClient.interceptors.response.use(
   (response) => response, // 성공한 응답은 그대로 통과
   async (error) => {
     const originalRequest = error.config;
+    const isBrowser = typeof window !== 'undefined';
 
     // 401 Unauthorized 에러(토큰 만료)이고, 아직 재시도한 적이 없는 요청이라면
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // 무한 루프 방지용 플래그
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        if (!isBrowser) {
+          throw new Error('브라우저 환경이 아니어서 토큰 갱신을 수행할 수 없습니다.');
+        }
+
+        const refreshToken = window.localStorage.getItem('refreshToken');
         if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
 
         // 토큰 갱신 API 호출 (openapi 명세서 기준)
@@ -46,9 +50,9 @@ apiClient.interceptors.response.use(
         });
 
         // 새로 발급받은 토큰을 저장
-        localStorage.setItem('accessToken', data.accessToken);
+        window.localStorage.setItem('accessToken', data.accessToken);
         if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken);
+          window.localStorage.setItem('refreshToken', data.refreshToken);
         }
 
         // 실패했던 원래 요청의 헤더를 새 토큰으로 교체하고 다시 요청!
@@ -57,30 +61,14 @@ apiClient.interceptors.response.use(
 
       } catch (refreshError) {
         // 리프레시 토큰마저 만료되었거나 에러가 났다면 강제 로그아웃
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login'; // 로그인 페이지로 쫓아냄
+        if (isBrowser) {
+          window.localStorage.removeItem('accessToken');
+          window.localStorage.removeItem('refreshToken');
+          window.location.href = '/login'; // 로그인 페이지로 쫓아냄
+        }
         return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error); // 401이 아닌 다른 에러는 그대로 반환
   }
 );
-
-// ============================================================================
-// API 호출 함수들
-// ============================================================================
-
-/**
- * 대시보드 메트릭 데이터를 가져옵니다.
- */
-export const getDashboardMetrics = async (): Promise<DashboardMetric[]> => {
-  try {
-    // 백엔드 API 엔드포인트에 맞춰 URL('/v1/dashboard/metrics')을 수정할 수 있습니다.
-    const response = await apiClient.get<DashboardMetric[]>('/v1/dashboard/metrics');
-    return response.data;
-  } catch (error) {
-    console.error('대시보드 데이터를 가져오는데 실패했습니다:', error);
-    throw error; // UI 컴포넌트에서 에러 처리를 할 수 있도록 던져줍니다.
-  }
-};
