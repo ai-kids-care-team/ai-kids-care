@@ -55,7 +55,7 @@ VALUES
 ('설정', 'SETTING', '/setting', 'SettingPage', 'setting', 'ALL', 5, now(), now()),
 ('알림서비스', 'ALARM', '/alarm', 'AlarmPage', 'alarm', 'ALL', 6, now(), now()),
 ('감사편지', 'THANK_LETTER', '/letters', 'LetterPage', 'letterPage', 'ALL', 6, now(), now()),
-('공지사항', 'NOTICES', '/notices', 'NoticesPage', 'notice', 'ALL', 7, now(), now());
+('공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'ALL', 7, now(), now());
 
 
 

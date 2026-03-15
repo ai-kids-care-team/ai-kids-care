@@ -20,12 +20,12 @@ public class CommonCodeService {
             throw new RuntimeException("코드 그룹을 입력해주세요.");
         }
 
-        String codeGroup = group.trim().toUpperCase();
+        String codeGroup = group.trim();
         return jdbcTemplate.query(
                 """
                 SELECT code_group, parent_code, code, code_name, sort_order
                   FROM common_code
-                 WHERE code_group = ?
+                 WHERE UPPER(code_group) = UPPER(?)
                    AND is_active = true
                  ORDER BY sort_order ASC, code ASC
                 """,
@@ -50,13 +50,13 @@ public class CommonCodeService {
                 """
                 SELECT COUNT(*)
                   FROM common_code
-                 WHERE code_group = ?
-                   AND code = ?
+                 WHERE UPPER(code_group) = UPPER(?)
+                   AND UPPER(code) = UPPER(?)
                    AND is_active = true
                 """,
                 Integer.class,
-                group.trim().toUpperCase(),
-                code.trim().toUpperCase()
+                group.trim(),
+                code.trim()
         );
         return count != null && count > 0;
     }

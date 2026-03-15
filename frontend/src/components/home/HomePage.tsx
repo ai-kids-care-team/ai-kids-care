@@ -9,7 +9,7 @@ import { Footer } from '@/layout/Footer';
 import { useAppSelector } from '@/store/hook';
 
 
-const notices = [
+const announcements = [
   {
     id: 1,
     title: '2026년 AI Kids Care 서비스 오픈 안내',
@@ -72,25 +72,25 @@ export function HomePage() {
                     <Bell className="w-6 h-6 text-blue-600" />
                     <h2 className="text-xl">공지사항</h2>
                   </div>
-                  <Link href="/notices" className="text-sm text-gray-600 hover:text-blue-600">
+                  <Link href="/announcements" className="text-sm text-gray-600 hover:text-blue-600">
                     전체보기 +
                   </Link>
                 </div>
 
                 <div className="space-y-4">
-                  {notices.map((notice) => (
+                  {announcements.map((announcement) => (
                     <Link
-                      key={notice.id}
-                      href="/notices"
+                      key={announcement.id}
+                      href="/announcements"
                       className="pb-4 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition-colors"
                     >
                       <div className="flex items-start gap-2">
-                        {notice.isNew && (
+                        {announcement.isNew && (
                           <span className="flex-shrink-0 px-2 py-0.5 bg-red-500 text-white text-xs rounded">NEW</span>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate hover:text-blue-600 transition-colors">{notice.title}</p>
-                          <p className="text-xs text-gray-500 mt-1">{notice.date}</p>
+                          <p className="text-sm truncate hover:text-blue-600 transition-colors">{announcement.title}</p>
+                          <p className="text-xs text-gray-500 mt-1">{announcement.date}</p>
                         </div>
                       </div>
                     </Link>
