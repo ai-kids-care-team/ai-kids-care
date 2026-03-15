@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Lock, Save, AlertCircle } from 'lucide-react';
 
@@ -22,11 +22,15 @@ export function ProfileSettings() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // 인증되지 않은 사용자 접근 제어 (ProtectedRoute가 있다면 생략 가능)
-  if (!isAuthenticated || !user) {
-    router.replace('/auth/login');
-    return null;
-  }
+  // SSR/정적 생성 중에는 라우터 이동을 렌더 단계에서 호출하지 않도록 effect로 처리
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, user, router]);
+
+  // 인증 정보가 없으면 리다이렉트가 완료될 때까지 화면을 렌더링하지 않음
+  if (!isAuthenticated || !user) return null;
 
   const handleRoleChange = (role: any) => {
     dispatch(switchRole(role));

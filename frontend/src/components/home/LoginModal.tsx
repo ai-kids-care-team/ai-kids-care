@@ -151,7 +151,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="아이디를 입력하세요"
-                  inputMode="latin"
+                  inputMode="text"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
