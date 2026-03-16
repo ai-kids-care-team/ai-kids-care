@@ -4,6 +4,13 @@ import { AnnouncementsListForm } from './AnnouncementsListForm';
 import { useAnnouncements } from './model/useAnnouncements';
 
 export function AnnouncementsListPage() {
-  const { announcements } = useAnnouncements();
-  return <AnnouncementsListForm announcements={announcements} />;
+  const { announcements, canWrite, loading, error } = useAnnouncements();
+  return (
+    <AnnouncementsListForm
+      announcements={announcements}
+      canWrite={canWrite}
+      loading={loading}
+      error={error}
+    />
+  );
 }

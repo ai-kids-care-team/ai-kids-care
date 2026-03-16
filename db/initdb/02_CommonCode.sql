@@ -199,3 +199,29 @@ WHERE NOT EXISTS (
     WHERE c.code_group = v.code_group
       AND c.code = v.code
 );
+
+INSERT INTO public.common_code
+(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
+SELECT
+    'status',
+    'announcements',
+    v.code,
+    v.code_name,
+    v.sort_order,
+    true,
+    null,
+    now(),
+    now()
+FROM (
+    VALUES
+        ('ACTIVE', '게시 중', 1),
+        ('PENDING', '게시 대기', 2),
+        ('DISABLED', '게시 중지', 3)
+) AS v(code, code_name, sort_order)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.common_code c
+    WHERE c.parent_code = 'status'
+      AND c.code_group = 'announcements'
+      AND c.code = v.code
+);
