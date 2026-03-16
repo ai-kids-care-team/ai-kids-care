@@ -1,9 +1,0 @@
-type: object
-required:
-  - refreshToken
-properties:
-  refreshToken:
-    type: string
-  allSessions:
-    type: boolean
-    default: false

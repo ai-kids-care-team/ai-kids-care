@@ -1,6 +1,0 @@
-type: string
-enum:
-  - ACTIVE
-  - PENDING
-  - DISABLED
-description: Unified status enum from DBML.

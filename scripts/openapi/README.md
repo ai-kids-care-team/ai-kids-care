@@ -6,7 +6,9 @@ python gen_openapi_pg16.py `
     --title "KG CCTV Platform API" `
     --version "0.1.0" `
     --server-url "http://localhost:8080/api" `
-    --out openapi.yaml
+    --out openapi.yaml `
+    --update-exclude-suffixes created_at,created_by `
+    --create-exclude-suffixes created_at,updated_at
 ```
 
 ```
