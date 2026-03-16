@@ -8,6 +8,19 @@ import { Eye, EyeOff, Shield } from 'lucide-react';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
+import type { UserRole } from '@/types/anomaly';
+
+const mapBackendRoleToFrontendRole = (role: string): UserRole => {
+  const normalized = String(role ?? '').trim().toUpperCase();
+
+  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') return 'super_admin';
+  if (normalized === 'PLATFORM_IT_ADMIN' || normalized === 'SYSTEM_ADMIN') return 'system_admin';
+  if (normalized === 'KINDERGARTEN_ADMIN' || normalized === 'ADMIN') return 'admin';
+  if (normalized === 'TEACHER') return 'teacher';
+  return 'guardian';
+};
+
+const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,11 +46,11 @@ export function LoginForm() {
       //console.log('백엔드 로그인 응답 데이터:', response);
 
       const user = {
-        id: responseLoginId,
-        username: responseLoginId,
-        loginId: responseLoginId,
-        name: responseLoginId,
-        role: role.toLowerCase()
+          id: responseLoginId,       // 👈 타입 에러 해결을 위해 추가!
+          username: responseLoginId, // 👈 타입 에러 해결을 위해 추가!
+          loginId: responseLoginId,
+          name: responseLoginId, // 백엔드가 이름을 안 주므로 임시로 아이디를 이름 대신 표시
+          role: mapBackendRoleToFrontendRole(role),
       };
 
       // 1. Redux 스토어에 유저 정보와 토큰 저장
@@ -59,13 +72,34 @@ export function LoginForm() {
   };
 
   return (
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-2xl mb-4">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">햇살유치원</h1>
-          <p className="text-sm text-gray-600">CCTV 통합 관리 시스템</p>
+    <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-2xl mb-4">
+          <Shield className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">햇살유치원</h1>
+        <p className="text-sm text-gray-600">CCTV 통합 관리 시스템</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="loginId" className="block text-sm font-medium text-gray-700 mb-1">
+            로그인 ID
+          </label>
+          <input
+            id="loginId"
+            type="text"
+            value={loginId}
+            onChange={(e) => setLoginId(normalizeLoginId(e.target.value))}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all"
+            placeholder="아이디를 입력하세요"
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            lang="en"
+            required
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,6 +116,14 @@ export function LoginForm() {
                 placeholder="아이디를 입력하세요"
                 required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
 
           <div>

@@ -4,21 +4,19 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SystemMetrics } from './SystemMetrics';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
-// 💡 [수정된 부분] setCredentials 액션을 추가로 임포트합니다.
-import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { CCTVGrid } from '@/components/monitoring/CCTVGrid';
 import { CameraDetailModal } from '@/components/monitoring/CameraDetailModal';
 import { FullscreenView } from '@/components/monitoring/FullscreenView';
 import { useGetCamerasQuery } from '@/services/apis/camera.api';
 import { useGetEventsQuery, useUpdateEventStatusMutation } from '@/services/apis/event.api';
 import { DetectionEventsDetailModal } from '@/components/detectionEvents/DetectionEventsDetailModal';
-import { useGetDashboardMetricsQuery } from '@/services/apis/metrics.api';
+import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { RightPanel } from '@/components/monitoring/RightPanel';
-import { TopBar } from '@/layout/TopBar';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
-import type { Camera, AnomalyEvent, AnomalyType } from '@/types/anomaly';
+import type { Camera, AnomalyEvent, AnomalyType, UserRole } from '@/types/anomaly';
 import { rolePermissions } from '@/types/anomaly';
+import type { SystemMetricItem } from './SystemMetrics';
 import { useRouter } from 'next/navigation'; // 리다이렉트를 위해 추가
 
 const KINDERGARTEN_ID = '1';
@@ -51,10 +49,13 @@ const generateMockEvents = (): AnomalyEvent[] => {
   ] as AnomalyEvent[]).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
+
 export function DashboardMonitor() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
+  const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
+  const currentUserName = user?.name ?? '게스트';
 
   // 인증 대기 상태
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -94,7 +95,6 @@ export function DashboardMonitor() {
   // RTK Query를 이용한 10초 주기 실시간 자동 갱신
   const { data: serverCameras, isError: isCameraError } = useGetCamerasQuery(KINDERGARTEN_ID, { skip: !user });
   const { data: serverEvents, isError: isEventError } = useGetEventsQuery({ kindergartenId: KINDERGARTEN_ID }, { skip: !user, pollingInterval: 10000 });
-  const { data: metrics, isError: isMetricsError } = useGetDashboardMetricsQuery(undefined, { skip: !user, pollingInterval: 10000 });
   const [updateEventStatus] = useUpdateEventStatusMutation();
 
   const [localEvents, setLocalEvents] = useState<AnomalyEvent[]>([]);
@@ -110,13 +110,12 @@ export function DashboardMonitor() {
 
   // 카메라 데이터 권한 필터링 및 하이브리드 적용
   useEffect(() => {
-    if (!user) return;
-    const permissions = rolePermissions[user.role];
+    const permissions = rolePermissions[currentRole];
     let sourceCameras = isCameraError || !serverCameras ? allCameras : serverCameras;
 
     if (!permissions.canViewAllCameras && permissions.canViewOwnClassroom) {
-      if (user.role === 'teacher') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
-      else if (user.role === 'guardian') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
+      if (currentRole === 'teacher') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
+      else if (currentRole === 'guardian') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
     }
 
     if (categoryFilter === 'all') setFilteredCameras(sourceCameras);
@@ -124,7 +123,7 @@ export function DashboardMonitor() {
     else setFilteredCameras(sourceCameras.filter(c => c.category === categoryFilter));
 
     setCurrentPage(1);
-  }, [user, serverCameras, isCameraError, categoryFilter]);
+  }, [currentRole, serverCameras, isCameraError, categoryFilter]);
 
   // 이벤트 데이터 하이브리드 적용
   useEffect(() => {
@@ -152,7 +151,7 @@ export function DashboardMonitor() {
     );
   }
 
-  const permissions = rolePermissions[user.role];
+  const permissions = rolePermissions[currentRole];
 
   // UI 핸들러들
   const handleEventStatusChange = async (status: AnomalyEvent['status']) => {
@@ -188,9 +187,18 @@ export function DashboardMonitor() {
   const displayedCameras = filteredCameras.slice(startIndex, startIndex + camerasPerPage);
 
   return (
-      <>
-        <div className="h-screen flex flex-col bg-gray-50">
-          <TopBar currentRole={user.role} username={user.name} onRoleChange={(r) => dispatch(switchRole(r))} />
+    <>
+      <div className="h-screen flex flex-col bg-gray-50">
+        
+        <div className="flex-1 flex overflow-hidden">
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">실시간 모니터링</h2>
+                <p className="text-sm text-gray-500">
+                  전체 {filteredCameras.length}개 중 {startIndex + 1}-{Math.min(startIndex + camerasPerPage, filteredCameras.length)}번째 • {layout} {isVideoPaused && ' • 일시정지됨'}
+                </p>
+              </div>
 
           <div className="flex-1 flex overflow-hidden">
             <Sidebar currentRole={user.role} userName={user.name} cameraStats={cameraStats} onCategoryFilter={setCategoryFilter} currentCategory={categoryFilter} />
@@ -203,6 +211,17 @@ export function DashboardMonitor() {
                     전체 {filteredCameras.length}개 중 {startIndex + 1}-{Math.min(startIndex + camerasPerPage, filteredCameras.length)}번째 • {layout} {isVideoPaused && ' • 일시정지됨'}
                   </p>
                 </div>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <CCTVGrid cameras={displayedCameras} onCameraSelect={(id) => setSelectedCamera(filteredCameras.find(c => c.id === id) || null)} onCameraFullscreen={(id) => setFullscreenCamera(filteredCameras.find(c => c.id === id) || null)} layout={layout} />
+            </div>
+
+            {/* 💡 기존의 길고 지저분했던 MetricGauge 함수와 렌더링 코드를 단 한 줄로 대체했습니다. */}
+            <div className="border-t border-gray-200 pt-8 mt-4">
+              <SystemMetrics metrics={SYSTEM_METRICS} />
+            </div>
 
                 {totalPages > 1 && (
                     <div className="flex items-center gap-2">
@@ -229,7 +248,7 @@ export function DashboardMonitor() {
               {/*<div className="border-t border-gray-200 pt-8 mt-4">*/}
               {/* <SystemMetrics metrics={metrics} isError={isMetricsError} />*/}
               {/*</div>*/}
-
+        
             </main>
 
             <RightPanel

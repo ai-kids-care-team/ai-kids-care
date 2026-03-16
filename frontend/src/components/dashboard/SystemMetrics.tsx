@@ -1,10 +1,17 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import type { DashboardMetric } from '../../services/apis/metrics.api';
+
+export interface SystemMetricItem {
+  id: string;
+  metricName: string;
+  value: number;
+  unit: string;
+  createdAt: string;
+}
 
 // 개별 파이 차트(게이지) 컴포넌트
-function MetricGauge({ metric }: { metric: DashboardMetric }) {
+function MetricGauge({ metric }: { metric: SystemMetricItem }) {
   const maxValue = metric.unit === '%' ? 100 : Math.max(metric.value * 1.5, 100);
   const value = Math.min(metric.value, maxValue);
   const percent = (value / maxValue) * 100;
@@ -45,19 +52,10 @@ function MetricGauge({ metric }: { metric: DashboardMetric }) {
 }
 
 interface SystemMetricsProps {
-  metrics?: DashboardMetric[];
-  isError?: boolean;
+  metrics?: SystemMetricItem[];
 }
 
-export function SystemMetrics({ metrics, isError }: SystemMetricsProps) {
-  if (isError) {
-    return (
-      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-        메트릭 데이터를 불러오는데 실패했습니다.
-      </div>
-    );
-  }
-
+export function SystemMetrics({ metrics }: SystemMetricsProps) {
   if (!metrics || metrics.length === 0) {
     return null;
   }

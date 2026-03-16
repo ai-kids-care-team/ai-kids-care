@@ -10,6 +10,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -26,9 +30,6 @@ class AuthServiceTest {
     private JwtUtil jwtUtil;
 
     @Mock
-    private ChildLookupService childLookupService;
-
-    @Mock
     private GuardianBindingService guardianBindingService;
 
     @Mock
@@ -38,7 +39,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtUtil, childLookupService, guardianBindingService, commonCodeService);
+        authService = new AuthService(userRepository, passwordEncoder, jwtUtil, guardianBindingService, commonCodeService);
+        lenient().when(commonCodeService.existsActiveCode(eq("GUARDIAN_RELATIONSHIP"), anyString())).thenReturn(true);
     }
 
     @Test
@@ -73,6 +75,7 @@ class AuthServiceTest {
     void signup_withUnknownRelationshipCode_throwsValidationError() {
         SignupRequest request = baseGuardianRequest();
         request.setRelationship("UNKNOWN_RELATION");
+        when(commonCodeService.existsActiveCode("GUARDIAN_RELATIONSHIP", "UNKNOWN_RELATION")).thenReturn(false);
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.signup(request));
         assertEquals("유효하지 않은 관계 코드입니다.", ex.getMessage());
