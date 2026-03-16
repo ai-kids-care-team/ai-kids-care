@@ -6,9 +6,12 @@ import type { AnnouncementItem } from './model/useAnnouncements';
 
 type AnnouncementsListFormProps = {
   announcements: AnnouncementItem[];
+  canWrite: boolean;
+  loading: boolean;
+  error: string;
 };
 
-export function AnnouncementsListForm({ announcements }: AnnouncementsListFormProps) {
+export function AnnouncementsListForm({ announcements, canWrite, loading, error }: AnnouncementsListFormProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <main className="mx-auto max-w-5xl">
@@ -18,36 +21,45 @@ export function AnnouncementsListForm({ announcements }: AnnouncementsListFormPr
               <Bell className="h-7 w-7 text-[#006b52]" />
               <h2 className="text-3xl">공지사항</h2>
             </div>
-            <Link
-              href="/announcements/write"
-              className="flex items-center gap-2 rounded-lg bg-[#006b52] px-5 py-2.5 text-white transition-colors hover:bg-[#005640]"
-            >
-              <Plus className="h-5 w-5" />
-              글쓰기
-            </Link>
+            {canWrite && (
+              <Link
+                href="/announcements/write"
+                className="flex items-center gap-2 rounded-lg bg-[#006b52] px-5 py-2.5 text-white transition-colors hover:bg-[#005640]"
+              >
+                <Plus className="h-5 w-5" />
+                글쓰기
+              </Link>
+            )}
           </div>
 
+          {loading && <p className="py-8 text-center text-gray-500">공지사항을 불러오는 중입니다.</p>}
+          {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+
           <div className="space-y-3">
-            {announcements.map((announcement) => (
-              <Link
-                key={announcement.id}
-                href={announcement.href}
-                className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                <div className="flex items-start gap-3">
-                  {announcement.isNew && (
-                    <span className="flex-shrink-0 rounded bg-red-500 px-2.5 py-1 text-xs text-white">NEW</span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lg transition-colors hover:text-[#006b52]">{announcement.title}</p>
-                    <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                      <span>{announcement.date}</span>
-                      <span>조회수: {announcement.views}</span>
+            {!loading && announcements.length === 0 ? (
+              <p className="py-10 text-center text-gray-500">등록된 공지사항이 없습니다.</p>
+            ) : (
+              announcements.map((announcement) => (
+                <Link
+                  key={announcement.id}
+                  href={announcement.href}
+                  className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
+                >
+                  <div className="flex items-start gap-3">
+                    {announcement.isNew && (
+                      <span className="flex-shrink-0 rounded bg-red-500 px-2.5 py-1 text-xs text-white">NEW</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg transition-colors hover:text-[#006b52]">{announcement.title}</p>
+                      <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                        <span>{announcement.date}</span>
+                        <span>조회수: {announcement.views}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </main>

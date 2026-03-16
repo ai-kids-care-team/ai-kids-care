@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { getAnnouncements, getAnnouncementsMeta } from '@/services/apis/announcements.api';
+
 export type AnnouncementItem = {
   id: number;
   title: string;
@@ -9,17 +12,57 @@ export type AnnouncementItem = {
   href: string;
 };
 
-const ANNOUNCEMENT_MOCK_DATA: AnnouncementItem[] = [
-  { id: 1, title: '2026년 AI Kids Care 서비스 오픈 안내', date: '2026.03.10', isNew: true, views: 152, href: '/events' },
-  { id: 2, title: '개인정보 처리방침 개정 안내', date: '2026.03.08', isNew: true, views: 98, href: '/events' },
-  { id: 3, title: '회원가입 시 주의사항 안내', date: '2026.03.05', isNew: false, views: 245, href: '/events' },
-  { id: 4, title: '양육자 및 유치원 등록 절차 안내', date: '2026.03.01', isNew: false, views: 189, href: '/events' },
-  { id: 5, title: '시스템 점검 일정 공지', date: '2026.02.28', isNew: false, views: 321, href: '/events' },
-];
+function formatDate(value: string) {
+  const date = new Date(value);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}.${mm}.${dd}`;
+}
 
 export function useAnnouncements() {
-  // TODO: 추후 API 연동 시 이 훅에서 조회/페이징/정렬을 처리
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [canWrite, setCanWrite] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const [list, meta] = await Promise.all([getAnnouncements(), getAnnouncementsMeta()]);
+        const now = Date.now();
+        setAnnouncements(
+          list.map((item) => {
+            const baseDate = item.publishedAt ?? item.createdAt;
+            const isNew = now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000;
+            return {
+              id: item.id,
+              title: item.title,
+              date: formatDate(baseDate),
+              isNew,
+              views: item.viewCount,
+              href: `/announcements/read?id=${item.id}`,
+            };
+          }),
+        );
+        setCanWrite(meta.canWrite);
+      } catch (e) {
+        console.error('공지사항 목록 조회 실패:', e);
+        setError('공지사항 목록을 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
   return {
-    announcements: ANNOUNCEMENT_MOCK_DATA,
+    announcements,
+    canWrite,
+    loading,
+    error,
   };
 }
