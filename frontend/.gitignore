@@ -22,6 +22,8 @@ Desktop.ini
 *.log
 logs/
 log/
+/logs/
+/logs/**
 
 # Runtime data / pid
 *.pid
