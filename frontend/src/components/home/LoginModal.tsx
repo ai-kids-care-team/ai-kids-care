@@ -81,6 +81,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       };
 
       dispatch(setCredentials({ user, token }));
+      localStorage.setItem('user', JSON.stringify(user));
+      if (token) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('accessToken', token);
+      }
       handleModalClose();
     } catch (err: any) {
       setError(err?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');

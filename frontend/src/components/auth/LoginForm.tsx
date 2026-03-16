@@ -59,7 +59,8 @@ export function LoginForm() {
       // 💡 [추가된 부분] 2. 브라우저 LocalStorage에 백업 (새로고침 방어용)
       localStorage.setItem('user', JSON.stringify(user));
       if (token) {
-        localStorage.setItem('token', token); // 토큰도 함께 저장해야 API 호출 시 인증이 유지됩니다.
+        localStorage.setItem('token', token);
+        localStorage.setItem('accessToken', token);
       }
       // -------------------------------------------------------------
 
