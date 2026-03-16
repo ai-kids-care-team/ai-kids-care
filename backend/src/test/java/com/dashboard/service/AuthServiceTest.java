@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -35,11 +36,21 @@ class AuthServiceTest {
     @Mock
     private CommonCodeService commonCodeService;
 
+    @Mock
+    private JdbcTemplate jdbcTemplate;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtUtil, guardianBindingService, commonCodeService);
+        authService = new AuthService(
+                userRepository,
+                passwordEncoder,
+                jwtUtil,
+                guardianBindingService,
+                commonCodeService,
+                jdbcTemplate
+        );
         lenient().when(commonCodeService.existsActiveCode(eq("GUARDIAN_RELATIONSHIP"), anyString())).thenReturn(true);
     }
 
