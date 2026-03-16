@@ -43,7 +43,7 @@ COMMENT ON COLUMN menu.updated_at IS '수정 일시';
 INSERT INTO menu
 (menu_name, menu_key, path, component, icon, role_type, sort_order, created_at, updated_at)
 VALUES
-('대시보드', 'DASHBOARD', '/dashboard', 'DashboardPage', 'dashboard', 'ALL', 1, now(), now()),
+('대시보드', 'DASHBOARD', '/dashboard', 'DashboardPage', 'dashboard', 'ADMIN', 1, now(), now()),
 ('대시보드', 'DASHBOARD', '/dashboard', 'DashboardPage', 'dashboard', 'TEACHER', 1, now(), now()),
 
 ('회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'KINDERGARTEN_ADMIN', 2, now(), now()),
