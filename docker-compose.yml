@@ -13,9 +13,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
+      DB_USER: ${POSTGRES_USER:-kids_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
       JWT_SECRET: mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul

@@ -1,10 +1,13 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/store';
 
+const defaultApiBaseUrl =
+  process.env.NODE_ENV === 'development' ? 'http://localhost:8080/api/v1' : '/api/v1';
+
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080/api/v1',
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? defaultApiBaseUrl,
     prepareHeaders: (headers, { getState }) => {
       // 1. 먼저 Redux 스토어에서 토큰을 찾습니다.
       let token = (getState() as RootState).user.token;
