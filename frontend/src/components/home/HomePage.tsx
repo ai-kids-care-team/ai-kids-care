@@ -1,50 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Bell, ChevronRight } from 'lucide-react';
 import { HeroSlider } from '@/components/home/HeroSlider';
 import { LoginModal } from '@/components/home/LoginModal';
 import { Footer } from '@/layout/Footer';
 import { useAppSelector } from '@/store/hook';
+import { getAnnouncements } from '@/services/apis/announcements.api';
 
 
-const announcements = [
-  {
-    id: 1,
-    title: '2026년 AI Kids Care 서비스 오픈 안내',
-    date: '2026.03.10',
-    isNew: true,
-  },
-  {
-    id: 2,
-    title: '개인정보 처리방침 개정 안내',
-    date: '2026.03.08',
-    isNew: true,
-  },
-  {
-    id: 3,
-    title: '회원가입 시 주의사항 안내',
-    date: '2026.03.05',
-    isNew: false,
-  },
-  {
-    id: 4,
-    title: '양육자 및 유치원 등록 절차 안내',
-    date: '2026.03.01',
-    isNew: false,
-  },
-  {
-    id: 5,
-    title: '시스템 점검 일정 공지',
-    date: '2026.02.28',
-    isNew: false,
-  },
-];
+type HomeAnnouncement = {
+  id: number;
+  title: string;
+  date: string;
+  isNew: boolean;
+};
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}.${mm}.${dd}`;
+}
 
 export function HomePage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState<HomeAnnouncement[]>([]);
   const { user } = useAppSelector((state) => state.user);
+
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      try {
+        const list = await getAnnouncements();
+        const now = Date.now();
+        const mapped = list
+          .sort((a, b) => {
+            const aBase = a.publishedAt ?? a.createdAt;
+            const bBase = b.publishedAt ?? b.createdAt;
+            return new Date(bBase).getTime() - new Date(aBase).getTime();
+          })
+          .slice(0, 5)
+          .map((item) => {
+            const baseDate = item.publishedAt ?? item.createdAt;
+            return {
+              id: item.id,
+              title: item.title,
+              date: formatDate(baseDate),
+              isNew: now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000,
+            };
+          });
+        setAnnouncements(mapped);
+      } catch (e) {
+        console.error('홈 공지사항 조회 실패:', e);
+        setAnnouncements([]);
+      }
+    };
+
+    void loadAnnouncements();
+  }, []);
 
   return (
     <>
@@ -77,12 +92,12 @@ export function HomePage() {
                   </Link>
                 </div>
 
-                <div className="space-y-4">
+                <div className="divide-y divide-slate-200 rounded-lg border border-slate-200">
                   {announcements.map((announcement) => (
                     <Link
                       key={announcement.id}
-                      href="/announcements"
-                      className="pb-4 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition-colors"
+                      href={`/announcements/read?id=${announcement.id}`}
+                      className="block cursor-pointer px-3 py-3 transition-colors hover:bg-slate-50"
                     >
                       <div className="flex items-start gap-2">
                         {announcement.isNew && (

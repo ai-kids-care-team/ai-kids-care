@@ -14,6 +14,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const hiddenTopBarRoutes = ['/login', '/forgot-password', '/reset-password'];
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
+    const noScrollRoutes = ['/dashboard', '/detectionEvents'];
+    const contentOverflowClass = noScrollRoutes.includes(pathname) ? 'overflow-hidden' : 'overflow-auto';
     const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
     const username = user?.name ?? user?.username ?? '게스트';
 
@@ -28,7 +30,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 />
             )}
 
-            <div className={`flex-1 ${pathname === '/signup' ? 'overflow-auto' : 'overflow-hidden'}`}>
+            <div className={`flex-1 ${contentOverflowClass}`}>
                 {children}
             </div>
 

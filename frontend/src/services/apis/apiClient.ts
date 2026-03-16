@@ -15,8 +15,10 @@ export const apiClient = axios.create({
 // 1. 요청(Request) 인터셉터: API를 호출하기 직전에 항상 실행됨
 apiClient.interceptors.request.use(
   (config) => {
-    // 로컬 스토리지에서 액세스 토큰을 꺼냄
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // 로그인 경로별 저장 키 차이를 흡수하기 위해 accessToken/token 모두 확인
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('accessToken') ?? localStorage.getItem('token'))
+      : null;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착
     }
@@ -49,8 +51,9 @@ apiClient.interceptors.response.use(
           refreshToken, // 백엔드 설계에 따라 Header나 Cookie로 보낼 수도 있음
         });
 
-        // 새로 발급받은 토큰을 저장
+        // 새로 발급받은 토큰을 저장 (신/구 키 모두 동기화)
         window.localStorage.setItem('accessToken', data.accessToken);
+        window.localStorage.setItem('token', data.accessToken);
         if (data.refreshToken) {
           window.localStorage.setItem('refreshToken', data.refreshToken);
         }
@@ -63,6 +66,7 @@ apiClient.interceptors.response.use(
         // 리프레시 토큰마저 만료되었거나 에러가 났다면 강제 로그아웃
         if (isBrowser) {
           window.localStorage.removeItem('accessToken');
+          window.localStorage.removeItem('token');
           window.localStorage.removeItem('refreshToken');
           window.location.href = '/login'; // 로그인 페이지로 쫓아냄
         }
