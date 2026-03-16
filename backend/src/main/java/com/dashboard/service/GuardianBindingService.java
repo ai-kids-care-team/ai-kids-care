@@ -40,12 +40,12 @@ public class GuardianBindingService {
                 """
                 INSERT INTO guardians (
                     guardian_id, kindergarten_id, user_id, name,
-                    rrn_encrypted, rrn_first6, gender, phone, email, address,
+                    rrn_encrypted, rrn_first6, gender, address,
                     status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """,
                 guardianId, kindergartenId, user.getUserId(), request.getName().trim(),
-                rrnEncrypted, rrnFirst6, guardianGender, request.getPhone().trim(), request.getEmail().trim()
+                rrnEncrypted, rrnFirst6, guardianGender
         );
 
         jdbcTemplate.update(

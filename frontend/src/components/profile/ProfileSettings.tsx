@@ -24,18 +24,15 @@ export function ProfileSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
 
-  // 💡 [추가] 인증 상태 확인 로딩
+  // 인증 상태 확인 로딩
   const [isAuthChecking, setIsAuthChecking] = useState(true);
 
-  // SSR/정적 생성 중에는 라우터 이동을 렌더 단계에서 호출하지 않도록 effect로 처리
+  // 새로고침 직후 Redux 상태가 비어있는 경우 LocalStorage에서 복구
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      router.replace('/login');
+    if (user) {
+      setIsAuthChecking(false);
+      return;
     }
-  }, [isAuthenticated, user, router]);
-      
-  // 인증 정보가 없으면 리다이렉트가 완료될 때까지 화면을 렌더링하지 않음
-  if (!isAuthenticated || !user) return null;
 
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
@@ -45,7 +42,7 @@ export function ProfileSettings() {
         const parsedUser = JSON.parse(storedUser);
         dispatch(setCredentials({ user: parsedUser, token: storedToken }));
       } catch (error) {
-        console.error("로컬스토리지 데이터 파싱 실패", error);
+        console.error('로컬스토리지 데이터 파싱 실패', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
@@ -54,15 +51,18 @@ export function ProfileSettings() {
     setIsAuthChecking(false);
   }, [user, dispatch]);
 
+  // 복구 후 인증 정보가 없으면 로그인 페이지로 이동
+  useEffect(() => {
+    if (!isAuthChecking && (!isAuthenticated || !user)) {
+      router.replace('/login');
+    }
+  }, [isAuthChecking, isAuthenticated, user, router]);
 
-  // 💡 [수정] 복구 중일 때는 로딩 화면 표시
   if (isAuthChecking) {
     return <div className="h-screen flex items-center justify-center bg-slate-50">로딩 중...</div>;
   }
 
-  // 💡 [수정] 복구가 끝났는데도 유저가 없다면 올바른 경로('/login')로 쫓아냄
   if (!isAuthenticated || !user) {
-    router.replace('/login'); // /auth/login에서 /login으로 수정
     return null;
   }
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { SystemMetrics } from './SystemMetrics';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { CCTVGrid } from '@/components/monitoring/CCTVGrid';
 import { CameraDetailModal } from '@/components/monitoring/CameraDetailModal';
@@ -10,13 +9,12 @@ import { FullscreenView } from '@/components/monitoring/FullscreenView';
 import { useGetCamerasQuery } from '@/services/apis/camera.api';
 import { useGetEventsQuery, useUpdateEventStatusMutation } from '@/services/apis/event.api';
 import { DetectionEventsDetailModal } from '@/components/detectionEvents/DetectionEventsDetailModal';
-import { switchRole, setCredentials } from '@/store/slices/userSlice';
+import { setCredentials } from '@/store/slices/userSlice';
 import { RightPanel } from '@/components/monitoring/RightPanel';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
-import type { Camera, AnomalyEvent, AnomalyType, UserRole } from '@/types/anomaly';
+import type { Camera, AnomalyEvent, UserRole } from '@/types/anomaly';
 import { rolePermissions } from '@/types/anomaly';
-import type { SystemMetricItem } from './SystemMetrics';
 import { useRouter } from 'next/navigation'; // 리다이렉트를 위해 추가
 
 const KINDERGARTEN_ID = '1';
@@ -37,10 +35,6 @@ const allCameras: Camera[] = [
   { id: 'CAM-012', name: '사무실', location: '1층 행정실', status: 'online', isRecording: true, category: 'office' },
 ];
 
-const anomalyTypes: AnomalyType[] = [
-  'Assault', 'Fight', 'Burglary', 'Vandalism', 'Swoon', 'Wander', 'Trespass', 'Dump', 'Robbery', 'Datefight', 'Kidnap', 'Drunken'
-];
-
 const generateMockEvents = (): AnomalyEvent[] => {
   return ([
     { id: 'EVT-001', timestamp: new Date(Date.now() - 2 * 60000), cameraId: 'CAM-001', cameraName: '정문 입구', type: 'Trespass', confidence: 95, location: '1층 현관', status: 'active', severity: 'high' },
@@ -55,7 +49,6 @@ export function DashboardMonitor() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
   const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
-  const currentUserName = user?.name ?? '게스트';
 
   // 인증 대기 상태
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -189,108 +182,100 @@ export function DashboardMonitor() {
   return (
     <>
       <div className="h-screen flex flex-col bg-gray-50">
-        
         <div className="flex-1 flex overflow-hidden">
+          <Sidebar
+            currentRole={user.role}
+            userName={user.name}
+            cameraStats={cameraStats}
+            onCategoryFilter={setCategoryFilter}
+            currentCategory={categoryFilter}
+          />
+
           <main className="flex-1 p-6 overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">실시간 모니터링</h2>
                 <p className="text-sm text-gray-500">
-                  전체 {filteredCameras.length}개 중 {startIndex + 1}-{Math.min(startIndex + camerasPerPage, filteredCameras.length)}번째 • {layout} {isVideoPaused && ' • 일시정지됨'}
+                  전체 {filteredCameras.length}개 중 {startIndex + 1}-{Math.min(startIndex + camerasPerPage, filteredCameras.length)}번째 • {layout}
+                  {isVideoPaused && ' • 일시정지됨'}
                 </p>
               </div>
 
-          <div className="flex-1 flex overflow-hidden">
-            <Sidebar currentRole={user.role} userName={user.name} cameraStats={cameraStats} onCategoryFilter={setCategoryFilter} currentCategory={categoryFilter} />
-
-            <main className="flex-1 p-6 overflow-auto">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">실시간 모니터링</h2>
-                  <p className="text-sm text-gray-500">
-                    전체 {filteredCameras.length}개 중 {startIndex + 1}-{Math.min(startIndex + camerasPerPage, filteredCameras.length)}번째 • {layout} {isVideoPaused && ' • 일시정지됨'}
-                  </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium text-gray-600 w-12 text-center">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
 
             <div className="mb-6">
-              <CCTVGrid cameras={displayedCameras} onCameraSelect={(id) => setSelectedCamera(filteredCameras.find(c => c.id === id) || null)} onCameraFullscreen={(id) => setFullscreenCamera(filteredCameras.find(c => c.id === id) || null)} layout={layout} />
+              <CCTVGrid
+                cameras={displayedCameras}
+                onCameraSelect={(id) => setSelectedCamera(filteredCameras.find((c) => c.id === id) || null)}
+                onCameraFullscreen={(id) => setFullscreenCamera(filteredCameras.find((c) => c.id === id) || null)}
+                layout={layout}
+              />
             </div>
+          </main>
 
-            {/* 💡 기존의 길고 지저분했던 MetricGauge 함수와 렌더링 코드를 단 한 줄로 대체했습니다. */}
-            <div className="border-t border-gray-200 pt-8 mt-4">
-              <SystemMetrics metrics={SYSTEM_METRICS} />
-            </div>
-
-                {totalPages > 1 && (
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm font-medium text-gray-600 w-12 text-center">{currentPage} / {totalPages}</span>
-                      <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <CCTVGrid
-                    cameras={displayedCameras}
-                    onCameraSelect={(id) => setSelectedCamera(filteredCameras.find(c => c.id === id) || null)}
-                    onCameraFullscreen={(id) => setFullscreenCamera(filteredCameras.find(c => c.id === id) || null)}
-                    layout={layout}
-                />
-              </div>
-
-              {/*<div className="border-t border-gray-200 pt-8 mt-4">*/}
-              {/* <SystemMetrics metrics={metrics} isError={isMetricsError} />*/}
-              {/*</div>*/}
-        
-            </main>
-
-            <RightPanel
-                events={localEvents}
-                onEventClick={(id) => setSelectedEvent(localEvents.find(e => e.id === id) || null)}
-                currentRole={user.role}
-                onLayoutChange={setLayout}
-                currentLayout={layout}
-                isRecording={isRecording}
-                onRecordingToggle={() => setIsRecording(!isRecording)}
-                onQuickFullscreen={() => { if (filteredCameras.length > 0) setFullscreenCamera(filteredCameras[0]) }}
-                onQuickPause={() => setIsVideoPaused(!isVideoPaused)}
-                onQuickDownload={() => alert('다운로드')}
-                isVideoPaused={isVideoPaused}
-            />
-          </div>
+          <RightPanel
+            events={localEvents}
+            onEventClick={(id) => setSelectedEvent(localEvents.find((e) => e.id === id) || null)}
+            currentRole={user.role}
+            onLayoutChange={setLayout}
+            currentLayout={layout}
+            isRecording={isRecording}
+            onRecordingToggle={() => setIsRecording(!isRecording)}
+            onQuickFullscreen={() => {
+              if (filteredCameras.length > 0) setFullscreenCamera(filteredCameras[0]);
+            }}
+            onQuickPause={() => setIsVideoPaused(!isVideoPaused)}
+            onQuickDownload={() => alert('다운로드')}
+            isVideoPaused={isVideoPaused}
+          />
         </div>
+      </div>
 
-        {selectedCamera && (
-            <CameraDetailModal
-                camera={selectedCamera}
-                onClose={() => setSelectedCamera(null)}
-                onFullscreen={() => { setFullscreenCamera(selectedCamera); setSelectedCamera(null); }}
-            />
-        )}
+      {selectedCamera && (
+        <CameraDetailModal
+          camera={selectedCamera}
+          onClose={() => setSelectedCamera(null)}
+          onFullscreen={() => {
+            setFullscreenCamera(selectedCamera);
+            setSelectedCamera(null);
+          }}
+        />
+      )}
 
-        {selectedEvent && (
-            <DetectionEventsDetailModal
-                event={selectedEvent}
-                onClose={() => setSelectedEvent(null)}
-                onStatusChange={handleEventStatusChange}
-                onAddNote={handleAddNote}
-                canResolve={permissions.canResolveAnomaly}
-            />
-        )}
+      {selectedEvent && (
+        <DetectionEventsDetailModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onStatusChange={handleEventStatusChange}
+          onAddNote={handleAddNote}
+          canResolve={permissions.canResolveAnomaly}
+        />
+      )}
 
-        {fullscreenCamera && (
-            <FullscreenView
-                camera={fullscreenCamera}
-                onClose={() => setFullscreenCamera(null)}
-            />
-        )}
-      </>
+      {fullscreenCamera && (
+        <FullscreenView
+          camera={fullscreenCamera}
+          onClose={() => setFullscreenCamera(null)}
+        />
+      )}
+    </>
   );
 }
