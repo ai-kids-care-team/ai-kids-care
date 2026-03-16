@@ -6,25 +6,25 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const slides = [
   {
     id: 1,
-    image: '/home/slide-1.png',
+    image: '/home/slide-1.jpg',
     title: '안심 유치원',
     subtitle: 'AI Kids Care 시스템과 함께 합니다.',
   },
   {
     id: 2,
-    image: '/home/slide-2.png',
+    image: '/home/slide-2.jpg',
     title: '아이 안심 돌봄',
     subtitle: '신청대상 : 양육자, 유치원, 행정청 누구나 회원가입',
   },
   {
     id: 3,
-    image: '/home/slide-3.png',
+    image: '/home/slide-3.jpg',
     title: '유치원 선생님에게',
     subtitle: '감사편지 작성',
   },
   {
     id: 4,
-    image: '/home/slide-4.png',
+    image: '/home/slide-4.jpg',
     title: '함께 성장하는 우리 아이',
     subtitle: 'AI Kids Care가 함께합니다',
   },
