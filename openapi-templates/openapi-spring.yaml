@@ -14,6 +14,9 @@ additionalProperties:
   controllerPackage: com.ai_kids_care.v1.controller
   useSpringBoot3: true
   useTags: true
-  useSpringController: true
   delegatePattern: false
   useResponseEntity: false
+  requestMappingMode: api_interface
+  interfaceOnly: false
+  skipDefaultInterface: true
+  swagger2AnnotationLibrary: true
