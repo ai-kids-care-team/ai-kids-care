@@ -1,8 +1,11 @@
 package com.dashboard.service;
 
-import com.dashboard.dto.SignupRequest;
-import com.dashboard.repository.UserRepository;
-import com.dashboard.security.JwtUtil;
+import com.ai_kids_care.dashboard.dto.SignupRequest;
+import com.ai_kids_care.dashboard.repository.UserRepository;
+import com.ai_kids_care.dashboard.security.JwtUtil;
+import com.ai_kids_care.dashboard.service.AuthService;
+import com.ai_kids_care.dashboard.service.CommonCodeService;
+import com.ai_kids_care.dashboard.service.GuardianBindingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
