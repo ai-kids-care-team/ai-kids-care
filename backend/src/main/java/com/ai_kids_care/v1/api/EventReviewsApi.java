@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.entity.EventReviews;
 import com.ai_kids_care.v1.dto.EventReviewsCreateRequest;
 import com.ai_kids_care.v1.dto.EventReviewsUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfEventReviews;
+import com.ai_kids_care.v1.dto.PageOfEventReviews;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

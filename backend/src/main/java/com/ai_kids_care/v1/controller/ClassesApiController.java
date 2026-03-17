@@ -4,7 +4,7 @@ import com.ai_kids_care.v1.api.ClassesApi;
 import com.ai_kids_care.v1.entity.Classes;
 import com.ai_kids_care.v1.dto.ClassesCreateRequest;
 import com.ai_kids_care.v1.dto.ClassesUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfClasses;
+import com.ai_kids_care.v1.dto.PageOfClasses;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;

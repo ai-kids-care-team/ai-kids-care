@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.entity.DetectionSessions;
 import com.ai_kids_care.v1.dto.DetectionSessionsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionSessionsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfDetectionSessions;
+import com.ai_kids_care.v1.dto.PageOfDetectionSessions;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

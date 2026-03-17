@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.TeachersApi;
-import com.ai_kids_care.v1.entity.PageOfTeachers;
+import com.ai_kids_care.v1.dto.PageOfTeachers;
 import com.ai_kids_care.v1.entity.Teachers;
 import com.ai_kids_care.v1.dto.TeachersCreateRequest;
 import com.ai_kids_care.v1.dto.TeachersUpdateRequest;

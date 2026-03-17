@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.entity.AuditLogs;
 import com.ai_kids_care.v1.dto.AuditLogsCreateRequest;
 import com.ai_kids_care.v1.dto.AuditLogsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfAuditLogs;
+import com.ai_kids_care.v1.dto.PageOfAuditLogs;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

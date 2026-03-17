@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.RoomsApi;
-import com.ai_kids_care.v1.entity.PageOfRooms;
+import com.ai_kids_care.v1.dto.PageOfRooms;
 import com.ai_kids_care.v1.entity.Rooms;
 import com.ai_kids_care.v1.dto.RoomsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomsUpdateRequest;

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.SuperadminsApi;
-import com.ai_kids_care.v1.entity.PageOfSuperadmins;
+import com.ai_kids_care.v1.dto.PageOfSuperadmins;
 import com.ai_kids_care.v1.entity.Superadmins;
 import com.ai_kids_care.v1.dto.SuperadminsCreateRequest;
 import com.ai_kids_care.v1.dto.SuperadminsUpdateRequest;

@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.entity.CctvCameras;
 import com.ai_kids_care.v1.dto.CctvCamerasCreateRequest;
 import com.ai_kids_care.v1.dto.CctvCamerasUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfCctvCameras;
+import com.ai_kids_care.v1.dto.PageOfCctvCameras;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

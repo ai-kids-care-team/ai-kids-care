@@ -3,7 +3,7 @@ package com.ai_kids_care.v1.controller;
 import com.ai_kids_care.v1.api.ChildGuardianRelationshipsApi;
 import com.ai_kids_care.v1.entity.ChildGuardianRelationships;
 import com.ai_kids_care.v1.dto.ChildGuardianRelationshipsCreateRequest;
-import com.ai_kids_care.v1.entity.PageOfChildGuardianRelationships;
+import com.ai_kids_care.v1.dto.PageOfChildGuardianRelationships;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;

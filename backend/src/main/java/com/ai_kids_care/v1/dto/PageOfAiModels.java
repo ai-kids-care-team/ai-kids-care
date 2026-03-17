@@ -1,5 +1,6 @@
-package com.ai_kids_care.v1.entity;
+package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.entity.AiModels;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.entity.EventEvidenceFiles;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesCreateRequest;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfEventEvidenceFiles;
+import com.ai_kids_care.v1.dto.PageOfEventEvidenceFiles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
