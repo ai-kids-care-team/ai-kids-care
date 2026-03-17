@@ -21,6 +21,7 @@ import { Button } from '@/components/shared/ui/button';
 import { ScrollArea } from '@/components/shared/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/ui/tabs';
 import type { AnomalyEvent, UserRole } from '../../types/anomaly';
+import type { Camera as CameraType } from '../../types/anomaly';
 import { anomalyTypeLabels, anomalyTypeColors, rolePermissions } from '../../types/anomaly';
 
 interface RightPanelProps {
@@ -31,9 +32,16 @@ interface RightPanelProps {
   currentLayout: '1x1' | '2x2' | '3x3';
   isRecording: boolean;
   onRecordingToggle: () => void;
+  /** 빠른 작업 대상 카메라 목록 */
+  cameras?: CameraType[];
+  /** 현재 선택된 카메라 ID (빠른 작업 적용 대상) */
+  selectedCameraId?: string | null;
+  /** 카메라 선택 변경 */
+  onSelectCameraId?: (cameraId: string) => void;
   onQuickFullscreen?: () => void;
   onQuickPause?: () => void;
   onQuickDownload?: () => void;
+  /** 선택된 카메라의 일시정지 여부 */
   isVideoPaused?: boolean;
 }
 
@@ -45,13 +53,16 @@ export function RightPanel({
                              currentLayout,
                              isRecording,
                              onRecordingToggle,
+                             cameras = [],
+                             selectedCameraId = null,
+                             onSelectCameraId,
                              onQuickFullscreen,
                              onQuickPause,
                              onQuickDownload,
                              isVideoPaused = false
                            }: RightPanelProps) {
   const permissions = rolePermissions[currentRole];
-  const [activeTab, setActiveTab] = useState('anomaly');
+  const [activeTab, setActiveTab] = useState('control');
 
   const getStatusIcon = (status: AnomalyEvent['status']) => {
     switch (status) {
@@ -107,13 +118,7 @@ export function RightPanel({
       <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <div className="border-b border-gray-200 shrink-0">
-            <TabsList className="w-full grid grid-cols-2 rounded-none h-auto bg-transparent">
-              <TabsTrigger
-                  value="anomaly"
-                  className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-purple-600"
-              >
-                이상상황
-              </TabsTrigger>
+            <TabsList className="w-full flex justify-center rounded-none h-auto bg-transparent">
               <TabsTrigger
                   value="control"
                   className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-purple-600"
@@ -123,123 +128,9 @@ export function RightPanel({
             </TabsList>
           </div>
 
-          {/* 💡 [버그 픽스] data-[state=active]:flex 를 통해 활성화 시 블록이 아닌 플렉스로 변경 및 min-h-0 추가 */}
-          <TabsContent value="anomaly" className="data-[state=active]:flex flex-col flex-1 min-h-0 m-0">
-            {/* Anomaly Log Header */}
-            <div className="p-4 border-b border-gray-200 shrink-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
-                  <h2 className="font-semibold text-sm text-gray-900">AI 알림로그</h2>
-                </div>
-                <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                  {events.filter(e => e.status === 'active').length}건
-                </Badge>
-              </div>
-              <p className="text-xs text-gray-500">실시간 이상행동 탐지</p>
-            </div>
-
-            {/* Anomaly Events List */}
-            {/* 💡 [버그 픽스] ScrollArea 대신 overflow-y-auto 사용으로 확실한 스크롤 보장 */}
-            <div className="flex-1 overflow-y-auto p-4 min-h-0">
-              <div className="space-y-3">
-                {events.length === 0 ? (
-                    <div className="text-center py-8">
-                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                      <p className="text-sm text-gray-600">이상상황이 감지되지 않았습니다</p>
-                      <p className="text-xs text-gray-500 mt-1">모든 구역이 안전합니다</p>
-                    </div>
-                ) : (
-                    events.map((event) => (
-                        <Card
-                            key={event.id}
-                            className={`p-3 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-                                event.status === 'active' ? 'border-l-red-500 bg-red-50/30' :
-                                    event.status === 'reviewing' ? 'border-l-orange-500' :
-                                        'border-l-green-500'
-                            }`}
-                            onClick={() => onEventClick?.(event.id)}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              {getStatusIcon(event.status)}
-                              <Badge className={`${getStatusColor(event.status)} text-xs px-1.5 py-0`}>
-                                {getStatusLabel(event.status)}
-                              </Badge>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                        {formatTime(event.timestamp)}
-                      </span>
-                          </div>
-
-                          <div className="mb-2">
-                            <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${anomalyTypeColors[event.type]} text-white text-xs font-medium mb-1.5`}>
-                              <AlertTriangle className="w-3 h-3" />
-                              {anomalyTypeLabels[event.type]}
-                            </div>
-                            <p className="font-medium text-gray-900 text-sm">
-                              {event.cameraName}
-                            </p>
-                          </div>
-
-                          <div className="space-y-1.5 mb-2">
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <MapPin className="w-3 h-3" />
-                              <span>{event.location}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-gray-600">신뢰도</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div
-                                      className={`h-full ${
-                                          event.confidence >= 80 ? 'bg-green-500' :
-                                              event.confidence >= 60 ? 'bg-orange-500' :
-                                                  'bg-red-500'
-                                      }`}
-                                      style={{ width: `${event.confidence}%` }}
-                                  />
-                                </div>
-                                <span className="font-medium text-gray-900 text-xs">
-                            {event.confidence}%
-                          </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {permissions.canResolveAnomaly && (
-                              <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full gap-2 h-7 text-xs"
-                                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                                    e.stopPropagation();
-                                    onEventClick?.(event.id);
-                                  }}
-                              >
-                                <Eye className="w-3 h-3" />
-                                상세 보기
-                              </Button>
-                          )}
-                        </Card>
-                    ))
-                )}
-              </div>
-            </div>
-
-            {permissions.canExportReports && (
-                <div className="p-4 border-t border-gray-200 shrink-0">
-                  <Button variant="outline" className="w-full gap-2" size="sm">
-                    <Download className="w-4 h-4" />
-                    로그 내보내기
-                  </Button>
-                </div>
-            )}
-          </TabsContent>
-
-          {/* 💡 [버그 픽스] 제어 탭도 동일하게 설정 */}
+          {/* 제어 탭 */}
           <TabsContent value="control" className="data-[state=active]:flex flex-col flex-1 min-h-0 m-0">
-            <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            <div className="flex-1 overflow-y-hidden p-4 min-h-0">
               <div className="space-y-4">
                 {/* Recording Control */}
                 <Card className="p-4">
@@ -330,6 +221,27 @@ export function RightPanel({
                 {/* Quick Actions */}
                 <Card className="p-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">빠른 작업</h3>
+
+                  {/* 카메라 선택 (빠른 작업 적용 대상) */}
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">카메라</label>
+                    <select
+                      value={selectedCameraId ?? ''}
+                      onChange={(e) => onSelectCameraId?.(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    >
+                      {cameras.length === 0 ? (
+                        <option value="">카메라 없음</option>
+                      ) : (
+                        cameras.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({c.id})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
                   <div className="space-y-2">
                     <Button
                         variant="outline"
@@ -371,6 +283,7 @@ export function RightPanel({
                     )}
                   </div>
                 </Card>
+
               </div>
             </div>
           </TabsContent>

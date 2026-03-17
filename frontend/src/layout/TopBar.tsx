@@ -83,7 +83,23 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   };
 
   const handleLogout = () => {
+    // 전역 상태 초기화
     dispatch(logout());
+
+    // 모든 인증 관련 로컬스토리지 키 정리 (예전/현재 키 모두)
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('cctv_user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      } catch {
+        // 로컬스토리지가 막혀 있어도 무시
+      }
+    }
+
+    // AI Kids Care 홈페이지(메인 화면)로 이동
     router.push('/');
   };
 

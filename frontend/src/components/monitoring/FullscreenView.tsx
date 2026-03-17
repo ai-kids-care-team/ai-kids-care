@@ -95,11 +95,13 @@ export function FullscreenView({ camera, onClose }: FullscreenViewProps) {
             </div>
           )}
 
-          {/* 오버레이 UI들 (비디오 컨트롤러를 가리지 않도록 pointer-detectionEvents-none 적용) */}
-          <div className="absolute top-6 left-6 flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg pointer-events-none">
-            <Circle className="w-4 h-4 text-white fill-white animate-pulse" />
-            <span className="text-white text-lg font-semibold">REC</span>
-          </div>
+          {/* 녹화 중일 때만 REC 표시 (전체 녹화 제어 반영) */}
+          {camera.isRecording && camera.status === 'online' && (
+            <div className="absolute top-6 left-6 flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg pointer-events-none">
+              <Circle className="w-4 h-4 text-white fill-white animate-pulse" />
+              <span className="text-white text-lg font-semibold">REC</span>
+            </div>
+          )}
 
           <div className="absolute top-6 right-6 pointer-events-none">
             {camera.status === 'online' ? (
