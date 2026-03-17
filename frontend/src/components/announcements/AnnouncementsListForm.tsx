@@ -1,17 +1,55 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, Plus } from 'lucide-react';
+import { useEffect } from 'react';
+import { Bell, Plus, Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import type { AnnouncementItem } from './model/useAnnouncements';
 
 type AnnouncementsListFormProps = {
   announcements: AnnouncementItem[];
+  keyword: string;
+  onKeywordChange: (value: string) => void;
+  onSearch: () => void;
   canWrite: boolean;
   loading: boolean;
   error: string;
 };
 
-export function AnnouncementsListForm({ announcements, canWrite, loading, error }: AnnouncementsListFormProps) {
+export function AnnouncementsListForm({
+  announcements,
+  keyword,
+  onKeywordChange,
+  onSearch,
+  canWrite,
+  loading,
+  error,
+}: AnnouncementsListFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const scrollY = sessionStorage.getItem('announcements:list:scrollY');
+    if (scrollY) {
+      window.scrollTo({ top: Number(scrollY), behavior: 'auto' });
+      sessionStorage.removeItem('announcements:list:scrollY');
+    }
+  }, []);
+
+  useEffect(() => {
+    const deleted = searchParams.get('deleted');
+    if (deleted === '1') {
+      toast.success('공지사항이 삭제되었습니다.');
+      router.replace('/announcements', { scroll: false });
+    }
+  }, [router, searchParams]);
+
+  const rememberScroll = () => {
+    sessionStorage.setItem('announcements:list:scrollY', String(window.scrollY));
+  };
+  const useInnerScroll = !loading && announcements.length > 4;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <main className="mx-auto max-w-5xl">
@@ -32,10 +70,31 @@ export function AnnouncementsListForm({ announcements, canWrite, loading, error 
             )}
           </div>
 
+          <div className="mb-6 flex items-center gap-2">
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => onKeywordChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSearch();
+              }}
+              placeholder="제목 또는 내용으로 검색"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={onSearch}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#006b52] px-4 py-2 text-sm text-white transition-colors hover:bg-[#005640]"
+            >
+              <Search className="h-4 w-4" />
+              검색
+            </button>
+          </div>
+
           {loading && <p className="py-8 text-center text-gray-500">공지사항을 불러오는 중입니다.</p>}
           {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
-          <div className="space-y-3">
+          <div className={useInnerScroll ? 'max-h-[560px] space-y-3 overflow-y-auto pr-1' : 'space-y-3'}>
             {!loading && announcements.length === 0 ? (
               <p className="py-10 text-center text-gray-500">등록된 공지사항이 없습니다.</p>
             ) : (
@@ -43,6 +102,7 @@ export function AnnouncementsListForm({ announcements, canWrite, loading, error 
                 <Link
                   key={announcement.id}
                   href={announcement.href}
+                  onClick={rememberScroll}
                   className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
                 >
                   <div className="flex items-start gap-3">

@@ -463,6 +463,21 @@ WHERE NOT EXISTS (SELECT 1
                     AND scope_id = 1001
                     AND status = 'ACTIVE');
 
+INSERT INTO user_role_assignments
+( user_id, role, scope_type, scope_id, status, granted_at, granted_by_user_id, revoked_at)
+VALUES
+(  
+  (SELECT user_id FROM users WHERE login_id = 'admin'),
+  'KINDERGARTEN_ADMIN',
+  'KINDERGARTEN',
+  1001,
+  'ACTIVE',
+  CURRENT_TIMESTAMP,
+  NULL,
+  NULL
+);
+
+
 -- 8) kindergarten membership
 INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
                                            created_at, updated_at)

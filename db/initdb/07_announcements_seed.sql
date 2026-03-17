@@ -199,3 +199,45 @@ AND NOT EXISTS (
   WHERE author_id = u.user_id
     AND title = '시스템 점검 일정 공지'
 );
+
+INSERT INTO announcements (
+  author_id,
+  title,
+  body,
+  status,
+  starts_at,
+  published_at,
+  view_count,
+  is_pinned
+)
+SELECT
+  u.user_id,
+  '유치원 원장 대상 보험료 할인 안내',
+  '안녕하세요, AI Kids Care 운영팀입니다.
+
+AI Kids Care 시스템을 도입하여 운영 중인 유치원을 대상으로
+제휴 보험사 보험료 할인 혜택이 제공될 예정입니다.
+
+적용 대상: AI Kids Care 정상 운영 기관
+적용 기준: 제휴 보험사 심사 및 약관 기준 충족 시
+안내 예정: 세부 할인율 및 제출 서류는 추후 별도 공지
+
+원장님께서는 서비스 운영 상태와 보험 갱신 일정을 미리 확인해 주시기 바랍니다.
+
+감사합니다.',
+  'ACTIVE',
+  '2026-01-01 00:00:00+09',
+  '2026-03-17 00:00:00+09',
+  0,
+  TRUE
+FROM users u
+WHERE u.user_id = COALESCE(
+  (SELECT user_id FROM users WHERE login_id = 'admin' ORDER BY user_id LIMIT 1),
+  (SELECT user_id FROM users ORDER BY user_id LIMIT 1)
+)
+AND NOT EXISTS (
+  SELECT 1
+  FROM announcements
+  WHERE author_id = u.user_id
+    AND title = '유치원 원장 대상 보험료 할인 안내'
+);

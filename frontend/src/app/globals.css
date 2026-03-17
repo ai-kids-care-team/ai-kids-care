@@ -24,3 +24,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 전체 프론트 공통 스크롤바: 화이트 바 + 그린 테두리 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff #0a7a62;
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #ffffff;
+  border: 1px solid #0a7a62;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 2px solid #0a7a62;
+  box-shadow: inset 0 0 0 1px #0a7a62;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #ecfdf5;
+}

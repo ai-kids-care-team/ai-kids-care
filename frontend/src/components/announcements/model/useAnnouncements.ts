@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAnnouncements, getAnnouncementsMeta } from '@/services/apis/announcements.api';
+import { useAppSelector } from '@/store/hook';
 
 export type AnnouncementItem = {
   id: number;
@@ -21,17 +22,27 @@ function formatDate(value: string) {
 }
 
 export function useAnnouncements() {
+  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [keyword, setKeyword] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
   const [canWrite, setCanWrite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // 로그아웃 직후에는 메타 재조회 응답을 기다리지 않고 즉시 숨긴다.
+    if (!isAuthenticated || !user || !token) {
+      setCanWrite(false);
+    }
+  }, [isAuthenticated, user, token]);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       setError('');
       try {
-        const [list, meta] = await Promise.all([getAnnouncements(), getAnnouncementsMeta()]);
+        const [list, meta] = await Promise.all([getAnnouncements(appliedKeyword), getAnnouncementsMeta()]);
         const now = Date.now();
         setAnnouncements(
           list.map((item) => {
@@ -57,10 +68,17 @@ export function useAnnouncements() {
     };
 
     void load();
-  }, []);
+  }, [appliedKeyword, user?.id, token, isAuthenticated]);
+
+  const handleSearch = () => {
+    setAppliedKeyword(keyword.trim());
+  };
 
   return {
     announcements,
+    keyword,
+    setKeyword,
+    handleSearch,
     canWrite,
     loading,
     error,
