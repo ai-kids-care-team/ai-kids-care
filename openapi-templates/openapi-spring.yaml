@@ -24,7 +24,7 @@ additionalProperties:
   lombok.RequiredArgsConstructor: false
   lombok.AllArgsConstructor: true
   lombok.NoArgsConstructor: true
-  lombok.ToString: true
+  lombok.ToString: false
   lombok.Data: true
   lombok.Builder: true
   useBeanValidation: false
