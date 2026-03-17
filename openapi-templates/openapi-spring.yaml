@@ -21,9 +21,4 @@ additionalProperties:
   skipDefaultInterface: true
   swagger2AnnotationLibrary: true
 
-  lombok.Data: true
-  lombok.Builder: true
-  lombok.ToString: true
-  lombok.RequiredArgsConstructor: true
-
-#  additionalModelTypeAnnotations : "@lombok.Getter;@lombok.Setter"
+  additionalModelTypeAnnotations: "@Data;@NoArgsConstructor;@NoArgsConstructor;@Builder"
