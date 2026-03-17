@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { Shield, Mail, ArrowLeft } from 'lucide-react';
 import { useForgotPasswordMutation } from '../../services/apis/auth.api';
 
+const getForgotPasswordErrorMessage = (err: any) => {
+  if (err?.status === 'FETCH_ERROR') {
+    return '백엔드 서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해주세요.';
+  }
+
+  return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
+};
+
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -19,8 +27,8 @@ export function ForgotPasswordForm() {
     try {
       await forgotPasswordApi({ email }).unwrap();
       setIsSuccess(true);
-    } catch (err) {
-      setError('요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.');
+    } catch (err: any) {
+      setError(getForgotPasswordErrorMessage(err));
     }
   };
 

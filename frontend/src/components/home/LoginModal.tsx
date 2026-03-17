@@ -25,6 +25,14 @@ const mapBackendRoleToFrontendRole = (role: string): UserRole => {
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
+const getForgotPasswordErrorMessage = (err: any) => {
+  if (err?.status === 'FETCH_ERROR') {
+    return '백엔드 서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해주세요.';
+  }
+
+  return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
+};
+
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const [loginApi, { isLoading }] = useLoginMutation();
@@ -119,7 +127,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       await forgotPasswordApi({ email: forgotEmail }).unwrap();
       setForgotSuccess(true);
     } catch (err: any) {
-      setForgotError(err?.data?.error || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.');
+      setForgotError(getForgotPasswordErrorMessage(err));
     }
   };
 
