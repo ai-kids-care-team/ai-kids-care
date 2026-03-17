@@ -4,7 +4,7 @@ import com.ai_kids_care.v1.api.DetectionEventsApi;
 import com.ai_kids_care.v1.entity.DetectionEvents;
 import com.ai_kids_care.v1.dto.DetectionEventsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionEventsUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfDetectionEvents;
+import com.ai_kids_care.v1.dto.PageOfDetectionEvents;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;

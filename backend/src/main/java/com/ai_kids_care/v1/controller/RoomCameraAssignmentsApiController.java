@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.RoomCameraAssignmentsApi;
-import com.ai_kids_care.v1.entity.PageOfRoomCameraAssignments;
+import com.ai_kids_care.v1.dto.PageOfRoomCameraAssignments;
 import com.ai_kids_care.v1.entity.RoomCameraAssignments;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsUpdateRequest;

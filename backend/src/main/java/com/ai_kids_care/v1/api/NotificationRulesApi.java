@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.entity.NotificationRules;
 import com.ai_kids_care.v1.dto.NotificationRulesCreateRequest;
 import com.ai_kids_care.v1.dto.NotificationRulesUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfNotificationRules;
+import com.ai_kids_care.v1.dto.PageOfNotificationRules;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfRooms;
+import com.ai_kids_care.v1.dto.PageOfRooms;
 import com.ai_kids_care.v1.entity.Rooms;
 import com.ai_kids_care.v1.dto.RoomsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomsUpdateRequest;

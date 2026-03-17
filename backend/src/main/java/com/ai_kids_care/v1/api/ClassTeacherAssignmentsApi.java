@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.entity.ClassTeacherAssignments;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfClassTeacherAssignments;
+import com.ai_kids_care.v1.dto.PageOfClassTeacherAssignments;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

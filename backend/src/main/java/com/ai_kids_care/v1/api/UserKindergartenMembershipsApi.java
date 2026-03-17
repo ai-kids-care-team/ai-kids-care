@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfUserKindergartenMemberships;
+import com.ai_kids_care.v1.dto.PageOfUserKindergartenMemberships;
 import com.ai_kids_care.v1.entity.UserKindergartenMemberships;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsCreateRequest;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsUpdateRequest;

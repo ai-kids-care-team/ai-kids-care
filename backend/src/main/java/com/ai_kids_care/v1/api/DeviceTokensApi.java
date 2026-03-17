@@ -9,7 +9,7 @@ import com.ai_kids_care.v1.entity.DeviceTokens;
 import com.ai_kids_care.v1.dto.DeviceTokensCreateRequest;
 import com.ai_kids_care.v1.dto.DeviceTokensUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfDeviceTokens;
+import com.ai_kids_care.v1.dto.PageOfDeviceTokens;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

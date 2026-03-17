@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfRoomCameraAssignments;
+import com.ai_kids_care.v1.dto.PageOfRoomCameraAssignments;
 import com.ai_kids_care.v1.entity.RoomCameraAssignments;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsUpdateRequest;

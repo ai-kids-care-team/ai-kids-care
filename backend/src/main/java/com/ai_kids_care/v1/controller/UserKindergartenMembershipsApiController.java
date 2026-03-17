@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.UserKindergartenMembershipsApi;
-import com.ai_kids_care.v1.entity.PageOfUserKindergartenMemberships;
+import com.ai_kids_care.v1.dto.PageOfUserKindergartenMemberships;
 import com.ai_kids_care.v1.entity.UserKindergartenMemberships;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsCreateRequest;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsUpdateRequest;

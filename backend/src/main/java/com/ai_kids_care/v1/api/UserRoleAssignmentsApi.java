@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfUserRoleAssignments;
+import com.ai_kids_care.v1.dto.PageOfUserRoleAssignments;
 import com.ai_kids_care.v1.entity.UserRoleAssignments;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsUpdateRequest;
