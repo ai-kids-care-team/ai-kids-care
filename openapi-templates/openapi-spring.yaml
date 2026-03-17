@@ -21,7 +21,8 @@ additionalProperties:
   skipDefaultInterface: true
   swagger2AnnotationLibrary: true
 
-  lombok.RequiredArgsConstructor: true
+  lombok.RequiredArgsConstructor: false
+  lombok.AllArgsConstructor: true
   lombok.NoArgsConstructor: true
   lombok.ToString: true
   lombok.Data: true

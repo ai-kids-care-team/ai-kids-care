@@ -35,7 +35,7 @@
 {{{vendorExtensions.x-class-extra-annotation}}}
 {{/vendorExtensions.x-class-extra-annotation}}
 {{#lombok.Data}}@Data{{/lombok.Data}}
-{{#lombok.RequiredArgsConstructor}}@RequiredArgsConstructor{{/lombok.RequiredArgsConstructor}}
+{{#lombok.AllArgsConstructor}}@AllArgsConstructor{{/lombok.AllArgsConstructor}}
 {{#lombok.NoArgsConstructor}}@NoArgsConstructor{{/lombok.NoArgsConstructor}}
 {{#lombok.Builder}}@Builder{{/lombok.Builder}}
 public {{>sealed}}class {{classname}}{{#parent}} extends {{{parent}}}{{/parent}}{{^parent}}{{#hateoas}} extends RepresentationModel<{{classname}}> {{/hateoas}}{{/parent}}{{#vendorExtensions.x-implements}}{{#-first}} implements {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-implements}} {{>permits}}{
