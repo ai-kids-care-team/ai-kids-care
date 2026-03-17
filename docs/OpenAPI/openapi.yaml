@@ -5,8 +5,7 @@ info:
 servers:
   # Added by API Auto Mocking Plugin
   - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/none-2b3-161/AI-Kids-Care-API-v1/2.0.4
-  - url: http://localhost:8080/api
+    url: http://localhost:8080/api
 tags:
   - name: Auth
   - name: AiModels
