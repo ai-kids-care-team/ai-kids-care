@@ -238,7 +238,6 @@ buildNumber.properties
 .gradle/
 **/build/
 !**/src/**/build/
-backend/bin/
 gradle-app.setting
 !gradle/wrapper/gradle-wrapper.jar
 
@@ -298,7 +297,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 frontend/logs/
-frontend/logs/**
 
 # Env files (frontend variants are already covered by .env.* above)
 # .env.development.local etc. will be ignored by .env.*
