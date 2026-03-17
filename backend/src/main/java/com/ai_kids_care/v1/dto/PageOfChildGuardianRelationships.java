@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.ChildGuardianRelationships;
+import com.ai_kids_care.v1.entity.ChildGuardianRelationship;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfChildGuardianRelationships {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<ChildGuardianRelationships> items = new ArrayList<>();
+  private List<ChildGuardianRelationship> items = new ArrayList<>();
 
   
   @NonNull

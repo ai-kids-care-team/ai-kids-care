@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.CctvCameras;
+import com.ai_kids_care.v1.entity.CctvCamera;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfCctvCameras {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<CctvCameras> items = new ArrayList<>();
+  private List<CctvCamera> items = new ArrayList<>();
 
   
   @NonNull

@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.Notifications;
+import com.ai_kids_care.v1.entity.Notification;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfNotifications {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<Notifications> items = new ArrayList<>();
+  private List<Notification> items = new ArrayList<>();
 
   
   @NonNull

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.AiModelsApi;
-import com.ai_kids_care.v1.entity.AiModels;
+import com.ai_kids_care.v1.entity.AiModel;
 import com.ai_kids_care.v1.dto.AiModelsCreateRequest;
 import com.ai_kids_care.v1.dto.AiModelsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfAiModels;
@@ -34,7 +34,7 @@ public class AiModelsApiController implements AiModelsApi {
      * @see AiModelsApi#createAiModels
      */
     @Override
-    public AiModels createAiModels(
+    public AiModel createAiModels(
         @Parameter(name = "AiModelsCreateRequest", description = "", required = true) @RequestBody AiModelsCreateRequest aiModelsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class AiModelsApiController implements AiModelsApi {
      * @see AiModelsApi#getAiModels
      */
     @Override
-    public AiModels getAiModels(
+    public AiModel getAiModels(
         @Parameter(name = "model_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("model_id") Long modelId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class AiModelsApiController implements AiModelsApi {
      * @see AiModelsApi#updateAiModels
      */
     @Override
-    public AiModels updateAiModels(
+    public AiModel updateAiModels(
         @Parameter(name = "model_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("model_id") Long modelId,
         @Parameter(name = "AiModelsUpdateRequest", description = "", required = true) @RequestBody AiModelsUpdateRequest aiModelsUpdateRequest
     ) {

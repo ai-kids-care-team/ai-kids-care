@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.EventReviewsApi;
-import com.ai_kids_care.v1.entity.EventReviews;
+import com.ai_kids_care.v1.entity.EventReview;
 import com.ai_kids_care.v1.dto.EventReviewsCreateRequest;
 import com.ai_kids_care.v1.dto.EventReviewsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfEventReviews;
@@ -34,7 +34,7 @@ public class EventReviewsApiController implements EventReviewsApi {
      * @see EventReviewsApi#createEventReviews
      */
     @Override
-    public EventReviews createEventReviews(
+    public EventReview createEventReviews(
         @Parameter(name = "EventReviewsCreateRequest", description = "", required = true) @RequestBody EventReviewsCreateRequest eventReviewsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class EventReviewsApiController implements EventReviewsApi {
      * @see EventReviewsApi#getEventReviews
      */
     @Override
-    public EventReviews getEventReviews(
+    public EventReview getEventReviews(
         @Parameter(name = "review_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("review_id") Long reviewId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class EventReviewsApiController implements EventReviewsApi {
      * @see EventReviewsApi#updateEventReviews
      */
     @Override
-    public EventReviews updateEventReviews(
+    public EventReview updateEventReviews(
         @Parameter(name = "review_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("review_id") Long reviewId,
         @Parameter(name = "EventReviewsUpdateRequest", description = "", required = true) @RequestBody EventReviewsUpdateRequest eventReviewsUpdateRequest
     ) {

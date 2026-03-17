@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.AuditLogs;
+import com.ai_kids_care.v1.entity.AuditLog;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfAuditLogs {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<AuditLogs> items = new ArrayList<>();
+  private List<AuditLog> items = new ArrayList<>();
 
   
   @NonNull

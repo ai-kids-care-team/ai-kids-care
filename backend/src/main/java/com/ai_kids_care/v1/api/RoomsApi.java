@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfRooms;
-import com.ai_kids_care.v1.entity.Rooms;
+import com.ai_kids_care.v1.entity.Room;
 import com.ai_kids_care.v1.dto.RoomsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomsUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface RoomsApi {
         tags = { "Rooms" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Rooms.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Room.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface RoomsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Rooms createRooms(
+    Room createRooms(
         @Parameter(name = "RoomsCreateRequest", description = "", required = true) @RequestBody RoomsCreateRequest roomsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface RoomsApi {
         tags = { "Rooms" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Rooms.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Room.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface RoomsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Rooms getRooms(
+    Room getRooms(
         @Parameter(name = "room_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("room_id") Long roomId
     );
 
@@ -198,7 +198,7 @@ public interface RoomsApi {
         tags = { "Rooms" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Rooms.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Room.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface RoomsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Rooms updateRooms(
+    Room updateRooms(
         @Parameter(name = "room_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("room_id") Long roomId,
         @Parameter(name = "RoomsUpdateRequest", description = "", required = true) @RequestBody RoomsUpdateRequest roomsUpdateRequest
     );

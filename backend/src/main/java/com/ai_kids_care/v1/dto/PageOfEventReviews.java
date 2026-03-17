@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.EventReviews;
+import com.ai_kids_care.v1.entity.EventReview;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfEventReviews {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<EventReviews> items = new ArrayList<>();
+  private List<EventReview> items = new ArrayList<>();
 
   
   @NonNull

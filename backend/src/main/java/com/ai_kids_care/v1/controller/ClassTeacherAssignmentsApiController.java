@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ClassTeacherAssignmentsApi;
-import com.ai_kids_care.v1.entity.ClassTeacherAssignments;
+import com.ai_kids_care.v1.entity.ClassTeacherAssignment;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfClassTeacherAssignments;
@@ -34,7 +34,7 @@ public class ClassTeacherAssignmentsApiController implements ClassTeacherAssignm
      * @see ClassTeacherAssignmentsApi#createClassTeacherAssignments
      */
     @Override
-    public ClassTeacherAssignments createClassTeacherAssignments(
+    public ClassTeacherAssignment createClassTeacherAssignments(
         @Parameter(name = "ClassTeacherAssignmentsCreateRequest", description = "", required = true) @RequestBody ClassTeacherAssignmentsCreateRequest classTeacherAssignmentsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class ClassTeacherAssignmentsApiController implements ClassTeacherAssignm
      * @see ClassTeacherAssignmentsApi#getClassTeacherAssignments
      */
     @Override
-    public ClassTeacherAssignments getClassTeacherAssignments(
+    public ClassTeacherAssignment getClassTeacherAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class ClassTeacherAssignmentsApiController implements ClassTeacherAssignm
      * @see ClassTeacherAssignmentsApi#updateClassTeacherAssignments
      */
     @Override
-    public ClassTeacherAssignments updateClassTeacherAssignments(
+    public ClassTeacherAssignment updateClassTeacherAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ClassTeacherAssignmentsUpdateRequest", description = "", required = true) @RequestBody ClassTeacherAssignmentsUpdateRequest classTeacherAssignmentsUpdateRequest
     ) {

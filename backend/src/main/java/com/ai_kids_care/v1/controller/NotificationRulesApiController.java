@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.NotificationRulesApi;
-import com.ai_kids_care.v1.entity.NotificationRules;
+import com.ai_kids_care.v1.entity.NotificationRule;
 import com.ai_kids_care.v1.dto.NotificationRulesCreateRequest;
 import com.ai_kids_care.v1.dto.NotificationRulesUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfNotificationRules;
@@ -34,7 +34,7 @@ public class NotificationRulesApiController implements NotificationRulesApi {
      * @see NotificationRulesApi#createNotificationRules
      */
     @Override
-    public NotificationRules createNotificationRules(
+    public NotificationRule createNotificationRules(
         @Parameter(name = "NotificationRulesCreateRequest", description = "", required = true) @RequestBody NotificationRulesCreateRequest notificationRulesCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class NotificationRulesApiController implements NotificationRulesApi {
      * @see NotificationRulesApi#getNotificationRules
      */
     @Override
-    public NotificationRules getNotificationRules(
+    public NotificationRule getNotificationRules(
         @Parameter(name = "rule_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("rule_id") Long ruleId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class NotificationRulesApiController implements NotificationRulesApi {
      * @see NotificationRulesApi#updateNotificationRules
      */
     @Override
-    public NotificationRules updateNotificationRules(
+    public NotificationRule updateNotificationRules(
         @Parameter(name = "rule_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("rule_id") Long ruleId,
         @Parameter(name = "NotificationRulesUpdateRequest", description = "", required = true) @RequestBody NotificationRulesUpdateRequest notificationRulesUpdateRequest
     ) {

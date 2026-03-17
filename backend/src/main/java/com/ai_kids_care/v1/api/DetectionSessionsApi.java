@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.DetectionSessions;
+import com.ai_kids_care.v1.entity.DetectionSession;
 import com.ai_kids_care.v1.dto.DetectionSessionsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionSessionsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface DetectionSessionsApi {
         tags = { "DetectionSessions" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSessions.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSession.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface DetectionSessionsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    DetectionSessions createDetectionSessions(
+    DetectionSession createDetectionSessions(
         @Parameter(name = "DetectionSessionsCreateRequest", description = "", required = true) @RequestBody DetectionSessionsCreateRequest detectionSessionsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface DetectionSessionsApi {
         tags = { "DetectionSessions" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSessions.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSession.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface DetectionSessionsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DetectionSessions getDetectionSessions(
+    DetectionSession getDetectionSessions(
         @Parameter(name = "session_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("session_id") Long sessionId
     );
 
@@ -198,7 +198,7 @@ public interface DetectionSessionsApi {
         tags = { "DetectionSessions" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSessions.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionSession.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface DetectionSessionsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DetectionSessions updateDetectionSessions(
+    DetectionSession updateDetectionSessions(
         @Parameter(name = "session_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("session_id") Long sessionId,
         @Parameter(name = "DetectionSessionsUpdateRequest", description = "", required = true) @RequestBody DetectionSessionsUpdateRequest detectionSessionsUpdateRequest
     );

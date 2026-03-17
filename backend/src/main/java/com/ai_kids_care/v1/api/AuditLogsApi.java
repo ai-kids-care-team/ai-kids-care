@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.AuditLogs;
+import com.ai_kids_care.v1.entity.AuditLog;
 import com.ai_kids_care.v1.dto.AuditLogsCreateRequest;
 import com.ai_kids_care.v1.dto.AuditLogsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface AuditLogsApi {
         tags = { "AuditLogs" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLogs.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLog.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface AuditLogsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    AuditLogs createAuditLogs(
+    AuditLog createAuditLogs(
         @Parameter(name = "AuditLogsCreateRequest", description = "", required = true) @RequestBody AuditLogsCreateRequest auditLogsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface AuditLogsApi {
         tags = { "AuditLogs" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLogs.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLog.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface AuditLogsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    AuditLogs getAuditLogs(
+    AuditLog getAuditLogs(
         @Parameter(name = "audit_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("audit_id") Long auditId
     );
 
@@ -198,7 +198,7 @@ public interface AuditLogsApi {
         tags = { "AuditLogs" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLogs.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AuditLog.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface AuditLogsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    AuditLogs updateAuditLogs(
+    AuditLog updateAuditLogs(
         @Parameter(name = "audit_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("audit_id") Long auditId,
         @Parameter(name = "AuditLogsUpdateRequest", description = "", required = true) @RequestBody AuditLogsUpdateRequest auditLogsUpdateRequest
     );

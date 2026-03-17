@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.AiModels;
+import com.ai_kids_care.v1.entity.AiModel;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfAiModels {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<AiModels> items = new ArrayList<>();
+  private List<AiModel> items = new ArrayList<>();
 
   
   @NonNull

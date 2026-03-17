@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ChildrenApi;
-import com.ai_kids_care.v1.entity.Children;
+import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.dto.ChildrenCreateRequest;
 import com.ai_kids_care.v1.dto.ChildrenUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfChildren;
@@ -34,7 +34,7 @@ public class ChildrenApiController implements ChildrenApi {
      * @see ChildrenApi#createChildren
      */
     @Override
-    public Children createChildren(
+    public Child createChildren(
         @Parameter(name = "ChildrenCreateRequest", description = "", required = true) @RequestBody ChildrenCreateRequest childrenCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class ChildrenApiController implements ChildrenApi {
      * @see ChildrenApi#getChildren
      */
     @Override
-    public Children getChildren(
+    public Child getChildren(
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("child_id") Long childId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class ChildrenApiController implements ChildrenApi {
      * @see ChildrenApi#updateChildren
      */
     @Override
-    public Children updateChildren(
+    public Child updateChildren(
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("child_id") Long childId,
         @Parameter(name = "ChildrenUpdateRequest", description = "", required = true) @RequestBody ChildrenUpdateRequest childrenUpdateRequest
     ) {

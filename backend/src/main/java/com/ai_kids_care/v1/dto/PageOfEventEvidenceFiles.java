@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.EventEvidenceFiles;
+import com.ai_kids_care.v1.entity.EventEvidenceFile;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfEventEvidenceFiles {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<EventEvidenceFiles> items = new ArrayList<>();
+  private List<EventEvidenceFile> items = new ArrayList<>();
 
   
   @NonNull

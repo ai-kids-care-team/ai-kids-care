@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.CameraStreams;
+import com.ai_kids_care.v1.entity.CameraStream;
 import com.ai_kids_care.v1.dto.CameraStreamsCreateRequest;
 import com.ai_kids_care.v1.dto.CameraStreamsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface CameraStreamsApi {
         tags = { "CameraStreams" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStreams.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStream.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface CameraStreamsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    CameraStreams createCameraStreams(
+    CameraStream createCameraStreams(
         @Parameter(name = "CameraStreamsCreateRequest", description = "", required = true) @RequestBody CameraStreamsCreateRequest cameraStreamsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface CameraStreamsApi {
         tags = { "CameraStreams" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStreams.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStream.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface CameraStreamsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    CameraStreams getCameraStreams(
+    CameraStream getCameraStreams(
         @Parameter(name = "stream_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("stream_id") Long streamId
     );
 
@@ -198,7 +198,7 @@ public interface CameraStreamsApi {
         tags = { "CameraStreams" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStreams.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CameraStream.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface CameraStreamsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    CameraStreams updateCameraStreams(
+    CameraStream updateCameraStreams(
         @Parameter(name = "stream_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("stream_id") Long streamId,
         @Parameter(name = "CameraStreamsUpdateRequest", description = "", required = true) @RequestBody CameraStreamsUpdateRequest cameraStreamsUpdateRequest
     );

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.EventEvidenceFilesApi;
-import com.ai_kids_care.v1.entity.EventEvidenceFiles;
+import com.ai_kids_care.v1.entity.EventEvidenceFile;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesCreateRequest;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfEventEvidenceFiles;
@@ -34,7 +34,7 @@ public class EventEvidenceFilesApiController implements EventEvidenceFilesApi {
      * @see EventEvidenceFilesApi#createEventEvidenceFiles
      */
     @Override
-    public EventEvidenceFiles createEventEvidenceFiles(
+    public EventEvidenceFile createEventEvidenceFiles(
         @Parameter(name = "EventEvidenceFilesCreateRequest", description = "", required = true) @RequestBody EventEvidenceFilesCreateRequest eventEvidenceFilesCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class EventEvidenceFilesApiController implements EventEvidenceFilesApi {
      * @see EventEvidenceFilesApi#getEventEvidenceFiles
      */
     @Override
-    public EventEvidenceFiles getEventEvidenceFiles(
+    public EventEvidenceFile getEventEvidenceFiles(
         @Parameter(name = "evidence_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("evidence_id") Long evidenceId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class EventEvidenceFilesApiController implements EventEvidenceFilesApi {
      * @see EventEvidenceFilesApi#updateEventEvidenceFiles
      */
     @Override
-    public EventEvidenceFiles updateEventEvidenceFiles(
+    public EventEvidenceFile updateEventEvidenceFiles(
         @Parameter(name = "evidence_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("evidence_id") Long evidenceId,
         @Parameter(name = "EventEvidenceFilesUpdateRequest", description = "", required = true) @RequestBody EventEvidenceFilesUpdateRequest eventEvidenceFilesUpdateRequest
     ) {

@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.RoomCameraAssignments;
+import com.ai_kids_care.v1.entity.RoomCameraAssignment;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfRoomCameraAssignments {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<RoomCameraAssignments> items = new ArrayList<>();
+  private List<RoomCameraAssignment> items = new ArrayList<>();
 
   
   @NonNull

@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.CctvCameras;
+import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.dto.CctvCamerasCreateRequest;
 import com.ai_kids_care.v1.dto.CctvCamerasUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface CctvCamerasApi {
         tags = { "CctvCameras" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCameras.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCamera.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface CctvCamerasApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    CctvCameras createCctvCameras(
+    CctvCamera createCctvCameras(
         @Parameter(name = "CctvCamerasCreateRequest", description = "", required = true) @RequestBody CctvCamerasCreateRequest cctvCamerasCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface CctvCamerasApi {
         tags = { "CctvCameras" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCameras.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCamera.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface CctvCamerasApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    CctvCameras getCctvCameras(
+    CctvCamera getCctvCameras(
         @Parameter(name = "camera_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("camera_id") Long cameraId
     );
 
@@ -198,7 +198,7 @@ public interface CctvCamerasApi {
         tags = { "CctvCameras" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCameras.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = CctvCamera.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface CctvCamerasApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    CctvCameras updateCctvCameras(
+    CctvCamera updateCctvCameras(
         @Parameter(name = "camera_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("camera_id") Long cameraId,
         @Parameter(name = "CctvCamerasUpdateRequest", description = "", required = true) @RequestBody CctvCamerasUpdateRequest cctvCamerasUpdateRequest
     );

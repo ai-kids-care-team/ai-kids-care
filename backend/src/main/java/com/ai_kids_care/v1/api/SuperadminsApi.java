@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfSuperadmins;
-import com.ai_kids_care.v1.entity.Superadmins;
+import com.ai_kids_care.v1.entity.Superadmin;
 import com.ai_kids_care.v1.dto.SuperadminsCreateRequest;
 import com.ai_kids_care.v1.dto.SuperadminsUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface SuperadminsApi {
         tags = { "Superadmins" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmins.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmin.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface SuperadminsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Superadmins createSuperadmins(
+    Superadmin createSuperadmins(
         @Parameter(name = "SuperadminsCreateRequest", description = "", required = true) @RequestBody SuperadminsCreateRequest superadminsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface SuperadminsApi {
         tags = { "Superadmins" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmins.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmin.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface SuperadminsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Superadmins getSuperadmins(
+    Superadmin getSuperadmins(
         @Parameter(name = "superadmin_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("superadmin_id") Long superadminId
     );
 
@@ -198,7 +198,7 @@ public interface SuperadminsApi {
         tags = { "Superadmins" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmins.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Superadmin.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface SuperadminsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Superadmins updateSuperadmins(
+    Superadmin updateSuperadmins(
         @Parameter(name = "superadmin_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("superadmin_id") Long superadminId,
         @Parameter(name = "SuperadminsUpdateRequest", description = "", required = true) @RequestBody SuperadminsUpdateRequest superadminsUpdateRequest
     );

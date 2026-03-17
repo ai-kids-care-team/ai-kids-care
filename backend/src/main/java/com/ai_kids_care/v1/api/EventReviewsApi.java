@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.EventReviews;
+import com.ai_kids_care.v1.entity.EventReview;
 import com.ai_kids_care.v1.dto.EventReviewsCreateRequest;
 import com.ai_kids_care.v1.dto.EventReviewsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfEventReviews;
@@ -45,7 +45,7 @@ public interface EventReviewsApi {
         tags = { "EventReviews" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReviews.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReview.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface EventReviewsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    EventReviews createEventReviews(
+    EventReview createEventReviews(
         @Parameter(name = "EventReviewsCreateRequest", description = "", required = true) @RequestBody EventReviewsCreateRequest eventReviewsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface EventReviewsApi {
         tags = { "EventReviews" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReviews.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReview.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface EventReviewsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    EventReviews getEventReviews(
+    EventReview getEventReviews(
         @Parameter(name = "review_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("review_id") Long reviewId
     );
 
@@ -198,7 +198,7 @@ public interface EventReviewsApi {
         tags = { "EventReviews" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReviews.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventReview.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface EventReviewsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    EventReviews updateEventReviews(
+    EventReview updateEventReviews(
         @Parameter(name = "review_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("review_id") Long reviewId,
         @Parameter(name = "EventReviewsUpdateRequest", description = "", required = true) @RequestBody EventReviewsUpdateRequest eventReviewsUpdateRequest
     );

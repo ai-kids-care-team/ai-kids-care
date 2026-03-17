@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.Kindergartens;
+import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.dto.KindergartensCreateRequest;
 import com.ai_kids_care.v1.dto.KindergartensUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfKindergartens;
@@ -45,7 +45,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface KindergartensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Kindergartens createKindergartens(
+    Kindergarten createKindergartens(
         @Parameter(name = "KindergartensCreateRequest", description = "", required = true) @RequestBody KindergartensCreateRequest kindergartensCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface KindergartensApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Kindergartens getKindergartens(
+    Kindergarten getKindergartens(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("kindergarten_id") Long kindergartenId
     );
 
@@ -198,7 +198,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface KindergartensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Kindergartens updateKindergartens(
+    Kindergarten updateKindergartens(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("kindergarten_id") Long kindergartenId,
         @Parameter(name = "KindergartensUpdateRequest", description = "", required = true) @RequestBody KindergartensUpdateRequest kindergartensUpdateRequest
     );

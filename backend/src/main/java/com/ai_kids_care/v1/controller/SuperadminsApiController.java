@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.SuperadminsApi;
 import com.ai_kids_care.v1.dto.PageOfSuperadmins;
-import com.ai_kids_care.v1.entity.Superadmins;
+import com.ai_kids_care.v1.entity.Superadmin;
 import com.ai_kids_care.v1.dto.SuperadminsCreateRequest;
 import com.ai_kids_care.v1.dto.SuperadminsUpdateRequest;
 
@@ -34,7 +34,7 @@ public class SuperadminsApiController implements SuperadminsApi {
      * @see SuperadminsApi#createSuperadmins
      */
     @Override
-    public Superadmins createSuperadmins(
+    public Superadmin createSuperadmins(
         @Parameter(name = "SuperadminsCreateRequest", description = "", required = true) @RequestBody SuperadminsCreateRequest superadminsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class SuperadminsApiController implements SuperadminsApi {
      * @see SuperadminsApi#getSuperadmins
      */
     @Override
-    public Superadmins getSuperadmins(
+    public Superadmin getSuperadmins(
         @Parameter(name = "superadmin_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("superadmin_id") Long superadminId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class SuperadminsApiController implements SuperadminsApi {
      * @see SuperadminsApi#updateSuperadmins
      */
     @Override
-    public Superadmins updateSuperadmins(
+    public Superadmin updateSuperadmins(
         @Parameter(name = "superadmin_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("superadmin_id") Long superadminId,
         @Parameter(name = "SuperadminsUpdateRequest", description = "", required = true) @RequestBody SuperadminsUpdateRequest superadminsUpdateRequest
     ) {

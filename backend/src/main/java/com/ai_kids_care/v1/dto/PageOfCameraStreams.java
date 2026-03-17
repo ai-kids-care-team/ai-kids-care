@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.CameraStreams;
+import com.ai_kids_care.v1.entity.CameraStream;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfCameraStreams {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<CameraStreams> items = new ArrayList<>();
+  private List<CameraStream> items = new ArrayList<>();
 
   
   @NonNull

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ClassesApi;
-import com.ai_kids_care.v1.entity.Classes;
+import com.ai_kids_care.v1.entity.Class;
 import com.ai_kids_care.v1.dto.ClassesCreateRequest;
 import com.ai_kids_care.v1.dto.ClassesUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfClasses;
@@ -34,7 +34,7 @@ public class ClassesApiController implements ClassesApi {
      * @see ClassesApi#createClasses
      */
     @Override
-    public Classes createClasses(
+    public Class createClasses(
         @Parameter(name = "ClassesCreateRequest", description = "", required = true) @RequestBody ClassesCreateRequest classesCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class ClassesApiController implements ClassesApi {
      * @see ClassesApi#getClasses
      */
     @Override
-    public Classes getClasses(
+    public Class getClasses(
         @Parameter(name = "class_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("class_id") Long classId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class ClassesApiController implements ClassesApi {
      * @see ClassesApi#updateClasses
      */
     @Override
-    public Classes updateClasses(
+    public Class updateClasses(
         @Parameter(name = "class_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("class_id") Long classId,
         @Parameter(name = "ClassesUpdateRequest", description = "", required = true) @RequestBody ClassesUpdateRequest classesUpdateRequest
     ) {

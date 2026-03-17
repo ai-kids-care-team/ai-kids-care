@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.DetectionSessions;
+import com.ai_kids_care.v1.entity.DetectionSession;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfDetectionSessions {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<DetectionSessions> items = new ArrayList<>();
+  private List<DetectionSession> items = new ArrayList<>();
 
   
   @NonNull

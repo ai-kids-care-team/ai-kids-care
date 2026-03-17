@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfUsers;
-import com.ai_kids_care.v1.entity.Users;
+import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.dto.UsersCreateRequest;
 import com.ai_kids_care.v1.dto.UsersUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface UsersApi {
         tags = { "Users" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Users.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface UsersApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Users createUsers(
+    User createUsers(
         @Parameter(name = "UsersCreateRequest", description = "", required = true) @RequestBody UsersCreateRequest usersCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface UsersApi {
         tags = { "Users" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Users.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface UsersApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Users getUsers(
+    User getUsers(
         @Parameter(name = "user_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("user_id") Long userId
     );
 
@@ -198,7 +198,7 @@ public interface UsersApi {
         tags = { "Users" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Users.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface UsersApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Users updateUsers(
+    User updateUsers(
         @Parameter(name = "user_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("user_id") Long userId,
         @Parameter(name = "UsersUpdateRequest", description = "", required = true) @RequestBody UsersUpdateRequest usersUpdateRequest
     );

@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.UserRoleAssignmentsApi;
 import com.ai_kids_care.v1.dto.PageOfUserRoleAssignments;
-import com.ai_kids_care.v1.entity.UserRoleAssignments;
+import com.ai_kids_care.v1.entity.UserRoleAssignment;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsUpdateRequest;
 
@@ -34,7 +34,7 @@ public class UserRoleAssignmentsApiController implements UserRoleAssignmentsApi 
      * @see UserRoleAssignmentsApi#createUserRoleAssignments
      */
     @Override
-    public UserRoleAssignments createUserRoleAssignments(
+    public UserRoleAssignment createUserRoleAssignments(
         @Parameter(name = "UserRoleAssignmentsCreateRequest", description = "", required = true) @RequestBody UserRoleAssignmentsCreateRequest userRoleAssignmentsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class UserRoleAssignmentsApiController implements UserRoleAssignmentsApi 
      * @see UserRoleAssignmentsApi#getUserRoleAssignments
      */
     @Override
-    public UserRoleAssignments getUserRoleAssignments(
+    public UserRoleAssignment getUserRoleAssignments(
         @Parameter(name = "role_assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("role_assignment_id") Long roleAssignmentId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class UserRoleAssignmentsApiController implements UserRoleAssignmentsApi 
      * @see UserRoleAssignmentsApi#updateUserRoleAssignments
      */
     @Override
-    public UserRoleAssignments updateUserRoleAssignments(
+    public UserRoleAssignment updateUserRoleAssignments(
         @Parameter(name = "role_assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("role_assignment_id") Long roleAssignmentId,
         @Parameter(name = "UserRoleAssignmentsUpdateRequest", description = "", required = true) @RequestBody UserRoleAssignmentsUpdateRequest userRoleAssignmentsUpdateRequest
     ) {

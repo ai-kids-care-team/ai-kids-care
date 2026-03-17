@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.RoomCameraAssignmentsApi;
 import com.ai_kids_care.v1.dto.PageOfRoomCameraAssignments;
-import com.ai_kids_care.v1.entity.RoomCameraAssignments;
+import com.ai_kids_care.v1.entity.RoomCameraAssignment;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsUpdateRequest;
 
@@ -34,7 +34,7 @@ public class RoomCameraAssignmentsApiController implements RoomCameraAssignments
      * @see RoomCameraAssignmentsApi#createRoomCameraAssignments
      */
     @Override
-    public RoomCameraAssignments createRoomCameraAssignments(
+    public RoomCameraAssignment createRoomCameraAssignments(
         @Parameter(name = "RoomCameraAssignmentsCreateRequest", description = "", required = true) @RequestBody RoomCameraAssignmentsCreateRequest roomCameraAssignmentsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class RoomCameraAssignmentsApiController implements RoomCameraAssignments
      * @see RoomCameraAssignmentsApi#getRoomCameraAssignments
      */
     @Override
-    public RoomCameraAssignments getRoomCameraAssignments(
+    public RoomCameraAssignment getRoomCameraAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class RoomCameraAssignmentsApiController implements RoomCameraAssignments
      * @see RoomCameraAssignmentsApi#updateRoomCameraAssignments
      */
     @Override
-    public RoomCameraAssignments updateRoomCameraAssignments(
+    public RoomCameraAssignment updateRoomCameraAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "RoomCameraAssignmentsUpdateRequest", description = "", required = true) @RequestBody RoomCameraAssignmentsUpdateRequest roomCameraAssignmentsUpdateRequest
     ) {

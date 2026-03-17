@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.NotificationRules;
+import com.ai_kids_care.v1.entity.NotificationRule;
 import com.ai_kids_care.v1.dto.NotificationRulesCreateRequest;
 import com.ai_kids_care.v1.dto.NotificationRulesUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfNotificationRules;
@@ -45,7 +45,7 @@ public interface NotificationRulesApi {
         tags = { "NotificationRules" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRules.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRule.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface NotificationRulesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    NotificationRules createNotificationRules(
+    NotificationRule createNotificationRules(
         @Parameter(name = "NotificationRulesCreateRequest", description = "", required = true) @RequestBody NotificationRulesCreateRequest notificationRulesCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface NotificationRulesApi {
         tags = { "NotificationRules" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRules.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRule.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface NotificationRulesApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    NotificationRules getNotificationRules(
+    NotificationRule getNotificationRules(
         @Parameter(name = "rule_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("rule_id") Long ruleId
     );
 
@@ -198,7 +198,7 @@ public interface NotificationRulesApi {
         tags = { "NotificationRules" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRules.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = NotificationRule.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface NotificationRulesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    NotificationRules updateNotificationRules(
+    NotificationRule updateNotificationRules(
         @Parameter(name = "rule_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("rule_id") Long ruleId,
         @Parameter(name = "NotificationRulesUpdateRequest", description = "", required = true) @RequestBody NotificationRulesUpdateRequest notificationRulesUpdateRequest
     );

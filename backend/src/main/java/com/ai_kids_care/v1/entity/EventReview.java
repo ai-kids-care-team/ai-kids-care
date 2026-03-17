@@ -1,0 +1,49 @@
+package com.ai_kids_care.v1.entity;
+
+import com.ai_kids_care.dashboard.entity.User;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+
+import java.time.OffsetDateTime;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "event_reviews", schema = "public", indexes = {@Index(name = "idx_review_event_time",
+        columnList = "kindergarten_id, event_id, created_at")})
+public class EventReview {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "review_id", nullable = false)
+    private Long id;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private DetectionEvent detectionEvent;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(name = "action", length = Integer.MAX_VALUE)
+    private String action;
+
+    @Column(name = "from_status", columnDefinition = "event_status_enum")
+    private Object fromStatus;
+
+    @Column(name = "result_status", columnDefinition = "event_status_enum")
+    private Object resultStatus;
+
+    @Column(name = "comment", length = Integer.MAX_VALUE)
+    private String comment;
+
+    @ColumnDefault("'2026-03-17 12:56:22.184038+00'")
+    @Column(name = "created_at")
+    private OffsetDateTime createdAt;
+
+
+}

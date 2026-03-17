@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.EventEvidenceFiles;
+import com.ai_kids_care.v1.entity.EventEvidenceFile;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesCreateRequest;
 import com.ai_kids_care.v1.dto.EventEvidenceFilesUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfEventEvidenceFiles;
@@ -45,7 +45,7 @@ public interface EventEvidenceFilesApi {
         tags = { "EventEvidenceFiles" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFiles.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFile.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface EventEvidenceFilesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    EventEvidenceFiles createEventEvidenceFiles(
+    EventEvidenceFile createEventEvidenceFiles(
         @Parameter(name = "EventEvidenceFilesCreateRequest", description = "", required = true) @RequestBody EventEvidenceFilesCreateRequest eventEvidenceFilesCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface EventEvidenceFilesApi {
         tags = { "EventEvidenceFiles" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFiles.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFile.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface EventEvidenceFilesApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    EventEvidenceFiles getEventEvidenceFiles(
+    EventEvidenceFile getEventEvidenceFiles(
         @Parameter(name = "evidence_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("evidence_id") Long evidenceId
     );
 
@@ -198,7 +198,7 @@ public interface EventEvidenceFilesApi {
         tags = { "EventEvidenceFiles" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFiles.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = EventEvidenceFile.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface EventEvidenceFilesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    EventEvidenceFiles updateEventEvidenceFiles(
+    EventEvidenceFile updateEventEvidenceFiles(
         @Parameter(name = "evidence_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("evidence_id") Long evidenceId,
         @Parameter(name = "EventEvidenceFilesUpdateRequest", description = "", required = true) @RequestBody EventEvidenceFilesUpdateRequest eventEvidenceFilesUpdateRequest
     );

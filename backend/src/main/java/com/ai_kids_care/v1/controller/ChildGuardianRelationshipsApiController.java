@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ChildGuardianRelationshipsApi;
-import com.ai_kids_care.v1.entity.ChildGuardianRelationships;
+import com.ai_kids_care.v1.entity.ChildGuardianRelationship;
 import com.ai_kids_care.v1.dto.ChildGuardianRelationshipsCreateRequest;
 import com.ai_kids_care.v1.dto.PageOfChildGuardianRelationships;
 
@@ -32,7 +32,7 @@ public class ChildGuardianRelationshipsApiController implements ChildGuardianRel
      * @see ChildGuardianRelationshipsApi#createChildGuardianRelationships
      */
     @Override
-    public ChildGuardianRelationships createChildGuardianRelationships(
+    public ChildGuardianRelationship createChildGuardianRelationships(
         @Parameter(name = "ChildGuardianRelationshipsCreateRequest", description = "", required = true) @RequestBody ChildGuardianRelationshipsCreateRequest childGuardianRelationshipsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -72,7 +72,7 @@ public class ChildGuardianRelationshipsApiController implements ChildGuardianRel
      * @see ChildGuardianRelationshipsApi#getChildGuardianRelationshipsByKey
      */
     @Override
-    public ChildGuardianRelationships getChildGuardianRelationshipsByKey(
+    public ChildGuardianRelationship getChildGuardianRelationshipsByKey(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "kindergarten_id", required = true) Long kindergartenId,
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "child_id", required = true) Long childId,
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "guardian_id", required = true) Long guardianId

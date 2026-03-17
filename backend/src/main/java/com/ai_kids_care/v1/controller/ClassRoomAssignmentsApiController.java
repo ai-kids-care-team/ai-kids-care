@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ClassRoomAssignmentsApi;
-import com.ai_kids_care.v1.entity.ClassRoomAssignments;
+import com.ai_kids_care.v1.entity.ClassRoomAssignment;
 import com.ai_kids_care.v1.dto.ClassRoomAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ClassRoomAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfClassRoomAssignments;
@@ -34,7 +34,7 @@ public class ClassRoomAssignmentsApiController implements ClassRoomAssignmentsAp
      * @see ClassRoomAssignmentsApi#createClassRoomAssignments
      */
     @Override
-    public ClassRoomAssignments createClassRoomAssignments(
+    public ClassRoomAssignment createClassRoomAssignments(
         @Parameter(name = "ClassRoomAssignmentsCreateRequest", description = "", required = true) @RequestBody ClassRoomAssignmentsCreateRequest classRoomAssignmentsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class ClassRoomAssignmentsApiController implements ClassRoomAssignmentsAp
      * @see ClassRoomAssignmentsApi#getClassRoomAssignments
      */
     @Override
-    public ClassRoomAssignments getClassRoomAssignments(
+    public ClassRoomAssignment getClassRoomAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class ClassRoomAssignmentsApiController implements ClassRoomAssignmentsAp
      * @see ClassRoomAssignmentsApi#updateClassRoomAssignments
      */
     @Override
-    public ClassRoomAssignments updateClassRoomAssignments(
+    public ClassRoomAssignment updateClassRoomAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ClassRoomAssignmentsUpdateRequest", description = "", required = true) @RequestBody ClassRoomAssignmentsUpdateRequest classRoomAssignmentsUpdateRequest
     ) {

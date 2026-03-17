@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.AiModels;
+import com.ai_kids_care.v1.entity.AiModel;
 import com.ai_kids_care.v1.dto.AiModelsCreateRequest;
 import com.ai_kids_care.v1.dto.AiModelsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface AiModelsApi {
         tags = { "AiModels" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModels.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModel.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface AiModelsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    AiModels createAiModels(
+    AiModel createAiModels(
         @Parameter(name = "AiModelsCreateRequest", description = "", required = true) @RequestBody AiModelsCreateRequest aiModelsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface AiModelsApi {
         tags = { "AiModels" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModels.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModel.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface AiModelsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    AiModels getAiModels(
+    AiModel getAiModels(
         @Parameter(name = "model_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("model_id") Long modelId
     );
 
@@ -198,7 +198,7 @@ public interface AiModelsApi {
         tags = { "AiModels" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModels.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AiModel.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface AiModelsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    AiModels updateAiModels(
+    AiModel updateAiModels(
         @Parameter(name = "model_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("model_id") Long modelId,
         @Parameter(name = "AiModelsUpdateRequest", description = "", required = true) @RequestBody AiModelsUpdateRequest aiModelsUpdateRequest
     );

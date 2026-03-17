@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfUserRoleAssignments;
-import com.ai_kids_care.v1.entity.UserRoleAssignments;
+import com.ai_kids_care.v1.entity.UserRoleAssignment;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.UserRoleAssignmentsUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface UserRoleAssignmentsApi {
         tags = { "UserRoleAssignments" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface UserRoleAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    UserRoleAssignments createUserRoleAssignments(
+    UserRoleAssignment createUserRoleAssignments(
         @Parameter(name = "UserRoleAssignmentsCreateRequest", description = "", required = true) @RequestBody UserRoleAssignmentsCreateRequest userRoleAssignmentsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface UserRoleAssignmentsApi {
         tags = { "UserRoleAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignment.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface UserRoleAssignmentsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    UserRoleAssignments getUserRoleAssignments(
+    UserRoleAssignment getUserRoleAssignments(
         @Parameter(name = "role_assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("role_assignment_id") Long roleAssignmentId
     );
 
@@ -198,7 +198,7 @@ public interface UserRoleAssignmentsApi {
         tags = { "UserRoleAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = UserRoleAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface UserRoleAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    UserRoleAssignments updateUserRoleAssignments(
+    UserRoleAssignment updateUserRoleAssignments(
         @Parameter(name = "role_assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("role_assignment_id") Long roleAssignmentId,
         @Parameter(name = "UserRoleAssignmentsUpdateRequest", description = "", required = true) @RequestBody UserRoleAssignmentsUpdateRequest userRoleAssignmentsUpdateRequest
     );
