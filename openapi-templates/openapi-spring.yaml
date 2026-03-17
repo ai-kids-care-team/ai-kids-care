@@ -1,7 +1,7 @@
 generatorName: spring
-inputSpec: docs/OpenAPI/openapi.yaml
-outputDir: generated/spring
-templateDir: openapi-templates/spring
+inputSpec: ../docs/OpenAPI/openapi.yaml
+outputDir: ./generated
+templateDir: ./spring
 
 library: spring-boot
 
@@ -21,9 +21,10 @@ additionalProperties:
   skipDefaultInterface: true
   swagger2AnnotationLibrary: true
 
-  lombok.RequiredArgsConstructor: true
+  lombok.RequiredArgsConstructor: false
+  lombok.AllArgsConstructor: true
   lombok.NoArgsConstructor: true
-  lombok.ToString: true
+  lombok.ToString: false
   lombok.Data: true
   lombok.Builder: true
   useBeanValidation: false

@@ -1,12 +1,13 @@
 package com.dashboard.controller;
 
-import com.dashboard.dto.CommonCodeResponse;
-import com.dashboard.dto.SignupResponse;
-import com.dashboard.entity.StatusEnum;
-import com.dashboard.security.JwtAuthenticationFilter;
-import com.dashboard.security.JwtUtil;
-import com.dashboard.service.AuthService;
-import com.dashboard.service.CommonCodeService;
+import com.ai_kids_care.dashboard.controller.AuthController;
+import com.ai_kids_care.dashboard.dto.CommonCodeResponse;
+import com.ai_kids_care.dashboard.dto.SignupResponse;
+import com.ai_kids_care.dashboard.entity.StatusEnum;
+import com.ai_kids_care.dashboard.security.JwtAuthenticationFilter;
+import com.ai_kids_care.dashboard.security.JwtUtil;
+import com.ai_kids_care.dashboard.service.AuthService;
+import com.ai_kids_care.dashboard.service.CommonCodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
