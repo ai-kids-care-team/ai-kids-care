@@ -104,6 +104,8 @@ eggs/
 lib/
 lib64/
 parts/
+!src/lib/
+!src/lib/**
 sdist/
 var/
 wheels/
