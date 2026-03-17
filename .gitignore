@@ -102,8 +102,6 @@ eggs/
 lib/
 lib64/
 parts/
-!frontend/src/lib/
-!frontend/src/lib/**
 sdist/
 var/
 wheels/
