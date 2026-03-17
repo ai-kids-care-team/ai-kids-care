@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Shield, Mail, ArrowLeft } from 'lucide-react';
 import { useForgotPasswordMutation } from '../../services/apis/auth.api';
-import { reportClientError } from '@/lib/reportClientError';
 
 const getForgotPasswordErrorMessage = (err: any) => {
   if (err?.status === 'FETCH_ERROR') {
@@ -29,8 +28,6 @@ export function ForgotPasswordForm() {
       await forgotPasswordApi({ email }).unwrap();
       setIsSuccess(true);
     } catch (err: any) {
-      console.error('[ForgotPasswordForm] forgot password request failed:', err);
-      reportClientError('ForgotPasswordForm', 'forgot password request failed', err);
       setError(getForgotPasswordErrorMessage(err));
     }
   };

@@ -7,7 +7,6 @@ import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useForgotPasswordMutation, useLoginMutation } from '@/services/apis/auth.api';
 import type { UserRole } from '@/types/anomaly';
-import { reportClientError } from '@/lib/reportClientError';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -97,8 +96,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       }
       handleModalClose();
     } catch (err: any) {
-      console.error('[LoginModal] login request failed:', err);
-      reportClientError('LoginModal', 'login request failed', err);
       setError(err?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
     }
   };
@@ -130,8 +127,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       await forgotPasswordApi({ email: forgotEmail }).unwrap();
       setForgotSuccess(true);
     } catch (err: any) {
-      console.error('[LoginModal] forgot password request failed:', err);
-      reportClientError('LoginModal', 'forgot password request failed', err);
       setForgotError(getForgotPasswordErrorMessage(err));
     }
   };
