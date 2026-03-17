@@ -1,7 +1,7 @@
 generatorName: spring
-inputSpec: docs/OpenAPI/openapi.yaml
-outputDir: generated/spring
-templateDir: openapi-templates/spring
+inputSpec: ../docs/OpenAPI/openapi.yaml
+outputDir: ./generated
+templateDir: ./spring
 
 library: spring-boot
 
