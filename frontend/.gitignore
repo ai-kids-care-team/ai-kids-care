@@ -23,7 +23,6 @@ Desktop.ini
 logs/
 log/
 /logs/
-/logs/**
 
 # Runtime data / pid
 *.pid
@@ -105,7 +104,6 @@ lib/
 lib64/
 parts/
 !src/lib/
-!src/lib/**
 sdist/
 var/
 wheels/
