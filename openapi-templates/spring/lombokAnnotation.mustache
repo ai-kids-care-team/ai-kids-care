@@ -11,11 +11,11 @@
   {{/isPassword}}
 {{/lombok.ToString}}
 {{#lombok.Data}}
+  {{^isContainer}}{{#useBeanValidation}}{{>beanValidation}}{{/useBeanValidation}}{{/isContainer}}
+  {{^useBeanValidation}}
   {{#isPassword}}
   @lombok.ToString.Exclude
   {{/isPassword}}
-  {{^isContainer}}{{#useBeanValidation}}{{>beanValidation}}{{/useBeanValidation}}{{/isContainer}}
-  {{^useBeanValidation}}
   {{#required}}
   @lombok.NonNull
   {{/required}}
