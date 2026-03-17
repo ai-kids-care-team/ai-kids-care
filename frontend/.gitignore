@@ -22,7 +22,6 @@ Desktop.ini
 *.log
 logs/
 log/
-/logs/
 
 # Runtime data / pid
 *.pid
@@ -103,7 +102,6 @@ eggs/
 lib/
 lib64/
 parts/
-!src/lib/
 sdist/
 var/
 wheels/
