@@ -33,9 +33,8 @@ public class AuthRegisterRequest {
   @JsonProperty("phone")
   private String phone = null;
 
-  @ToString.Exclude
-  @ToString.Exclude
   
+  @ToString.Exclude
   @NonNull
   @Schema(name = "password", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("password")

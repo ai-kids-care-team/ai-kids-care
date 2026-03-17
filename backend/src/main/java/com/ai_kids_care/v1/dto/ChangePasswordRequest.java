@@ -17,17 +17,15 @@ import jakarta.annotation.Generated;
 @Builder
 public class ChangePasswordRequest {
 
-  @ToString.Exclude
-  @ToString.Exclude
   
+  @ToString.Exclude
   @NonNull
   @Schema(name = "currentPassword", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("currentPassword")
   private String currentPassword;
 
-  @ToString.Exclude
-  @ToString.Exclude
   
+  @ToString.Exclude
   @NonNull
   @Schema(name = "newPassword", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("newPassword")

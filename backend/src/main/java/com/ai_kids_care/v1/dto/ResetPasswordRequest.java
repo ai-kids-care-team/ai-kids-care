@@ -17,9 +17,8 @@ import jakarta.annotation.Generated;
 @Builder
 public class ResetPasswordRequest {
 
-  @ToString.Exclude
-  @ToString.Exclude
   
+  @ToString.Exclude
   @NonNull
   @Schema(name = "newPassword", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("newPassword")
