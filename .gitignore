@@ -296,7 +296,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-frontend/logs/
 
 # Env files (frontend variants are already covered by .env.* above)
 # .env.development.local etc. will be ignored by .env.*
