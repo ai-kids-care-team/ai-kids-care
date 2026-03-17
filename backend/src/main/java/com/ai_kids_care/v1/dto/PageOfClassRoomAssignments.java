@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.ClassRoomAssignments;
+import com.ai_kids_care.v1.entity.ClassRoomAssignment;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfClassRoomAssignments {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<ClassRoomAssignments> items = new ArrayList<>();
+  private List<ClassRoomAssignment> items = new ArrayList<>();
 
   
   @NonNull

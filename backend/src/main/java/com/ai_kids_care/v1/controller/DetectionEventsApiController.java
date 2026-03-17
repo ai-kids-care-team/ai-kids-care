@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.DetectionEventsApi;
-import com.ai_kids_care.v1.entity.DetectionEvents;
+import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.dto.DetectionEventsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionEventsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfDetectionEvents;
@@ -34,7 +34,7 @@ public class DetectionEventsApiController implements DetectionEventsApi {
      * @see DetectionEventsApi#createDetectionEvents
      */
     @Override
-    public DetectionEvents createDetectionEvents(
+    public DetectionEvent createDetectionEvents(
         @Parameter(name = "DetectionEventsCreateRequest", description = "", required = true) @RequestBody DetectionEventsCreateRequest detectionEventsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class DetectionEventsApiController implements DetectionEventsApi {
      * @see DetectionEventsApi#getDetectionEvents
      */
     @Override
-    public DetectionEvents getDetectionEvents(
+    public DetectionEvent getDetectionEvents(
         @Parameter(name = "event_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("event_id") Long eventId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class DetectionEventsApiController implements DetectionEventsApi {
      * @see DetectionEventsApi#updateDetectionEvents
      */
     @Override
-    public DetectionEvents updateDetectionEvents(
+    public DetectionEvent updateDetectionEvents(
         @Parameter(name = "event_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("event_id") Long eventId,
         @Parameter(name = "DetectionEventsUpdateRequest", description = "", required = true) @RequestBody DetectionEventsUpdateRequest detectionEventsUpdateRequest
     ) {

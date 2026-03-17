@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfTeachers;
-import com.ai_kids_care.v1.entity.Teachers;
+import com.ai_kids_care.v1.entity.Teacher;
 import com.ai_kids_care.v1.dto.TeachersCreateRequest;
 import com.ai_kids_care.v1.dto.TeachersUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface TeachersApi {
         tags = { "Teachers" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Teachers.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Teacher.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface TeachersApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Teachers createTeachers(
+    Teacher createTeachers(
         @Parameter(name = "TeachersCreateRequest", description = "", required = true) @RequestBody TeachersCreateRequest teachersCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface TeachersApi {
         tags = { "Teachers" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Teachers.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Teacher.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface TeachersApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Teachers getTeachers(
+    Teacher getTeachers(
         @Parameter(name = "teacher_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("teacher_id") Long teacherId
     );
 
@@ -198,7 +198,7 @@ public interface TeachersApi {
         tags = { "Teachers" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Teachers.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Teacher.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface TeachersApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Teachers updateTeachers(
+    Teacher updateTeachers(
         @Parameter(name = "teacher_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("teacher_id") Long teacherId,
         @Parameter(name = "TeachersUpdateRequest", description = "", required = true) @RequestBody TeachersUpdateRequest teachersUpdateRequest
     );

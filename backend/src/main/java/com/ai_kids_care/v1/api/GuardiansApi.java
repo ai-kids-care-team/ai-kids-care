@@ -6,7 +6,7 @@
 package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.Guardians;
+import com.ai_kids_care.v1.entity.Guardian;
 import com.ai_kids_care.v1.dto.GuardiansCreateRequest;
 import com.ai_kids_care.v1.dto.GuardiansUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfGuardians;
@@ -45,7 +45,7 @@ public interface GuardiansApi {
         tags = { "Guardians" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardians.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardian.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface GuardiansApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Guardians createGuardians(
+    Guardian createGuardians(
         @Parameter(name = "GuardiansCreateRequest", description = "", required = true) @RequestBody GuardiansCreateRequest guardiansCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface GuardiansApi {
         tags = { "Guardians" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardians.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardian.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface GuardiansApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Guardians getGuardians(
+    Guardian getGuardians(
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("guardian_id") Long guardianId
     );
 
@@ -198,7 +198,7 @@ public interface GuardiansApi {
         tags = { "Guardians" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardians.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Guardian.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface GuardiansApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Guardians updateGuardians(
+    Guardian updateGuardians(
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("guardian_id") Long guardianId,
         @Parameter(name = "GuardiansUpdateRequest", description = "", required = true) @RequestBody GuardiansUpdateRequest guardiansUpdateRequest
     );

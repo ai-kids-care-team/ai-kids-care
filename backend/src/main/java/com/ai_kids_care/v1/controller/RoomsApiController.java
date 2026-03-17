@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.RoomsApi;
 import com.ai_kids_care.v1.dto.PageOfRooms;
-import com.ai_kids_care.v1.entity.Rooms;
+import com.ai_kids_care.v1.entity.Room;
 import com.ai_kids_care.v1.dto.RoomsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomsUpdateRequest;
 
@@ -34,7 +34,7 @@ public class RoomsApiController implements RoomsApi {
      * @see RoomsApi#createRooms
      */
     @Override
-    public Rooms createRooms(
+    public Room createRooms(
         @Parameter(name = "RoomsCreateRequest", description = "", required = true) @RequestBody RoomsCreateRequest roomsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class RoomsApiController implements RoomsApi {
      * @see RoomsApi#getRooms
      */
     @Override
-    public Rooms getRooms(
+    public Room getRooms(
         @Parameter(name = "room_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("room_id") Long roomId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class RoomsApiController implements RoomsApi {
      * @see RoomsApi#updateRooms
      */
     @Override
-    public Rooms updateRooms(
+    public Room updateRooms(
         @Parameter(name = "room_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("room_id") Long roomId,
         @Parameter(name = "RoomsUpdateRequest", description = "", required = true) @RequestBody RoomsUpdateRequest roomsUpdateRequest
     ) {

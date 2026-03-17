@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.DetectionEvents;
+import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.dto.DetectionEventsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionEventsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface DetectionEventsApi {
         tags = { "DetectionEvents" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvents.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvent.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface DetectionEventsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    DetectionEvents createDetectionEvents(
+    DetectionEvent createDetectionEvents(
         @Parameter(name = "DetectionEventsCreateRequest", description = "", required = true) @RequestBody DetectionEventsCreateRequest detectionEventsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface DetectionEventsApi {
         tags = { "DetectionEvents" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvents.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvent.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface DetectionEventsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DetectionEvents getDetectionEvents(
+    DetectionEvent getDetectionEvents(
         @Parameter(name = "event_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("event_id") Long eventId
     );
 
@@ -198,7 +198,7 @@ public interface DetectionEventsApi {
         tags = { "DetectionEvents" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvents.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DetectionEvent.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface DetectionEventsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DetectionEvents updateDetectionEvents(
+    DetectionEvent updateDetectionEvents(
         @Parameter(name = "event_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("event_id") Long eventId,
         @Parameter(name = "DetectionEventsUpdateRequest", description = "", required = true) @RequestBody DetectionEventsUpdateRequest detectionEventsUpdateRequest
     );

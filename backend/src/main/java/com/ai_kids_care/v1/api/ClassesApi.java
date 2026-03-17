@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.Classes;
+import com.ai_kids_care.v1.entity.Class;
 import com.ai_kids_care.v1.dto.ClassesCreateRequest;
 import com.ai_kids_care.v1.dto.ClassesUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface ClassesApi {
         tags = { "Classes" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Classes.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Class.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface ClassesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Classes createClasses(
+    Class createClasses(
         @Parameter(name = "ClassesCreateRequest", description = "", required = true) @RequestBody ClassesCreateRequest classesCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface ClassesApi {
         tags = { "Classes" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Classes.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Class.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface ClassesApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Classes getClasses(
+    Class getClasses(
         @Parameter(name = "class_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("class_id") Long classId
     );
 
@@ -198,7 +198,7 @@ public interface ClassesApi {
         tags = { "Classes" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Classes.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Class.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface ClassesApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Classes updateClasses(
+    Class updateClasses(
         @Parameter(name = "class_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("class_id") Long classId,
         @Parameter(name = "ClassesUpdateRequest", description = "", required = true) @RequestBody ClassesUpdateRequest classesUpdateRequest
     );

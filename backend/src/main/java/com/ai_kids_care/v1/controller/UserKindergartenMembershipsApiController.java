@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.UserKindergartenMembershipsApi;
 import com.ai_kids_care.v1.dto.PageOfUserKindergartenMemberships;
-import com.ai_kids_care.v1.entity.UserKindergartenMemberships;
+import com.ai_kids_care.v1.entity.UserKindergartenMembership;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsCreateRequest;
 import com.ai_kids_care.v1.dto.UserKindergartenMembershipsUpdateRequest;
 
@@ -34,7 +34,7 @@ public class UserKindergartenMembershipsApiController implements UserKindergarte
      * @see UserKindergartenMembershipsApi#createUserKindergartenMemberships
      */
     @Override
-    public UserKindergartenMemberships createUserKindergartenMemberships(
+    public UserKindergartenMembership createUserKindergartenMemberships(
         @Parameter(name = "UserKindergartenMembershipsCreateRequest", description = "", required = true) @RequestBody UserKindergartenMembershipsCreateRequest userKindergartenMembershipsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class UserKindergartenMembershipsApiController implements UserKindergarte
      * @see UserKindergartenMembershipsApi#getUserKindergartenMemberships
      */
     @Override
-    public UserKindergartenMemberships getUserKindergartenMemberships(
+    public UserKindergartenMembership getUserKindergartenMemberships(
         @Parameter(name = "membership_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("membership_id") Long membershipId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class UserKindergartenMembershipsApiController implements UserKindergarte
      * @see UserKindergartenMembershipsApi#updateUserKindergartenMemberships
      */
     @Override
-    public UserKindergartenMemberships updateUserKindergartenMemberships(
+    public UserKindergartenMembership updateUserKindergartenMemberships(
         @Parameter(name = "membership_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("membership_id") Long membershipId,
         @Parameter(name = "UserKindergartenMembershipsUpdateRequest", description = "", required = true) @RequestBody UserKindergartenMembershipsUpdateRequest userKindergartenMembershipsUpdateRequest
     ) {

@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.ChildClassAssignments;
+import com.ai_kids_care.v1.entity.ChildClassAssignment;
 import com.ai_kids_care.v1.dto.ChildClassAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ChildClassAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface ChildClassAssignmentsApi {
         tags = { "ChildClassAssignments" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface ChildClassAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    ChildClassAssignments createChildClassAssignments(
+    ChildClassAssignment createChildClassAssignments(
         @Parameter(name = "ChildClassAssignmentsCreateRequest", description = "", required = true) @RequestBody ChildClassAssignmentsCreateRequest childClassAssignmentsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface ChildClassAssignmentsApi {
         tags = { "ChildClassAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignment.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface ChildClassAssignmentsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ChildClassAssignments getChildClassAssignments(
+    ChildClassAssignment getChildClassAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     );
 
@@ -198,7 +198,7 @@ public interface ChildClassAssignmentsApi {
         tags = { "ChildClassAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildClassAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface ChildClassAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ChildClassAssignments updateChildClassAssignments(
+    ChildClassAssignment updateChildClassAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ChildClassAssignmentsUpdateRequest", description = "", required = true) @RequestBody ChildClassAssignmentsUpdateRequest childClassAssignmentsUpdateRequest
     );

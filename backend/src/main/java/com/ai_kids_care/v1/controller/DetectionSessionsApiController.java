@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.DetectionSessionsApi;
-import com.ai_kids_care.v1.entity.DetectionSessions;
+import com.ai_kids_care.v1.entity.DetectionSession;
 import com.ai_kids_care.v1.dto.DetectionSessionsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionSessionsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfDetectionSessions;
@@ -34,7 +34,7 @@ public class DetectionSessionsApiController implements DetectionSessionsApi {
      * @see DetectionSessionsApi#createDetectionSessions
      */
     @Override
-    public DetectionSessions createDetectionSessions(
+    public DetectionSession createDetectionSessions(
         @Parameter(name = "DetectionSessionsCreateRequest", description = "", required = true) @RequestBody DetectionSessionsCreateRequest detectionSessionsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class DetectionSessionsApiController implements DetectionSessionsApi {
      * @see DetectionSessionsApi#getDetectionSessions
      */
     @Override
-    public DetectionSessions getDetectionSessions(
+    public DetectionSession getDetectionSessions(
         @Parameter(name = "session_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("session_id") Long sessionId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class DetectionSessionsApiController implements DetectionSessionsApi {
      * @see DetectionSessionsApi#updateDetectionSessions
      */
     @Override
-    public DetectionSessions updateDetectionSessions(
+    public DetectionSession updateDetectionSessions(
         @Parameter(name = "session_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("session_id") Long sessionId,
         @Parameter(name = "DetectionSessionsUpdateRequest", description = "", required = true) @RequestBody DetectionSessionsUpdateRequest detectionSessionsUpdateRequest
     ) {

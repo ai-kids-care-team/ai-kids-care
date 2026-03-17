@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.UsersApi;
 import com.ai_kids_care.v1.dto.PageOfUsers;
-import com.ai_kids_care.v1.entity.Users;
+import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.dto.UsersCreateRequest;
 import com.ai_kids_care.v1.dto.UsersUpdateRequest;
 
@@ -34,7 +34,7 @@ public class UsersApiController implements UsersApi {
      * @see UsersApi#createUsers
      */
     @Override
-    public Users createUsers(
+    public User createUsers(
         @Parameter(name = "UsersCreateRequest", description = "", required = true) @RequestBody UsersCreateRequest usersCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class UsersApiController implements UsersApi {
      * @see UsersApi#getUsers
      */
     @Override
-    public Users getUsers(
+    public User getUsers(
         @Parameter(name = "user_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("user_id") Long userId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class UsersApiController implements UsersApi {
      * @see UsersApi#updateUsers
      */
     @Override
-    public Users updateUsers(
+    public User updateUsers(
         @Parameter(name = "user_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("user_id") Long userId,
         @Parameter(name = "UsersUpdateRequest", description = "", required = true) @RequestBody UsersUpdateRequest usersUpdateRequest
     ) {

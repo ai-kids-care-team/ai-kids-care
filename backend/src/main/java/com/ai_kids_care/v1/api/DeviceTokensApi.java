@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.DeviceTokens;
+import com.ai_kids_care.v1.entity.DeviceToken;
 import com.ai_kids_care.v1.dto.DeviceTokensCreateRequest;
 import com.ai_kids_care.v1.dto.DeviceTokensUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface DeviceTokensApi {
         tags = { "DeviceTokens" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceTokens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceToken.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface DeviceTokensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    DeviceTokens createDeviceTokens(
+    DeviceToken createDeviceTokens(
         @Parameter(name = "DeviceTokensCreateRequest", description = "", required = true) @RequestBody DeviceTokensCreateRequest deviceTokensCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface DeviceTokensApi {
         tags = { "DeviceTokens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceTokens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceToken.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface DeviceTokensApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DeviceTokens getDeviceTokens(
+    DeviceToken getDeviceTokens(
         @Parameter(name = "device_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("device_id") Long deviceId
     );
 
@@ -198,7 +198,7 @@ public interface DeviceTokensApi {
         tags = { "DeviceTokens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceTokens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = DeviceToken.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface DeviceTokensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    DeviceTokens updateDeviceTokens(
+    DeviceToken updateDeviceTokens(
         @Parameter(name = "device_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("device_id") Long deviceId,
         @Parameter(name = "DeviceTokensUpdateRequest", description = "", required = true) @RequestBody DeviceTokensUpdateRequest deviceTokensUpdateRequest
     );

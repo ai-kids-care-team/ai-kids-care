@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.ClassRoomAssignments;
+import com.ai_kids_care.v1.entity.ClassRoomAssignment;
 import com.ai_kids_care.v1.dto.ClassRoomAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ClassRoomAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface ClassRoomAssignmentsApi {
         tags = { "ClassRoomAssignments" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface ClassRoomAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    ClassRoomAssignments createClassRoomAssignments(
+    ClassRoomAssignment createClassRoomAssignments(
         @Parameter(name = "ClassRoomAssignmentsCreateRequest", description = "", required = true) @RequestBody ClassRoomAssignmentsCreateRequest classRoomAssignmentsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface ClassRoomAssignmentsApi {
         tags = { "ClassRoomAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignment.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface ClassRoomAssignmentsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ClassRoomAssignments getClassRoomAssignments(
+    ClassRoomAssignment getClassRoomAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     );
 
@@ -198,7 +198,7 @@ public interface ClassRoomAssignmentsApi {
         tags = { "ClassRoomAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassRoomAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface ClassRoomAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ClassRoomAssignments updateClassRoomAssignments(
+    ClassRoomAssignment updateClassRoomAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ClassRoomAssignmentsUpdateRequest", description = "", required = true) @RequestBody ClassRoomAssignmentsUpdateRequest classRoomAssignmentsUpdateRequest
     );

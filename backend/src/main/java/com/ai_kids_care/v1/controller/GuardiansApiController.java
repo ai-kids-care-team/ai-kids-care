@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.GuardiansApi;
-import com.ai_kids_care.v1.entity.Guardians;
+import com.ai_kids_care.v1.entity.Guardian;
 import com.ai_kids_care.v1.dto.GuardiansCreateRequest;
 import com.ai_kids_care.v1.dto.GuardiansUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfGuardians;
@@ -34,7 +34,7 @@ public class GuardiansApiController implements GuardiansApi {
      * @see GuardiansApi#createGuardians
      */
     @Override
-    public Guardians createGuardians(
+    public Guardian createGuardians(
         @Parameter(name = "GuardiansCreateRequest", description = "", required = true) @RequestBody GuardiansCreateRequest guardiansCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class GuardiansApiController implements GuardiansApi {
      * @see GuardiansApi#getGuardians
      */
     @Override
-    public Guardians getGuardians(
+    public Guardian getGuardians(
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("guardian_id") Long guardianId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class GuardiansApiController implements GuardiansApi {
      * @see GuardiansApi#updateGuardians
      */
     @Override
-    public Guardians updateGuardians(
+    public Guardian updateGuardians(
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("guardian_id") Long guardianId,
         @Parameter(name = "GuardiansUpdateRequest", description = "", required = true) @RequestBody GuardiansUpdateRequest guardiansUpdateRequest
     ) {

@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.DeviceTokens;
+import com.ai_kids_care.v1.entity.DeviceToken;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfDeviceTokens {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<DeviceTokens> items = new ArrayList<>();
+  private List<DeviceToken> items = new ArrayList<>();
 
   
   @NonNull

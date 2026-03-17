@@ -7,7 +7,7 @@ package com.ai_kids_care.v1.api;
 
 import com.ai_kids_care.v1.vo.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfRoomCameraAssignments;
-import com.ai_kids_care.v1.entity.RoomCameraAssignments;
+import com.ai_kids_care.v1.entity.RoomCameraAssignment;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.RoomCameraAssignmentsUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public interface RoomCameraAssignmentsApi {
         tags = { "RoomCameraAssignments" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface RoomCameraAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    RoomCameraAssignments createRoomCameraAssignments(
+    RoomCameraAssignment createRoomCameraAssignments(
         @Parameter(name = "RoomCameraAssignmentsCreateRequest", description = "", required = true) @RequestBody RoomCameraAssignmentsCreateRequest roomCameraAssignmentsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface RoomCameraAssignmentsApi {
         tags = { "RoomCameraAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignment.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface RoomCameraAssignmentsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    RoomCameraAssignments getRoomCameraAssignments(
+    RoomCameraAssignment getRoomCameraAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     );
 
@@ -198,7 +198,7 @@ public interface RoomCameraAssignmentsApi {
         tags = { "RoomCameraAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = RoomCameraAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface RoomCameraAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    RoomCameraAssignments updateRoomCameraAssignments(
+    RoomCameraAssignment updateRoomCameraAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "RoomCameraAssignmentsUpdateRequest", description = "", required = true) @RequestBody RoomCameraAssignmentsUpdateRequest roomCameraAssignmentsUpdateRequest
     );

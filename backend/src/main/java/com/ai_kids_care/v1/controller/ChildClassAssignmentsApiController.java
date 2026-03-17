@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ChildClassAssignmentsApi;
-import com.ai_kids_care.v1.entity.ChildClassAssignments;
+import com.ai_kids_care.v1.entity.ChildClassAssignment;
 import com.ai_kids_care.v1.dto.ChildClassAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ChildClassAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfChildClassAssignments;
@@ -34,7 +34,7 @@ public class ChildClassAssignmentsApiController implements ChildClassAssignments
      * @see ChildClassAssignmentsApi#createChildClassAssignments
      */
     @Override
-    public ChildClassAssignments createChildClassAssignments(
+    public ChildClassAssignment createChildClassAssignments(
         @Parameter(name = "ChildClassAssignmentsCreateRequest", description = "", required = true) @RequestBody ChildClassAssignmentsCreateRequest childClassAssignmentsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class ChildClassAssignmentsApiController implements ChildClassAssignments
      * @see ChildClassAssignmentsApi#getChildClassAssignments
      */
     @Override
-    public ChildClassAssignments getChildClassAssignments(
+    public ChildClassAssignment getChildClassAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class ChildClassAssignmentsApiController implements ChildClassAssignments
      * @see ChildClassAssignmentsApi#updateChildClassAssignments
      */
     @Override
-    public ChildClassAssignments updateChildClassAssignments(
+    public ChildClassAssignment updateChildClassAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ChildClassAssignmentsUpdateRequest", description = "", required = true) @RequestBody ChildClassAssignmentsUpdateRequest childClassAssignmentsUpdateRequest
     ) {

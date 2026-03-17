@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.ClassTeacherAssignments;
+import com.ai_kids_care.v1.entity.ClassTeacherAssignment;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsCreateRequest;
 import com.ai_kids_care.v1.dto.ClassTeacherAssignmentsUpdateRequest;
 import com.ai_kids_care.v1.vo.ErrorResponse;
@@ -45,7 +45,7 @@ public interface ClassTeacherAssignmentsApi {
         tags = { "ClassTeacherAssignments" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +65,7 @@ public interface ClassTeacherAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    ClassTeacherAssignments createClassTeacherAssignments(
+    ClassTeacherAssignment createClassTeacherAssignments(
         @Parameter(name = "ClassTeacherAssignmentsCreateRequest", description = "", required = true) @RequestBody ClassTeacherAssignmentsCreateRequest classTeacherAssignmentsCreateRequest
     );
 
@@ -119,7 +119,7 @@ public interface ClassTeacherAssignmentsApi {
         tags = { "ClassTeacherAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignment.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +135,7 @@ public interface ClassTeacherAssignmentsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ClassTeacherAssignments getClassTeacherAssignments(
+    ClassTeacherAssignment getClassTeacherAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId
     );
 
@@ -198,7 +198,7 @@ public interface ClassTeacherAssignmentsApi {
         tags = { "ClassTeacherAssignments" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignments.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ClassTeacherAssignment.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +221,7 @@ public interface ClassTeacherAssignmentsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ClassTeacherAssignments updateClassTeacherAssignments(
+    ClassTeacherAssignment updateClassTeacherAssignments(
         @Parameter(name = "assignment_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("assignment_id") Long assignmentId,
         @Parameter(name = "ClassTeacherAssignmentsUpdateRequest", description = "", required = true) @RequestBody ClassTeacherAssignmentsUpdateRequest classTeacherAssignmentsUpdateRequest
     );

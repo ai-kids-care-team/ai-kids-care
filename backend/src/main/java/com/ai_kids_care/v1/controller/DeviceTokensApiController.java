@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.DeviceTokensApi;
-import com.ai_kids_care.v1.entity.DeviceTokens;
+import com.ai_kids_care.v1.entity.DeviceToken;
 import com.ai_kids_care.v1.dto.DeviceTokensCreateRequest;
 import com.ai_kids_care.v1.dto.DeviceTokensUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfDeviceTokens;
@@ -34,7 +34,7 @@ public class DeviceTokensApiController implements DeviceTokensApi {
      * @see DeviceTokensApi#createDeviceTokens
      */
     @Override
-    public DeviceTokens createDeviceTokens(
+    public DeviceToken createDeviceTokens(
         @Parameter(name = "DeviceTokensCreateRequest", description = "", required = true) @RequestBody DeviceTokensCreateRequest deviceTokensCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class DeviceTokensApiController implements DeviceTokensApi {
      * @see DeviceTokensApi#getDeviceTokens
      */
     @Override
-    public DeviceTokens getDeviceTokens(
+    public DeviceToken getDeviceTokens(
         @Parameter(name = "device_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("device_id") Long deviceId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class DeviceTokensApiController implements DeviceTokensApi {
      * @see DeviceTokensApi#updateDeviceTokens
      */
     @Override
-    public DeviceTokens updateDeviceTokens(
+    public DeviceToken updateDeviceTokens(
         @Parameter(name = "device_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("device_id") Long deviceId,
         @Parameter(name = "DeviceTokensUpdateRequest", description = "", required = true) @RequestBody DeviceTokensUpdateRequest deviceTokensUpdateRequest
     ) {

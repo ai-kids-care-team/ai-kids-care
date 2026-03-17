@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.AuditLogsApi;
-import com.ai_kids_care.v1.entity.AuditLogs;
+import com.ai_kids_care.v1.entity.AuditLog;
 import com.ai_kids_care.v1.dto.AuditLogsCreateRequest;
 import com.ai_kids_care.v1.dto.AuditLogsUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfAuditLogs;
@@ -34,7 +34,7 @@ public class AuditLogsApiController implements AuditLogsApi {
      * @see AuditLogsApi#createAuditLogs
      */
     @Override
-    public AuditLogs createAuditLogs(
+    public AuditLog createAuditLogs(
         @Parameter(name = "AuditLogsCreateRequest", description = "", required = true) @RequestBody AuditLogsCreateRequest auditLogsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class AuditLogsApiController implements AuditLogsApi {
      * @see AuditLogsApi#getAuditLogs
      */
     @Override
-    public AuditLogs getAuditLogs(
+    public AuditLog getAuditLogs(
         @Parameter(name = "audit_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("audit_id") Long auditId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class AuditLogsApiController implements AuditLogsApi {
      * @see AuditLogsApi#updateAuditLogs
      */
     @Override
-    public AuditLogs updateAuditLogs(
+    public AuditLog updateAuditLogs(
         @Parameter(name = "audit_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("audit_id") Long auditId,
         @Parameter(name = "AuditLogsUpdateRequest", description = "", required = true) @RequestBody AuditLogsUpdateRequest auditLogsUpdateRequest
     ) {

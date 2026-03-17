@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.CctvCamerasApi;
-import com.ai_kids_care.v1.entity.CctvCameras;
+import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.dto.CctvCamerasCreateRequest;
 import com.ai_kids_care.v1.dto.CctvCamerasUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfCctvCameras;
@@ -34,7 +34,7 @@ public class CctvCamerasApiController implements CctvCamerasApi {
      * @see CctvCamerasApi#createCctvCameras
      */
     @Override
-    public CctvCameras createCctvCameras(
+    public CctvCamera createCctvCameras(
         @Parameter(name = "CctvCamerasCreateRequest", description = "", required = true) @RequestBody CctvCamerasCreateRequest cctvCamerasCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class CctvCamerasApiController implements CctvCamerasApi {
      * @see CctvCamerasApi#getCctvCameras
      */
     @Override
-    public CctvCameras getCctvCameras(
+    public CctvCamera getCctvCameras(
         @Parameter(name = "camera_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("camera_id") Long cameraId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class CctvCamerasApiController implements CctvCamerasApi {
      * @see CctvCamerasApi#updateCctvCameras
      */
     @Override
-    public CctvCameras updateCctvCameras(
+    public CctvCamera updateCctvCameras(
         @Parameter(name = "camera_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("camera_id") Long cameraId,
         @Parameter(name = "CctvCamerasUpdateRequest", description = "", required = true) @RequestBody CctvCamerasUpdateRequest cctvCamerasUpdateRequest
     ) {

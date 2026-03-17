@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.Users;
+import com.ai_kids_care.v1.entity.User;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class PageOfUsers {
   @JsonProperty("items")
   @Builder.Default
   
-  private List<Users> items = new ArrayList<>();
+  private List<User> items = new ArrayList<>();
 
   
   @NonNull
