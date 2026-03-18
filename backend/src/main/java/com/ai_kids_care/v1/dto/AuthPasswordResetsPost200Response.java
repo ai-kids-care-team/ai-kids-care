@@ -17,7 +17,7 @@ import jakarta.annotation.Generated;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class V1AuthPasswordResetsPost200Response {
+public class AuthPasswordResetsPost200Response {
 
   
   @NonNull
