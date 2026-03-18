@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,8 +24,9 @@ public class AiModel {
     @Column(name = "version", length = Integer.MAX_VALUE)
     private String version;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.156233+00'")
     @Column(name = "created_at")

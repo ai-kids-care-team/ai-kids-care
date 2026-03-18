@@ -1,5 +1,8 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
+import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
+import com.ai_kids_care.v1.type.UserRoleEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -29,16 +32,16 @@ public class UserRoleAssignment {
     private User user;
 
     @Column(name = "role", columnDefinition = "user_role_enum")
-    private Object role;
+    private UserRoleEnum role;
 
     @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type")
-    private Object scopeType;
+    private UserRoleAssignmentScopeType scopeType;
 
     @Column(name = "scope_id")
     private Long scopeId;
 
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.138783+00'")
     @Column(name = "granted_at")

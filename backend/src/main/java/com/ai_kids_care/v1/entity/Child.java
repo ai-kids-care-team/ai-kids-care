@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -57,8 +58,9 @@ public class Child {
     @Column(name = "leave_date")
     private LocalDate leaveDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.005959+00'")
     @Column(name = "created_at")

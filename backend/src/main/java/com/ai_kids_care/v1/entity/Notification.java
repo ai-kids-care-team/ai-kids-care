@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -45,8 +46,9 @@ public class Notification {
     @Column(name = "body", length = Integer.MAX_VALUE)
     private String body;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "notification_status_enum")
-    private Object status;
+    private NotificationStatusEnum status;
 
     @Column(name = "dedupe_key", length = Integer.MAX_VALUE)
     private String dedupeKey;

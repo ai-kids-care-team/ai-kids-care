@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
-import com.ai_kids_care.v1.entity.StatusEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

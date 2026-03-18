@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -31,8 +33,9 @@ public class CameraStream {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private CctvCamera cctvCameras;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "stream_type", columnDefinition = "camera_stream_type_enum")
-    private Object streamType;
+    private CameraStreamTypeEnum streamType;
 
     @Column(name = "stream_url", length = Integer.MAX_VALUE)
     private String streamUrl;
@@ -58,8 +61,9 @@ public class CameraStream {
     @Column(name = "enabled")
     private Boolean enabled;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.145436+00'")
     @Column(name = "created_at")

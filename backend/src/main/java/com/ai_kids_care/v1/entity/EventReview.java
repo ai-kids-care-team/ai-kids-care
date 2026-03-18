@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -32,10 +33,10 @@ public class EventReview {
     private String action;
 
     @Column(name = "from_status", columnDefinition = "event_status_enum")
-    private Object fromStatus;
+    private EventStatusEnum fromStatus;
 
     @Column(name = "result_status", columnDefinition = "event_status_enum")
-    private Object resultStatus;
+    private EventStatusEnum resultStatus;
 
     @Column(name = "comment", length = Integer.MAX_VALUE)
     private String comment;
