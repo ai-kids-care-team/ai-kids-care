@@ -29,7 +29,7 @@ public class CameraStream {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private CctvCamera cctvCamera;
+    private CctvCamera cctvCameras;
 
     @Column(name = "stream_type", columnDefinition = "camera_stream_type_enum")
     private Object streamType;

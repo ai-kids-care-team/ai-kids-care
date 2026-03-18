@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.entity;
 
-import com.ai_kids_care.dashboard.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -25,11 +24,11 @@ public class ClassRoomAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Class aClass;
+    private Class classes;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Room room;
+    private Room rooms;
 
     @NotNull
     @Column(name = "start_at", nullable = false)
@@ -51,11 +50,11 @@ public class ClassRoomAssignment {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    @ColumnDefault("'2026-03-17 12:56:22.072866+00'")
+    @ColumnDefault("'2026-03-17 11:27:13.997732+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.072866+00'")
+    @ColumnDefault("'2026-03-17 11:27:13.997732+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

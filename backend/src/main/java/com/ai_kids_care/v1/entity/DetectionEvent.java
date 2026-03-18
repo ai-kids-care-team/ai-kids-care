@@ -29,15 +29,15 @@ public class DetectionEvent {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private CctvCamera cctvCamera;
+    private CctvCamera cctvCameras;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Room room;
+    private Room rooms;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private DetectionSession detectionSession;
+    private DetectionSession detectionSessions;
 
     @Column(name = "event_type", length = Integer.MAX_VALUE)
     private String eventType;

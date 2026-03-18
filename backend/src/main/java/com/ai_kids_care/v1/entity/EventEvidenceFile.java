@@ -21,7 +21,7 @@ public class EventEvidenceFile {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private DetectionEvent detectionEvent;
+    private DetectionEvent detectionEvents;
 
     @Column(name = "type", length = Integer.MAX_VALUE)
     private String type;

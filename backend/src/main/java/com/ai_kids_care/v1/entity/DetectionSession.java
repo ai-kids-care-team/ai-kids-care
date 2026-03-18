@@ -25,7 +25,7 @@ public class DetectionSession {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private CameraStream cameraStream;
+    private CameraStream cameraStreams;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

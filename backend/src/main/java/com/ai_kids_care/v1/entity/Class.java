@@ -44,11 +44,11 @@ public class Class {
     @Column(name = "status", columnDefinition = "status_enum")
     private Object status;
 
-    @ColumnDefault("'2026-03-17 12:56:21.995449+00'")
+    @ColumnDefault("'2026-03-17 11:27:13.93859+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:21.995449+00'")
+    @ColumnDefault("'2026-03-17 11:27:13.93859+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
