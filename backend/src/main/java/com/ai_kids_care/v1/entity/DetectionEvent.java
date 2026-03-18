@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -58,8 +60,9 @@ public class DetectionEvent {
     @Column(name = "end_time")
     private OffsetDateTime endTime;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "event_status_enum")
-    private Object status;
+    private EventStatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.173225+00'")
     @Column(name = "created_at")

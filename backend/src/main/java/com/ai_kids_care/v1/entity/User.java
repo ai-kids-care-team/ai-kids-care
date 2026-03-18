@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,8 +39,9 @@ public class User {
     @Column(name = "password_hash", length = Integer.MAX_VALUE)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;

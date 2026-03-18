@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -42,8 +43,9 @@ public class CctvCamera {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
-    private Object status;
+    private StatusEnum status;
 
     @Column(name = "last_seen_at")
     private OffsetDateTime lastSeenAt;

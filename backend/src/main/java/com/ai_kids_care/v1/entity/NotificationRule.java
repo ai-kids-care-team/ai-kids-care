@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.NotificationTargetType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -32,8 +33,9 @@ public class NotificationRule {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "target_type", columnDefinition = "notification_target_type")
-    private Object targetType;
+    private NotificationTargetType targetType;
 
     @Column(name = "target_id")
     private Long targetId;
