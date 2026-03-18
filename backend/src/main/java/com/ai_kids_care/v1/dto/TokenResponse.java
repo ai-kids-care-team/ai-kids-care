@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.vo;
+package com.ai_kids_care.v1.dto;
 
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
