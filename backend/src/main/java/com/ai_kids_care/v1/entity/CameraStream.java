@@ -6,12 +6,14 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@Accessors(chain = true)
 @Entity
 @Table(name = "camera_streams", schema = "public", indexes = {
         @Index(name = "uq_stream_kg_camera_streamid",
