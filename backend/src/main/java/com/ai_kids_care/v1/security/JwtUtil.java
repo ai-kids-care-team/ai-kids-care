@@ -17,33 +17,28 @@ public class JwtUtil {
     private String secret;
 
     @Value("${jwt.expiration}")
-    private Long expiration;
+    private Long expireSecond;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(String identifier) {
         return Jwts.builder()
-                .subject(username)
-                .claim("role", role)
+                .subject(identifier)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + expireSecond))
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public String extractIdentifier(String token) {
         return extractAllClaims(token).getSubject();
-    }
-
-    public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
     }
 
     public boolean validateToken(String token, String username) {
         try {
-            final String extractedUsername = extractUsername(token);
+            final String extractedUsername = extractIdentifier(token);
             return (extractedUsername.equals(username) && !isTokenExpired(token));
         } catch (Exception e) {
             return false;
