@@ -1,9 +1,8 @@
 package com.ai_kids_care.v1.dto;
 
+import com.ai_kids_care.v1.entity.StatusEnum;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 
@@ -28,43 +27,6 @@ public class AiModelsCreateRequest {
   @Schema(name = "version", description = "모델 버전", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("version")
   private String version;
-
-  /**
-   * 모델 상태
-   */
-  public enum StatusEnum {
-    ACTIVE("ACTIVE"),
-    
-    PENDING("PENDING"),
-    
-    DISABLED("DISABLED");
-
-    private final String value;
-
-    StatusEnum(String value) {
-      this.value = value;
-    }
-
-    @JsonValue
-    public String getValue() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return String.valueOf(value);
-    }
-
-    @JsonCreator
-    public static StatusEnum fromValue(String value) {
-      for (StatusEnum b : StatusEnum.values()) {
-        if (b.value.equals(value)) {
-          return b;
-        }
-      }
-      throw new IllegalArgumentException("Unexpected value '" + value + "'");
-    }
-  }
 
   
   @Schema(name = "status", description = "모델 상태", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
