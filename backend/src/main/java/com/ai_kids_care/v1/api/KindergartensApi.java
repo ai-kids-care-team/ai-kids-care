@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.dto.KindergartensCreateRequest;
 import com.ai_kids_care.v1.dto.KindergartensUpdateRequest;

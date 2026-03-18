@@ -5,7 +5,7 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.dto.NotificationsCreateRequest;
 import com.ai_kids_care.v1.dto.NotificationsUpdateRequest;

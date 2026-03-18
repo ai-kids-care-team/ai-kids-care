@@ -8,7 +8,7 @@ package com.ai_kids_care.v1.api;
 import com.ai_kids_care.v1.entity.AiModel;
 import com.ai_kids_care.v1.dto.AiModelsCreateRequest;
 import com.ai_kids_care.v1.dto.AiModelsUpdateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfAiModels;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

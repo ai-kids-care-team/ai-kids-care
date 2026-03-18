@@ -8,7 +8,7 @@ package com.ai_kids_care.v1.api;
 import com.ai_kids_care.v1.entity.AuditLog;
 import com.ai_kids_care.v1.dto.AuditLogsCreateRequest;
 import com.ai_kids_care.v1.dto.AuditLogsUpdateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfAuditLogs;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

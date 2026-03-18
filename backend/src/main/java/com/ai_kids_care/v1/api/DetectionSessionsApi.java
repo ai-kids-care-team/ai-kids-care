@@ -8,7 +8,7 @@ package com.ai_kids_care.v1.api;
 import com.ai_kids_care.v1.entity.DetectionSession;
 import com.ai_kids_care.v1.dto.DetectionSessionsCreateRequest;
 import com.ai_kids_care.v1.dto.DetectionSessionsUpdateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfDetectionSessions;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

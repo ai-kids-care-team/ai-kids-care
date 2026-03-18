@@ -8,7 +8,7 @@ package com.ai_kids_care.v1.api;
 import com.ai_kids_care.v1.entity.CameraStream;
 import com.ai_kids_care.v1.dto.CameraStreamsCreateRequest;
 import com.ai_kids_care.v1.dto.CameraStreamsUpdateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
+import com.ai_kids_care.v1.dto.ErrorResponse;
 import com.ai_kids_care.v1.dto.PageOfCameraStreams;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
