@@ -100,6 +100,35 @@ docker compose build --no-cache&& docker compose up -d
 docker compose build frontend --no-cache && docker compose up -d frontend
 
 
+# backend 수동 실행
+cd backend
+
+### PowerShell 
+cd backend
+.\gradlew.bat bootRun 2>&1 | Tee-Object -FilePath .\bootrun.log
+
+netstat -ano | findstr :8080 | findstr LISTENING
+
+# backend 중지
+Ctrl + C
+
+# frontend 수동 실행
+cd frontend
+
+npm install
+cd frontend
+npm run dev 2>&1 | Tee-Object -FilePath .\dev.log
+
+# frontend 중지
+ctrl + C
+
+
+# frontend 포트
+netstat -ano | findstr :3000
+
+# 포트확인
+netstat -ano | findstr :3000 | findstr LISTENING & netstat -ano | findstr :8080 | findstr LISTENING
+
 
 ## windows 방화벽에서 8080 열기
 netsh advfirewall firewall add rule name="Open Port 8080" dir=in action=allow protocol=TCP localport=8080

@@ -24,6 +24,18 @@ export type AnnouncementDetail = {
   createdAt: string;
 };
 
+export type AnnouncementEdit = {
+  id: number;
+  title: string;
+  body: string;
+  pinned: boolean;
+  pinnedUntil: string | null;
+  status: 'ACTIVE' | 'PENDING' | 'DISABLED';
+  publishedAt: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
 export type AnnouncementMeta = {
   canWrite: boolean;
   statusOptions: AnnouncementStatusOption[];
@@ -40,8 +52,10 @@ export type CreateAnnouncementPayload = {
   endsAt: string | null;
 };
 
-export async function getAnnouncements() {
-  const response = await apiClient.get<AnnouncementSummary[]>('/announcements');
+export async function getAnnouncements(keyword?: string) {
+  const response = await apiClient.get<AnnouncementSummary[]>('/announcements', {
+    params: keyword ? { keyword } : undefined,
+  });
   return response.data;
 }
 
@@ -57,5 +71,20 @@ export async function getAnnouncementDetail(id: number) {
 
 export async function createAnnouncement(payload: CreateAnnouncementPayload) {
   const response = await apiClient.post<{ id: number; message: string }>('/announcements', payload);
+  return response.data;
+}
+
+export async function getAnnouncementForEdit(id: number) {
+  const response = await apiClient.get<AnnouncementEdit>(`/announcements/${id}/edit`);
+  return response.data;
+}
+
+export async function updateAnnouncement(id: number, payload: CreateAnnouncementPayload) {
+  const response = await apiClient.put<{ id: number; message: string }>(`/announcements/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteAnnouncement(id: number) {
+  const response = await apiClient.delete<{ id: number; message: string }>(`/announcements/${id}`);
   return response.data;
 }

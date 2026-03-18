@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { Pencil, Trash2, List } from 'lucide-react';
-import { getAnnouncementDetail, getAnnouncementsMeta, type AnnouncementDetail } from '@/services/apis/announcements.api';
+import { toast } from 'sonner';
+import { deleteAnnouncement, getAnnouncementDetail, getAnnouncementsMeta, type AnnouncementDetail } from '@/services/apis/announcements.api';
+import { useAppSelector } from '@/store/hook';
 
 function formatDate(value: string | null) {
   if (!value) return '-';
@@ -16,12 +19,39 @@ function formatDate(value: string | null) {
 }
 
 export function AnnouncementsDetailPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
   const id = Number(searchParams.get('id') ?? 0);
   const [announcement, setAnnouncement] = useState<AnnouncementDetail | null>(null);
   const [canWrite, setCanWrite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const resetToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const container = document.getElementById('app-scroll-container');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    };
+
+    // 렌더 직후/다음 프레임 모두 보정해 레이아웃 스크롤 컨테이너까지 확실히 상단으로 맞춘다.
+    resetToTop();
+    const frame = window.requestAnimationFrame(resetToTop);
+    return () => window.cancelAnimationFrame(frame);
+  }, [id]);
+
+  useEffect(() => {
+    // 로그아웃 직후에는 버튼이 즉시 숨겨지도록 처리
+    if (!isAuthenticated || !user || !token) {
+      setCanWrite(false);
+    }
+  }, [isAuthenticated, user, token]);
 
   useEffect(() => {
     if (!Number.isFinite(id) || id <= 0) {
@@ -47,7 +77,28 @@ export function AnnouncementsDetailPage() {
     };
 
     void load();
-  }, [id]);
+  }, [id, user?.id, token, isAuthenticated]);
+
+  const handleDelete = async () => {
+    if (!Number.isFinite(id) || id <= 0) {
+      setError('유효하지 않은 공지사항 ID입니다.');
+      return;
+    }
+    const confirmed = window.confirm('정말 이 공지사항을 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await deleteAnnouncement(id);
+      router.push('/announcements?deleted=1');
+    } catch (e) {
+      console.error('공지사항 삭제 실패:', e);
+      setError('공지사항 삭제에 실패했습니다.');
+      toast.error('공지사항 삭제에 실패했습니다.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 p-6 text-center text-gray-500">불러오는 중입니다.</div>;
@@ -82,19 +133,21 @@ export function AnnouncementsDetailPage() {
 
                 {canWrite && (
                   <div className="flex items-center gap-3">
-                    <button
-                      type="button"
+                    <Link
+                      href={`/announcements/update?id=${announcement.id}`}
                       className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm text-white hover:bg-blue-700"
                     >
                       <Pencil className="h-5 w-5" />
                       수정
-                    </button>
+                    </Link>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm text-white hover:bg-red-700"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
                     >
                       <Trash2 className="h-5 w-5" />
-                      삭제
+                      {deleting ? '삭제 중...' : '삭제'}
                     </button>
                   </div>
                 )}

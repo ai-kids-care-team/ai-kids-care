@@ -32,6 +32,20 @@ export function useAnnouncementsWrite() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const moveToAnnouncementsList = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('announcements:list:scrollY');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const container = document.getElementById('app-scroll-container');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    router.push('/announcements', { scroll: true });
+  };
+
   useEffect(() => {
     const loadMeta = async () => {
       setLoadingMeta(true);
@@ -89,7 +103,7 @@ export function useAnnouncementsWrite() {
     try {
       setSubmitting(true);
       await createAnnouncement(payload);
-      router.push('/announcements');
+      moveToAnnouncementsList();
     } catch (e) {
       console.error('공지사항 등록 실패:', e);
       setError('공지사항 등록에 실패했습니다.');
@@ -121,5 +135,6 @@ export function useAnnouncementsWrite() {
     submitting,
     error,
     handleSubmit,
+    moveToAnnouncementsList,
   };
 }
