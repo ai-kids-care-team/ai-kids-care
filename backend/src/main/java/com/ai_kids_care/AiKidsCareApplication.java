@@ -1,4 +1,4 @@
-package com.ai_kids_care.dashboard;
+package com.ai_kids_care;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
