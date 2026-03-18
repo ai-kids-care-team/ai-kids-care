@@ -3,22 +3,21 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.NotificationTargetType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "notification_rules", schema = "public", indexes = {
-        @Index(name = "idx_rule_owner",
-                columnList = "kindergarten_id, user_id"),
-        @Index(name = "idx_rule_enabled",
-                columnList = "kindergarten_id, enabled")})
+        @Index(name = "idx_rule_owner", columnList = "kindergarten_id, user_id"),
+        @Index(name = "idx_rule_enabled", columnList = "kindergarten_id, enabled")
+})
 public class NotificationRule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

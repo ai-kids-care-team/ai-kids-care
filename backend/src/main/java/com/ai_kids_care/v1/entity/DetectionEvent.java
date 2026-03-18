@@ -1,30 +1,25 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EventStatusEnum;
-import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "detection_events", schema = "public", indexes = {
-        @Index(name = "uq_event_kg_eventid",
-                columnList = "kindergarten_id, event_id",
-                unique = true),
-        @Index(name = "idx_event_camera_time",
-                columnList = "kindergarten_id, camera_id, detected_at"),
-        @Index(name = "idx_event_room_time",
-                columnList = "kindergarten_id, room_id, detected_at"),
-        @Index(name = "idx_event_status_time",
-                columnList = "kindergarten_id, status, detected_at")})
+        @Index(name = "uq_event_kg_eventid", columnList = "kindergarten_id, event_id", unique = true),
+        @Index(name = "idx_event_camera_time", columnList = "kindergarten_id, camera_id, detected_at"),
+        @Index(name = "idx_event_room_time", columnList = "kindergarten_id, room_id, detected_at"),
+        @Index(name = "idx_event_status_time", columnList = "kindergarten_id, status, detected_at")
+})
 public class DetectionEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

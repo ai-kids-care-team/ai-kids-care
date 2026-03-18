@@ -5,23 +5,21 @@ import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @Entity
-@Accessors(chain = true)
 @Table(name = "user_role_assignments", schema = "public", indexes = {
-        @Index(name = "uq_ura_user_role_scope",
-                columnList = "user_id, role, scope_type, scope_id",
-                unique = true),
-        @Index(name = "idx_ura_scope_status",
-                columnList = "scope_type, scope_id, status")})
+        @Index(name = "uq_ura_user_role_scope", columnList = "user_id, role, scope_type, scope_id", unique = true),
+        @Index(name = "idx_ura_scope_status", columnList = "scope_type, scope_id, status")
+})
 public class UserRoleAssignment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

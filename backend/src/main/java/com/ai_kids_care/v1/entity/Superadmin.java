@@ -2,20 +2,20 @@ package com.ai_kids_care.v1.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
-@Table(name = "superadmins", schema = "public", indexes = {@Index(name = "uq_superadmin_userid",
-        columnList = "user_id",
-        unique = true)})
+@Table(name = "superadmins", schema = "public", indexes = {
+        @Index(name = "uq_superadmin_userid", columnList = "user_id", unique = true)
+})
 public class Superadmin {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

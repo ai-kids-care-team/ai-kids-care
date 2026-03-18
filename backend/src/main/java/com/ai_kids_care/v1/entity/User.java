@@ -2,27 +2,22 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "users", schema = "public", indexes = {
-        @Index(name = "users_login_id_key",
-                columnList = "login_id",
-                unique = true),
-        @Index(name = "uq_user_account_email",
-                columnList = "email",
-                unique = true),
-        @Index(name = "uq_user_account_phone",
-                columnList = "phone",
-                unique = true)})
+        @Index(name = "users_login_id_key", columnList = "login_id", unique = true),
+        @Index(name = "uq_user_account_email", columnList = "email", unique = true),
+        @Index(name = "uq_user_account_phone", columnList = "phone", unique = true)
+})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
