@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -33,6 +34,10 @@ public class Superadmin {
 
     @Column(name = "department", length = Integer.MAX_VALUE)
     private String department;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "status_enum")
+    private StatusEnum status;
 
     @ColumnDefault("'2026-03-17 12:56:22.038675+00'")
     @Column(name = "created_at")

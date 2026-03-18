@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.GenderEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -44,7 +45,7 @@ public class Guardian {
     private String rrnFirst6;
 
     @Column(name = "gender", length = Integer.MAX_VALUE)
-    private String gender;
+    private GenderEnum gender;
 
     @Column(name = "address", length = Integer.MAX_VALUE)
     private String address;

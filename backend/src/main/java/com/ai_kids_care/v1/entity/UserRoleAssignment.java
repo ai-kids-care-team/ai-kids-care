@@ -54,5 +54,9 @@ public class UserRoleAssignment {
     @Column(name = "revoked_at")
     private OffsetDateTime revokedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "revoked_by_user_id")
+    private User revokedByUser;
+
 
 }

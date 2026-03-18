@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.RelationshipEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -30,8 +31,9 @@ public class ChildGuardianRelationship {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Guardian guardians;
 
-    @Column(name = "relationship", length = Integer.MAX_VALUE)
-    private String relationship;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "relationship")
+    private RelationshipEnum relationship;
 
     @Column(name = "is_primary")
     private Boolean isPrimary;

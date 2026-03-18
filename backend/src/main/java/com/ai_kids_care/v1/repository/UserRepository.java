@@ -7,9 +7,5 @@ import org.springframework.data.jpa.repository.Query;
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByLoginIdOrEmailOrPhone(String loginId, String email, String phone);
 
-    boolean existsByLoginId(String loginId);
-
-    boolean existsByEmail(String email);
-
-    boolean existsByPhone(String phone);
+    boolean existsByLoginIdOrEmailOrPhone(String loginId, String email, String phone);
 }
