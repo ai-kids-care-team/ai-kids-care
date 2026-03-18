@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.entity;
 
-import com.ai_kids_care.dashboard.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -26,11 +25,11 @@ public class ClassTeacherAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Class aClass;
+    private Class classes;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Teacher teacher;
+    private Teacher teachers;
 
     @Column(name = "role", length = Integer.MAX_VALUE)
     private String role;
@@ -54,11 +53,11 @@ public class ClassTeacherAssignment {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    @ColumnDefault("'2026-03-17 12:56:22.050378+00'")
+    @ColumnDefault("'2026-03-17 12:56:22.016653+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.050378+00'")
+    @ColumnDefault("'2026-03-17 12:56:22.016653+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

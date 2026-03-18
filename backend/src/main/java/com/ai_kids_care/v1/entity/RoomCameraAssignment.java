@@ -24,11 +24,11 @@ public class RoomCameraAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private CctvCamera cctvCamera;
+    private CctvCamera cctvCameras;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Room room;
+    private Room rooms;
 
     @NotNull
     @ColumnDefault("'2026-03-17 12:56:22.099651+00'")

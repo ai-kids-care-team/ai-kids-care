@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.entity;
 
-import com.ai_kids_care.dashboard.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

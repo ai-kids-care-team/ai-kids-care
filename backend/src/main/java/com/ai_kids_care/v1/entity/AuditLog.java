@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.entity;
 
-import com.ai_kids_care.dashboard.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -44,7 +43,7 @@ public class AuditLog {
     @Column(name = "user_agent", length = Integer.MAX_VALUE)
     private String userAgent;
 
-    @ColumnDefault("'2026-03-17 12:56:22.23808+00'")
+    @ColumnDefault("'2026-03-17 11:27:14.122221+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

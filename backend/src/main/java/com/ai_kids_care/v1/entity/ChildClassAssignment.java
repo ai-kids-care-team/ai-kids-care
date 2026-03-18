@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.entity;
 
-import com.ai_kids_care.dashboard.entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -28,11 +27,11 @@ public class ChildClassAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Child child;
+    private Child children;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Class aClass;
+    private Class classes;
 
     @Column(name = "start_date")
     private LocalDate startDate;

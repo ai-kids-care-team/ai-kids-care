@@ -24,11 +24,11 @@ public class ChildGuardianRelationship {
 
     @MapsId("id")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Child child;
+    private Child children;
 
     @MapsId("id")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private Guardian guardian;
+    private Guardian guardians;
 
     @Column(name = "relationship", length = Integer.MAX_VALUE)
     private String relationship;
