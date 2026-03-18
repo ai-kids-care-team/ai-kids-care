@@ -3,23 +3,22 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "class_teacher_assignments", schema = "public", indexes = {
-        @Index(name = "idx_cta_class_time",
-                columnList = "kindergarten_id, class_id, start_date, end_date"),
-        @Index(name = "idx_cta_teacher_time",
-                columnList = "kindergarten_id, teacher_id, start_date, end_date")})
+        @Index(name = "idx_cta_class_time", columnList = "kindergarten_id, class_id, start_date, end_date"),
+        @Index(name = "idx_cta_teacher_time", columnList = "kindergarten_id, teacher_id, start_date, end_date")
+})
 public class ClassTeacherAssignment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

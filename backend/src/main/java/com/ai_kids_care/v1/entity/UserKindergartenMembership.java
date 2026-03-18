@@ -3,20 +3,20 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
-@Table(name = "user_kindergarten_memberships", schema = "public", indexes = {@Index(name = "uq_ukm_kg_user",
-        columnList = "kindergarten_id, user_id",
-        unique = true)})
+@Table(name = "user_kindergarten_memberships", schema = "public", indexes = {
+        @Index(name = "uq_ukm_kg_user", columnList = "kindergarten_id, user_id", unique = true)
+})
 public class UserKindergartenMembership {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

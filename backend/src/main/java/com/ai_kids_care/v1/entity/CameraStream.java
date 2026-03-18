@@ -4,27 +4,23 @@ import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "camera_streams", schema = "public", indexes = {
-        @Index(name = "uq_stream_kg_camera_streamid",
-                columnList = "kindergarten_id, camera_id, stream_id",
-                unique = true),
-        @Index(name = "idx_stream_camera_primary",
-                columnList = "kindergarten_id, camera_id, is_primary"),
-        @Index(name = "idx_stream_camera_enabled",
-                columnList = "kindergarten_id, camera_id, enabled"),
-        @Index(name = "idx_stream_camera",
-                columnList = "kindergarten_id, camera_id")})
+        @Index(name = "uq_stream_kg_camera_streamid", columnList = "kindergarten_id, camera_id, stream_id", unique = true),
+        @Index(name = "idx_stream_camera_primary", columnList = "kindergarten_id, camera_id, is_primary"),
+        @Index(name = "idx_stream_camera_enabled", columnList = "kindergarten_id, camera_id, enabled"),
+        @Index(name = "idx_stream_camera", columnList = "kindergarten_id, camera_id")
+})
 public class CameraStream {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

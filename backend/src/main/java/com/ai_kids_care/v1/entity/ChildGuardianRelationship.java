@@ -1,25 +1,23 @@
 package com.ai_kids_care.v1.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "child_guardian_relationships", schema = "public", indexes = {
-        @Index(name = "idx_cgr_child_primary",
-                columnList = "kindergarten_id, child_id, is_primary"),
-        @Index(name = "idx_cgr_child",
-                columnList = "kindergarten_id, child_id"),
-        @Index(name = "idx_cgr_guardian",
-                columnList = "kindergarten_id, guardian_id")})
+        @Index(name = "idx_cgr_child_primary", columnList = "kindergarten_id, child_id, is_primary"),
+        @Index(name = "idx_cgr_child", columnList = "kindergarten_id, child_id"),
+        @Index(name = "idx_cgr_guardian", columnList = "kindergarten_id, guardian_id")
+})
 public class ChildGuardianRelationship {
     @EmbeddedId
     private ChildGuardianRelationshipId id;

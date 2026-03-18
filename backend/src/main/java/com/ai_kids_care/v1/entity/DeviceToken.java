@@ -3,23 +3,21 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "device_tokens", schema = "public", indexes = {
-        @Index(name = "uq_device_tokens_platform_push_token",
-                columnList = "platform, push_token",
-                unique = true),
-        @Index(name = "idx_device_tokens_user_status",
-                columnList = "user_id, status")})
+        @Index(name = "uq_device_tokens_platform_push_token", columnList = "platform, push_token", unique = true),
+        @Index(name = "idx_device_tokens_user_status", columnList = "user_id, status")
+})
 public class DeviceToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

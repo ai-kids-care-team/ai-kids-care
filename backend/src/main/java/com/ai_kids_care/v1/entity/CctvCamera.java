@@ -3,24 +3,21 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 @Entity
 @Table(name = "cctv_cameras", schema = "public", indexes = {
-        @Index(name = "uq_camera_kg_cameraid",
-                columnList = "kindergarten_id, camera_id",
-                unique = true),
-        @Index(name = "uq_camera_kg_serialno",
-                columnList = "kindergarten_id, serial_no",
-                unique = true)})
+        @Index(name = "uq_camera_kg_cameraid", columnList = "kindergarten_id, camera_id", unique = true),
+        @Index(name = "uq_camera_kg_serialno", columnList = "kindergarten_id, serial_no", unique = true)
+})
 public class CctvCamera {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
