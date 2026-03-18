@@ -101,7 +101,7 @@ docker compose build frontend --no-cache && docker compose up -d frontend
 
 
 # backend 수동 실행
-cd C:\Users\hankook\Desktop\ai-kids-care\backend
+cd backend
 
 ### PowerShell 
 cd backend
@@ -113,7 +113,7 @@ netstat -ano | findstr :8080 | findstr LISTENING
 Ctrl + C
 
 # frontend 수동 실행
-C:\Users\hankook\Desktop\ai-kids-care\backend
+cd frontend
 
 npm install
 cd frontend
