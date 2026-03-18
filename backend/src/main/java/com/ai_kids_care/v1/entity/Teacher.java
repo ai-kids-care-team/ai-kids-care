@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@Accessors(chain = true)
 @Entity
 @Table(name = "teachers", schema = "public", indexes = {
         @Index(name = "uq_teacher_kg_teacherid",

@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
+@Accessors(chain = true)
 @Table(name = "user_role_assignments", schema = "public", indexes = {
         @Index(name = "uq_ura_user_role_scope",
                 columnList = "user_id, role, scope_type, scope_id",

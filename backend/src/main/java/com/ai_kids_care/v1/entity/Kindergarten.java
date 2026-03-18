@@ -4,12 +4,14 @@ import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@Accessors(chain = true)
 @Entity
 @Table(name = "kindergartens", schema = "public")
 public class Kindergarten {

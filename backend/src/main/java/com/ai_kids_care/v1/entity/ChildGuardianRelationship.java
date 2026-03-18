@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@Accessors(chain = true)
 @Entity
 @Table(name = "child_guardian_relationships", schema = "public", indexes = {
         @Index(name = "idx_cgr_child_primary",
