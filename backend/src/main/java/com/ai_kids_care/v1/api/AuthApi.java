@@ -5,33 +5,18 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.dto.AuthLoginRequest;
-import com.ai_kids_care.v1.dto.AuthLogoutRequest;
-import com.ai_kids_care.v1.dto.AuthPasswordResetRequest;
-import com.ai_kids_care.v1.dto.AuthRefreshRequest;
-import com.ai_kids_care.v1.dto.AuthRegisterRequest;
-import com.ai_kids_care.v1.dto.AuthRegisterResponse;
-import com.ai_kids_care.v1.dto.ChangePasswordRequest;
-import com.ai_kids_care.v1.dto.ErrorResponse;
-import com.ai_kids_care.v1.dto.ResetPasswordRequest;
-import com.ai_kids_care.v1.dto.TokenResponse;
-import com.ai_kids_care.v1.dto.AuthPasswordResetsPost200Response;
-import com.ai_kids_care.v1.dto.VerificationCodeCreateRequest;
-import com.ai_kids_care.v1.dto.VerificationCodeCreateResponse;
-import com.ai_kids_care.v1.dto.VerifyVerificationCodeRequest;
-import com.ai_kids_care.v1.dto.VerifyVerificationCodeResponse;
+import com.ai_kids_care.v1.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import org.springframework.http.HttpStatus;
-
-import org.springframework.web.bind.annotation.*;
-
 import jakarta.annotation.Generated;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.20.0")
 
@@ -48,10 +33,10 @@ public interface AuthApi {
      * @return OK (status code 200)
      * or Invalid credentials or account not ACTIVE (status code 401)
      */
-    @Operation(operationId = "v1AuthLoginPost", summary = "Login", tags = {"Auth"}, responses = {@ApiResponse(responseCode = "200", description = "OK", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))}), @ApiResponse(responseCode = "401", description = "Invalid credentials or account not ACTIVE", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))})})
+    @Operation(operationId = "AuthLogin", summary = "Login", tags = {"Auth"}, responses = {@ApiResponse(responseCode = "200", description = "OK", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))}), @ApiResponse(responseCode = "401", description = "Invalid credentials or account not ACTIVE", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))})})
     @RequestMapping(method = RequestMethod.POST, value = AuthApi.PATH_V1_AUTH_LOGIN_POST, produces = {"application/json"}, consumes = {"application/json"})
     @ResponseStatus(HttpStatus.OK)
-    TokenResponse AuthLoginPost(@Parameter(name = "AuthLoginRequest", description = "", required = true) @RequestBody AuthLoginRequest authLoginRequest);
+    ResponseEntity<TokenResponse> AuthLogin(@Parameter(name = "AuthLoginRequest", description = "", required = true) @RequestBody AuthLoginRequest authLoginRequest);
 
 
     String PATH_V1_AUTH_LOGOUT_POST = "/v1/auth/logout";

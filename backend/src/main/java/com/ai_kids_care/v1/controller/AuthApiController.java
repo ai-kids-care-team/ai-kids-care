@@ -1,36 +1,23 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.AuthApi;
-import com.ai_kids_care.v1.dto.AuthLoginRequest;
-import com.ai_kids_care.v1.dto.AuthLogoutRequest;
-import com.ai_kids_care.v1.dto.AuthPasswordResetRequest;
-import com.ai_kids_care.v1.dto.AuthRefreshRequest;
-import com.ai_kids_care.v1.dto.AuthRegisterRequest;
-import com.ai_kids_care.v1.dto.AuthRegisterResponse;
-import com.ai_kids_care.v1.dto.ChangePasswordRequest;
-import com.ai_kids_care.v1.dto.ResetPasswordRequest;
-import com.ai_kids_care.v1.dto.TokenResponse;
-import com.ai_kids_care.v1.dto.AuthPasswordResetsPost200Response;
-import com.ai_kids_care.v1.dto.VerificationCodeCreateRequest;
-import com.ai_kids_care.v1.dto.VerificationCodeCreateResponse;
-import com.ai_kids_care.v1.dto.VerifyVerificationCodeRequest;
-import com.ai_kids_care.v1.dto.VerifyVerificationCodeResponse;
-
+import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.service.AuthService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.annotation.Generated;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import lombok.RequiredArgsConstructor;
-
-
-import jakarta.annotation.Generated;
+import org.springframework.web.bind.annotation.RestController;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.20.0")
 @RestController
 @RequiredArgsConstructor
 public class AuthApiController implements AuthApi {
+
+    private final AuthService authService;
 
     /**
      * POST /v1/auth/login : Login
@@ -38,12 +25,12 @@ public class AuthApiController implements AuthApi {
      * @param authLoginRequest (required)
      * @return OK (status code 200)
      * or Invalid credentials or account not ACTIVE (status code 401)
-     * @see AuthApi#AuthLoginPost
+     * @see AuthApi#AuthLogin
      */
     @Override
-    public TokenResponse AuthLoginPost(@Parameter(name = "AuthLoginRequest", description = "", required = true) @RequestBody AuthLoginRequest authLoginRequest) {
-        throw new IllegalArgumentException("Not implemented");
-
+    public ResponseEntity<TokenResponse> AuthLogin(@Parameter(name = "AuthLoginRequest", description = "", required = true) @RequestBody AuthLoginRequest authLoginRequest) {
+        TokenResponse response = authService.login(authLoginRequest);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -56,7 +43,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public void AuthLogoutPost(@Parameter(name = "AuthLogoutRequest", description = "", required = true) @RequestBody AuthLogoutRequest authLogoutRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -72,7 +58,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public void AuthPasswordPatch(@Parameter(name = "ChangePasswordRequest", description = "", required = true) @RequestBody ChangePasswordRequest changePasswordRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -86,7 +71,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public AuthPasswordResetsPost200Response v1AuthPasswordResetsPost(@Parameter(name = "AuthPasswordResetRequest", description = "", required = true) @RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -101,7 +85,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public void AuthPasswordResetsResetTokenPatch(@Parameter(name = "resetToken", description = "Password reset token from email/SMS link", required = true, in = ParameterIn.PATH) @PathVariable("resetToken") String resetToken, @Parameter(name = "ResetPasswordRequest", description = "", required = true) @RequestBody ResetPasswordRequest resetPasswordRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -115,7 +98,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public TokenResponse AuthRefreshPost(@Parameter(name = "AuthRefreshRequest", description = "", required = true) @RequestBody AuthRefreshRequest authRefreshRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -130,7 +112,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public AuthRegisterResponse AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -146,7 +127,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public VerifyVerificationCodeResponse v1AuthVerificationCodesChallengeIdVerificationsPost(@Parameter(name = "challengeId", description = "Verification challenge identifier returned by create endpoint", required = true, in = ParameterIn.PATH) @PathVariable("challengeId") String challengeId, @Parameter(name = "VerifyVerificationCodeRequest", description = "", required = true) @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
     /**
@@ -160,7 +140,6 @@ public class AuthApiController implements AuthApi {
     @Override
     public VerificationCodeCreateResponse v1AuthVerificationCodesPost(@Parameter(name = "VerificationCodeCreateRequest", description = "", required = true) @RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
         throw new IllegalArgumentException("Not implemented");
-
     }
 
 }
