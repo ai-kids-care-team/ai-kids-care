@@ -5,10 +5,10 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.ChildGuardianRelationships;
+import com.ai_kids_care.v1.entity.ChildGuardianRelationship;
 import com.ai_kids_care.v1.dto.ChildGuardianRelationshipsCreateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfChildGuardianRelationships;
+import com.ai_kids_care.v1.dto.ErrorResponse;
+import com.ai_kids_care.v1.dto.PageOfChildGuardianRelationships;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -44,7 +44,7 @@ public interface ChildGuardianRelationshipsApi {
         tags = { "ChildGuardianRelationships" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildGuardianRelationships.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildGuardianRelationship.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -64,7 +64,7 @@ public interface ChildGuardianRelationshipsApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    ChildGuardianRelationships createChildGuardianRelationships(
+    ChildGuardianRelationship createChildGuardianRelationships(
         @Parameter(name = "ChildGuardianRelationshipsCreateRequest", description = "", required = true) @RequestBody ChildGuardianRelationshipsCreateRequest childGuardianRelationshipsCreateRequest
     );
 
@@ -124,7 +124,7 @@ public interface ChildGuardianRelationshipsApi {
         tags = { "ChildGuardianRelationships" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildGuardianRelationships.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ChildGuardianRelationship.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -140,7 +140,7 @@ public interface ChildGuardianRelationshipsApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    ChildGuardianRelationships getChildGuardianRelationshipsByKey(
+    ChildGuardianRelationship getChildGuardianRelationshipsByKey(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "kindergarten_id", required = true) Long kindergartenId,
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "child_id", required = true) Long childId,
         @Parameter(name = "guardian_id", description = "", required = true, in = ParameterIn.QUERY) @RequestParam(value = "guardian_id", required = true) Long guardianId

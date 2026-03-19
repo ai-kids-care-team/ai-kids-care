@@ -5,11 +5,11 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.entity.Children;
+import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.dto.ChildrenCreateRequest;
 import com.ai_kids_care.v1.dto.ChildrenUpdateRequest;
-import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.PageOfChildren;
+import com.ai_kids_care.v1.dto.ErrorResponse;
+import com.ai_kids_care.v1.dto.PageOfChildren;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,8 +17,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Generated;
@@ -45,7 +47,7 @@ public interface ChildrenApi {
         tags = { "Children" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Children.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Child.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +67,7 @@ public interface ChildrenApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Children createChildren(
+    Child createChildren(
         @Parameter(name = "ChildrenCreateRequest", description = "", required = true) @RequestBody ChildrenCreateRequest childrenCreateRequest
     );
 
@@ -119,7 +121,7 @@ public interface ChildrenApi {
         tags = { "Children" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Children.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Child.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +137,7 @@ public interface ChildrenApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Children getChildren(
+    Child getChildren(
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("child_id") Long childId
     );
 
@@ -173,7 +175,8 @@ public interface ChildrenApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    PageOfChildren listChildren(
+    ResponseEntity<Page<Child>> listChildren(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
@@ -198,7 +201,7 @@ public interface ChildrenApi {
         tags = { "Children" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Children.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Child.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +224,7 @@ public interface ChildrenApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Children updateChildren(
+    Child updateChildren(
         @Parameter(name = "child_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("child_id") Long childId,
         @Parameter(name = "ChildrenUpdateRequest", description = "", required = true) @RequestBody ChildrenUpdateRequest childrenUpdateRequest
     );

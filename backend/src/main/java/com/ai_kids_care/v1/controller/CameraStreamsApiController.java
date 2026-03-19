@@ -1,10 +1,10 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.CameraStreamsApi;
-import com.ai_kids_care.v1.entity.CameraStreams;
+import com.ai_kids_care.v1.entity.CameraStream;
 import com.ai_kids_care.v1.dto.CameraStreamsCreateRequest;
 import com.ai_kids_care.v1.dto.CameraStreamsUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfCameraStreams;
+import com.ai_kids_care.v1.dto.PageOfCameraStreams;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -34,7 +34,7 @@ public class CameraStreamsApiController implements CameraStreamsApi {
      * @see CameraStreamsApi#createCameraStreams
      */
     @Override
-    public CameraStreams createCameraStreams(
+    public CameraStream createCameraStreams(
         @Parameter(name = "CameraStreamsCreateRequest", description = "", required = true) @RequestBody CameraStreamsCreateRequest cameraStreamsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class CameraStreamsApiController implements CameraStreamsApi {
      * @see CameraStreamsApi#getCameraStreams
      */
     @Override
-    public CameraStreams getCameraStreams(
+    public CameraStream getCameraStreams(
         @Parameter(name = "stream_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("stream_id") Long streamId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class CameraStreamsApiController implements CameraStreamsApi {
      * @see CameraStreamsApi#updateCameraStreams
      */
     @Override
-    public CameraStreams updateCameraStreams(
+    public CameraStream updateCameraStreams(
         @Parameter(name = "stream_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("stream_id") Long streamId,
         @Parameter(name = "CameraStreamsUpdateRequest", description = "", required = true) @RequestBody CameraStreamsUpdateRequest cameraStreamsUpdateRequest
     ) {

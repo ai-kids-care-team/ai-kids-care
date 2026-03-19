@@ -5,11 +5,11 @@
  */
 package com.ai_kids_care.v1.api;
 
-import com.ai_kids_care.v1.vo.ErrorResponse;
-import com.ai_kids_care.v1.entity.Kindergartens;
+import com.ai_kids_care.v1.dto.ErrorResponse;
+import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.dto.KindergartensCreateRequest;
 import com.ai_kids_care.v1.dto.KindergartensUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfKindergartens;
+import com.ai_kids_care.v1.dto.PageOfKindergartens;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Generated;
@@ -45,7 +46,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "201", description = "Created", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -65,7 +66,7 @@ public interface KindergartensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.CREATED)
-    Kindergartens createKindergartens(
+    Kindergarten createKindergartens(
         @Parameter(name = "KindergartensCreateRequest", description = "", required = true) @RequestBody KindergartensCreateRequest kindergartensCreateRequest
     );
 
@@ -119,7 +120,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -135,7 +136,7 @@ public interface KindergartensApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Kindergartens getKindergartens(
+    Kindergarten getKindergartens(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("kindergarten_id") Long kindergartenId
     );
 
@@ -144,6 +145,7 @@ public interface KindergartensApi {
     /**
      * GET /v1/kindergartens : List kindergartens
      *
+     * @param keyword  (optional)
      * @param page  (optional)
      * @param size  (optional)
      * @param sort e.g. created_at,desc (optional)
@@ -173,7 +175,8 @@ public interface KindergartensApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    PageOfKindergartens listKindergartens(
+    ResponseEntity<PageOfKindergartens> listKindergartens(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
@@ -198,7 +201,7 @@ public interface KindergartensApi {
         tags = { "Kindergartens" },
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergartens.class))
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Kindergarten.class))
             }),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
@@ -221,7 +224,7 @@ public interface KindergartensApi {
         consumes = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    Kindergartens updateKindergartens(
+    Kindergarten updateKindergartens(
         @Parameter(name = "kindergarten_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("kindergarten_id") Long kindergartenId,
         @Parameter(name = "KindergartensUpdateRequest", description = "", required = true) @RequestBody KindergartensUpdateRequest kindergartensUpdateRequest
     );

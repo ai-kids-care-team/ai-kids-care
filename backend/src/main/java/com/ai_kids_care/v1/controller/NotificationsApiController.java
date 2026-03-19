@@ -1,10 +1,10 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.NotificationsApi;
-import com.ai_kids_care.v1.entity.Notifications;
+import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.dto.NotificationsCreateRequest;
 import com.ai_kids_care.v1.dto.NotificationsUpdateRequest;
-import com.ai_kids_care.v1.entity.PageOfNotifications;
+import com.ai_kids_care.v1.dto.PageOfNotifications;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -34,7 +34,7 @@ public class NotificationsApiController implements NotificationsApi {
      * @see NotificationsApi#createNotifications
      */
     @Override
-    public Notifications createNotifications(
+    public Notification createNotifications(
         @Parameter(name = "NotificationsCreateRequest", description = "", required = true) @RequestBody NotificationsCreateRequest notificationsCreateRequest
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -68,7 +68,7 @@ public class NotificationsApiController implements NotificationsApi {
      * @see NotificationsApi#getNotifications
      */
     @Override
-    public Notifications getNotifications(
+    public Notification getNotifications(
         @Parameter(name = "notification_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("notification_id") Long notificationId
     ) {
                 throw new IllegalArgumentException("Not implemented");
@@ -109,7 +109,7 @@ public class NotificationsApiController implements NotificationsApi {
      * @see NotificationsApi#updateNotifications
      */
     @Override
-    public Notifications updateNotifications(
+    public Notification updateNotifications(
         @Parameter(name = "notification_id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("notification_id") Long notificationId,
         @Parameter(name = "NotificationsUpdateRequest", description = "", required = true) @RequestBody NotificationsUpdateRequest notificationsUpdateRequest
     ) {
