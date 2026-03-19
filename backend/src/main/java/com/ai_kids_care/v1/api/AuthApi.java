@@ -129,7 +129,7 @@ public interface AuthApi {
     @Operation(operationId = "v1AuthRegisterPost", summary = "Register user account", tags = {"Auth"}, responses = {@ApiResponse(responseCode = "201", description = "Created", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = AuthRegisterResponse.class))}), @ApiResponse(responseCode = "400", description = "Validation error", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))}), @ApiResponse(responseCode = "409", description = "Unique conflict (email/phone/loginId)", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))})})
     @RequestMapping(method = RequestMethod.POST, value = AuthApi.PATH_V1_AUTH_REGISTER_POST, produces = {"application/json"}, consumes = {"application/json"})
     @ResponseStatus(HttpStatus.CREATED)
-    AuthRegisterResponse AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest);
+    ResponseEntity<AuthRegisterResponse> AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest);
 
 
     String PATH_V1_AUTH_VERIFICATION_CODES_CHALLENGE_ID_VERIFICATIONS_POST = "/v1/auth/verification-codes/{challengeId}/verifications";

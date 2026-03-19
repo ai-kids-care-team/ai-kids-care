@@ -110,8 +110,9 @@ public class AuthApiController implements AuthApi {
      * @see AuthApi#AuthRegisterPost
      */
     @Override
-    public AuthRegisterResponse AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest) {
-        throw new IllegalArgumentException("Not implemented");
+    public ResponseEntity<AuthRegisterResponse> AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest) {
+        AuthRegisterResponse response = authService.register(authRegisterRequest);
+        return ResponseEntity.ok(response);
     }
 
     /**
