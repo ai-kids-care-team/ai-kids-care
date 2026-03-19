@@ -16,7 +16,7 @@ public class ChildService {
     private final ChildRepository childRepository;
 
     public Page<Child> listChildren(String keyword, Integer page, Integer size, String sort) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sort));
         return childRepository.findByNameContains(keyword, pageable);
     }
 }
