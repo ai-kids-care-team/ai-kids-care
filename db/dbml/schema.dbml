@@ -1,3 +1,5 @@
+// version: v 1.2.0
+
 //============================================================
 // Enums
 //============================================================
@@ -6,6 +8,23 @@ Enum status_enum {
   ACTIVE [note: "활성화 상태"]
   PENDING [note: "대기 상태"]
   DISABLED [note: "비활성화 상태"]
+}
+
+Enum gender_enum {
+  MALE [note: "남자"]
+  FEMALE [note: "여자"]
+}
+
+Enum level_enum{
+  DIRECTOR [note: "원장"]
+  VICE_DIRECTOR [note: "부원장"]
+  TEACHER [note: "일반교사"]
+  OTHER [note: "기타"]
+}
+
+Enum relationship_enum{
+  FATHER [note: "부"]
+  MOTHER [note: "모"]
 }
 
 Enum user_role_enum{
@@ -52,6 +71,51 @@ Enum camera_stream_type_enum{
   SNAPSHOT [note: "스냅샷/정지화면"]
   RECORDING [note: "녹화/저장용"]
   OTHER [note: "기타"]
+}
+
+Enum protocol_enum{
+  RTSP
+  ONVIF
+  HTTP
+  HTTPS
+}
+
+Enum event_type_enum {
+  ASSAULT   [note: "폭행"]
+  FIGHT     [note: "싸움"]
+  BURGLARY  [note: "절도"]
+  VANDALISM [note: "기물파손"]
+  SWOON     [note: "실신"]
+  WANDER    [note: "배회"]
+  TRESPASS  [note: "침입"]
+  DUMP      [note: "투기"]
+  ROBBERY   [note: "강도"]
+  DATEFIGHT [note: "데이트폭력 및 추행"]
+  KIDNAP    [note: "납치"]
+  DRUNKEN   [note: "주취행동"]
+  OTHER     [note: "기타"]
+}
+
+Enum evidence_file_type_enum {
+  IMAGE
+  VIDEO
+}
+
+Enum mime_type_enum {
+  "image/jpeg"
+  "image/png"
+  "video/mp4"
+}
+
+Enum device_platform_enum{
+  IOS
+  ANDROID
+}
+
+Enum notification_channel_enum{
+  PUSH
+  SMS
+  EMAIL
 }
 
 //============================================================
@@ -116,7 +180,7 @@ Table children {
   rrn_encrypted varchar [note: "주민등록번호 뒤자리 암호문(암호화 저장)"]
   rrn_first6 varchar [note: "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"]
   birth_date date [note: "생년월일"]
-  gender varchar [note: "성별"]
+  gender gender_enum [note: "성별"]
   address varchar [note: "주소"]
   enroll_date date [note: "입원/등록일"]
   leave_date date [note: "퇴원/전원/졸업일"]
@@ -155,12 +219,12 @@ Table teachers {
   user_id bigint [not null]
   staff_no varchar [note: "직원 번호(원내 사번)"]
   name varchar [note: "교사 이름"]
-  gender varchar [note: "성별"]
+  gender gender_enum [note: "성별"]
   emergency_contact_name varchar [note: "비상 연락처 이름"]
   emergency_contact_phone varchar [note: "비상 연락처 전화번호"]
-  rrn_encrypted varchar [note: "주민등록번호 암호문(암호화 저장)"]
+  rrn_encrypted varchar [note: "주민등록번호 뒤 7자리 암호문(암호화 저장)"]
   rrn_first6 varchar [note: "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"]
-  level varchar [note: "직급(예: 원장/부원장/일반교사 등)"]
+  level level_enum [note: "직급(예: 원장/부원장/일반교사/기타)"]
   start_date date [note: "근무 시작일"]
   end_date date [note: "근무 종료일"]
   status status_enum [note: "재직 상태"]
@@ -178,6 +242,7 @@ Table superadmins {
   user_id bigint [not null, note: "사용자 ID"]
   name varchar [not null, note: "담당자 이름"]
   department varchar [note: "행정청+부서 이름 e.g.서울시청 아동담당관"]
+  status status_enum [note: "행정청 담당자 상태"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
   updated_at timestamptz [default: "now()", note: "수정 일시"]
 
@@ -280,7 +345,7 @@ Table guardians {
   name varchar [note: "보호자 이름"]
   rrn_encrypted varchar [note: "주민등록번호 암호문(암호화 저장)"]
   rrn_first6 varchar [note: "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"]
-  gender varchar [note: "성별"]
+  gender gender_enum [note: "성별"]
   address varchar [note: "주소"]
   status status_enum [note: "보호자 상태"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
@@ -297,7 +362,7 @@ Table child_guardian_relationships {
   child_id bigint [not null]
   guardian_id bigint [not null]
 
-  relationship varchar [note: "관계(부/모/조부모/후견인 등)"]
+  relationship relationship_enum [note: "관계(부/모/조부모/후견인 등)"]
   is_primary boolean [note: "주 보호자 여부"]
   priority int [note: "우선순위(연락/권한 순서)"]
   start_date date [note: "관계 시작일"]
@@ -338,6 +403,7 @@ Table user_role_assignments {
   granted_at timestamptz [default: "now()", note: "권한 부여 일시"]
   granted_by_user_id bigint [note: "권한 부여자 사용자 ID(USER_ACCOUNT.user_id)"]
   revoked_at timestamptz [note: "권한 회수 일시"]
+  revoked_by_user_id bigint [note: "권한 회수자 사용자 ID(USER_ACCOUNT.user_id)"]
 
   Indexes {
     (user_id, role, scope_type, scope_id) [unique, name: "uq_ura_user_role_scope"]
@@ -358,7 +424,7 @@ Table camera_streams {
   stream_url varchar [note: "스트림 URL(예: RTSP/HTTP 엔드포인트)"]
   stream_user varchar [note: "스트림 인증 사용자명"]
   stream_password_encrypted varchar [note: "스트림 인증 비밀번호(암호화 저장)"]
-  protocol varchar [note: "스트림 프로토콜(RTSP/HTTP)"]
+  protocol protocol_enum [note: "스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)"]
   fps int [note: "스트림 FPS(초당 프레임 수)"]
   resolution varchar [note: "해상도(예: 1920x1080)"]
 
@@ -409,7 +475,7 @@ Table detection_events {
   camera_id bigint [not null, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
   room_id bigint [not null, note: "룸/구역 ID(ROOM 테이블 FK 가정)"]
   session_id bigint [not null, note: "탐지 세션 ID(DETECTION_SESSION.session_id)"]
-  event_type varchar [note: "이벤트 유형(탐지 카테고리/코드)"]
+  event_type event_type_enum [note: "이벤트 유형(탐지 카테고리/코드) e.g.ASSULT/FIGHT/..."]
   severity int [note: "심각도(정수 등급)"]
   confidence float [note: "신뢰도(0~1)"]
   detected_at timestamptz [default: "now()", note: "탐지 발생 일시"]
@@ -432,7 +498,6 @@ Table event_reviews {
   event_id bigint [not null, note: "이벤트 ID(DETECTION_EVENT.event_id)"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   user_id bigint [not null, note: "처리 사용자 ID(USER_ACCOUNT.user_id)"]
-  action varchar [note: "처리 액션(ACK/RESOLVE/MARK_FALSE_POSITIVE/REOPEN)"]
   from_status event_status_enum [note: "처리 전 이벤트 상태"]
   result_status event_status_enum [note: "처리 결과 상태(액션 후 이벤트 상태 등)"]
   comment varchar [note: "코멘트/메모"]
@@ -446,9 +511,9 @@ Table event_evidence_files {
   evidence_id bigint [pk, increment, note: "증거 자료 ID"]
   event_id bigint [not null, note: "이벤트 ID(DETECTION_EVENT.event_id)"]
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
-  type varchar [note: "증거 유형(IMAGE/VIDEO)"]
+  type evidence_file_type_enum [note: "증거 유형(IMAGE/VIDEO)"]
   storage_uri varchar [note: "저장 위치 URI(internal MinIO/NAS 등)"]
-  mime_type varchar [note: "MIME 타입(예: image/jpeg, video/mp4)"]
+  mime_type mime_type_enum [note: "MIME 타입(예: image/jpeg, video/mp4)"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
   retention_until timestamptz [note: "보관 만료 예정 일시"]
   hold boolean [note: "보관 홀드 여부(만료/삭제 방지 플래그)"]
@@ -461,7 +526,7 @@ Table event_evidence_files {
 Table device_tokens {
   device_id bigint [pk, increment, note: "디바이스 토큰 ID"]
   user_id bigint [not null, note: "사용자 ID(USER_ACCOUNT.user_id)"]
-  platform varchar [note: "플랫폼(IOS/ANDROID)"]
+  platform device_platform_enum [note: "플랫폼(IOS/ANDROID)"]
   push_token varchar [note: "푸시 토큰(APNs/FCM 등)"]
   status status_enum [note: "토큰 상태"]
   last_seen_at timestamptz [note: "마지막 사용/갱신 일시"]
@@ -495,7 +560,7 @@ Table notifications {
   kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
   event_id bigint [not null, note: "관련 이벤트 ID(DETECTION_EVENT.event_id)"]
   recipient_user_id bigint [not null, note: "수신자 사용자 ID(USER_ACCOUNT.user_id)"]
-  channel varchar [note: "전송 채널(PUSH/SMS/EMAIL)"]
+  channel notification_channel_enum [note: "전송 채널(PUSH/SMS/EMAIL)"]
   title varchar [note: "알림 제목"]
   body varchar [note: "알림 본문"]
   status notification_status_enum [note: "전송 상태(세분화)"]
@@ -524,6 +589,23 @@ Table audit_logs {
   ip varchar [note: "요청 IP"]
   user_agent varchar [note: "User-Agent"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
+}
+
+Table announcements {
+  id bigserial [pk]
+  author_id bigint [not null, note:"작가 user_id"]
+  title varchar(200) [not null]
+  body text [not null]
+  is_pinned boolean [not null, default: false]
+  pinned_until timestamptz
+  status status_enum [not null, default: 'ACTIVE']
+  published_at timestamptz [note: "게시 일시(게시 상태로 전환된 시각); 초안(DISABLED)인 경우 null"]
+  starts_at timestamptz [note: "노출 시작 일시(선택)"]
+  ends_at timestamptz [note: "노출 종료 일시(선택)"]
+  view_count bigint [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz [note: "소프트 삭제 일시(선택)"]
 }
 
 //============================================================
@@ -605,3 +687,6 @@ Ref: device_tokens.user_id > users.user_id
 
 Ref: audit_logs.kindergarten_id > kindergartens.kindergarten_id
 Ref: audit_logs.user_id > users.user_id
+
+// announcements
+Ref: announcements.author_id > users.user_id
