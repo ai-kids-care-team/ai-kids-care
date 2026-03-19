@@ -18,9 +18,13 @@ public class AnnouncementsService {
     private final CommonCodeService commonCodeService;
 
     @Transactional(readOnly = true)
-    public List<AnnouncementSummaryResponse> getActiveAnnouncements() {
-        return jdbcTemplate.query(
-                """
+    public List<AnnouncementSummaryResponse> getActiveAnnouncements(String keyword) {
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        if (normalizedKeyword != null && normalizedKeyword.isBlank()) {
+            normalizedKeyword = null;
+        }
+
+        String baseSql = """
                 SELECT id, title, is_pinned, view_count, published_at, created_at
                   FROM announcements
                  WHERE (deleted_at IS NULL OR deleted_at > now())
@@ -28,8 +32,31 @@ public class AnnouncementsService {
                    AND (published_at IS NULL OR published_at <= now())
                    AND (starts_at IS NULL OR starts_at <= now())
                    AND (ends_at IS NULL OR ends_at >= now())
-                 ORDER BY created_at DESC, id DESC
-                """,
+                """;
+
+        String orderSql = " ORDER BY created_at DESC, id DESC";
+
+        if (normalizedKeyword == null) {
+            return jdbcTemplate.query(
+                    baseSql + orderSql,
+                    (rs, rowNum) -> new AnnouncementSummaryResponse(
+                            rs.getLong("id"),
+                            rs.getString("title"),
+                            rs.getBoolean("is_pinned"),
+                            rs.getLong("view_count"),
+                            rs.getTimestamp("published_at") == null ? null : rs.getTimestamp("published_at").toInstant(),
+                            rs.getTimestamp("created_at").toInstant()
+                    )
+            );
+        }
+
+        return jdbcTemplate.query(
+                baseSql + """
+                   AND (
+                        title ILIKE CONCAT('%', ?, '%')
+                        OR body ILIKE CONCAT('%', ?, '%')
+                   )
+                """ + orderSql,
                 (rs, rowNum) -> new AnnouncementSummaryResponse(
                         rs.getLong("id"),
                         rs.getString("title"),
@@ -37,7 +64,9 @@ public class AnnouncementsService {
                         rs.getLong("view_count"),
                         rs.getTimestamp("published_at") == null ? null : rs.getTimestamp("published_at").toInstant(),
                         rs.getTimestamp("created_at").toInstant()
-                )
+                ),
+                normalizedKeyword,
+                normalizedKeyword
         );
     }
 
@@ -91,6 +120,45 @@ public class AnnouncementsService {
         return new AnnouncementMetaResponse(canWrite, statusOptions);
     }
 
+    @Transactional(readOnly = true)
+    public AnnouncementEditResponse getAnnouncementForEdit(String loginId, Long id) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+        if (!hasWritableRole(loginId)) {
+            throw new RuntimeException("공지사항 수정 권한이 없습니다.");
+        }
+        if (id == null) {
+            throw new RuntimeException("공지사항 ID가 필요합니다.");
+        }
+
+        return jdbcTemplate.query(
+                """
+                SELECT id, title, body, is_pinned, pinned_until, status, published_at, starts_at, ends_at
+                  FROM announcements
+                 WHERE id = ?
+                   AND deleted_at IS NULL
+                """,
+                rs -> {
+                    if (!rs.next()) {
+                        throw new RuntimeException("공지사항을 찾을 수 없습니다.");
+                    }
+                    return new AnnouncementEditResponse(
+                            rs.getLong("id"),
+                            rs.getString("title"),
+                            rs.getString("body"),
+                            rs.getBoolean("is_pinned"),
+                            rs.getTimestamp("pinned_until") == null ? null : rs.getTimestamp("pinned_until").toInstant(),
+                            rs.getString("status"),
+                            rs.getTimestamp("published_at") == null ? null : rs.getTimestamp("published_at").toInstant(),
+                            rs.getTimestamp("starts_at") == null ? null : rs.getTimestamp("starts_at").toInstant(),
+                            rs.getTimestamp("ends_at") == null ? null : rs.getTimestamp("ends_at").toInstant()
+                    );
+                },
+                id
+        );
+    }
+
     @Transactional
     public AnnouncementCreateResponse createAnnouncement(String loginId, AnnouncementCreateRequest request) {
         if (loginId == null || loginId.isBlank()) {
@@ -133,6 +201,88 @@ public class AnnouncementsService {
             throw new RuntimeException("공지사항 저장에 실패했습니다.");
         }
         return new AnnouncementCreateResponse(createdId, "공지사항이 등록되었습니다.");
+    }
+
+    @Transactional
+    public AnnouncementCreateResponse updateAnnouncement(String loginId, Long id, AnnouncementCreateRequest request) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+        if (!hasWritableRole(loginId)) {
+            throw new RuntimeException("공지사항 수정 권한이 없습니다.");
+        }
+        if (id == null) {
+            throw new RuntimeException("공지사항 ID가 필요합니다.");
+        }
+        validateCreateRequest(request);
+
+        String normalizedStatus = request.getStatus().trim().toUpperCase();
+        Instant publishedAt = request.getPublishedAt();
+        if (publishedAt == null && "ACTIVE".equals(normalizedStatus)) {
+            publishedAt = Instant.now();
+        }
+
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE announcements
+                   SET title = ?,
+                       body = ?,
+                       is_pinned = ?,
+                       pinned_until = ?,
+                       status = CAST(? AS status_enum),
+                       published_at = ?,
+                       starts_at = ?,
+                       ends_at = ?,
+                       updated_at = now()
+                 WHERE id = ?
+                   AND deleted_at IS NULL
+                """,
+                request.getTitle().trim(),
+                request.getBody().trim(),
+                Boolean.TRUE.equals(request.getPinned()),
+                toTimestamp(request.getPinnedUntil()),
+                normalizedStatus,
+                toTimestamp(publishedAt),
+                toTimestamp(request.getStartsAt()),
+                toTimestamp(request.getEndsAt()),
+                id
+        );
+
+        if (updated == 0) {
+            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
+        }
+
+        return new AnnouncementCreateResponse(id, "공지사항이 수정되었습니다.");
+    }
+
+    @Transactional
+    public AnnouncementCreateResponse deleteAnnouncement(String loginId, Long id) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+        if (!hasWritableRole(loginId)) {
+            throw new RuntimeException("공지사항 삭제 권한이 없습니다.");
+        }
+        if (id == null) {
+            throw new RuntimeException("공지사항 ID가 필요합니다.");
+        }
+
+        int updated = jdbcTemplate.update(
+                """
+                UPDATE announcements
+                   SET deleted_at = now(),
+                       updated_at = now()
+                 WHERE id = ?
+                   AND deleted_at IS NULL
+                """,
+                id
+        );
+
+        if (updated == 0) {
+            throw new RuntimeException("공지사항을 찾을 수 없습니다.");
+        }
+
+        return new AnnouncementCreateResponse(id, "공지사항이 삭제되었습니다.");
     }
 
     private void validateCreateRequest(AnnouncementCreateRequest request) {
