@@ -6,9 +6,11 @@ import com.ai_kids_care.v1.dto.KindergartensCreateRequest;
 import com.ai_kids_care.v1.dto.KindergartensUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfKindergartens;
 
+import com.ai_kids_care.v1.service.KindergartenService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +24,8 @@ import jakarta.annotation.Generated;
 @RestController
 @RequiredArgsConstructor
 public class KindergartensApiController implements KindergartensApi {
+
+    private final KindergartenService kindergartenService;
 
     /**
      * POST /v1/kindergartens : Create kindergartens
@@ -87,13 +91,13 @@ public class KindergartensApiController implements KindergartensApi {
      * @see KindergartensApi#listKindergartens
      */
     @Override
-    public PageOfKindergartens listKindergartens(
+    public ResponseEntity<PageOfKindergartens> listKindergartens(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
     ) {
-                throw new IllegalArgumentException("Not implemented");
-
+                return ResponseEntity.ok(kindergartenService.listKindergartens(keyword, page, size, sort));
     }
 
     /**

@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Generated;
@@ -144,6 +145,7 @@ public interface KindergartensApi {
     /**
      * GET /v1/kindergartens : List kindergartens
      *
+     * @param keyword  (optional)
      * @param page  (optional)
      * @param size  (optional)
      * @param sort e.g. created_at,desc (optional)
@@ -173,7 +175,8 @@ public interface KindergartensApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    PageOfKindergartens listKindergartens(
+    ResponseEntity<PageOfKindergartens> listKindergartens(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
