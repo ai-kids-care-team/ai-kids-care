@@ -40,7 +40,7 @@ public class TokenResponse {
 
   @Schema(name = "refreshExpiresIn", description = "seconds", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("refreshExpiresIn")
-  private Integer refreshExpiresIn = null;
+  private Integer refreshExpiresIn;
 
 }
 
