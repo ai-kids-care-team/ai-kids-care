@@ -1,14 +1,18 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.api.ChildrenApi;
+import com.ai_kids_care.v1.dto.PageOfKindergartens;
 import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.dto.ChildrenCreateRequest;
 import com.ai_kids_care.v1.dto.ChildrenUpdateRequest;
 import com.ai_kids_care.v1.dto.PageOfChildren;
 
+import com.ai_kids_care.v1.service.ChildService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +26,8 @@ import jakarta.annotation.Generated;
 @RestController
 @RequiredArgsConstructor
 public class ChildrenApiController implements ChildrenApi {
+
+    private final ChildService childService;
 
     /**
      * POST /v1/children : Create children
@@ -78,6 +84,7 @@ public class ChildrenApiController implements ChildrenApi {
     /**
      * GET /v1/children : List children
      *
+     * @param keyword  (optional)
      * @param page  (optional)
      * @param size  (optional)
      * @param sort e.g. created_at,desc (optional)
@@ -87,13 +94,13 @@ public class ChildrenApiController implements ChildrenApi {
      * @see ChildrenApi#listChildren
      */
     @Override
-    public PageOfChildren listChildren(
+    public ResponseEntity<Page<Child>> listChildren(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
     ) {
-                throw new IllegalArgumentException("Not implemented");
-
+                return ResponseEntity.ok(childService.listChildren(keyword, page, size, sort));
     }
 
     /**

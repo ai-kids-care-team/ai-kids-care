@@ -17,8 +17,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Generated;
@@ -173,7 +175,8 @@ public interface ChildrenApi {
         produces = { "application/json" }
     )
     @ResponseStatus(HttpStatus.OK)
-    PageOfChildren listChildren(
+    ResponseEntity<Page<Child>> listChildren(
+        @Parameter(name = "keyword", description = "", in = ParameterIn.QUERY) @RequestParam(value = "keyword", required = false) String keyword,
         @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
         @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
         @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
