@@ -17,13 +17,24 @@ public class AnnouncementsController {
     private final AnnouncementsService announcementsService;
 
     @GetMapping
-    public ResponseEntity<List<AnnouncementSummaryResponse>> getAnnouncements() {
-        return ResponseEntity.ok(announcementsService.getActiveAnnouncements());
+    public ResponseEntity<List<AnnouncementSummaryResponse>> getAnnouncements(
+            @RequestParam(value = "keyword", required = false) String keyword
+    ) {
+        return ResponseEntity.ok(announcementsService.getActiveAnnouncements(keyword));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AnnouncementDetailResponse> getAnnouncementDetail(@PathVariable Long id) {
         return ResponseEntity.ok(announcementsService.getAnnouncementDetail(id));
+    }
+
+    @GetMapping("/{id}/edit")
+    public ResponseEntity<AnnouncementEditResponse> getAnnouncementForEdit(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementsService.getAnnouncementForEdit(loginId, id));
     }
 
     @GetMapping("/meta")
@@ -41,6 +52,25 @@ public class AnnouncementsController {
     ) {
         String loginId = extractLoginId(authentication);
         return ResponseEntity.ok(announcementsService.createAnnouncement(loginId, request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AnnouncementCreateResponse> updateAnnouncement(
+            @PathVariable Long id,
+            @RequestBody AnnouncementCreateRequest request,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementsService.updateAnnouncement(loginId, id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<AnnouncementCreateResponse> deleteAnnouncement(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String loginId = extractLoginId(authentication);
+        return ResponseEntity.ok(announcementsService.deleteAnnouncement(loginId, id));
     }
 
     private String extractLoginId(Authentication authentication) {
