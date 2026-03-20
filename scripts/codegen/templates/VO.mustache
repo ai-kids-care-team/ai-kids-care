@@ -1,0 +1,14 @@
+package {{package_base}}.vo;
+
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+
+/**
+ * VO for {@link {{package_base}}.entity.{{entity_name}}}
+ */
+public record {{entity_name}}VO(
+        {{#fields}}
+        {{java_type}} {{name}},
+        {{/fields}}
+) implements Serializable {
+}
