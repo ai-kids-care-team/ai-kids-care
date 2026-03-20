@@ -33,9 +33,6 @@ public class EventReview {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Transient
-    private String action;
-
     @Column(name = "from_status", columnDefinition = "event_status_enum")
     private EventStatusEnum fromStatus;
 
