@@ -47,6 +47,9 @@ def to_entity_model(conn, *, package_base: str, schema: str, table: str) -> Enti
         if field.pk:
             id_type = java_type
 
+    for i, f in enumerate(fields):
+        f.last = (i == len(fields) - 1)
+
     return EntityModel(
         package_base=package_base,
         schema=schema,
