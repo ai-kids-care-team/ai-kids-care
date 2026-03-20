@@ -1,0 +1,24 @@
+package {{package_base}}.mapper;
+
+import {{package_base}}.dto.{{entity_name}}CreateDTO;
+import {{package_base}}.dto.{{entity_name}}UpdateDTO;
+import {{package_base}}.entity.{{entity_name}};
+import {{package_base}}.vo.{{entity_name}}VO;
+import org.mapstruct.*;
+
+@Mapper(componentModel = "spring")
+public interface {{entity_name}}Mapper {
+
+    {{entity_name}}VO toVO({{entity_name}} entity);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    {{entity_name}} toEntity({{entity_name}}CreateDTO dto);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntity({{entity_name}}UpdateDTO dto, @MappingTarget {{entity_name}} entity);
+}

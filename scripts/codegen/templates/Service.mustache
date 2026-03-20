@@ -1,0 +1,47 @@
+package {{package_base}}.service;
+
+import {{package_base}}.dto.{{entity_name}}CreateDTO;
+import {{package_base}}.dto.{{entity_name}}UpdateDTO;
+import {{package_base}}.entity.{{entity_name}};
+import {{package_base}}.mapper.{{entity_name}}Mapper;
+import {{package_base}}.repository.{{entity_name}}Repository;
+import {{package_base}}.vo.{{entity_name}}VO;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class {{entity_name}}Service {
+
+    private final {{entity_name}}Repository repository;
+    private final {{entity_name}}Mapper mapper;
+
+    public Page<{{entity_name}}VO> list{{entity_name}}s(String keyword, Pageable pageable) {
+        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
+    }
+
+    public {{entity_name}}VO get{{entity_name}}(Long id) {
+        return repository.findById(id).map(mapper::toVO)
+                .orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
+    }
+
+    public {{entity_name}}VO create{{entity_name}}({{entity_name}}CreateDTO createDTO) {
+        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
+    }
+
+    public {{entity_name}}VO update{{entity_name}}(Long id, {{entity_name}}UpdateDTO updateDTO) {
+        {{entity_name}} entity = repository.findById(id).
+                orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
+        mapper.updateEntity(updateDTO, entity);
+        return mapper.toVO(repository.save(entity));
+    }
+
+    public void delete{{entity_name}}(Long id) {
+        {{entity_name}} entity = repository.findById(id).
+                orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
+        repository.delete(entity);
+    }
+}
