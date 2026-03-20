@@ -63,8 +63,18 @@ npm run dev
 
 ## API 엔드포인트
 
-- `POST /api/auth/login` - 로그인 (`loginId`, `password`로 JWT 발급)
-- `GET /api/dashboard/metrics` - 대시보드 메트릭 (인증 필요)
+- `POST /api/v1/auth/login` - 로그인 (`identifier`, `password`로 JWT 발급)
+- `GET /api/v1/dashboard/metrics` - 대시보드 메트릭 (인증 필요)
+
+## RRN 시드 데이터 규칙
+
+`db/initdb/05_guardian_seed.sql`의 `children`, `guardians`, `teachers` 시드는 아래 규칙을 따릅니다.
+
+- `rrn_encrypted`는 원문이 아닌 JWT 문자열로 저장합니다.
+- 각 `INSERT` 문 바로 위에 원본 확인용 주석을 남깁니다.
+  - 형식: `rrn_first6-뒷7자리`
+  - 예시: `210101-3037926`
+- `children`의 경우 `rrn_first6`은 2020년 이후 생년(`20xxxx`)으로 유지합니다.
 
 ## 문서
 

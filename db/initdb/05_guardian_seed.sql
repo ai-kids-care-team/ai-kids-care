@@ -57,16 +57,18 @@ WHERE NOT EXISTS (SELECT 1
                   WHERE class_id = 2002);
 
 -- 3) children (5)
+-- [RRN 원본 참고 - 주석용]
+-- 3001: 200101-4037926
 INSERT INTO children (child_id, kindergarten_id, name, child_no, rrn_encrypted, rrn_first6, birth_date, gender, address,
                       enroll_date, leave_date, status, created_at, updated_at)
 SELECT 3001,
        1001,
        '김하린',
        'C-2026-001',
-       'enc_rrn_3001',
-       '190101',
-       DATE '2019-01-01',
-       'F',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDM3OTI2IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.quu2m84M7cvVYQZHzUpLS85UCWWEf2YkMVLkfdO3bOQ',
+       '200101',
+       DATE '2020-01-01',
+       'FEMALE',
        '서울시 강남구 역삼동 101',
        DATE '2026-03-02',
        NULL,
@@ -75,16 +77,17 @@ SELECT 3001,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3001);
 
+-- 3002: 200315-3045123
 INSERT INTO children (child_id, kindergarten_id, name, child_no, rrn_encrypted, rrn_first6, birth_date, gender, address,
                       enroll_date, leave_date, status, created_at, updated_at)
 SELECT 3002,
        1001,
        '이준호',
        'C-2026-002',
-       'enc_rrn_3002',
-       '190315',
-       DATE '2019-03-15',
-       'M',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMDQ1MTIzIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.oiEUaD4EH5b0n_8wvYgdOggUqeOHkl10ovgRgXWcbm8',
+       '200315',
+       DATE '2020-03-15',
+       'MALE',
        '서울시 강남구 논현동 202',
        DATE '2026-03-02',
        NULL,
@@ -93,16 +96,17 @@ SELECT 3002,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3002);
 
+-- 3003: 200707-4034567
 INSERT INTO children (child_id, kindergarten_id, name, child_no, rrn_encrypted, rrn_first6, birth_date, gender, address,
                       enroll_date, leave_date, status, created_at, updated_at)
 SELECT 3003,
        1001,
        '박서윤',
        'C-2026-003',
-       'enc_rrn_3003',
-       '190707',
-       DATE '2019-07-07',
-       'F',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDM0NTY3IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.ae2TCiX6hDCNGWSP8QpqFWC8upUYqGtixdphZ0xvVBk',
+       '200707',
+       DATE '2020-07-07',
+       'FEMALE',
        '서울시 강남구 삼성동 303',
        DATE '2026-03-03',
        NULL,
@@ -111,16 +115,17 @@ SELECT 3003,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3003);
 
+-- 3004: 200920-3098765
 INSERT INTO children (child_id, kindergarten_id, name, child_no, rrn_encrypted, rrn_first6, birth_date, gender, address,
                       enroll_date, leave_date, status, created_at, updated_at)
 SELECT 3004,
        1001,
        '최민우',
        'C-2026-004',
-       'enc_rrn_3004',
-       '180920',
-       DATE '2018-09-20',
-       'M',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMDk4NzY1IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.H9_JDe4bfxi-d3pJivkodfG5KwyOumPFDK2rJGlwddU',
+       '200920',
+       DATE '2020-09-20',
+       'MALE',
        '서울시 강남구 대치동 404',
        DATE '2026-03-03',
        NULL,
@@ -129,16 +134,17 @@ SELECT 3004,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3004);
 
+-- 3005: 201211-4043210
 INSERT INTO children (child_id, kindergarten_id, name, child_no, rrn_encrypted, rrn_first6, birth_date, gender, address,
                       enroll_date, leave_date, status, created_at, updated_at)
 SELECT 3005,
        1001,
        '정지안',
        'C-2026-005',
-       'enc_rrn_3005',
-       '181211',
-       DATE '2018-12-11',
-       'F',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDQzMjEwIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.Akre1ZoIFicSgDzi80GEK1c2FSOBLwlPAsEQWF-uhbU',
+       '201211',
+       DATE '2020-12-11',
+       'FEMALE',
        '서울시 강남구 청담동 505',
        DATE '2026-03-04',
        NULL,
@@ -211,80 +217,188 @@ SELECT 4005,
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4005 OR login_id = 'guardian_4005');
 
 -- 5) guardians (5)
+-- [RRN 원본 참고 - 주석용]
+-- 5001: 880101-2881123
 INSERT INTO guardians (guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status,
                        created_at, updated_at)
 SELECT 5001,
        1001,
        4001,
        '김지은',
-       'enc_grr_5001',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyODgxMTIzIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.5AiJyXrX99RAzW-3hblymV73g_HGEq2b73nnIzYNDFE',
        '880101',
-       'F',
+       'FEMALE',
        '서울시 강남구 역삼동 11',
        'ACTIVE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5001);
 
+-- 5002: 870315-1734567
 INSERT INTO guardians (guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status,
                        created_at, updated_at)
 SELECT 5002,
        1001,
        4002,
        '이현우',
-       'enc_grr_5002',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNzM0NTY3IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.LQaNSFId1OvBq_9BSBw-8hFKZiw9kgyTPrbd-6MzgF4',
        '870315',
-       'M',
+       'MALE',
        '서울시 강남구 논현동 22',
        'ACTIVE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5002);
 
+-- 5003: 890707-2896543
 INSERT INTO guardians (guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status,
                        created_at, updated_at)
 SELECT 5003,
        1001,
        4003,
        '박서진',
-       'enc_grr_5003',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyODk2NTQzIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.QkS1mmYZzNAQOKv85qpOSc8NKEjjQlrSG4Iu_EHYMkc',
        '890707',
-       'F',
+       'FEMALE',
        '서울시 강남구 삼성동 33',
        'ACTIVE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5003);
 
+-- 5004: 860920-2867788
 INSERT INTO guardians (guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status,
                        created_at, updated_at)
 SELECT 5004,
        1001,
        4004,
        '최민정',
-       'enc_grr_5004',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyODY3Nzg4IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.9ZiujLrQZYH6d2b0TdApl6blN56ovgzgffk-24Wr5vs',
        '860920',
-       'F',
+       'FEMALE',
        '서울시 강남구 대치동 44',
        'ACTIVE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5004);
 
+-- 5005: 881211-1800199
 INSERT INTO guardians (guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status,
                        created_at, updated_at)
 SELECT 5005,
        1001,
        4005,
        '정수빈',
-       'enc_grr_5005',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxODAwMTk5IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.SkYMCP9HVk2Hy-CZS0ArmxeDDIdiLMlB_ODvXQEoslE',
        '881211',
-       'M',
+       'MALE',
        '서울시 강남구 청담동 55',
        'ACTIVE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5005);
+
+-- 5-1) teacher user accounts (password: password)
+INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
+SELECT 4101,
+       'teacher_4101',
+       '$2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm',
+       'teacher4101@example.com',
+       '010-4101-0001',
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4101 OR login_id = 'teacher_4101');
+
+INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
+SELECT 4102,
+       'teacher_4102',
+       '$2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm',
+       'teacher4102@example.com',
+       '010-4102-0002',
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4102 OR login_id = 'teacher_4102');
+
+INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
+SELECT 4103,
+       'teacher_4103',
+       '$2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm',
+       'teacher4103@example.com',
+       '010-4103-0003',
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = 4103 OR login_id = 'teacher_4103');
+
+-- 5-2) teachers (3)
+-- [RRN 원본 참고 - 주석용]
+-- 5201: 900101-1456789
+INSERT INTO teachers (teacher_id, kindergarten_id, user_id, staff_no, name, gender, emergency_contact_name, emergency_contact_phone,
+                      rrn_encrypted, rrn_first6, level, start_date, end_date, status, created_at, updated_at)
+SELECT 5201,
+       1001,
+       4101,
+       'T-1001',
+       '한지민',
+       'FEMALE',
+       '한보호',
+       '010-7101-1001',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDU2Nzg5IiwiaWF0IjoxNzczOTc1MDYyLCJleHAiOjQxMDI0NDQ4MDB9.KLwgVqWndWuzW-QJDktAVTWS4JdyDBuTWM4Nwmilt74',
+       '900101',
+       'DIRECTOR',
+       DATE '2024-03-01',
+       NULL,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE teacher_id = 5201);
+
+-- 5202: 910202-2345678
+INSERT INTO teachers (teacher_id, kindergarten_id, user_id, staff_no, name, gender, emergency_contact_name, emergency_contact_phone,
+                      rrn_encrypted, rrn_first6, level, start_date, end_date, status, created_at, updated_at)
+SELECT 5202,
+       1001,
+       4102,
+       'T-1002',
+       '오성민',
+       'MALE',
+       '오보호',
+       '010-7102-1002',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyMzQ1Njc4IiwiaWF0IjoxNzczOTc1MDYyLCJleHAiOjQxMDI0NDQ4MDB9.1TOTW2AyxRChQb_YgGOopbXTrsc6SBkR-O4W3kfymhI',
+       '910202',
+       'TEACHER',
+       DATE '2024-03-01',
+       NULL,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE teacher_id = 5202);
+
+-- 5203: 920303-3567890
+INSERT INTO teachers (teacher_id, kindergarten_id, user_id, staff_no, name, gender, emergency_contact_name, emergency_contact_phone,
+                      rrn_encrypted, rrn_first6, level, start_date, end_date, status, created_at, updated_at)
+SELECT 5203,
+       1001,
+       4103,
+       'T-1003',
+       '김나연',
+       'FEMALE',
+       '김보호',
+       '010-7103-1003',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNTY3ODkwIiwiaWF0IjoxNzczOTc1MDYyLCJleHAiOjQxMDI0NDQ4MDB9.8s9rkW0rgo7wANSqhRuu3gDEXyyXToZE2GpeidUsgFA',
+       '920303',
+       'TEACHER',
+       DATE '2025-03-01',
+       NULL,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE teacher_id = 5203);
 
 -- 6) child-guardian relationship (5)
 INSERT INTO child_guardian_relationships (kindergarten_id, child_id, guardian_id, relationship, is_primary, priority,
@@ -482,6 +596,64 @@ WHERE NOT EXISTS (SELECT 1
                     AND ura.scope_id = 1001
                     AND ura.status = 'ACTIVE');
 
+-- 7-1) role assignment (teacher)
+INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
+                                   granted_by_user_id, revoked_at)
+SELECT 6101,
+       4101,
+       'TEACHER',
+       'KINDERGARTEN',
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       NULL
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_role_assignments
+                  WHERE user_id = 4101
+                    AND role = 'TEACHER'
+                    AND scope_type = 'KINDERGARTEN'
+                    AND scope_id = 1001
+                    AND status = 'ACTIVE');
+
+INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
+                                   granted_by_user_id, revoked_at)
+SELECT 6102,
+       4102,
+       'TEACHER',
+       'KINDERGARTEN',
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       NULL
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_role_assignments
+                  WHERE user_id = 4102
+                    AND role = 'TEACHER'
+                    AND scope_type = 'KINDERGARTEN'
+                    AND scope_id = 1001
+                    AND status = 'ACTIVE');
+
+INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
+                                   granted_by_user_id, revoked_at)
+SELECT 6103,
+       4103,
+       'TEACHER',
+       'KINDERGARTEN',
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       NULL
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_role_assignments
+                  WHERE user_id = 4103
+                    AND role = 'TEACHER'
+                    AND scope_type = 'KINDERGARTEN'
+                    AND scope_id = 1001
+                    AND status = 'ACTIVE');
+
 
 -- 8) kindergarten membership
 INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
@@ -553,5 +725,48 @@ SELECT 7005,
 WHERE NOT EXISTS (SELECT 1
                   FROM user_kindergarten_memberships
                   WHERE user_id = 4005 AND kindergarten_id = 1001 AND status = 'ACTIVE');
+
+-- 8-1) kindergarten membership (teacher)
+INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
+                                           created_at, updated_at)
+SELECT 7101,
+       4101,
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_kindergarten_memberships
+                  WHERE user_id = 4101 AND kindergarten_id = 1001 AND status = 'ACTIVE');
+
+INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
+                                           created_at, updated_at)
+SELECT 7102,
+       4102,
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_kindergarten_memberships
+                  WHERE user_id = 4102 AND kindergarten_id = 1001 AND status = 'ACTIVE');
+
+INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
+                                           created_at, updated_at)
+SELECT 7103,
+       4103,
+       1001,
+       'ACTIVE',
+       CURRENT_TIMESTAMP,
+       NULL,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1
+                  FROM user_kindergarten_memberships
+                  WHERE user_id = 4103 AND kindergarten_id = 1001 AND status = 'ACTIVE');
 
 COMMIT;
