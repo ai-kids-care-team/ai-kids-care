@@ -4,6 +4,7 @@ import { useLoginMutation } from '@/services/apis/auth.api';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import type { UserRole } from '@/types/anomaly';
+import { API_BASE_URL, LEGACY_API_BASE_URL } from '@/config/api';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
 type FieldErrorKey =
@@ -92,8 +93,6 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'teachers', parentCode: 'level', code: 'TEACHER', codeName: '일반교사', sortOrder: 3 },
 ];
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
-const LEGACY_API_BASE_URL = 'http://localhost:8080/api';
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 const DATE_RANGE_ERROR_MESSAGE = '근무종료일은 근무시작일보다 빠를 수 없습니다.';
 const DATE_RANGE_GUIDE_MESSAGE = '날짜 범위가 올바르지 않습니다. 근무시작일/근무종료일을 확인해주세요.';

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth", description = "the Auth API")
 @RequestMapping("${openapi.aIKidsCare.base-path:/api}")
+
 public interface AuthApi {
 
     String PATH_V1_AUTH_LOGIN_POST = "/v1/auth/login";

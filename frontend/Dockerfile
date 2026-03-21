@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps #ci
 
 COPY . .
-ENV NEXT_PUBLIC_API_URL=
+ENV NEXT_PUBLIC_API_BASE_URL=/api/v1
 RUN npm run build
 
 # Production stage with Nginx

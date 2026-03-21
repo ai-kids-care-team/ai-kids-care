@@ -22,6 +22,8 @@ Desktop.ini
 *.log
 logs/
 log/
+# 로그 디렉터리 (logs_local/, logs_dev/ 등 logs로 시작하는 폴더)
+logs*/
 
 # Runtime data / pid
 *.pid

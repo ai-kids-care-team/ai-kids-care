@@ -23,9 +23,14 @@ RUN apk add --no-cache tzdata \
 ENV TZ=Asia/Seoul
 
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 COPY --from=build /app/build/libs/*.jar app.jar
+
+# logback 이 logs/, logs_dev/, logs_local/ 에 쓸 수 있도록 (spring 사용자는 /app 에 mkdir 불가)
+RUN mkdir -p /app/logs /app/logs_dev /app/logs_local \
+    && chown -R spring:spring /app
+
+USER spring:spring
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

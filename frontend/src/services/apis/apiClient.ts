@@ -1,10 +1,6 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/config/api';
 
-// 환경변수에 설정된 API 주소를 사용하거나 기본값 사용
-//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com';
-// 변경 후
-//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API_BASE_URL = 'http://localhost:8080/api/v1';
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
