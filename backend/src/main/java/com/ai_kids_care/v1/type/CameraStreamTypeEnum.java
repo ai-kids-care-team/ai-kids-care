@@ -5,5 +5,5 @@ public enum CameraStreamTypeEnum {
     SUB,
     SNAPSHOT,
     RECORDING,
-    OTHER;
+    OTHER
 }

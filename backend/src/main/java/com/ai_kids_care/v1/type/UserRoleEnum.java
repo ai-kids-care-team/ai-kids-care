@@ -5,5 +5,5 @@ public enum UserRoleEnum {
     TEACHER,
     KINDERGARTEN_ADMIN,
     PLATFORM_IT_ADMIN,
-    SUPERADMIN;
+    SUPERADMIN
 }
