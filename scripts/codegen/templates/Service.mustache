@@ -20,7 +20,8 @@ public class {{entity_name}}Service {
     private final {{entity_name}}Mapper mapper;
 
     public Page<{{entity_name}}VO> list{{entity_name}}s(String keyword, Pageable pageable) {
-        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
+        // TODO: filter {{entity_name}} by keyword
+        return repository.findAll(pageable).map(mapper::toVO);
     }
 
     public {{entity_name}}VO get{{entity_name}}(Long id) {

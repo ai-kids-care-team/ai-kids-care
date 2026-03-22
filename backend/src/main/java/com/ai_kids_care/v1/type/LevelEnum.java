@@ -4,5 +4,5 @@ public enum LevelEnum {
     DIRECTOR,
     VICE_DIRECTOR,
     TEACHER,
-    OTHER;
+    OTHER
 }

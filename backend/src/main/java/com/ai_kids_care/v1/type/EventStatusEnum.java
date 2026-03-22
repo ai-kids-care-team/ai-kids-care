@@ -6,5 +6,5 @@ public enum EventStatusEnum {
     IN_REVIEW,
     RESOLVED,
     DISMISSED,
-    ESCALATED;
+    ESCALATED
 }

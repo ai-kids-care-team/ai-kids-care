@@ -9,6 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface {{entity_name}}Mapper {
 
+    @Mapping(target = "{{#pk_field}}{{name}}{{/pk_field}}", ignore = true)
     {{entity_name}}VO toVO({{entity_name}} entity);
 
     @Mapping(target = "id", ignore = true)
