@@ -18,7 +18,7 @@ public class AnnouncementsService {
     private final CommonCodeService commonCodeService;
 
     @Transactional(readOnly = true)
-    public List<AnnouncementSummaryResponse> getActiveAnnouncements(String keyword) {
+    public List<AnnouncementSummaryResponse> listAnnouncements(String keyword) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         if (normalizedKeyword != null && normalizedKeyword.isBlank()) {
             normalizedKeyword = null;
@@ -177,6 +177,18 @@ public class AnnouncementsService {
             publishedAt = Instant.now();
         }
 
+//        User user = User.builder()
+//                .loginId(request.getLoginId())
+//                .email(request.getEmail())
+//                .phone(request.getPhone())
+//                .passwordHash(passwordEncoder.encode(request.getPassword()))
+//                .status(StatusEnum.ACTIVE)
+//                .lastLoginAt(null)
+//                .createdAt(OffsetDateTime.now())
+//                .updatedAt(OffsetDateTime.now())
+//                .build();
+//        User userSaved = userRepository.save(user);
+
         Long createdId = jdbcTemplate.queryForObject(
                 """
                 INSERT INTO announcements
@@ -196,6 +208,9 @@ public class AnnouncementsService {
                 toTimestamp(request.getStartsAt()),
                 toTimestamp(request.getEndsAt())
         );
+
+
+
 
         if (createdId == null) {
             throw new RuntimeException("공지사항 저장에 실패했습니다.");

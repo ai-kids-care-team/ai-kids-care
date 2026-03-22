@@ -3887,6 +3887,18 @@ components:
           type: integer
           description: seconds
           nullable: true
+        loginId:
+          type: string
+          description: 로그인 ID (표시·세션용)
+          nullable: true
+        name:
+          type: string
+          description: 프로필 표시 이름
+          nullable: true
+        role:
+          type: string
+          description: UserRoleEnum 문자열 (GUARDIAN, TEACHER, KINDERGARTEN_ADMIN 등)
+          nullable: true
     AuthRefreshRequest:
       type: object
       required:

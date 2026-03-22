@@ -20,7 +20,7 @@ export interface RolePermissions {
 export const roleLabels: Record<UserRole, string> = {
   'super_admin': '슈퍼 관리자',
   'system_admin': '시스템 관리자',
-  'admin': '관리자',
+  'admin': '유치원 원장',
   'teacher': '선생님',
   'guardian': '학부모'
 };

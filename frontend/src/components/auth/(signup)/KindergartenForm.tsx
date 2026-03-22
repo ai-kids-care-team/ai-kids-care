@@ -50,8 +50,12 @@ type KindergartenFormProps = {
       | 'endDate',
     value: string
   ) => void;
-  kindergartenKeyword: string;
-  setKindergartenKeyword: (value: string) => void;
+  kindergartenBizPart1: string;
+  setKindergartenBizPart1: (value: string) => void;
+  kindergartenBizPart2: string;
+  setKindergartenBizPart2: (value: string) => void;
+  kindergartenBizPart3: string;
+  setKindergartenBizPart3: (value: string) => void;
   selectedKindergarten: KindergartenLookupItem | null;
   openKindergartenPopup: () => void;
   rrnFirst6: string;
@@ -87,8 +91,12 @@ type KindergartenFormProps = {
 export function KindergartenForm({
   form,
   onChange,
-  kindergartenKeyword,
-  setKindergartenKeyword,
+  kindergartenBizPart1,
+  setKindergartenBizPart1,
+  kindergartenBizPart2,
+  setKindergartenBizPart2,
+  kindergartenBizPart3,
+  setKindergartenBizPart3,
   selectedKindergarten,
   openKindergartenPopup,
   rrnFirst6,
@@ -106,7 +114,7 @@ export function KindergartenForm({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showRrnBack7, setShowRrnBack7] = useState(false);
 
-  const handleKindergartenKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKindergartenEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       openKindergartenPopup();
@@ -223,20 +231,57 @@ export function KindergartenForm({
 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">유치원 찾기</h2>
-        <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
-          <input
-            type="text"
-            name="kindergartenKeyword"
-            value={kindergartenKeyword}
-            onChange={(e) => setKindergartenKeyword(e.target.value)}
-            onKeyDown={handleKindergartenKeyDown}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 md:w-[85%]"
-            placeholder="유치원명 또는 사업자번호 입력 후 Enter (ex) 해맑은유치원"
-          />
+        <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <p className="font-medium text-slate-800">유치원명 · 사업자번호 검색</p>
+          <p className="mt-1 text-xs text-slate-600">
+            사업자등록번호 10자리(XXX-XX-XXXXX)로 조회합니다. 목록에서 유치원명을 확인할 수 있습니다.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="flex w-full flex-1 items-center gap-2">
+            <input
+              type="text"
+              name="kindergartenBizPart1"
+              value={kindergartenBizPart1}
+              onChange={(e) => setKindergartenBizPart1(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              onKeyDown={handleKindergartenEnter}
+              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="123"
+              inputMode="numeric"
+              maxLength={3}
+              aria-label="사업자등록번호 앞 3자리"
+            />
+            <span className="shrink-0 text-slate-500">-</span>
+            <input
+              type="text"
+              name="kindergartenBizPart2"
+              value={kindergartenBizPart2}
+              onChange={(e) => setKindergartenBizPart2(e.target.value.replace(/\D/g, '').slice(0, 2))}
+              onKeyDown={handleKindergartenEnter}
+              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="45"
+              inputMode="numeric"
+              maxLength={2}
+              aria-label="사업자등록번호 중간 2자리"
+            />
+            <span className="shrink-0 text-slate-500">-</span>
+            <input
+              type="text"
+              name="kindergartenBizPart3"
+              value={kindergartenBizPart3}
+              onChange={(e) => setKindergartenBizPart3(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              onKeyDown={handleKindergartenEnter}
+              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="67890"
+              inputMode="numeric"
+              maxLength={5}
+              aria-label="사업자등록번호 뒤 5자리"
+            />
+          </div>
           <button
             type="button"
             onClick={openKindergartenPopup}
-            className="rounded-lg border border-emerald-500 px-4 py-2 text-emerald-700 hover:bg-emerald-50 md:w-[15%] md:min-w-[96px] whitespace-nowrap"
+            className="rounded-lg border border-emerald-500 px-4 py-2 text-emerald-700 hover:bg-emerald-50 md:min-w-[112px] whitespace-nowrap"
           >
             유치원 찾기
           </button>

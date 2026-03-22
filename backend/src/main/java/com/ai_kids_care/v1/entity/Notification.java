@@ -1,10 +1,13 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.NotificationChannelEnum;
 import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -36,8 +39,10 @@ public class Notification {
     @JoinColumn(name = "recipient_user_id", nullable = false)
     private User recipientUser;
 
-    @Column(name = "channel", length = Integer.MAX_VALUE)
-    private String channel;
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "channel", columnDefinition = "notification_channel_enum")
+    private NotificationChannelEnum channel;
 
     @Column(name = "title", length = Integer.MAX_VALUE)
     private String title;
@@ -46,6 +51,7 @@ public class Notification {
     private String body;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", columnDefinition = "notification_status_enum")
     private NotificationStatusEnum status;
 

@@ -45,13 +45,13 @@ export function LoginForm() {
       const responseLoginId = response?.loginId ?? loginId;
       const role = response?.role ?? 'guardian';
       const token = response?.accessToken ?? response?.token ?? '';
-      //console.log('백엔드 로그인 응답 데이터:', response);
+      const displayName = response?.name ?? responseLoginId;
 
       const user = {
-          id: responseLoginId,       // 👈 타입 에러 해결을 위해 추가!
-          username: responseLoginId, // 👈 타입 에러 해결을 위해 추가!
+          id: responseLoginId,
+          username: responseLoginId,
           loginId: responseLoginId,
-          name: responseLoginId, // 백엔드가 이름을 안 주므로 임시로 아이디를 이름 대신 표시
+          name: displayName,
           role: mapBackendRoleToFrontendRole(role),
       };
 

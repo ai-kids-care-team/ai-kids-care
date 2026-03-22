@@ -42,5 +42,20 @@ public class TokenResponse {
   @JsonProperty("refreshExpiresIn")
   private Integer refreshExpiresIn;
 
+  /** 로그인 계정의 로그인 ID (프론트 헤더·세션 표시용) */
+  @Schema(name = "loginId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("loginId")
+  private String loginId;
+
+  /** 표시용 이름 (양육자/교사·원장/행정청 프로필에서 조회, 없으면 loginId) */
+  @Schema(name = "name", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("name")
+  private String name;
+
+  /** {@link com.ai_kids_care.v1.type.UserRoleEnum} 이름 문자열, 예: GUARDIAN, KINDERGARTEN_ADMIN */
+  @Schema(name = "role", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("role")
+  private String role;
+
 }
 

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import jakarta.annotation.Generated;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -112,7 +113,7 @@ public class AuthApiController implements AuthApi {
     @Override
     public ResponseEntity<AuthRegisterResponse> AuthRegisterPost(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterRequest authRegisterRequest) {
         AuthRegisterResponse response = authService.register(authRegisterRequest);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**

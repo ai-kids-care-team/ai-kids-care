@@ -1,10 +1,13 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -41,8 +44,10 @@ public class DetectionEvent {
     @JoinColumn(name = "session_id", nullable = false)
     private DetectionSession detectionSessions;
 
-    @Column(name = "event_type", length = Integer.MAX_VALUE)
-    private String eventType;
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "event_type", columnDefinition = "event_type_enum")
+    private EventTypeEnum eventType;
 
     @Column(name = "severity")
     private Integer severity;
@@ -61,6 +66,7 @@ public class DetectionEvent {
     private OffsetDateTime endTime;
 
     @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "status", columnDefinition = "event_status_enum")
     private EventStatusEnum status;
 

@@ -26,9 +26,21 @@ export function SignupForm() {
     selectedChild, isChildPopupOpen, setIsChildPopupOpen,
     childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
-    kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
-    kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,
-    searchKindergartens, openKindergartenPopup, selectKindergarten,
+    kindergartenBizPart1,
+    setKindergartenBizPart1,
+    kindergartenBizPart2,
+    setKindergartenBizPart2,
+    kindergartenBizPart3,
+    setKindergartenBizPart3,
+    selectedKindergarten,
+    isKindergartenPopupOpen,
+    setIsKindergartenPopupOpen,
+    kindergartenSearchResults,
+    isKindergartenSearching,
+    kindergartenSearchError,
+    searchKindergartens,
+    openKindergartenPopup,
+    selectKindergarten,
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
@@ -75,7 +87,7 @@ export function SignupForm() {
 
     const fieldNameMap: Partial<Record<keyof typeof fieldErrors, string>> = {
       child: 'childSearchFirst6',
-      kindergarten: 'kindergartenKeyword',
+      kindergarten: 'kindergartenBizPart1',
       rrn: 'rrnFirst6',
     };
 
@@ -95,6 +107,24 @@ export function SignupForm() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* 백엔드는 status 를 ACTIVE 로 고정 — 제출 본문과 동기화용 히든 */}
+        <input type="hidden" name="status" value="ACTIVE" readOnly aria-hidden />
+        {memberType === 'GUARDIAN' && selectedChild != null && (
+          <>
+            <input type="hidden" name="childId" value={selectedChild.childId} readOnly aria-hidden />
+            <input type="hidden" name="kindergartenId" value={selectedChild.kindergartenId} readOnly aria-hidden />
+          </>
+        )}
+        {memberType === 'KINDERGARTEN' && selectedKindergarten != null && (
+          <input
+            type="hidden"
+            name="kindergartenId"
+            value={selectedKindergarten.kindergartenId}
+            readOnly
+            aria-hidden
+          />
+        )}
+
         <section>
           <div className="mb-3 flex items-end justify-between">
             <h2 className="text-sm font-semibold text-slate-800">회원유형</h2>
@@ -178,8 +208,12 @@ export function SignupForm() {
           <KindergartenForm
             form={form}
             onChange={onChange}
-            kindergartenKeyword={kindergartenKeyword}
-            setKindergartenKeyword={setKindergartenKeyword}
+            kindergartenBizPart1={kindergartenBizPart1}
+            setKindergartenBizPart1={setKindergartenBizPart1}
+            kindergartenBizPart2={kindergartenBizPart2}
+            setKindergartenBizPart2={setKindergartenBizPart2}
+            kindergartenBizPart3={kindergartenBizPart3}
+            setKindergartenBizPart3={setKindergartenBizPart3}
             selectedKindergarten={selectedKindergarten}
             openKindergartenPopup={openKindergartenPopup}
             rrnFirst6={rrnFirst6}
@@ -372,26 +406,75 @@ export function SignupForm() {
               </button>
             </div>
 
-            <div className="mb-4 flex flex-col gap-3 md:flex-row">
-              <input
-                type="text"
-                value={kindergartenSearchKeyword}
-                onChange={(e) => setKindergartenSearchKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    searchKindergartens(kindergartenSearchKeyword);
-                  }
-                }}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                placeholder="유치원명 또는 사업자번호 검색 (ex) 해맑은유치원"
-              />
+            <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              <p className="font-medium text-slate-800">유치원명 · 사업자번호 검색</p>
+              <p className="mt-1 text-xs text-slate-600">
+                사업자등록번호 10자리를 입력한 뒤 <span className="font-medium">찾기</span>를 눌러주세요.
+              </p>
+            </div>
+
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="flex w-full flex-1 items-center gap-2">
+                <input
+                  type="text"
+                  name="kindergartenBizPart1"
+                  value={kindergartenBizPart1}
+                  onChange={(e) => setKindergartenBizPart1(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void searchKindergartens();
+                    }
+                  }}
+                  className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  placeholder="123"
+                  inputMode="numeric"
+                  maxLength={3}
+                  aria-label="사업자등록번호 앞 3자리"
+                />
+                <span className="shrink-0 text-slate-500">-</span>
+                <input
+                  type="text"
+                  name="kindergartenBizPart2"
+                  value={kindergartenBizPart2}
+                  onChange={(e) => setKindergartenBizPart2(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void searchKindergartens();
+                    }
+                  }}
+                  className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  placeholder="45"
+                  inputMode="numeric"
+                  maxLength={2}
+                  aria-label="사업자등록번호 중간 2자리"
+                />
+                <span className="shrink-0 text-slate-500">-</span>
+                <input
+                  type="text"
+                  name="kindergartenBizPart3"
+                  value={kindergartenBizPart3}
+                  onChange={(e) => setKindergartenBizPart3(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void searchKindergartens();
+                    }
+                  }}
+                  className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  placeholder="67890"
+                  inputMode="numeric"
+                  maxLength={5}
+                  aria-label="사업자등록번호 뒤 5자리"
+                />
+              </div>
               <button
                 type="button"
-                onClick={() => searchKindergartens(kindergartenSearchKeyword)}
-                className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
+                onClick={() => void searchKindergartens()}
+                className="min-w-16 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
               >
-                검색
+                찾기
               </button>
             </div>
 

@@ -70,6 +70,7 @@ public interface UsersApi {
     );
 
 
+
     String PATH_DELETE_USERS = "/v1/users/{user_id}";
     /**
      * DELETE /v1/users/{user_id} : Delete users by user_id

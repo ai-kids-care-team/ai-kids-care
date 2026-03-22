@@ -4,6 +4,8 @@ import com.ai_kids_care.v1.type.RelationshipEnum;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -20,8 +22,10 @@ import java.time.OffsetDateTime;
         @Index(name = "idx_cgr_guardian", columnList = "kindergarten_id, guardian_id")
 })
 public class ChildGuardianRelationship {
+    /** null 이면 Hibernate 가 @MapsId 로 채우기 전에 NPE 가능 — 빌더에서도 기본 인스턴스 유지 */
+    @Builder.Default
     @EmbeddedId
-    private ChildGuardianRelationshipId id;
+    private ChildGuardianRelationshipId id = new ChildGuardianRelationshipId();
 
     @MapsId("childId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -34,7 +38,8 @@ public class ChildGuardianRelationship {
     private Guardian guardians;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "relationship")
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "relationship", columnDefinition = "relationship_enum")
     private RelationshipEnum relationship;
 
     @Column(name = "is_primary")

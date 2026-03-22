@@ -1,9 +1,14 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.converter.MimeTypeEnumConverter;
+import com.ai_kids_care.v1.type.EvidenceFileTypeEnum;
+import com.ai_kids_care.v1.type.MimeTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 
@@ -27,14 +32,17 @@ public class EventEvidenceFile {
     @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
-    @Column(name = "type", length = Integer.MAX_VALUE)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "type", columnDefinition = "evidence_file_type_enum")
+    private EvidenceFileTypeEnum type;
 
     @Column(name = "storage_uri", length = Integer.MAX_VALUE)
     private String storageUri;
 
-    @Column(name = "mime_type", length = Integer.MAX_VALUE)
-    private String mimeType;
+    @Convert(converter = MimeTypeEnumConverter.class)
+    @Column(name = "mime_type", columnDefinition = "mime_type_enum")
+    private MimeTypeEnum mimeType;
 
     @ColumnDefault("'2026-03-17 12:56:22.194471+00'")
     @Column(name = "created_at")

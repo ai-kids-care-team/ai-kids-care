@@ -122,6 +122,10 @@ const mapBackendRoleToFrontendRole = (role: string): UserRole => {
   return 'guardian';
 };
 
+/** 원장(PRINCIPAL) → 백엔드 KINDERGARTEN_ADMIN, 그 외 → TEACHER */
+const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
+  levelCode === 'PRINCIPAL' ? 'KINDERGARTEN_ADMIN' : 'TEACHER';
+
 export function useSignup() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -145,10 +149,12 @@ export function useSignup() {
   const [childSearchResults, setChildSearchResults] = useState<ChildLookupItem[]>([]);
   const [isChildSearching, setIsChildSearching] = useState(false);
   const [childSearchError, setChildSearchError] = useState('');
-  const [kindergartenKeyword, setKindergartenKeyword] = useState('');
+  /** 사업자등록번호 10자리 — 화면은 3-2-5 분할 입력 (예: 123-45-67890) */
+  const [kindergartenBizPart1, setKindergartenBizPart1] = useState('');
+  const [kindergartenBizPart2, setKindergartenBizPart2] = useState('');
+  const [kindergartenBizPart3, setKindergartenBizPart3] = useState('');
   const [selectedKindergarten, setSelectedKindergarten] = useState<KindergartenLookupItem | null>(null);
   const [isKindergartenPopupOpen, setIsKindergartenPopupOpen] = useState(false);
-  const [kindergartenSearchKeyword, setKindergartenSearchKeyword] = useState('');
   const [kindergartenSearchResults, setKindergartenSearchResults] = useState<KindergartenLookupItem[]>([]);
   const [isKindergartenSearching, setIsKindergartenSearching] = useState(false);
   const [kindergartenSearchError, setKindergartenSearchError] = useState('');
@@ -263,10 +269,11 @@ export function useSignup() {
     setIsChildSearching(false);
     setChildSearchError('');
 
-    setKindergartenKeyword('');
+    setKindergartenBizPart1('');
+    setKindergartenBizPart2('');
+    setKindergartenBizPart3('');
     setSelectedKindergarten(null);
     setIsKindergartenPopupOpen(false);
-    setKindergartenSearchKeyword('');
     setKindergartenSearchResults([]);
     setIsKindergartenSearching(false);
     setKindergartenSearchError('');
@@ -501,10 +508,13 @@ export function useSignup() {
     }
   };
 
-  const searchKindergartens = async (keyword: string) => {
-    const trimmed = keyword.trim();
-    if (!trimmed) {
-      setKindergartenSearchError('유치원명 또는 사업자번호를 입력해주세요.');
+  const getKindergartenBusinessDigits = () =>
+    `${kindergartenBizPart1}${kindergartenBizPart2}${kindergartenBizPart3}`.replace(/\D/g, '');
+
+  const searchKindergartens = async () => {
+    const digits = getKindergartenBusinessDigits();
+    if (digits.length !== 10) {
+      setKindergartenSearchError('사업자등록번호 10자리를 입력해주세요. (숫자만, XXX-XX-XXXXX)');
       setKindergartenSearchResults([]);
       return;
     }
@@ -512,16 +522,19 @@ export function useSignup() {
     setKindergartenSearchError('');
     setIsKindergartenSearching(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/kindergartens?keyword=${encodeURIComponent(trimmed)}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/auth/kindergartens?businessRegistrationNo=${encodeURIComponent(digits)}`,
+        {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }
+      );
       if (!response.ok) {
         throw new Error('유치원 조회에 실패했습니다.');
       }
       const data = (await response.json()) as KindergartenLookupItem[];
       setKindergartenSearchResults(data);
-      if (data.length === 0) setKindergartenSearchError('검색 결과가 없습니다.');
+      if (data.length === 0) setKindergartenSearchError('일치하는 유치원이 없습니다.');
     } catch (err) {
       setKindergartenSearchResults([]);
       setKindergartenSearchError(err instanceof Error ? err.message : '유치원 조회에 실패했습니다.');
@@ -546,17 +559,21 @@ export function useSignup() {
   };
 
   const openKindergartenPopup = () => {
-    const keyword = kindergartenKeyword.trim();
-    setKindergartenSearchKeyword(keyword);
     setKindergartenSearchResults([]);
     setKindergartenSearchError('');
     setIsKindergartenPopupOpen(true);
-    if (keyword) void searchKindergartens(keyword);
+    const digits = getKindergartenBusinessDigits();
+    if (digits.length === 10) void searchKindergartens();
   };
 
   const selectKindergarten = (kindergarten: KindergartenLookupItem) => {
     setSelectedKindergarten(kindergarten);
-    setKindergartenKeyword(kindergarten.name);
+    const digits = (kindergarten.businessRegistrationNo ?? '').replace(/\D/g, '');
+    if (digits.length === 10) {
+      setKindergartenBizPart1(digits.slice(0, 3));
+      setKindergartenBizPart2(digits.slice(3, 5));
+      setKindergartenBizPart3(digits.slice(5, 10));
+    }
     setIsKindergartenPopupOpen(false);
   };
 
@@ -690,32 +707,78 @@ export function useSignup() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
+      // 백엔드 AuthRegisterRequest 스펙에 맞춤 (status 는 서버에서 ACTIVE 고정, 히든으로만 전송)
+      let registerBody: Record<string, unknown>;
+
+      if (memberType === 'GUARDIAN') {
+        registerBody = {
+          userRole: 'GUARDIAN',
+          status: 'ACTIVE',
           loginId: form.loginId,
           password: form.password,
           email: form.email,
           phone: form.phone,
-          memberType,
-          childId: memberType === 'GUARDIAN' ? selectedChild?.childId : null,
-          rrnFirst6: memberType === 'GUARDIAN' || memberType === 'KINDERGARTEN' ? rrnFirst6 : null,
-          rrnBack7: memberType === 'GUARDIAN' || memberType === 'KINDERGARTEN' ? rrnBack7 : null,
-          relationship: memberType === 'GUARDIAN' ? relationship : null,
-          customRelationship: memberType === 'GUARDIAN' && relationship === 'OTHER' ? customRelationship.trim() : '',
-          primaryGuardian: memberType === 'GUARDIAN' ? isPrimaryGuardian : false,
-          department: memberType === 'SUPERADMIN' ? form.department.trim() : null,
-          kindergartenId: memberType === 'KINDERGARTEN' ? selectedKindergarten?.kindergartenId : null,
-          staffNo: memberType === 'KINDERGARTEN' ? form.staffNo.trim() : null,
-          gender: memberType === 'KINDERGARTEN' ? gender : null,
-          emergencyContactName: memberType === 'KINDERGARTEN' ? form.emergencyContactName.trim() : null,
-          emergencyContactPhone: memberType === 'KINDERGARTEN' ? form.emergencyContactPhone.trim() : null,
-          level: memberType === 'KINDERGARTEN' ? form.level : null,
-          startDate: memberType === 'KINDERGARTEN' ? form.startDate : null,
-          endDate: memberType === 'KINDERGARTEN' ? (form.endDate || null) : null,
-        }),
+          name: form.name.trim(),
+          rrnFirst6,
+          rrnBack7,
+          gender,
+          address: '',
+          kindergartenId: selectedChild!.kindergartenId,
+          childId: selectedChild!.childId,
+          relationship,
+          primaryGuardian: isPrimaryGuardian,
+        };
+      } else if (memberType === 'KINDERGARTEN') {
+        registerBody = {
+          userRole: mapKindergartenSignupUserRole(form.level),
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+          rrnFirst6,
+          rrnBack7,
+          gender,
+          kindergartenId: selectedKindergarten!.kindergartenId,
+          emergencyContactName: form.emergencyContactName.trim(),
+          emergencyContactPhone: form.emergencyContactPhone.trim(),
+          level: form.level,
+          staffNo: form.staffNo.trim(),
+          startDate: form.startDate,
+          endDate: form.endDate || null,
+        };
+      } else if (memberType === 'SUPERADMIN') {
+        registerBody = {
+          userRole: 'SUPERADMIN',
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+          department: form.department.trim(),
+        };
+      } else if (memberType === 'PLATFORM_IT_ADMIN') {
+        registerBody = {
+          userRole: 'PLATFORM_IT_ADMIN',
+          status: 'ACTIVE',
+          loginId: form.loginId,
+          password: form.password,
+          email: form.email,
+          phone: form.phone,
+          name: form.name.trim(),
+        };
+      } else {
+        setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registerBody),
       });
 
       if (!response.ok) {
@@ -743,6 +806,15 @@ export function useSignup() {
       };
 
       dispatch(setCredentials({ user, token }));
+      try {
+        localStorage.setItem('user', JSON.stringify(user));
+        if (token) {
+          localStorage.setItem('token', token);
+          localStorage.setItem('accessToken', token);
+        }
+      } catch {
+        // 저장 실패 시에도 Redux 세션은 유지
+      }
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원가입에 실패했습니다.');
@@ -758,9 +830,21 @@ export function useSignup() {
     childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
     childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
-    kindergartenKeyword, setKindergartenKeyword, selectedKindergarten, isKindergartenPopupOpen, setIsKindergartenPopupOpen,
-    kindergartenSearchKeyword, setKindergartenSearchKeyword, kindergartenSearchResults, isKindergartenSearching, kindergartenSearchError,
-    searchKindergartens, openKindergartenPopup, selectKindergarten,
+    kindergartenBizPart1,
+    setKindergartenBizPart1,
+    kindergartenBizPart2,
+    setKindergartenBizPart2,
+    kindergartenBizPart3,
+    setKindergartenBizPart3,
+    selectedKindergarten,
+    isKindergartenPopupOpen,
+    setIsKindergartenPopupOpen,
+    kindergartenSearchResults,
+    isKindergartenSearching,
+    kindergartenSearchError,
+    searchKindergartens,
+    openKindergartenPopup,
+    selectKindergarten,
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,

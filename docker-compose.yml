@@ -17,7 +17,7 @@ services:
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
       DB_USER: ${POSTGRES_USER:-kids_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-npm}
       JWT_SECRET: mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
