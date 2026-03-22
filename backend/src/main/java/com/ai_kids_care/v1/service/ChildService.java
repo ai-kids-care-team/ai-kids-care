@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.PageOfChildren;
 import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.repository.ChildRepository;
 import lombok.RequiredArgsConstructor;
