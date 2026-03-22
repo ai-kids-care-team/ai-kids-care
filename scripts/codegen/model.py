@@ -21,3 +21,5 @@ class EntityModel:
     resource: str             # 路径/权限资源名：/v1/ai_models
     id_type: str              # Long/UUID/...
     fields: List[FieldModel]
+    pk_fields: List[FieldModel]
+    pk_field: FieldModel

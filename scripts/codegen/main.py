@@ -50,6 +50,8 @@ def to_entity_model(conn, *, package_base: str, schema: str, table: str) -> Enti
     for i, f in enumerate(fields):
         f.last = (i == len(fields) - 1)
 
+    pk_fields = [f for f in fields if f.pk]
+
     return EntityModel(
         package_base=package_base,
         schema=schema,
@@ -58,6 +60,8 @@ def to_entity_model(conn, *, package_base: str, schema: str, table: str) -> Enti
         resource=resource_path_v1(table),
         id_type=id_type,
         fields=fields,
+        pk_fields=pk_fields,
+        pk_field=pk_fields[0] if pk_fields else None,
     )
 
 
@@ -72,12 +76,19 @@ def main():
     only_tables = os.environ.get("ONLY_TABLES")  # 例如 "users,orders"
     only = set(t.strip() for t in only_tables.split(",")) if only_tables else None
 
+    # 可选：排除部分表
+    exclude_tables = os.environ.get("EXCLUDE_TABLES")  # 例如 "flyway_schema_history,audit_log"
+    exclude = set(t.strip() for t in exclude_tables.split(",") if t.strip()) if exclude_tables else None
+
     templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 
     with psycopg.connect(dsn) as conn:
         tables = list_tables(conn, schema)
         if only:
             tables = [t for t in tables if t in only]
+
+        if exclude:
+            tables = [t for t in tables if t not in exclude]
 
         for table in tables:
             model = to_entity_model(conn, package_base=package_base, schema=schema, table=table)
