@@ -9,41 +9,42 @@ erDiagram
   kindergartens ||--o{ guardians : has
   kindergartens ||--o{ rooms : has
   kindergartens ||--o{ cctv_cameras : has
+  kindergartens ||--o{ user_kindergarten_memberships : has
+  kindergartens ||--o{ audit_logs : tenant
+
 
   users ||--o{ teachers : identity
   users ||--o{ guardians : identity
   users ||--o{ user_kindergarten_memberships : joins
-  users ||--o{ user_role_assignments : roles
+  users ||--o{ user_role_assignments : has
+  users ||--o{ superadmins : identity
+  users ||--o{ device_tokens : devices
+  users ||--o{ notifications : receives
+  users ||--o{ notification_rules : rules
+  users ||--o{ audit_logs : actions
 
   classes ||--o{ child_class_assignments : assigns
-  children ||--o{ child_class_assignments : history
-
   classes ||--o{ class_teacher_assignments : assigns
+
+  children ||--o{ child_class_assignments : history
+  children ||--o{ child_guardian_relationships : relates
+
   teachers ||--o{ class_teacher_assignments : history
 
-  children ||--o{ child_guardian_relationships : relates
   guardians ||--o{ child_guardian_relationships : relates
 
   rooms ||--o{ room_camera_assignments : hosts
-  cctv_cameras ||--o{ room_camera_assignments : deployed
+  rooms ||--o{ detection_events : location
 
+  cctv_cameras ||--o{ room_camera_assignments : deployed
   cctv_cameras ||--|| camera_streams : stream
+  cctv_cameras ||--o{ detection_sessions : source
+  cctv_cameras ||--o{ detection_events : observed
 
   ai_models ||--o{ detection_sessions : runs
-  cctv_cameras ||--o{ detection_sessions : source
+
   detection_sessions ||--o{ detection_events : outputs
-  rooms ||--o{ detection_events : location
-  cctv_cameras ||--o{ detection_events : observed
 
   detection_events ||--o{ event_reviews : reviewed
   detection_events ||--o{ event_evidence_files : evidence
-
   detection_events ||--o{ notifications : triggers
-  users ||--o{ notifications : receives
-  users ||--o{ device_tokens : devices
-  users ||--o{ notification_rules : rules
-
-  users ||--o{ audit_logs : actions
-  kindergartens ||--o{ audit_logs : tenant
-
-    users ||--o{ superadmins : identity
