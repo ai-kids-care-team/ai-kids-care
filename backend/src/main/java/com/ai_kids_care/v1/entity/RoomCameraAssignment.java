@@ -25,10 +25,12 @@ public class RoomCameraAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "room_id", nullable = false)
     private Room rooms;
 
     @NotNull

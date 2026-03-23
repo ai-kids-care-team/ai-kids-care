@@ -27,10 +27,12 @@ public class ClassTeacherAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_id", nullable = false)
     private Class classes;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "teacher_id", nullable = false)
     private Teacher teachers;
 
     @Column(name = "role", length = Integer.MAX_VALUE)

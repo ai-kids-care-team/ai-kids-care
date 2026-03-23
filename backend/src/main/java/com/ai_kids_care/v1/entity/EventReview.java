@@ -25,6 +25,7 @@ public class EventReview {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
     @NotNull
@@ -32,9 +33,11 @@ public class EventReview {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "from_status", columnDefinition = "event_status_enum")
     private EventStatusEnum fromStatus;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "result_status", columnDefinition = "event_status_enum")
     private EventStatusEnum resultStatus;
 

@@ -26,6 +26,7 @@ public class DetectionSession {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "stream_id", nullable = false)
     private CameraStream cameraStreams;
 
     @NotNull

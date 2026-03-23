@@ -23,12 +23,19 @@ public class ChildGuardianRelationship {
     @EmbeddedId
     private ChildGuardianRelationshipId id;
 
-    @MapsId("id")
+    @MapsId("kindergartenId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "kindergarten_id", nullable = false)
+    private Kindergarten kindergarten;
+
+    @MapsId("childId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "child_id", nullable = false)
     private Child children;
 
-    @MapsId("id")
+    @MapsId("guardianId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "guardian_id", nullable = false)
     private Guardian guardians;
 
     @Enumerated(EnumType.STRING)

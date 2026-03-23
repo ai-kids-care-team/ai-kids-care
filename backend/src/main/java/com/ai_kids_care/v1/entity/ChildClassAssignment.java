@@ -28,10 +28,12 @@ public class ChildClassAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "child_id", nullable = false)
     private Child children;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_id", nullable = false)
     private Class classes;
 
     @Column(name = "start_date")

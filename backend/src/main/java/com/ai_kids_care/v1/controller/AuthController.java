@@ -15,49 +15,49 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping
+    @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody AuthLoginRequest authLoginRequest) {
         TokenResponse response = authService.login(authLoginRequest);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping
+    @PostMapping("/logout")
     public void logout(@RequestBody AuthLogoutRequest authLogoutRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PatchMapping
+    @PatchMapping("/password")
     public void changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PostMapping
+    @PostMapping("/password-resets")
     public AuthPasswordResetsPost200Response resetPassword(@RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PatchMapping
+    @PatchMapping("/password-resets/{resetToken}")
     public void AuthPasswordResetsResetTokenPatch(@PathVariable String resetToken, @RequestBody ResetPasswordRequest resetPasswordRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PostMapping
+    @PostMapping("/refresh")
     public TokenResponse refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<AuthRegisterResponse> register(@RequestBody AuthRegisterRequest authRegisterRequest) {
         AuthRegisterResponse response = authService.register(authRegisterRequest);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping
+    @PostMapping("/verification-codes/{challengeId}/verifications")
     public VerifyVerificationCodeResponse authVerificationCodesChallengeIdVerificationsPost(@PathVariable String challengeId, @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    @PostMapping
+    @PostMapping("/verification-codes")
     public VerificationCodeCreateResponse verifyCodes(@RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
         throw new IllegalArgumentException("Not implemented");
     }

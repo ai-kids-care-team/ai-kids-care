@@ -28,6 +28,7 @@ public class Notification {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
     @NotNull

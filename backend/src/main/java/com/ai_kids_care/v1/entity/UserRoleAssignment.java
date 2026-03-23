@@ -31,15 +31,18 @@ public class UserRoleAssignment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", columnDefinition = "user_role_enum")
     private UserRoleEnum role;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type")
     private UserRoleAssignmentScopeType scopeType;
 
     @Column(name = "scope_id")
     private Long scopeId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

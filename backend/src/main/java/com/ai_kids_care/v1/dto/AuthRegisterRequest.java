@@ -79,6 +79,7 @@ public class AuthRegisterRequest implements Serializable {
     private String childRrnBack7;
 
     // Guardian
+    @Enumerated(EnumType.STRING)
     private RelationshipEnum relationship;
 
     // Guardian

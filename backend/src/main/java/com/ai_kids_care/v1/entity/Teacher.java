@@ -44,6 +44,7 @@ public class Teacher {
     @Column(name = "name", length = Integer.MAX_VALUE)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = Integer.MAX_VALUE)
     private GenderEnum gender;
 
@@ -59,6 +60,7 @@ public class Teacher {
     @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "level", length = Integer.MAX_VALUE)
     private LevelEnum level;
 

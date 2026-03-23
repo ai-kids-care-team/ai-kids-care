@@ -28,14 +28,17 @@ public class DetectionEvent {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "room_id", nullable = false)
     private Room rooms;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "session_id", nullable = false)
     private DetectionSession detectionSessions;
 
     @Column(name = "event_type", length = Integer.MAX_VALUE)

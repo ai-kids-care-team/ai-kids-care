@@ -42,7 +42,7 @@ public class Announcement {
     @Column(name = "pinned_until")
     private OffsetDateTime pinnedUntil;
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 

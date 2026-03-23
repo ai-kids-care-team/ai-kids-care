@@ -29,6 +29,7 @@ public class CameraStream {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
     @Enumerated(EnumType.STRING)

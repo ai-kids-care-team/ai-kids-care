@@ -44,6 +44,7 @@ public class Guardian {
     @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = Integer.MAX_VALUE)
     private GenderEnum gender;
 
