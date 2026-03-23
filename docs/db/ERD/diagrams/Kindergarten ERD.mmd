@@ -3,45 +3,265 @@ config:
   layout: elk
 ---
 erDiagram
-  KINDERGARTEN ||--o{ CLASS_ENTITY : has
-  KINDERGARTEN ||--o{ CHILD : has
-  KINDERGARTEN ||--o{ TEACHER : has
-  KINDERGARTEN ||--o{ GUARDIAN : has
-  KINDERGARTEN ||--o{ ROOM : has
-  KINDERGARTEN ||--o{ CCTV_CAMERA : has
+  kindergartens {
+    bigint kindergarten_id PK "유치원 ID"
+    varchar name "유치원명"
+    varchar address "주소"
+    varchar region_code "지역 코드(행정구역/내부 코드)"
+    varchar code "유치원 코드(내부/기관 식별용)"
+    varchar contact_name "담당자 이름"
+    varchar contact_phone "담당자 전화번호"
+    varchar contact_email "담당자 이메일"
+    varchar status "상태(운영/중지/폐원 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  USER_ACCOUNT ||--o{ TEACHER : identity
-  USER_ACCOUNT ||--o{ GUARDIAN : identity
-  USER_ACCOUNT ||--o{ USER_KINDERGARTEN_MEMBERSHIP : joins
-  USER_ACCOUNT ||--o{ USER_ROLE_ASSIGNMENT : roles
+  classes {
+    bigint class_id PK
+    bigint kindergarten_id FK
+    varchar name "반/학급 이름"
+    varchar grade "학년/연령대(예: 만3/만4/만5)"
+    bigint academic_year "학년도(예: 2026)"
+    date start_date "운영 시작일"
+    date end_date "운영 종료일"
+    varchar status "상태(운영/종료/폐지 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  CLASS_ENTITY ||--o{ CHILD_CLASS_ASSIGNMENT : assigns
-  CHILD ||--o{ CHILD_CLASS_ASSIGNMENT : history
+  children {
+    bigint child_id PK
+    bigint kindergarten_id FK
+    bigint class_id FK "현재 반 ID(캐시/현재상태). 변경 이력은 CHILD_CLASS_ASSIGNMENT를 기준으로 함"
+    varchar name "원아 이름"
+    varchar child_no "원아 번호(원내 관리번호)"
+    varchar rrn_encrypted "주민등록번호 암호문(암호화 저장)"
+    varchar rrn_first6 "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"
+    date birth_date "생년월일"
+    varchar gender "성별"
+    varchar address "주소"
+    date enroll_date "입원/등록일"
+    date leave_date "퇴원/전원/졸업일"
+    varchar status "상태(재원/퇴원/휴원 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  CLASS_ENTITY ||--o{ CLASS_TEACHER_ASSIGNMENT : assigns
-  TEACHER ||--o{ CLASS_TEACHER_ASSIGNMENT : history
+  child_class_assignments {
+    bigint assignment_id PK
+    bigint kindergarten_id FK
+    bigint child_id FK
+    bigint class_id FK
+    date start_date "배정 시작일"
+    date end_date "배정 종료일"
+    varchar reason "변경 사유(전반/이동/신설반 등)"
+    varchar note "비고/메모"
+    varchar status "상태(유효/종료/취소 등)"
+    bigint created_by_user_id "생성자 사용자 ID"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  CHILD ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
-  GUARDIAN ||--o{ CHILD_GUARDIAN_RELATIONSHIP : relates
+  users {
+    bigint user_id PK "사용자 계정 ID"
+    varchar login_id "로그인 ID(사용자 식별자)"
+    varchar password_hash "비밀번호 해시"
+    varchar status "계정 상태(ACTIVE/LOCKED/DISABLED 등)"
+    timestamptz last_login_at "마지막 로그인 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  ROOM ||--o{ ROOM_CAMERA_ASSIGNMENT : hosts
-  CCTV_CAMERA ||--o{ ROOM_CAMERA_ASSIGNMENT : deployed
+  teachers {
+    bigint teacher_id PK
+    bigint kindergarten_id FK
+    bigint user_id FK
+    varchar staff_no "직원 번호(원내 사번)"
+    varchar name "교사 이름"
+    varchar gender "성별"
+    varchar phone "휴대폰 번호"
+    varchar email "이메일"
+    varchar emergency_contact_name "비상 연락처 이름"
+    varchar emergency_contact_phone "비상 연락처 전화번호"
+    varchar rrn_encrypted "주민등록번호 암호문(암호화 저장)"
+    varchar rrn_first6 "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"
+    varchar level "직급(예: 원장/부원장/일반교사 등)"
+    date start_date "근무 시작일"
+    date end_date "근무 종료일"
+    varchar status "상태(재직/휴직/퇴직 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  CCTV_CAMERA ||--|| CAMERA_STREAM : stream
+  class_teacher_assignments {
+    bigint assignment_id PK
+    bigint kindergarten_id FK
+    bigint class_id FK
+    bigint teacher_id FK
+    varchar role "반 내 역할(담임/부담임/보조 등)"
+    date start_date "배정 시작일"
+    date end_date "배정 종료일"
+    varchar reason "변경 사유"
+    varchar note "비고/메모"
+    varchar status "상태(유효/종료/취소 등)"
+    bigint created_by_user_id "생성자 사용자 ID"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  AI_MODEL ||--o{ DETECTION_SESSION : runs
-  CCTV_CAMERA ||--o{ DETECTION_SESSION : source
-  DETECTION_SESSION ||--o{ DETECTION_EVENT : outputs
-  ROOM ||--o{ DETECTION_EVENT : location
-  CCTV_CAMERA ||--o{ DETECTION_EVENT : observed
+  guardians {
+    bigint guardian_id PK
+    bigint kindergarten_id FK
+    bigint user_id FK
+    varchar name "보호자 이름"
+    varchar rrn_encrypted "주민등록번호 암호문(암호화 저장)"
+    varchar rrn_first6 "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"
+    varchar gender "성별"
+    varchar phone "휴대폰 번호"
+    varchar email "이메일"
+    varchar address "주소"
+    varchar status "상태(활성/비활성/탈퇴 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  DETECTION_EVENT ||--o{ EVENT_REVIEW : reviewed
-  DETECTION_EVENT ||--o{ EVENT_EVIDENCE : evidence
+  child_guardian_relationships {
+    bigint kindergarten_id FK
+    bigint child_id FK
+    bigint guardian_id FK
+    varchar relationship "관계(부/모/조부모/후견인 등)"
+    boolean is_primary "주 보호자 여부"
+    int priority "우선순위(연락/권한 순서)"
+    date start_date "관계 시작일"
+    date end_date "관계 종료일"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  DETECTION_EVENT ||--o{ NOTIFICATION : triggers
-  USER_ACCOUNT ||--o{ NOTIFICATION : receives
-  USER_ACCOUNT ||--o{ DEVICE_TOKEN : devices
-  USER_ACCOUNT ||--o{ NOTIFICATION_RULE : rules
+  rooms {
+    bigint room_id PK
+    bigint kindergarten_id FK
+    varchar name "공간/교실 이름"
+    varchar room_code "공간 코드(내부 식별용)"
+    varchar location_note "위치 설명(층/동/출입구 등)"
+    varchar room_type "공간 유형(교실/복도/현관/놀이터 등)"
+    varchar status "상태(사용/미사용/폐쇄 등)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  USER_ACCOUNT ||--o{ AUDIT_LOG : actions
-  KINDERGARTEN ||--o{ AUDIT_LOG : tenant
+  class_room_assignments {
+    bigint assignment_id PK "반-공간 배정 ID"
+    bigint kindergarten_id FK "유치원 ID(테넌트/필터링용)"
+    bigint class_id FK "반 ID"
+    bigint room_id FK "공간 ID"
+    timestamptz start_timestamptz "사용 시작 일시"
+    timestamptz end_timestamptz "사용 종료 일시"
+    varchar purpose "사용 목적(수업/체육/행사/기타)"
+    varchar note "비고/메모"
+    varchar status "상태(유효/종료/취소 등)"
+    bigint created_by_user_id "생성자 사용자 ID"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  cctv_cameras {
+    bigint camera_id PK "카메라 ID"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    varchar serial_no "카메라 시리얼 번호/제조사 식별자"
+    varchar camera_name "카메라 이름/별칭 또는 표시 이름"
+    varchar model "모델명"
+    varchar created_by_user_id "등록한 사용자 ID(문자열로 저장된 사용자 식별자)"
+    varchar status "상태(ACTIVE/INACTIVE/RETIRED 등)"
+    timestamptz last_seen_at "마지막 접속/하트비트 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  room_camera_assignments {
+    bigint assignment_id PK
+    bigint kindergarten_id FK
+    bigint camera_id FK
+    bigint room_id FK
+    timestamptz start_timestamptz "설치/배치 시작 일시"
+    timestamptz end_timestamptz "설치/배치 종료 일시(철거/이동 시, NULL=현재 유효)"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  camera_streams {
+    bigint camera_id PK "카메라 ID(CCTV_CAMERA.camera_id)"
+    varchar stream_url "스트림 URL(예: RTSP/HTTP 엔드포인트)"
+    varchar stream_user "스트림 인증 사용자명"
+    varchar stream_password_encrypted "스트림 인증 비밀번호(암호화 저장)"
+    varchar protocol "스트림 프로토콜(RTSP/HTTP)"
+    int fps "스트림 FPS(초당 프레임 수)"
+    varchar resolution "해상도(예: 1920x1080)"
+    boolean enabled "스트림 사용 여부"
+    timestamptz updated_at "수정 일시"
+  }
+
+  superadmins {
+    bigint superadmin_id PK "슈퍼어드민 ID"
+    bigint user_id FK "사용자 ID"
+    varchar name "담당자 이름"
+    varchar department "행정청+부서 이름 e.g.서울시청 아동담당관"
+    varchar status "행정청 담당자 상태"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  user_kindergarten_memberships {
+    bigint membership_id PK "멤버십 ID"
+    bigint user_id FK "사용자 ID(USER_ACCOUNT.user_id)"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    varchar status "멤버십 상태"
+    timestamptz joined_at "가입/승인 일시"
+    timestamptz left_at "탈퇴/종료 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
+
+  user_role_assignments {
+    bigint role_assignment_id PK "권한 할당 ID"
+    bigint user_id FK "대상 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar role "역할(GUARDIAN/TEACHER/KINDERGARTEN_ADMIN/PLATFORM_IT_ADMIN/SUPERADMIN)"
+    varchar scope_type "권한 범위 유형(PLATFORM/KINDERGARTEN)"
+    bigint scope_id "권한 범위 ID(NULL=PLATFORM; KINDERGARTEN일 때 kindergarten_id)"
+    varchar status "권한 상태"
+    timestamptz granted_at "권한 부여 일시"
+    bigint granted_by_user_id "권한 부여자 사용자 ID(USER_ACCOUNT.user_id)"
+    timestamptz revoked_at "권한 회수 일시"
+    bigint revoked_by_user_id "권한 회수자 사용자 ID(USER_ACCOUNT.user_id)"
+  }
+
+  kindergartens ||--o{ classes : has
+  kindergartens ||--o{ children : has
+  kindergartens ||--o{ teachers : employs
+  kindergartens ||--o{ guardians : registers
+  kindergartens ||--o{ rooms : owns
+  kindergartens ||--o{ cctv_cameras : owns
+
+  classes ||--o{ child_class_assignments : assigns
+  children ||--o{ child_class_assignments : history
+  classes ||--o{ class_teacher_assignments : assigns
+  teachers ||--o{ class_teacher_assignments : history
+
+  children ||--o{ child_guardian_relationships : relates
+  guardians ||--o{ child_guardian_relationships : relates
+
+  classes ||--o{ class_room_assignments : uses
+  rooms ||--o{ class_room_assignments : allocated
+
+  rooms ||--o{ room_camera_assignments : hosts
+  cctv_cameras ||--o{ room_camera_assignments : deployed
+
+  cctv_cameras ||--|| camera_streams : stream
+
+  users ||--o{ teachers : user
+  users ||--o{ guardians : user
+  users ||--|| superadmins : identity
+  users ||--o{ user_kindergarten_memberships : joins
+  kindergartens ||--o{ user_kindergarten_memberships : has
+  users ||--o{ user_role_assignments : grants
