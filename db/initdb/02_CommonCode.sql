@@ -200,6 +200,8 @@ WHERE NOT EXISTS (
       AND c.code = v.code
 );
 
+
+
 INSERT INTO public.common_code
 (parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
 SELECT
@@ -223,5 +225,32 @@ WHERE NOT EXISTS (
     FROM public.common_code c
     WHERE c.parent_code = 'status'
       AND c.code_group = 'announcements'
+      AND c.code = v.code
+);
+
+
+INSERT INTO public.common_code
+(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
+SELECT
+    'status',
+    'user',
+    v.code,
+    v.code_name,
+    v.sort_order,
+    true,
+    null,
+    now(),
+    now()
+FROM (
+    VALUES
+        ('ACTIVE', '활성', 1),
+        ('PENDING', '대기', 2),
+        ('DISABLED', '종료', 3)
+) AS v(code, code_name, sort_order)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.common_code c
+    WHERE c.parent_code = 'status'
+      AND c.code_group = 'user'
       AND c.code = v.code
 );
