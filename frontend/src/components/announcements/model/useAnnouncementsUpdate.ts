@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  getAnnouncementDetail,
   getAnnouncementForEdit,
   getAnnouncementsMeta,
   type AnnouncementStatusOption,
-  type CreateAnnouncementPayload,
+  type AnnouncementWritePayload,
   updateAnnouncement,
 } from '@/services/apis/announcements.api';
 
@@ -67,6 +66,9 @@ export function useAnnouncementsUpdate() {
         const meta = await getAnnouncementsMeta();
         setCanWrite(meta.canWrite);
         setStatusOptions(meta.statusOptions);
+        if (meta.statusOptions.length > 0) {
+          setStatus(meta.statusOptions[0].code);
+        }
       } catch (e) {
         console.error('공지사항 메타 정보 조회 실패:', e);
       } finally {
@@ -75,8 +77,6 @@ export function useAnnouncementsUpdate() {
 
       try {
         const target = await getAnnouncementForEdit(id);
-        // /edit 조회가 성공하면 수정 권한이 있는 상태다.
-        setCanWrite(true);
         setTitle(target.title);
         setContent(target.body);
         setIsPinned(Boolean(target.pinned));
@@ -84,22 +84,12 @@ export function useAnnouncementsUpdate() {
         setPublishedAt(toLocalDatetimeInput(target.publishedAt));
         setStartsAt(toLocalDatetimeInput(target.startsAt));
         setEndsAt(toLocalDatetimeInput(target.endsAt));
-        setStatus(target.status);
-      } catch (e) {
-        // 백엔드에 /edit API가 아직 반영되지 않았을 때를 대비해 상세 API로 기본값 채움
-        try {
-          const detail = await getAnnouncementDetail(id);
-          setTitle(detail.title);
-          setContent(detail.body);
-          setPublishedAt(toLocalDatetimeInput(detail.publishedAt ?? detail.createdAt));
-          setStartsAt('');
-          setEndsAt('');
-          setPinnedUntil('');
-          setIsPinned(false);
-        } catch (detailError) {
-          console.error('공지사항 수정 정보 조회 실패:', e, detailError);
-          setError('공지사항 수정 정보를 불러오지 못했습니다.');
+        if (target.status) {
+          setStatus(target.status);
         }
+      } catch (e) {
+        console.error('공지사항 수정 정보 조회 실패:', e);
+        setError('공지사항 수정 정보를 불러오지 못했습니다.');
       } finally {
         setLoadingAnnouncement(false);
       }
@@ -133,10 +123,10 @@ export function useAnnouncementsUpdate() {
       return;
     }
 
-    const payload: CreateAnnouncementPayload = {
+    const payload: AnnouncementWritePayload = {
       title: title.trim(),
       body: content.trim(),
-      pinned: isPinned,
+      isPinned,
       pinnedUntil: toIsoOrNull(pinnedUntil),
       status,
       publishedAt: toIsoOrNull(publishedAt),

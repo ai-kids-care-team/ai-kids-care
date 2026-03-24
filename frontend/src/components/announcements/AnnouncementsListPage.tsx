@@ -4,7 +4,18 @@ import { AnnouncementsListForm } from './AnnouncementsListForm';
 import { useAnnouncements } from './model/useAnnouncements';
 
 export function AnnouncementsListPage() {
-  const { announcements, keyword, setKeyword, handleSearch, canWrite, loading, error } = useAnnouncements();
+  const {
+    announcements,
+    keyword,
+    setKeyword,
+    handleSearch,
+    canWrite,
+    loading,
+    error,
+    page,
+    totalPages,
+    setPage,
+  } = useAnnouncements();
   return (
     <AnnouncementsListForm
       announcements={announcements}
@@ -14,6 +25,9 @@ export function AnnouncementsListPage() {
       canWrite={canWrite}
       loading={loading}
       error={error}
+      page={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
     />
   );
 }

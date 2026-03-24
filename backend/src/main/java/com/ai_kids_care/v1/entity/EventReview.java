@@ -3,6 +3,8 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -33,11 +35,11 @@ public class EventReview {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "from_status", columnDefinition = "event_status_enum")
     private EventStatusEnum fromStatus;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "result_status", columnDefinition = "event_status_enum")
     private EventStatusEnum resultStatus;
 

@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.CommonCodeResponse;
+import com.ai_kids_care.v1.vo.CommonCodeVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ public class CommonCodeService {
     private final JdbcTemplate jdbcTemplate;
 
     @Transactional(readOnly = true)
-    public List<CommonCodeResponse> getActiveCodesByGroup(String group) {
+    public List<CommonCodeVO> getActiveCodesByGroup(String group) {
         if (group == null || group.isBlank()) {
             throw new RuntimeException("코드 그룹을 입력해주세요.");
         }
@@ -29,7 +29,7 @@ public class CommonCodeService {
                    AND is_active = true
                  ORDER BY sort_order ASC, code ASC
                 """,
-                (rs, rowNum) -> new CommonCodeResponse(
+                (rs, rowNum) -> new CommonCodeVO(
                         rs.getString("code_group"),
                         rs.getString("parent_code"),
                         rs.getString("code"),

@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class CommonCodeResponse {
+public class CommonCodeDTO {
     private String codeGroup;
     private String parentCode;
     private String code;

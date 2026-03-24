@@ -1,10 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/config/api';
+import { index as appStore } from '@/store/index';
 
-// 환경변수에 설정된 API 주소를 사용하거나 기본값 사용
-//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com';
-// 변경 후
-//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const API_BASE_URL = 'http://localhost:8080/api/v1';
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -15,10 +12,14 @@ export const apiClient = axios.create({
 // 1. 요청(Request) 인터셉터: API를 호출하기 직전에 항상 실행됨
 apiClient.interceptors.request.use(
   (config) => {
-    // 로그인 경로별 저장 키 차이를 흡수하기 위해 accessToken/token 모두 확인
-    const token = typeof window !== 'undefined'
-      ? (localStorage.getItem('accessToken') ?? localStorage.getItem('token'))
-      : null;
+    /* localStorage + Redux: 로그인 직후·하이드레이션 타이밍에 한쪽만 채워질 수 있음 */
+    let token: string | null = null;
+    if (typeof window !== 'undefined') {
+      token =
+        localStorage.getItem('accessToken') ??
+        localStorage.getItem('token') ??
+        appStore.getState().user.token;
+    }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착
     }

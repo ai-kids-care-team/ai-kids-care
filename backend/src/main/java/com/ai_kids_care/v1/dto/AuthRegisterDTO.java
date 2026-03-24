@@ -15,6 +15,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.Length;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.io.Serializable;
 
 /**
@@ -23,7 +26,8 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthRegisterRequest implements Serializable {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class AuthRegisterDTO implements Serializable {
     @Enumerated(EnumType.STRING)
     @NotNull(message = "회원유형을 선택해주세요.")
     @NotBlank(message = "회원유형을 선택해주세요.")
@@ -46,6 +50,7 @@ public class AuthRegisterRequest implements Serializable {
     @NotBlank(message = "비밀번호를 입력해주세요.")
     private String password;
 
+    /** GUARDIAN: 아이 소속 유치원(히든), TEACHER/KINDERGARTEN_ADMIN: 선택 유치원 */
     @NotNull(message = "유치원을 선택해주세요.")
     private Long kindergartenId;
 
@@ -53,6 +58,7 @@ public class AuthRegisterRequest implements Serializable {
     @NotBlank(message = "이름을 입력해주세요.")
     private String name;
 
+    /** 양육자·유치원 관계자 가입 시 필수 (서비스에서 검증) */
     @NotNull(message = "주민등록번호 앞자리를 입력해주세요.")
     @NotBlank(message = "주민등록번호 앞자리를 입력해주세요.")
     @Length(min = 6, max = 6, message = "주민등록번호 앞자리는 숫자 6자리여야 합니다.")
@@ -78,11 +84,13 @@ public class AuthRegisterRequest implements Serializable {
     @Length(min = 7, max = 7, message = "주민등록번호 뒷자리는 숫자 7자리여야 합니다.")
     private String childRrnBack7;
 
+    /** 프론트 공통코드: MOTHER, FATHER, MATERNAL_GRANDMOTHER 등 → 서버에서 DB 허용 값으로 매핑 */
     // Guardian
     @Enumerated(EnumType.STRING)
     private RelationshipEnum relationship;
 
     // Guardian
+    @JsonAlias("primaryGuardian")
     private Boolean isPrimaryGuardian;
 
     // Teacher
@@ -98,7 +106,11 @@ public class AuthRegisterRequest implements Serializable {
     // Teacher
     @Enumerated(EnumType.STRING)
     private LevelEnum level;
+    private String staffNo;
 
     // Superadmin
     private String department;
+
+    /** 프론트 히든용 (무시) */
+    private String status;
 }

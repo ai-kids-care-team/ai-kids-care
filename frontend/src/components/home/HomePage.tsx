@@ -7,7 +7,7 @@ import { HeroSlider } from '@/components/home/HeroSlider';
 import { LoginModal } from '@/components/home/LoginModal';
 import { Footer } from '@/layout/Footer';
 import { useAppSelector } from '@/store/hook';
-import { getAnnouncements } from '@/services/apis/announcements.api';
+import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
 
 
 type HomeAnnouncement = {
@@ -33,16 +33,10 @@ export function HomePage() {
   useEffect(() => {
     const loadAnnouncements = async () => {
       try {
-        const list = await getAnnouncements();
+        const pageData = await getAnnouncements({ page: 0, size: ANNOUNCEMENTS_LIST_PAGE_SIZE });
+        const list = pageData.content;
         const now = Date.now();
-        const mapped = list
-          .sort((a, b) => {
-            const aBase = a.publishedAt ?? a.createdAt;
-            const bBase = b.publishedAt ?? b.createdAt;
-            return new Date(bBase).getTime() - new Date(aBase).getTime();
-          })
-          .slice(0, 5)
-          .map((item) => {
+        const mapped = list.map((item) => {
             const baseDate = item.publishedAt ?? item.createdAt;
             return {
               id: item.id,

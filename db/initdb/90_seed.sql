@@ -1,9 +1,10 @@
 -- Initial accounts
--- admin plaintext password: password
+-- admin / user plaintext password: password
+-- BCrypt verified with org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 
 INSERT INTO users (login_id, password_hash, email, phone, status, created_at, updated_at)
 SELECT 'admin',
-       '$2a$12$R94IujmK3hfnWKFiRMbPfO2sjl4LauYVAfTezK1NOIcdstpHTtp/.',
+       '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG',
        'admin@example.com',
        '010-0000-0000',
        'ACTIVE',
@@ -30,10 +31,9 @@ WHERE NOT EXISTS (SELECT 1
                     AND ura.scope_id = 1001
                     AND ura.status = 'ACTIVE');
 
--- user plaintext password: password
 INSERT INTO users (login_id, password_hash, email, phone, status, created_at, updated_at)
 SELECT 'user',
-       '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+       '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG',
        'user@example.com',
        '010-1111-1111',
        'ACTIVE',

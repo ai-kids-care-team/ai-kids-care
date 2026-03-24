@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface KindergartenMapper {
 
-    @Mapping(target = "kindergartenId", ignore = true)
+    @Mapping(source = "id", target = "kindergartenId")
     KindergartenVO toVO(Kindergarten entity);
 
     @Mapping(target = "id", ignore = true)

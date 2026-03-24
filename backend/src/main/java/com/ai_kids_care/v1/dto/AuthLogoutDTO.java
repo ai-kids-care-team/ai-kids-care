@@ -8,27 +8,26 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Generated;
 
 /**
- * AuthLoginRequest
+ * AuthLogoutRequest
  */
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.20.0")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AuthLoginRequest {
+public class AuthLogoutDTO {
 
   
   @NonNull
-  @Schema(name = "identifier", description = "login_id or email or phone", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("identifier")
-  private String identifier;
+  @Schema(name = "refreshToken", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("refreshToken")
+  private String refreshToken;
 
   
-  @ToString.Exclude
-  @NonNull
-  @Schema(name = "password", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("password")
-  private String password;
+  @Schema(name = "allSessions", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("allSessions")
+  @Builder.Default
+  private Boolean allSessions = false;
 
 }
 

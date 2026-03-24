@@ -3,6 +3,8 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
@@ -26,7 +28,7 @@ public class AiModel {
     @Column(name = "version", length = Integer.MAX_VALUE)
     private String version;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

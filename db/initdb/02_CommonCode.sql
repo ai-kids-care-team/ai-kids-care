@@ -189,8 +189,8 @@ INSERT INTO common_code
 SELECT *
 FROM (
     VALUES
-    ('level', 'teachers', 'PRINCIPAL', '원장', 1, true, NULL::jsonb, now(), now()),
-    ('level', 'teachers', 'VICE_PRINCIPAL', '부원장', 2, true, NULL::jsonb, now(), now()),
+    ('level', 'teachers', 'DIRECTOR', '원장', 1, true, NULL::jsonb, now(), now()),
+    ('level', 'teachers', 'VICE_DIRECTOR', '부원장', 2, true, NULL::jsonb, now(), now()),
     ('level', 'teachers', 'TEACHER', '일반교사', 3, true, NULL::jsonb, now(), now())
 ) AS v(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
 WHERE NOT EXISTS (

@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   createAnnouncement,
   getAnnouncementsMeta,
+  validateAnnouncementCreateAuditFields,
   type AnnouncementStatusOption,
-  type CreateAnnouncementPayload,
+  type AnnouncementWritePayload,
 } from '@/services/apis/announcements.api';
 
 type StatusCode = 'ACTIVE' | 'PENDING' | 'DISABLED';
@@ -89,17 +90,27 @@ export function useAnnouncementsWrite() {
       return;
     }
 
-    const payload: CreateAnnouncementPayload = {
+    const nowIso = new Date().toISOString();
+    const createdAt = nowIso;
+    const updatedAt = nowIso;
+    const auditMsg = validateAnnouncementCreateAuditFields(createdAt, updatedAt);
+    if (auditMsg) {
+      setError(auditMsg);
+      return;
+    }
+
+    const payload: AnnouncementWritePayload = {
       title: title.trim(),
       body: content.trim(),
-      pinned: isPinned,
+      isPinned,
       pinnedUntil: toIsoOrNull(pinnedUntil),
       status,
       publishedAt: toIsoOrNull(publishedAt),
       startsAt: toIsoOrNull(startsAt),
       endsAt: toIsoOrNull(endsAt),
+      createdAt,
+      updatedAt,
     };
-
     try {
       setSubmitting(true);
       await createAnnouncement(payload);

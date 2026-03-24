@@ -2,6 +2,8 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -60,7 +62,7 @@ public class DetectionEvent {
     @Column(name = "end_time")
     private OffsetDateTime endTime;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "event_status_enum")
     private EventStatusEnum status;
 

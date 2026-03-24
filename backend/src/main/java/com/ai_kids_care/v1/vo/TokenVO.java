@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.dto;
+package com.ai_kids_care.v1.vo;
 
 import com.ai_kids_care.v1.type.TokenTypeEnum;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import jakarta.annotation.Generated;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TokenResponse {
+public class TokenVO {
 
     @NonNull
     @Schema(name = "accessToken", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -44,6 +44,15 @@ public class TokenResponse {
     @Schema(name = "refreshExpiresIn", description = "seconds", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @JsonProperty("refreshExpiresIn")
     private Integer refreshExpiresIn;
+
+    /** {@link com.ai_kids_care.v1.type.UserRoleEnum} 이름 (예: SUPERADMIN, GUARDIAN) */
+    @Schema(name = "role")
+    @JsonProperty("role")
+    private String role;
+
+    @Schema(name = "loginId")
+    @JsonProperty("loginId")
+    private String loginId;
 
 }
 

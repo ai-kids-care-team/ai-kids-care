@@ -22,8 +22,10 @@ type GuardianFormProps = {
     confirmPassword: string;
   };
   onChange: (key: 'name' | 'loginId' | 'password' | 'confirmPassword' | 'email' | 'phone', value: string) => void;
-  childNameKeyword: string;
-  setChildNameKeyword: (value: string) => void;
+  childSearchFirst6: string;
+  setChildSearchFirst6: (value: string) => void;
+  childSearchBack7: string;
+  setChildSearchBack7: (value: string) => void;
   selectedChild: ChildLookupItem | null;
   openChildPopup: () => void;
   rrnFirst6: string;
@@ -45,13 +47,17 @@ type GuardianFormProps = {
       string
     >
   >;
+  /** 로그인 ID·이메일·연락처 중복 검사 (포커스 아웃) */
+  onAccountFieldBlur?: (field: 'loginId' | 'email' | 'phone', value: string) => void;
 };
 
 export function GuardianForm({
   form,
   onChange,
-  childNameKeyword,
-  setChildNameKeyword,
+  childSearchFirst6,
+  setChildSearchFirst6,
+  childSearchBack7,
+  setChildSearchBack7,
   selectedChild,
   openChildPopup,
   rrnFirst6,
@@ -68,11 +74,13 @@ export function GuardianForm({
   isPrimaryGuardian,
   setIsPrimaryGuardian,
   fieldErrors,
+  onAccountFieldBlur,
 }: GuardianFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showChildSearchBack7, setShowChildSearchBack7] = useState(false);
 
-  const handleChildNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleChildRrnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       openChildPopup();
@@ -104,6 +112,7 @@ export function GuardianForm({
             name="loginId"
               value={form.loginId}
               onChange={(e) => onChange('loginId', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('loginId', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="your-id"
               required
@@ -114,9 +123,10 @@ export function GuardianForm({
             <label className="mb-2 block text-sm font-medium text-slate-700">이메일</label>
             <input
               type="email"
-            name="email"
+              name="email"
               value={form.email}
               onChange={(e) => onChange('email', e.target.value)}
+              onBlur={(e) => onAccountFieldBlur?.('email', e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               placeholder="email@example.com"
               required
@@ -131,6 +141,7 @@ export function GuardianForm({
                 name="phone"
                 value={form.phone}
                 onChange={(e) => onChange('phone', e.target.value)}
+                onBlur={(e) => onAccountFieldBlur?.('phone', e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                 placeholder="010-0000-0000"
                 required
@@ -193,15 +204,42 @@ export function GuardianForm({
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">아이 찾기</h2>
         <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
-          <input
-            type="text"
-            name="childNameKeyword"
-            value={childNameKeyword}
-            onChange={(e) => setChildNameKeyword(e.target.value)}
-            onKeyDown={handleChildNameKeyDown}
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 md:w-[85%]"
-            placeholder="아이 이름 입력 후 Enter"
-          />
+          <div className="flex w-full items-center gap-2 md:w-[85%]">
+            <input
+              type="text"
+              name="childSearchFirst6"
+              value={childSearchFirst6}
+              onChange={(e) => setChildSearchFirst6(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={handleChildRrnKeyDown}
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              placeholder="앞6자리"
+              inputMode="numeric"
+              maxLength={6}
+            />
+            <span className="text-slate-500">-</span>
+            <div className="relative w-full">
+              <input
+                type={showChildSearchBack7 ? 'text' : 'password'}
+                name="childSearchBack7"
+                value={childSearchBack7}
+                onChange={(e) => setChildSearchBack7(e.target.value.replace(/\D/g, '').slice(0, 7))}
+                onKeyDown={handleChildRrnKeyDown}
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 pr-11 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                placeholder="뒷7자리"
+                inputMode="numeric"
+                maxLength={7}
+              />
+              <button
+                type="button"
+                onClick={() => setShowChildSearchBack7((v) => !v)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                aria-label={showChildSearchBack7 ? '아이 찾기 뒷자리 숨기기' : '아이 찾기 뒷자리 보기'}
+              >
+                {showChildSearchBack7 ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             onClick={openChildPopup}

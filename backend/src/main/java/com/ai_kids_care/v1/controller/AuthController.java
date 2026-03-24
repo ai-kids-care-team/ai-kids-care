@@ -1,11 +1,16 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.service.KindergartenService;
+import com.ai_kids_care.v1.vo.*;
 import com.ai_kids_care.v1.service.AuthService;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @Tag(name = "Auth")
 @RestController
@@ -14,15 +19,16 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final KindergartenService kindergartenService;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody AuthLoginRequest authLoginRequest) {
-        TokenResponse response = authService.login(authLoginRequest);
+    public ResponseEntity<TokenVO> login(@RequestBody AuthLoginDTO authLoginDTO) {
+        TokenVO response = authService.login(authLoginDTO);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public void logout(@RequestBody AuthLogoutRequest authLogoutRequest) {
+    public void logout(@RequestBody AuthLogoutDTO authLogoutDTO) {
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -42,14 +48,14 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public TokenResponse refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
+    public TokenVO refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthRegisterResponse> register(@RequestBody AuthRegisterRequest authRegisterRequest) {
-        AuthRegisterResponse response = authService.register(authRegisterRequest);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthRegisterResponse> register(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterDTO authRegisterDTO) {
+        AuthRegisterResponse response = authService.register(authRegisterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/verification-codes/{challengeId}/verifications")
@@ -62,4 +68,25 @@ public class AuthController {
         throw new IllegalArgumentException("Not implemented");
     }
 
+    /**
+     * /register/availability?field=loginId|email|phone&amp;value=...
+     */
+    @GetMapping("/register/availability")
+    public AuthRegisterVO registerFieldAvailability(
+            @RequestParam("field") String field,
+            @RequestParam(value = "value", required = false, defaultValue = "") String value
+    ) {
+        try {
+            return authService.checkRegisterFieldAvailability(field, value);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @GetMapping("/kindergartens")
+    public java.util.List<KindergartenVO> lookupByBusinessRegistrationNo(
+            @RequestParam("businessRegistrationNo") String businessRegistrationNo
+    ) {
+        return kindergartenService.searchForSignupByBusinessRegistrationNo(businessRegistrationNo);
+    }
 }

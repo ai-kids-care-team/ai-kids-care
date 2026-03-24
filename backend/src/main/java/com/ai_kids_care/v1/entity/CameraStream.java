@@ -4,6 +4,8 @@ import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -32,7 +34,7 @@ public class CameraStream {
     @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "stream_type", columnDefinition = "camera_stream_type_enum")
     private CameraStreamTypeEnum streamType;
 
@@ -60,7 +62,7 @@ public class CameraStream {
     @Column(name = "enabled")
     private Boolean enabled;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface ChildMapper {
 
-    @Mapping(target = "childId", ignore = true)
+    @Mapping(source = "id", target = "childId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     ChildVO toVO(Child entity);
 

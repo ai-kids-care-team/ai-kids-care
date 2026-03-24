@@ -40,16 +40,18 @@ export function LoginForm() {
 
     try {
       // RTK Query를 통한 로그인 API 호출 (.unwrap()으로 에러 캐치)
-      const response = await loginApi({ loginId, password }).unwrap();
+      const response = await loginApi({ identifier: loginId, password }).unwrap();
 
-      const { loginId: responseLoginId, role, token } = response;
-      //console.log('백엔드 로그인 응답 데이터:', response);
+      const responseLoginId = response?.loginId ?? loginId;
+      const role = response?.role ?? 'guardian';
+      const token = response?.accessToken ?? response?.token ?? '';
+      const displayName = response?.name ?? responseLoginId;
 
       const user = {
-          id: responseLoginId,       // 👈 타입 에러 해결을 위해 추가!
-          username: responseLoginId, // 👈 타입 에러 해결을 위해 추가!
+          id: responseLoginId,
+          username: responseLoginId,
           loginId: responseLoginId,
-          name: responseLoginId, // 백엔드가 이름을 안 주므로 임시로 아이디를 이름 대신 표시
+          name: displayName,
           role: mapBackendRoleToFrontendRole(role),
       };
 

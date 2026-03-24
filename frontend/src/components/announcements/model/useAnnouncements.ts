@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAnnouncements, getAnnouncementsMeta } from '@/services/apis/announcements.api';
+import {
+  ANNOUNCEMENTS_LIST_PAGE_SIZE,
+  getAnnouncements,
+  getAnnouncementsMeta,
+} from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
 
 export type AnnouncementItem = {
@@ -26,6 +30,8 @@ export function useAnnouncements() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [canWrite, setCanWrite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,10 +48,18 @@ export function useAnnouncements() {
       setLoading(true);
       setError('');
       try {
-        const [list, meta] = await Promise.all([getAnnouncements(appliedKeyword), getAnnouncementsMeta()]);
+        const [pageData, meta] = await Promise.all([
+          getAnnouncements({
+            keyword: appliedKeyword || undefined,
+            page,
+            size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
+          }),
+          getAnnouncementsMeta(),
+        ]);
         const now = Date.now();
+        setTotalPages(pageData.totalPages);
         setAnnouncements(
-          list.map((item) => {
+          pageData.content.map((item) => {
             const baseDate = item.publishedAt ?? item.createdAt;
             const isNew = now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000;
             return {
@@ -68,10 +82,11 @@ export function useAnnouncements() {
     };
 
     void load();
-  }, [appliedKeyword, user?.id, token, isAuthenticated]);
+  }, [appliedKeyword, page, user?.id, token, isAuthenticated]);
 
   const handleSearch = () => {
     setAppliedKeyword(keyword.trim());
+    setPage(0);
   };
 
   return {
@@ -82,5 +97,8 @@ export function useAnnouncements() {
     canWrite,
     loading,
     error,
+    page,
+    totalPages,
+    setPage,
   };
 }

@@ -2,17 +2,19 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.ChildCreateDTO;
 import com.ai_kids_care.v1.dto.ChildUpdateDTO;
+import com.ai_kids_care.v1.service.AuthService;
 import com.ai_kids_care.v1.vo.ChildVO;
 import com.ai_kids_care.v1.service.ChildrenService;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Tag(name="Children")
 @RestController
@@ -21,13 +23,18 @@ import org.springframework.web.bind.annotation.*;
 public class ChildrenController {
 
     private final ChildrenService service;
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @GetMapping
     public ResponseEntity<Page<ChildVO>> listChildren(
-            @RequestParam(required = false) String keyword,
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+
+            @RequestParam("keyword") String keyword,
+//            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+                    @Parameter(name = "page", description = "", in = ParameterIn.QUERY) @RequestParam(value = "page", required = false) Integer page,
+            @Parameter(name = "size", description = "", in = ParameterIn.QUERY) @RequestParam(value = "size", required = false) Integer size,
+            @Parameter(name = "sort", description = "e.g. created_at,desc", in = ParameterIn.QUERY) @RequestParam(value = "sort", required = false) String sort
     ) {
-        return ResponseEntity.ok(service.listChildren(keyword, pageable));
+        return ResponseEntity.ok(service.listChildren(keyword, page, size, sort));
     }
 
     @GetMapping("/{id}")
