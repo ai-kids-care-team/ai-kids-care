@@ -1,10 +1,16 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.dto.CommonCodeCreateDTO;
+import com.ai_kids_care.v1.dto.CommonCodeUpdateDTO;
+import com.ai_kids_care.v1.entity.CommonCode;
+import com.ai_kids_care.v1.mapper.CommonCodeMapper;
+import com.ai_kids_care.v1.repository.CommonCodeRepository;
 import com.ai_kids_care.v1.vo.CommonCodeVO;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,52 +18,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommonCodeService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final CommonCodeRepository repository;
+    private final CommonCodeMapper mapper;
 
-    @Transactional(readOnly = true)
-    public List<CommonCodeVO> getActiveCodesByGroup(String group) {
-        if (group == null || group.isBlank()) {
-            throw new RuntimeException("코드 그룹을 입력해주세요.");
-        }
 
-        String codeGroup = group.trim();
-        return jdbcTemplate.query(
-                """
-                SELECT code_group, parent_code, code, code_name, sort_order
-                  FROM common_code
-                 WHERE UPPER(code_group) = UPPER(?)
-                   AND is_active = true
-                 ORDER BY sort_order ASC, code ASC
-                """,
-                (rs, rowNum) -> new CommonCodeVO(
-                        rs.getString("code_group"),
-                        rs.getString("parent_code"),
-                        rs.getString("code"),
-                        rs.getString("code_name"),
-                        rs.getInt("sort_order")
-                ),
-                codeGroup
-        );
+    public Page<CommonCodeVO> listActiveCodesByGroup(String group, Pageable pageable) {
+        return repository.findByCodeGroupIgnoreCase(group, pageable).map(mapper::toVO);
     }
 
-    @Transactional(readOnly = true)
-    public boolean existsActiveCode(String group, String code) {
-        if (group == null || group.isBlank() || code == null || code.isBlank()) {
-            return false;
-        }
+    public CommonCodeVO getCommonCode(Long id) {
+        return repository.findById(id).map(mapper::toVO).orElseThrow(() -> new EntityNotFoundException("CommonCode not found"));
+    }
 
-        Integer count = jdbcTemplate.queryForObject(
-                """
-                SELECT COUNT(*)
-                  FROM common_code
-                 WHERE UPPER(code_group) = UPPER(?)
-                   AND UPPER(code) = UPPER(?)
-                   AND is_active = true
-                """,
-                Integer.class,
-                group.trim(),
-                code.trim()
-        );
-        return count != null && count > 0;
+    public CommonCodeVO createCommonCode(CommonCodeCreateDTO createDTO) {
+        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
+    }
+
+    public CommonCodeVO updateCommonCode(Long id, CommonCodeUpdateDTO updateDTO) {
+        CommonCode entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("CommonCode not found"));
+        mapper.updateEntity(updateDTO, entity);
+        return mapper.toVO(repository.save(entity));
+    }
+
+    public void deleteCommonCode(Long id) {
+        CommonCode entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("CommonCode not found"));
+        repository.delete(entity);
+    }
+
+    public List<CommonCodeVO> listActiveCommonCodes(String codeGroup, String code) {
+        return mapper.toVOList(repository.findByCodeGroupIgnoreCaseAndCodeIgnoreCase(codeGroup, code));
     }
 }

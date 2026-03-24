@@ -1,14 +1,23 @@
 package com.ai_kids_care.v1.vo;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import com.fasterxml.jackson.databind.JsonNode;
 
-@Getter
-@AllArgsConstructor
-public class CommonCodeVO {
-    private String codeGroup;
-    private String parentCode;
-    private String code;
-    private String codeName;
-    private int sortOrder;
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+
+/**
+ * VO for {@link com.ai_kids_care.v1.entity.CommonCode}
+ */
+public record CommonCodeVO(
+        Long codeId,
+        String parentCode,
+        String codeGroup,
+        String code,
+        String codeName,
+        Integer sortOrder,
+        Boolean isActive,
+        JsonNode extraJson,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
+) implements Serializable {
 }
