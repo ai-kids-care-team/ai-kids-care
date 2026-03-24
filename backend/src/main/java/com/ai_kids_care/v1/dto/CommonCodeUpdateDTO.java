@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,7 +21,6 @@ public class CommonCodeUpdateDTO implements Serializable {
     private String codeName;
     private Integer sortOrder;
     private Boolean isActive;
-    private JsonNode extraJson;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

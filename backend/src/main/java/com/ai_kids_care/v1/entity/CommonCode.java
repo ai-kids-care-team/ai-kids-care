@@ -15,7 +15,7 @@ import java.util.Map;
 @Getter
 @Setter
 @Entity
-@Table(name = "common_code", schema = "public")
+@Table(name = "common_codes", schema = "public")
 public class CommonCode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,10 +50,6 @@ public class CommonCode {
     @ColumnDefault("true")
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "extra_json")
-    private Map<String, Object> extraJson;
 
     @NotNull
     @Column(name = "created_at", nullable = false)

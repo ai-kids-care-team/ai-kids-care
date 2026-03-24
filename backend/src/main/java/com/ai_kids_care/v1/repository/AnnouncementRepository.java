@@ -7,33 +7,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.time.Instant;
+import java.util.List;
 
 public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {
 
     @Query("""
-            SELECT a FROM Announcement a
-             WHERE (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
-               AND a.status = :activeStatus
-               AND (a.publishedAt IS NULL OR a.publishedAt <= CURRENT_TIMESTAMP)
-               AND (a.startsAt IS NULL OR a.startsAt <= CURRENT_TIMESTAMP)
-               AND (a.endsAt IS NULL OR a.endsAt >= CURRENT_TIMESTAMP)
-             ORDER BY a.createdAt DESC, a.id DESC
+            select a from Announcement a
+            where (a.title like concat('%',:keyword,'%') or a.body like concat('%',:keyword,'%'))
+            and (a.status = com.ai_kids_care.v1.type.StatusEnum.ACTIVE)
+            and (a.deletedAt is null or a.deletedAt > CURRENT_TIMESTAMP)
+            and (a.publishedAt is null or a.publishedAt<=CURRENT_TIMESTAMP)
+            and (a.startsAt is null or a.startsAt <=CURRENT_TIMESTAMP)
+            and (a.endsAt is null or a.endsAt >=CURRENT_TIMESTAMP)
             """)
-    Page<Announcement> findPublishedActive(@Param("activeStatus") StatusEnum activeStatus, Pageable pageable);
+    Page<Announcement> listActiveAnnouncements(@Param("keyword") String keyword, Pageable pageable);
 
-    @Query("""
-            SELECT a FROM Announcement a
-             WHERE (a.deletedAt IS NULL OR a.deletedAt > CURRENT_TIMESTAMP)
-               AND a.status = :activeStatus
-               AND (a.publishedAt IS NULL OR a.publishedAt <= CURRENT_TIMESTAMP)
-               AND (a.startsAt IS NULL OR a.startsAt <= CURRENT_TIMESTAMP)
-               AND (a.endsAt IS NULL OR a.endsAt >= CURRENT_TIMESTAMP)
-               AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                    OR LOWER(a.body) LIKE LOWER(CONCAT('%', :keyword, '%')))
-             ORDER BY a.createdAt DESC, a.id DESC
-            """)
-    Page<Announcement> findPublishedActiveByKeyword(
-            @Param("keyword") String keyword,
-            @Param("activeStatus") StatusEnum activeStatus,
-            Pageable pageable);
 }

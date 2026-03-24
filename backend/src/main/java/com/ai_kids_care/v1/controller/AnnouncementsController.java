@@ -20,7 +20,7 @@ public class AnnouncementsController {
     public ResponseEntity<List<AnnouncementSummaryResponse>> getAnnouncements(
             @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return ResponseEntity.ok(announcementsService.getActiveAnnouncements(keyword));
+        return ResponseEntity.ok(announcementsService.listActiveAnnouncements(keyword));
     }
 
     @GetMapping("/{id}")

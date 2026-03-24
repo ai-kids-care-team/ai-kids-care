@@ -1,7 +1,5 @@
 package com.ai_kids_care.v1.vo;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 
@@ -16,7 +14,6 @@ public record CommonCodeVO(
         String codeName,
         Integer sortOrder,
         Boolean isActive,
-        JsonNode extraJson,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) implements Serializable {
