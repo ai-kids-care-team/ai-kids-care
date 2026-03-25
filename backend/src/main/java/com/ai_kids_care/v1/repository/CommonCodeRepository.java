@@ -11,5 +11,7 @@ public interface CommonCodeRepository extends JpaRepository<CommonCode, Long> {
 
     Page<CommonCode> findByCodeGroupIgnoreCase(String codeGroup, Pageable pageable);
 
+    List<CommonCode> findByCodeGroupIgnoreCase(String codeGroup);
+
     List<CommonCode> findByCodeGroupIgnoreCaseAndCodeIgnoreCase(String codeGroup, String code);
 }
