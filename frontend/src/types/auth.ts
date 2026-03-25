@@ -563,7 +563,7 @@ export function auth() {
     setIsKindergartenSearching(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/auth/kindergartens?businessRegistrationNo=${encodeURIComponent(digits)}`,
+      `${API_BASE_URL}/kindergartens/business-registration-no/${encodeURIComponent(digits)}`,
         {
           method: 'GET',
           headers: { Accept: 'application/json' },

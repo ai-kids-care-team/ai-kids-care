@@ -41,7 +41,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         /* 브라우저 CORS preflight는 Authorization 없이 OPTIONS로 오므로 반드시 허용 */
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/children/**", "/api/v1/menus/**").permitAll()
+                        //.requestMatchers("/api/v1/auth/**", "/api/v1/children/**", "/api/v1/menus/**", "/api/v1/common_codes/**",).permitAll()
+                        .requestMatchers("/api/v1/**").permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/announcements",
