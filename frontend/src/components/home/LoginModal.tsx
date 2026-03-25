@@ -75,11 +75,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
     try {
       const response = await loginApi({
-        loginId: formData.loginId,
+        identifier: formData.loginId,
         password: formData.password,
       }).unwrap();
 
-      const { loginId: responseLoginId, role, token, name } = response;
+      const responseLoginId = response?.loginId ?? formData.loginId;
+      const role = response?.role ?? 'guardian';
+      const token = response?.accessToken ?? response?.token ?? '';
+      const name = response?.name;
 
       const user = {
         id: responseLoginId,

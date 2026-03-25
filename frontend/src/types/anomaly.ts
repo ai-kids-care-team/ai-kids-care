@@ -1,5 +1,5 @@
 export type UserRole = 
-  | 'super_admin'    // 슈퍼 관리자 (개발팀)
+  | 'super_admin'    // 행정청 (백엔드 SUPERADMIN)
   | 'system_admin'   // 시스템 관리자 (IT)
   | 'admin'          // 관리자
   | 'teacher'        // 선생님
@@ -18,9 +18,9 @@ export interface RolePermissions {
 }
 
 export const roleLabels: Record<UserRole, string> = {
-  'super_admin': '슈퍼 관리자',
+  'super_admin': '행정청',
   'system_admin': '시스템 관리자',
-  'admin': '관리자',
+  'admin': '유치원 원장',
   'teacher': '선생님',
   'guardian': '학부모'
 };

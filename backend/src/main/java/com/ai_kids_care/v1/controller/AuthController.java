@@ -2,8 +2,12 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.*;
 import com.ai_kids_care.v1.service.AuthService;
+import com.ai_kids_care.v1.service.KindergartenService;
+import com.ai_kids_care.v1.vo.*;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,15 +18,16 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final KindergartenService kindergartenService;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody AuthLoginRequest authLoginRequest) {
-        TokenResponse response = authService.login(authLoginRequest);
+    public ResponseEntity<TokenVO> login(@RequestBody AuthLoginDTO authLoginDTO) {
+        TokenVO response = authService.login(authLoginDTO);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public void logout(@RequestBody AuthLogoutRequest authLogoutRequest) {
+    public void logout(@RequestBody AuthLogoutDTO authLogoutDTO) {
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -32,7 +37,8 @@ public class AuthController {
     }
 
     @PostMapping("/password-resets")
-    public AuthPasswordResetsPost200Response resetPassword(@RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
+    public ResponseEntity<AuthPasswordResetsVO> resetPassword(@RequestBody AuthPasswordResetDTO authPasswordResetDTO) {
+        authService.passwordResets(authPasswordResetDTO);
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -42,24 +48,32 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public TokenResponse refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
+    public ResponseEntity<TokenVO> refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthRegisterResponse> register(@RequestBody AuthRegisterRequest authRegisterRequest) {
-        AuthRegisterResponse response = authService.register(authRegisterRequest);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthRegisterResponse> register(@Parameter(name = "AuthRegisterRequest", required = true) @RequestBody AuthRegisterDTO authRegisterDTO) {
+        AuthRegisterResponse response = authService.register(authRegisterDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/verification-codes/{challengeId}/verifications")
-    public VerifyVerificationCodeResponse authVerificationCodesChallengeIdVerificationsPost(@PathVariable String challengeId, @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
+    public ResponseEntity<VerifyVerificationCodeVO> authVerificationCodesChallengeIdVerificationsPost(@PathVariable String challengeId, @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
     @PostMapping("/verification-codes")
-    public VerificationCodeCreateResponse verifyCodes(@RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
+    public ResponseEntity<VerificationCodeCreateVO> verifyCodes(@RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
+    /**
+     * /register/availability?field=loginId|email|phone&amp;value=...
+     */
+    @GetMapping("/register/availability")
+    public ResponseEntity<AuthRegisterVO> registerFieldAvailability(@RequestParam(value = "field") String field,
+                                                                    @RequestParam(value = "value") String value) {
+        return ResponseEntity.ok(authService.checkRegisterFieldAvailability(field, value));
+    }
 }

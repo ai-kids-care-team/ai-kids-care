@@ -2,6 +2,8 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -42,8 +44,8 @@ public class Announcement {
     @Column(name = "pinned_until")
     private OffsetDateTime pinnedUntil;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "published_at")

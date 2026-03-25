@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Bell, ChevronRight } from 'lucide-react';
 import { HeroSlider } from '@/components/home/HeroSlider';
-import { LoginModal } from '@/components/home/LoginModal';
 import { Footer } from '@/layout/Footer';
 import { useAppSelector } from '@/store/hook';
-import { getAnnouncements } from '@/services/apis/announcements.api';
+import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
+import { openLoginModal } from '@/utils/auth-modal';
 
 
 type HomeAnnouncement = {
@@ -26,24 +26,25 @@ function formatDate(value: string) {
 }
 
 export function HomePage() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<HomeAnnouncement[]>([]);
   const { user } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     const loadAnnouncements = async () => {
       try {
-        const list = await getAnnouncements();
+        const pageData = await getAnnouncements({ page: 0, size: ANNOUNCEMENTS_LIST_PAGE_SIZE });
+        const list = pageData.content;
         const now = Date.now();
-        const mapped = list
-          .sort((a, b) => {
-            const aBase = a.publishedAt ?? a.createdAt;
-            const bBase = b.publishedAt ?? b.createdAt;
-            return new Date(bBase).getTime() - new Date(aBase).getTime();
-          })
-          .slice(0, 5)
-          .map((item) => {
+        const mapped = list.map((item) => {
             const baseDate = item.publishedAt ?? item.createdAt;
+            if (!baseDate) {
+              return {
+                id: item.id,
+                title: item.title,
+                date: '-',
+                isNew: false,
+              };
+            }
             return {
               id: item.id,
               title: item.title,
@@ -126,7 +127,7 @@ export function HomePage() {
                     {!user ? (
                       <button
                         className="w-full flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsLoginModalOpen(true)}
+                        onClick={openLoginModal}
                       >
                         <span className="text-sm">로그인</span>
                         <ChevronRight className="w-4 h-4" />
@@ -151,8 +152,6 @@ export function HomePage() {
             </div>
           </div>
         </main>
-
-        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
         <Footer />
       </div>
     </>

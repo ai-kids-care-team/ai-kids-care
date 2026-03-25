@@ -2,8 +2,8 @@
 
 import { LogIn, LogOut, Settings, UserCircle, Bell } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
 import { useAppSelector, useAppDispatch } from '@/store/hook';
@@ -51,14 +51,16 @@ const mapFrontendRoleToMenuRole = (role: UserRole): string => {
 
 export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isGuest = !user;
+  const isHome = pathname === '/';
 
-  // RTK Query를 이용한 알림 데이터 패칭 (30초마다 갱신)
+  // RTK Query: 홈(/)에서는 알림 API 호출하지 않음 (다른 화면에서만 패칭, 30초 폴링)
   const { data: notifications = [] } = useGetNotificationsQuery(KINDERGARTEN_ID, {
-    skip: !user,
+    skip: !user || isHome,
     pollingInterval: 30000,
   });
 
@@ -71,6 +73,12 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
   const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
+
+  useEffect(() => {
+    const handler = () => setIsLoginModalOpen(true);
+    window.addEventListener('open-login-modal', handler);
+    return () => window.removeEventListener('open-login-modal', handler);
+  }, []);
 
   const handleMarkAllAsRead = async () => {
     if (unreadCount > 0) {

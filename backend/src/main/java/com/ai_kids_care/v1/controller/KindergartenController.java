@@ -14,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name="Kindergarten")
+import java.util.List;
+
+@Tag(name = "Kindergarten")
 @RestController
 @RequestMapping("/api/v1/kindergartens")
 @RequiredArgsConstructor
@@ -52,5 +54,10 @@ public class KindergartenController {
     public ResponseEntity<Void> deleteKindergarten(@PathVariable Long id) {
         service.deleteKindergarten(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/business-registration-no/{businessRegistrationNo}")
+    public List<KindergartenVO> lookupByBusinessRegistrationNo(@PathVariable String businessRegistrationNo) {
+        return service.searchForSignupByBusinessRegistrationNo(businessRegistrationNo);
     }
 }

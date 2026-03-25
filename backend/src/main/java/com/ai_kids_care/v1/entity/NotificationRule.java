@@ -3,6 +3,8 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.NotificationTargetType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -34,7 +36,7 @@ public class NotificationRule {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "target_type", columnDefinition = "notification_target_type")
     private NotificationTargetType targetType;
 

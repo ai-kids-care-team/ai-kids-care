@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/store';
+import { API_BASE_URL } from '@/config/api';
 
-const defaultApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1';
+const defaultApiBaseUrl = API_BASE_URL;
 
 export const baseApi = createApi({
   reducerPath: 'api',
@@ -14,9 +15,10 @@ export const baseApi = createApi({
       // 2. 💡 새로고침으로 인해 Redux가 날아갔다면? 브라우저 저장소에서 찾아옵니다.
       // (Next.js의 SSR 환경 에러를 방지하기 위해 typeof window !== 'undefined' 체크 추가)
       if (!token && typeof window !== 'undefined') {
-        // 프로젝트에서 로그인 시 토큰을 저장해둔 방식에 맞게 가져오세요.
-        // 예: localStorage.getItem('accessToken') 또는 sessionStorage.getItem('token') 등
-        token = localStorage.getItem('token');
+        token =
+          localStorage.getItem('accessToken') ??
+          localStorage.getItem('token') ??
+          null;
       }
 
       // 3. 토큰이 존재하면 헤더에 주입합니다.

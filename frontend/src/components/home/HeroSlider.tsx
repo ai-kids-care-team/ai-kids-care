@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Noto_Sans_KR } from 'next/font/google';
+
+const heroTitleFont = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  display: 'swap',
+});
 
 const slides = [
   {
@@ -82,25 +89,16 @@ export function HeroSlider() {
             <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center text-center px-4 ${heroTitleFont.className}`}
+            >
               <h2
-                className="text-4xl md:text-6xl mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700 font-bold"
-                style={{
-                  fontFamily: 'Gamja Flower, cursive',
-                  color: '#ffffff',
-                  WebkitTextStroke: '2px #6b7280',
-                  textShadow: '3px 3px 6px rgba(0,0,0,0.3)',
-                }}
+                className="mb-3 max-w-[min(100%,42rem)] text-3xl font-bold leading-[1.2] tracking-tight text-white antialiased animate-in fade-in slide-in-from-bottom-4 duration-700 md:mb-4 md:text-5xl lg:text-6xl [text-shadow:0_1px_2px_rgb(0_0_0_/_0.65),0_8px_32px_rgb(0_0_0_/_0.45)]"
               >
                 {slide.title}
               </h2>
               <p
-                className="text-xl md:text-2xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 font-bold"
-                style={{
-                  color: '#ffffff',
-                  WebkitTextStroke: '1.5px #6b7280',
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
-                }}
+                className="max-w-[min(100%,36rem)] text-base font-semibold leading-snug tracking-tight text-white/95 antialiased animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 md:text-xl lg:text-2xl [text-shadow:0_1px_3px_rgb(0_0_0_/_0.7),0_4px_20px_rgb(0_0_0_/_0.35)]"
               >
                 {slide.subtitle}
               </p>

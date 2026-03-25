@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name="Announcement")
+@Tag(name = "Announcement")
 @RestController
 @RequestMapping("/api/v1/announcements")
 @RequiredArgsConstructor
@@ -23,11 +23,11 @@ public class AnnouncementController {
     private final AnnouncementService service;
 
     @GetMapping
-    public ResponseEntity<Page<AnnouncementVO>> listAnnouncement(
+    public ResponseEntity<Page<AnnouncementVO>> listActiveAnnouncements(
             @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listAnnouncements(keyword, pageable));
+        return ResponseEntity.ok(service.listActiveAnnouncements(keyword, pageable));
     }
 
     @GetMapping("/{id}")

@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.MenuResponse;
+import com.ai_kids_care.v1.vo.MenuVO;
 import com.ai_kids_care.v1.service.MenuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,7 +24,7 @@ public class MenuController {
 
     @GetMapping
     @Operation(summary = "Get menus by role", description = "Returns active menus by role type. ALL menus are included by default.")
-    public ResponseEntity<List<MenuResponse>> getMenus(@Parameter(description = "Role code (e.g. ALL, TEACHER, KINDERGARTEN_ADMIN, ADMIN)") @RequestParam(value = "roleType", required = false) String roleType) {
+    public ResponseEntity<List<MenuVO>> getMenus(@Parameter(description = "Role code (e.g. ALL, TEACHER, KINDERGARTEN_ADMIN, ADMIN)") @RequestParam(value = "roleType", required = false) String roleType) {
         return ResponseEntity.ok(menuService.getMenusByRole(roleType));
     }
 }

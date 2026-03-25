@@ -5,6 +5,8 @@ import com.ai_kids_care.v1.type.LevelEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -44,8 +46,8 @@ public class Teacher {
     @Column(name = "name", length = Integer.MAX_VALUE)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "gender", length = Integer.MAX_VALUE)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @Column(name = "emergency_contact_name", length = Integer.MAX_VALUE)
@@ -60,8 +62,8 @@ public class Teacher {
     @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "level", length = Integer.MAX_VALUE)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "level", columnDefinition = "level_enum")
     private LevelEnum level;
 
     @Column(name = "start_date")
@@ -70,7 +72,7 @@ public class Teacher {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 

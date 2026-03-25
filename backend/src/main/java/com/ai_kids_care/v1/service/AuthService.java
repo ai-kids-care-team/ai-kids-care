@@ -1,6 +1,8 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.dto.AuthLoginDTO;
+import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
+import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
 import com.ai_kids_care.v1.security.JwtUtil;
@@ -8,6 +10,9 @@ import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.TokenTypeEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
+import com.ai_kids_care.v1.vo.AuthRegisterResponse;
+import com.ai_kids_care.v1.vo.AuthRegisterVO;
+import com.ai_kids_care.v1.vo.TokenVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,14 +37,15 @@ public class AuthService {
     private final TeacherRepository teacherRepository;
     private final GuardianRepository guardianRepository;
     private final SuperadminRepository superadminRepository;
-    private final ChildRepository childRepository;
+    private final ChildrenService childrenService;
     private final ChildGuardianRelationshipRepository childGuardianRelationshipRepository;
     private final UserKindergartenMembershipRepository userKindergartenMembershipRepository;
+
 
     @Value("${jwt.expiration}")
     private Integer expireSecond;
 
-    private final Map<UserRoleEnum, BiConsumer<User, AuthRegisterRequest>> roleRegisterStrategies = Map.of(
+    private final Map<UserRoleEnum, BiConsumer<User, AuthRegisterDTO>> roleRegisterStrategies = Map.of(
             UserRoleEnum.GUARDIAN, this::registerGuardian,
             UserRoleEnum.TEACHER, this::registerTeacher,
             UserRoleEnum.KINDERGARTEN_ADMIN, this::registerTeacher,
@@ -48,14 +54,16 @@ public class AuthService {
     );
 
     @Transactional
-    public AuthRegisterResponse register(AuthRegisterRequest request) {
-        // User
+    public AuthRegisterResponse register(AuthRegisterDTO request) {
         User user = User.builder()
                 .loginId(request.getLoginId())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .lastLoginAt(OffsetDateTime.now())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .status(StatusEnum.ACTIVE)
+                .lastLoginAt(null)
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
                 .build();
         User userSaved = userRepository.save(user);
 
@@ -93,7 +101,7 @@ public class AuthService {
                 .build();
         userRoleAssignmentRepository.save(userRoleAssignment);
 
-        BiConsumer<User, AuthRegisterRequest> registerFunction = roleRegisterStrategies.get(request.getUserRole());
+        BiConsumer<User, AuthRegisterDTO> registerFunction = roleRegisterStrategies.get(role);
         if (registerFunction == null) {
             throw new IllegalArgumentException("지원하지 않는 회원유형입니다.");
         }
@@ -106,8 +114,7 @@ public class AuthService {
                 .build();
     }
 
-
-    public TokenResponse login(AuthLoginRequest request) {
+    public TokenVO login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -116,29 +123,35 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateToken(request.getIdentifier());
         String refreshToken = jwtUtil.generateToken(request.getIdentifier());
-        return TokenResponse.builder()
+
+        UserRoleEnum resolvedRole = userRoleAssignmentRepository
+                .findFirstByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE)
+                .map(UserRoleAssignment::getRole)
+                .orElse(UserRoleEnum.GUARDIAN);
+
+        return TokenVO.builder()
                 .accessToken(accessToken)
                 .tokenType(TokenTypeEnum.BEARER)
                 .expiresIn(expireSecond)
                 .refreshToken(refreshToken)
                 .refreshExpiresIn(expireSecond)
+                .role(resolvedRole.name())
+                .loginId(user.getLoginId())
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public void passwordResets(AuthPasswordResetRequest request) {
+    public void passwordResets(AuthPasswordResetDTO request) {
         String to = request.getTo();
         boolean exists = userRepository.existsByLoginIdOrEmailOrPhone(to, to, to);
         // TODO: 메일/인증코드 발송 로직 연동
+        throw new IllegalArgumentException("Not implemented");
     }
 
 
-    private void registerGuardian(User user, AuthRegisterRequest request) {
-        Child child = childRepository.findByRrnFirst6AndRrnEncrypted(
-                request.getChildRrnFirst6(),
-                passwordEncoder.encode(request.getChildRrnBack7())
-        );
-
+    private void registerGuardian(User user, AuthRegisterDTO request) {
+        Child child = childrenService.getChildEntityByRRN(request.getChildRrnFirst6(), request.getChildRrnBack7())
+                .orElseThrow(() -> new EntityNotFoundException("Child not found"));
         Guardian guardian = Guardian.builder()
                 .user(user)
                 .kindergarten(child.getKindergarten())
@@ -151,9 +164,18 @@ public class AuthService {
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
-        guardianRepository.save(guardian);
+        guardian = guardianRepository.save(guardian);
+
+        Kindergarten kg = child.getKindergarten();
+        ChildGuardianRelationshipId relationshipId = ChildGuardianRelationshipId.builder()
+                .kindergartenId(kg.getId())
+                .childId(child.getId())
+                .guardianId(guardian.getId())
+                .build();
 
         ChildGuardianRelationship childGuardianRelationship = ChildGuardianRelationship.builder()
+                .id(relationshipId)
+                .kindergarten(kg)
                 .children(child)
                 .guardians(guardian)
                 .relationship(request.getRelationship())
@@ -177,7 +199,7 @@ public class AuthService {
         userKindergartenMembershipRepository.save(userKindergartenMembership);
     }
 
-    private void registerTeacher(User user, AuthRegisterRequest request) {
+    private void registerTeacher(User user, AuthRegisterDTO request) {
         Kindergarten kindergarten = kindergartenRepository.findById(request.getKindergartenId())
                 .orElseThrow(() -> new EntityNotFoundException("선택한 유치원 정보가 유효하지 않습니다."));
 
@@ -191,9 +213,9 @@ public class AuthService {
                 .rrnEncrypted(passwordEncoder.encode(request.getRrnBack7()))
                 .rrnFirst6(request.getRrnFirst6())
                 .level(request.getLevel())
-                .startDate(LocalDate.now())
+                .startDate(null)
                 .endDate(null)
-                .status(StatusEnum.PENDING)
+                .status(StatusEnum.ACTIVE)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
@@ -211,11 +233,12 @@ public class AuthService {
         userKindergartenMembershipRepository.save(userKindergartenMembership);
     }
 
-    private void registerPlatformItAdmin(User user, AuthRegisterRequest request) {
+    private void registerPlatformItAdmin(User user, AuthRegisterDTO request) {
         //TODO
+        throw new IllegalArgumentException("Not implemented");
     }
 
-    private void registerSuperadmin(User user, AuthRegisterRequest request) {
+    private void registerSuperadmin(User user, AuthRegisterDTO request) {
         Superadmin superadmin = Superadmin.builder()
                 .user(user)
                 .name(request.getName())
@@ -225,5 +248,20 @@ public class AuthService {
                 .updatedAt(OffsetDateTime.now())
                 .build();
         superadminRepository.save(superadmin);
+    }
+
+    public AuthRegisterVO checkRegisterFieldAvailability(String field, String value) {
+        return switch (field) {
+            case "login_id", "login-id" -> userRepository.existsByLoginId(value)
+                    ? new AuthRegisterVO(false, "이미 사용 중인 로그인 ID입니다.")
+                    : new AuthRegisterVO(true, "");
+            case "email" -> userRepository.existsByEmailIgnoreCase(value)
+                    ? new AuthRegisterVO(false, "이미 사용 중인 이메일입니다.")
+                    : new AuthRegisterVO(true, "");
+            case "phone" -> userRepository.existsByPhone(value)
+                    ? new AuthRegisterVO(false, "이미 등록된 연락처(전화번호)입니다.")
+                    : new AuthRegisterVO(true, "");
+            default -> throw new IllegalArgumentException("지원하지 않는 field 입니다: " + field);
+        };
     }
 }

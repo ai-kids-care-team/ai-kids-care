@@ -23,3 +23,7 @@ jwt:
 logging:
   level:
     root: DEBUG
+    sun.rmi: INFO
+    javax.management.remote.rmi: INFO
+    sun.rmi.transport.tcp: INFO
+    sun.rmi.loader: INFO

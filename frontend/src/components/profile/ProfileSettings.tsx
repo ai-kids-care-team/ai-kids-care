@@ -9,6 +9,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { useChangePasswordMutation } from '@/services/apis/auth.api';
 import { TopBar } from '@/layout/TopBar';
+import { openLoginModal } from '@/utils/auth-modal';
 
 export function ProfileSettings() {
   const router = useRouter();
@@ -54,7 +55,8 @@ export function ProfileSettings() {
   // 복구 후 인증 정보가 없으면 로그인 페이지로 이동
   useEffect(() => {
     if (!isAuthChecking && (!isAuthenticated || !user)) {
-      router.replace('/login');
+      openLoginModal();
+      router.replace('/');
     }
   }, [isAuthChecking, isAuthenticated, user, router]);
 

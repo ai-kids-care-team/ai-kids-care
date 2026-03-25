@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.vo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ public class AnnouncementsService {
     private final CommonCodeService commonCodeService;
 
     @Transactional(readOnly = true)
-    public List<AnnouncementSummaryResponse> getActiveAnnouncements(String keyword) {
+    public List<AnnouncementSummaryResponse> listActiveAnnouncements(String keyword) {
         String normalizedKeyword = keyword == null ? null : keyword.trim();
         if (normalizedKeyword != null && normalizedKeyword.isBlank()) {
             normalizedKeyword = null;
@@ -28,7 +29,7 @@ public class AnnouncementsService {
                 SELECT id, title, is_pinned, view_count, published_at, created_at
                   FROM announcements
                  WHERE (deleted_at IS NULL OR deleted_at > now())
-                   AND status = CAST('ACTIVE' AS status_enum)
+                   AND status = 'ACTIVE'
                    AND (published_at IS NULL OR published_at <= now())
                    AND (starts_at IS NULL OR starts_at <= now())
                    AND (ends_at IS NULL OR ends_at >= now())
@@ -300,7 +301,8 @@ public class AnnouncementsService {
         }
 
         String normalizedStatus = request.getStatus().trim().toUpperCase();
-        if (!commonCodeService.existsActiveCode("announcements", normalizedStatus)) {
+        List<CommonCodeVO> activeCommonCodes = commonCodeService.listActiveCommonCodes("announcements", normalizedStatus);
+        if (activeCommonCodes.isEmpty()) {
             throw new RuntimeException("유효하지 않은 게시 구분입니다.");
         }
 

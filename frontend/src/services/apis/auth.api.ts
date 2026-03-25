@@ -1,4 +1,23 @@
+import { API_BASE_URL } from '@/config/api';
 import { baseApi } from '@/services/apis/base.api';
+
+export type RegisterFieldAvailability = {
+  available: boolean;
+  message: string | null;
+};
+
+/** 회원가입: 로그인 ID / 이메일 / 연락처 중복 여부 (포커스 아웃 검사) */
+export async function fetchRegisterFieldAvailability(
+  field: 'loginId' | 'email' | 'phone',
+  value: string
+): Promise<RegisterFieldAvailability> {
+  const params = new URLSearchParams({ field, value: value.trim() });
+  const res = await fetch(`${API_BASE_URL}/auth/register/availability?${params}`);
+  if (!res.ok) {
+    throw new Error(`availability ${res.status}`);
+  }
+  return res.json() as Promise<RegisterFieldAvailability>;
+}
 
 export type CommonCodeItem = {
   codeGroup: string;

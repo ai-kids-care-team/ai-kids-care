@@ -65,9 +65,8 @@ export function AnnouncementsDetailPage() {
       setLoading(true);
       setError('');
       try {
-        const [detail, meta] = await Promise.all([getAnnouncementDetail(id), getAnnouncementsMeta()]);
+        const detail = await getAnnouncementDetail(id);
         setAnnouncement(detail);
-        setCanWrite(meta.canWrite);
       } catch (e) {
         console.error('공지사항 상세 조회 실패:', e);
         setError('공지사항 상세 정보를 불러오지 못했습니다.');
@@ -77,7 +76,23 @@ export function AnnouncementsDetailPage() {
     };
 
     void load();
-  }, [id, user?.id, token, isAuthenticated]);
+  }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || !token) {
+      setCanWrite(false);
+      return;
+    }
+    const loadMeta = async () => {
+      try {
+        const meta = await getAnnouncementsMeta();
+        setCanWrite(meta.canWrite);
+      } catch {
+        setCanWrite(false);
+      }
+    };
+    void loadMeta();
+  }, [isAuthenticated, user, token]);
 
   const handleDelete = async () => {
     if (!Number.isFinite(id) || id <= 0) {

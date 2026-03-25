@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { Bell, Plus, Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import type { AnnouncementItem } from './model/useAnnouncements';
+import {AnnouncementItem} from '@/types/announcement';
 
 type AnnouncementsListFormProps = {
   announcements: AnnouncementItem[];
@@ -15,6 +15,9 @@ type AnnouncementsListFormProps = {
   canWrite: boolean;
   loading: boolean;
   error: string;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 };
 
 export function AnnouncementsListForm({
@@ -25,6 +28,9 @@ export function AnnouncementsListForm({
   canWrite,
   loading,
   error,
+  page,
+  totalPages,
+  onPageChange,
 }: AnnouncementsListFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,6 +54,8 @@ export function AnnouncementsListForm({
   const rememberScroll = () => {
     sessionStorage.setItem('announcements:list:scrollY', String(window.scrollY));
   };
+  /** 페이지당 최대 5건 기준 카드 높이·간격에 맞춘 최소 영역 — 건수가 적어도 페이지바 위치 고정 */
+  const LIST_MIN_HEIGHT = 'min-h-[600px]';
   const useInnerScroll = !loading && announcements.length > 4;
 
   return (
@@ -91,12 +99,25 @@ export function AnnouncementsListForm({
             </button>
           </div>
 
-          {loading && <p className="py-8 text-center text-gray-500">공지사항을 불러오는 중입니다.</p>}
           {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
-          <div className={useInnerScroll ? 'max-h-[560px] space-y-3 overflow-y-auto pr-1' : 'space-y-3'}>
-            {!loading && announcements.length === 0 ? (
-              <p className="py-10 text-center text-gray-500">등록된 공지사항이 없습니다.</p>
+          <div
+            className={[
+              LIST_MIN_HEIGHT,
+              'space-y-3',
+              useInnerScroll ? 'max-h-[600px] overflow-y-auto pr-1' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {loading ? (
+              <p className="flex min-h-[520px] items-center justify-center text-center text-gray-500">
+                공지사항을 불러오는 중입니다.
+              </p>
+            ) : announcements.length === 0 ? (
+              <p className="flex min-h-[520px] items-center justify-center text-center text-gray-500">
+                등록된 공지사항이 없습니다.
+              </p>
             ) : (
               announcements.map((announcement) => (
                 <Link
@@ -121,6 +142,30 @@ export function AnnouncementsListForm({
               ))
             )}
           </div>
+
+          {!loading && totalPages > 1 && (
+            <div className="mt-8 flex min-h-[3.25rem] flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-6">
+              <button
+                type="button"
+                disabled={page <= 0}
+                onClick={() => onPageChange(page - 1)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                이전
+              </button>
+              <span className="text-sm text-gray-600">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages - 1}
+                onClick={() => onPageChange(page + 1)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                다음
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppSelector } from '@/store/hook';
+import { openLoginModal } from '@/utils/auth-modal';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -14,7 +15,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!user) {
-      router.replace('/auth/login');
+      openLoginModal();
+      router.replace('/');
     }
   }, [user, router]);
 

@@ -19,14 +19,16 @@ public class AnnouncementService {
     private final AnnouncementRepository repository;
     private final AnnouncementMapper mapper;
 
-    public Page<AnnouncementVO> listAnnouncements(String keyword, Pageable pageable) {
-        // TODO: filter Announcement by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+
+    public Page<AnnouncementVO> listActiveAnnouncements(String keyword, Pageable pageable) {
+        return repository.listActiveAnnouncements(keyword, pageable).map(mapper::toVO);
     }
 
     public AnnouncementVO getAnnouncement(Long id) {
-        return repository.findById(id).map(mapper::toVO)
-                .orElseThrow(() -> new EntityNotFoundException("Announcement not found"));
+        Announcement announcement = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Announcement not found"));
+        announcement.setViewCount(announcement.getViewCount() + 1);
+        repository.save(announcement);
+        return mapper.toVO(announcement);
     }
 
     public AnnouncementVO createAnnouncement(AnnouncementCreateDTO createDTO) {

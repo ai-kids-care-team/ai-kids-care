@@ -10,7 +10,10 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,15 +21,25 @@ public class ChildrenService {
 
     private final ChildRepository repository;
     private final ChildMapper mapper;
+    private final PasswordEncoder passwordEncoder;
 
     public Page<ChildVO> listChildren(String keyword, Pageable pageable) {
-        // TODO: filter Children by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
     }
 
-    public ChildVO getChildren(Long id) {
-        return repository.findById(id).map(mapper::toVO)
-                .orElseThrow(() -> new EntityNotFoundException("Children not found"));
+    public ChildVO getChild(Long id) {
+        return repository.findById(id).map(mapper::toVO).orElseThrow(() -> new EntityNotFoundException("Children not found"));
+    }
+
+    public ChildVO getChildByRRN(String rrn_First6, String rrn_Last7) {
+        Child child = getChildEntityByRRN(rrn_First6, rrn_Last7).orElseThrow(() -> new EntityNotFoundException("Child not found"));
+        return mapper.toVO(child);
+    }
+
+    public Optional<Child> getChildEntityByRRN(String rrn_First6, String rrn_Last7) {
+        return repository.findByRrnFirst6(rrn_First6).stream()
+                .filter(child -> passwordEncoder.matches(rrn_Last7, child.getRrnEncrypted()))
+                .findFirst();
     }
 
     public ChildVO createChildren(ChildCreateDTO createDTO) {
@@ -34,15 +47,13 @@ public class ChildrenService {
     }
 
     public ChildVO updateChildren(Long id, ChildUpdateDTO updateDTO) {
-        Child entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Children not found"));
+        Child entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Children not found"));
         mapper.updateEntity(updateDTO, entity);
         return mapper.toVO(repository.save(entity));
     }
 
     public void deleteChildren(Long id) {
-        Child entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Children not found"));
+        Child entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Children not found"));
         repository.delete(entity);
     }
 }
