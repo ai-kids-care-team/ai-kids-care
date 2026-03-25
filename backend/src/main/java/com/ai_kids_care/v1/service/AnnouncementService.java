@@ -5,15 +5,12 @@ import com.ai_kids_care.v1.dto.AnnouncementUpdateDTO;
 import com.ai_kids_care.v1.entity.Announcement;
 import com.ai_kids_care.v1.mapper.AnnouncementMapper;
 import com.ai_kids_care.v1.repository.AnnouncementRepository;
-import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.vo.AnnouncementVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -22,13 +19,14 @@ public class AnnouncementService {
     private final AnnouncementRepository repository;
     private final AnnouncementMapper mapper;
 
-    public Page<AnnouncementVO> listAnnouncements(String keyword, Pageable pageable) {
-        // TODO: filter Announcement by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
-    }
+//    public Page<AnnouncementVO> listAnnouncements(String keyword, Pageable pageable) {
+//        // TODO: filter Announcement by keyword
+//        return repository.findAll(pageable).map(mapper::toVO);
+//    }
 
     public Page<AnnouncementVO> listActiveAnnouncements(String keyword, Pageable pageable) {
-        return repository.listActiveAnnouncements(keyword, pageable).map(mapper::toVO);
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        return repository.listActiveAnnouncements(normalizedKeyword, pageable).map(mapper::toVO);
     }
 
     public AnnouncementVO getAnnouncement(Long id) {

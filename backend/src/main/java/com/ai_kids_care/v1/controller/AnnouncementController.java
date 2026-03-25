@@ -27,7 +27,7 @@ public class AnnouncementController {
             @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listAnnouncements(keyword, pageable));
+        return ResponseEntity.ok(service.listActiveAnnouncements(keyword, pageable));
     }
 
     @GetMapping("/{id}")

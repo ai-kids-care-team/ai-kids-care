@@ -45,7 +45,12 @@ public class CommonCodeService {
         repository.delete(entity);
     }
 
+    public List<CommonCodeVO> listCodeGroupCommonCodes(String codeGroup) {
+        return mapper.toVOList(repository.findByCodeGroupIgnoreCase(codeGroup));
+    }
+
     public List<CommonCodeVO> listActiveCommonCodes(String codeGroup, String code) {
         return mapper.toVOList(repository.findByCodeGroupIgnoreCaseAndCodeIgnoreCase(codeGroup, code));
     }
+
 }

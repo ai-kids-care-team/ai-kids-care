@@ -10,71 +10,71 @@ created_at timestamptz NOT NULL,
 updated_at timestamptz NOT NULL
 );
 
-COMMENT ON COLUMN common_code.parent_code IS '상위 코드값 (예: MOTHER -> FEMALE 분류 등)';
-COMMENT ON COLUMN common_code.code_group IS '코드 그룹 키 (예: GENDER, REGION, SCHOOL_STATUS)';
-COMMENT ON COLUMN common_code.code IS '실제 코드값 (예: M, F / SEOUL / ELEMENTARY)';
-COMMENT ON COLUMN common_code.code_name IS '화면 표시명 (예: 남, 여 / 서울 / 초등)';
-COMMENT ON COLUMN common_code.sort_order IS '코드 정렬 순서';
-COMMENT ON COLUMN common_code.is_active IS '코드 사용 여부';
-COMMENT ON COLUMN common_code.created_at IS '생성 일시';
-COMMENT ON COLUMN common_code.updated_at IS '수정 일시';
+COMMENT ON COLUMN common_codes.parent_code IS '상위 코드값 (예: MOTHER -> FEMALE 분류 등)';
+COMMENT ON COLUMN common_codes.code_group IS '코드 그룹 키 (예: GENDER, REGION, SCHOOL_STATUS)';
+COMMENT ON COLUMN common_codes.code IS '실제 코드값 (예: M, F / SEOUL / ELEMENTARY)';
+COMMENT ON COLUMN common_codes.code_name IS '화면 표시명 (예: 남, 여 / 서울 / 초등)';
+COMMENT ON COLUMN common_codes.sort_order IS '코드 정렬 순서';
+COMMENT ON COLUMN common_codes.is_active IS '코드 사용 여부';
+COMMENT ON COLUMN common_codes.created_at IS '생성 일시';
+COMMENT ON COLUMN common_codes.updated_at IS '수정 일시';
 
 -- =========================================================
 -- Signup common code seed data
 -- =========================================================
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT NULL, 'GENDER', 'MALE', '남자', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GENDER' AND code = 'MALE'
+    SELECT 1 FROM common_codes WHERE code_group = 'GENDER' AND code = 'MALE'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT NULL, 'GENDER', 'FEMALE', '여자', 2, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GENDER' AND code = 'FEMALE'
+    SELECT 1 FROM common_codes WHERE code_group = 'GENDER' AND code = 'FEMALE'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'MOTHER', '엄마', 1, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MOTHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MOTHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active, created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active, created_at, updated_at)
 SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'FATHER', '아빠', 2, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'FATHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'FATHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDMOTHER', '외할머니', 3, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDMOTHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDMOTHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDFATHER', '외할아버지', 4, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDFATHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDFATHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDMOTHER', '친할머니', 5, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDMOTHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDMOTHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDFATHER', '친할아버지', 6, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDFATHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDFATHER'
 );
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 SELECT NULL, 'GUARDIAN_RELATIONSHIP', 'OTHER', '기타', 99, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 WHERE NOT EXISTS (
-    SELECT 1 FROM common_code WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'OTHER'
+    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'OTHER'
 );
 
 -- =========================================================
@@ -82,8 +82,8 @@ WHERE NOT EXISTS (
 -- parent_code: status
 -- =========================================================
 
-INSERT INTO common_code (parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
-SELECT 'status', v.code_group, v.code, v.code_name, v.sort_order, true, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active, created_at, updated_at)
+SELECT 'status', v.code_group, v.code, v.code_name, v.sort_order, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM (
     VALUES
         ('user_account', 'ACTIVE', '활성', 1),
@@ -164,7 +164,7 @@ FROM (
 ) AS v(code_group, code, code_name, sort_order)
 WHERE NOT EXISTS (
     SELECT 1
-    FROM common_code c
+    FROM common_codes c
     WHERE c.parent_code = 'status'
       AND c.code_group = v.code_group
       AND c.code = v.code
@@ -172,7 +172,7 @@ WHERE NOT EXISTS (
 
 
 
-INSERT INTO common_code
+INSERT INTO common_codes
 (
     parent_code,
     code_group,
@@ -180,28 +180,27 @@ INSERT INTO common_code
     code_name,
     sort_order,
     is_active,
-    extra_json,
     created_at,
     updated_at
 )
 SELECT *
 FROM (
     VALUES
-    ('level', 'teachers', 'DIRECTOR', '원장', 1, true, NULL::jsonb, now(), now()),
-    ('level', 'teachers', 'VICE_DIRECTOR', '부원장', 2, true, NULL::jsonb, now(), now()),
-    ('level', 'teachers', 'TEACHER', '일반교사', 3, true, NULL::jsonb, now(), now())
-) AS v(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
+    ('level', 'teachers', 'DIRECTOR', '원장', 1, true,  now(), now()),
+    ('level', 'teachers', 'VICE_DIRECTOR', '부원장', 2, true,  now(), now()),
+    ('level', 'teachers', 'TEACHER', '일반교사', 3, true,  now(), now())
+) AS v(parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
 WHERE NOT EXISTS (
     SELECT 1
-    FROM common_code c
+    FROM common_codes c
     WHERE c.code_group = v.code_group
       AND c.code = v.code
 );
 
 
 
-INSERT INTO public.common_code
-(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
+INSERT INTO public.common_codes
+(parent_code, code_group, code, code_name, sort_order, is_active, created_at, updated_at)
 SELECT
     'status',
     'announcements',
@@ -209,7 +208,6 @@ SELECT
     v.code_name,
     v.sort_order,
     true,
-    null,
     now(),
     now()
 FROM (
@@ -220,15 +218,15 @@ FROM (
 ) AS v(code, code_name, sort_order)
 WHERE NOT EXISTS (
     SELECT 1
-    FROM public.common_code c
+    FROM public.common_codes c
     WHERE c.parent_code = 'status'
       AND c.code_group = 'announcements'
       AND c.code = v.code
 );
 
 
-INSERT INTO public.common_code
-(parent_code, code_group, code, code_name, sort_order, is_active, extra_json, created_at, updated_at)
+INSERT INTO public.common_codes
+(parent_code, code_group, code, code_name, sort_order, is_active, created_at, updated_at)
 SELECT
     'status',
     'user',
@@ -236,7 +234,6 @@ SELECT
     v.code_name,
     v.sort_order,
     true,
-    null,
     now(),
     now()
 FROM (
@@ -247,7 +244,7 @@ FROM (
 ) AS v(code, code_name, sort_order)
 WHERE NOT EXISTS (
     SELECT 1
-    FROM public.common_code c
+    FROM public.common_codes c
     WHERE c.parent_code = 'status'
       AND c.code_group = 'user'
       AND c.code = v.code

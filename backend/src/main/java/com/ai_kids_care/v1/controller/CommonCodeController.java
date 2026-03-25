@@ -29,6 +29,11 @@ public class CommonCodeController {
         return ResponseEntity.ok(service.listActiveCodesByGroup(keyword, pageable));
     }
 
+    @GetMapping("/code_group/{codeGroup}")
+    public ResponseEntity<List<CommonCodeVO>> listCodeGroupCommonCodes(@PathVariable String codeGroup){
+        return ResponseEntity.ok(service.listCodeGroupCommonCodes(codeGroup));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CommonCodeVO> getCommonCode(@PathVariable Long id) {
         return ResponseEntity.ok(service.getCommonCode(id));

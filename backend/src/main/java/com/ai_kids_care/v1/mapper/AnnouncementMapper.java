@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface AnnouncementMapper {
 
-    @Mapping(target = "id", ignore = true)
+    @Mapping(source = "id", target = "id")
     @Mapping(source = "author.id", target = "authorId")
     AnnouncementVO toVO(Announcement entity);
 

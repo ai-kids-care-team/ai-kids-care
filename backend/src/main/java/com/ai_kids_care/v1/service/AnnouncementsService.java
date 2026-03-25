@@ -29,7 +29,7 @@ public class AnnouncementsService {
                 SELECT id, title, is_pinned, view_count, published_at, created_at
                   FROM announcements
                  WHERE (deleted_at IS NULL OR deleted_at > now())
-                   AND status = CAST('ACTIVE' AS status_enum)
+                   AND status = 'ACTIVE'
                    AND (published_at IS NULL OR published_at <= now())
                    AND (starts_at IS NULL OR starts_at <= now())
                    AND (ends_at IS NULL OR ends_at >= now())
