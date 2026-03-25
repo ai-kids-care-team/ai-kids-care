@@ -17,7 +17,7 @@ import jakarta.annotation.Generated;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AuthPasswordResetRequest {
+public class AuthPasswordResetDTO {
 
   /**
    * Gets or Sets channel

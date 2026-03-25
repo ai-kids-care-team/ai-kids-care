@@ -2,13 +2,11 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.hibernate.validator.constraints.Length;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

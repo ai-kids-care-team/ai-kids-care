@@ -19,14 +19,9 @@ public class AnnouncementService {
     private final AnnouncementRepository repository;
     private final AnnouncementMapper mapper;
 
-//    public Page<AnnouncementVO> listAnnouncements(String keyword, Pageable pageable) {
-//        // TODO: filter Announcement by keyword
-//        return repository.findAll(pageable).map(mapper::toVO);
-//    }
 
     public Page<AnnouncementVO> listActiveAnnouncements(String keyword, Pageable pageable) {
-        String normalizedKeyword = keyword == null ? "" : keyword.trim();
-        return repository.listActiveAnnouncements(normalizedKeyword, pageable).map(mapper::toVO);
+        return repository.listActiveAnnouncements(keyword, pageable).map(mapper::toVO);
     }
 
     public AnnouncementVO getAnnouncement(Long id) {
