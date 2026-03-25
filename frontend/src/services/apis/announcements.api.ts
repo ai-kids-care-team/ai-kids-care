@@ -6,19 +6,23 @@ export type AnnouncementStatusOption = {
   sortOrder: number;
 };
 
-export type AnnouncementSummary = {
+/** 백엔드 `AnnouncementVO` 기반 목록 아이템 */
+export type AnnouncementListItem = {
   id: number;
+  authorId: number | null;
   title: string;
-  body?: string | null;
-  pinned: boolean;
-  viewCount: number;
+  body: string;
+  isPinned: boolean | null;
+  pinnedUntil: string | null;
+  status: string | null;
   publishedAt: string | null;
-  createdAt: string;
-  /** 목록에서는 보통 생략(null) */
-  status?: string | null;
-  pinnedUntil?: string | null;
-  startsAt?: string | null;
-  endsAt?: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  viewCount: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  deletedAt: string | null;
+  pinned: boolean;
 };
 
 /** Spring Data `Page` JSON (목록 API) */
@@ -42,19 +46,7 @@ export type GetAnnouncementsParams = {
   size?: number;
 };
 
-export type AnnouncementDetail = {
-  id: number;
-  title: string;
-  body: string;
-  pinned: boolean;
-  viewCount: number;
-  publishedAt: string | null;
-  createdAt: string;
-  status?: string | null;
-  pinnedUntil?: string | null;
-  startsAt?: string | null;
-  endsAt?: string | null;
-};
+export type AnnouncementDetail = AnnouncementListItem;
 
 export type AnnouncementEdit = {
   id: number;
@@ -129,14 +121,14 @@ export type AnnouncementRecord = {
   pinned: boolean;
 };
 
-/** 백엔드 `GET /announcements` → `Page<AnnouncementSummaryVO>` */
+/** 백엔드 `GET /announcements` → `Page<AnnouncementVO>` */
 export async function getAnnouncements(
   params?: GetAnnouncementsParams,
-): Promise<PageResponse<AnnouncementSummary>> {
+): Promise<PageResponse<AnnouncementListItem>> {
   const page = params?.page ?? 0;
   const size = params?.size ?? ANNOUNCEMENTS_LIST_PAGE_SIZE;
   const keyword = params?.keyword?.trim();
-  const response = await apiClient.get<PageResponse<AnnouncementSummary>>('/announcements', {
+  const response = await apiClient.get<PageResponse<AnnouncementListItem>>('/announcements', {
     params: {
       page,
       size,
@@ -151,9 +143,25 @@ export async function getAnnouncementsMeta() {
   return response.data;
 }
 
+/**
+ * 개발 모드(StrictMode)에서 동일 컴포넌트가 즉시 재마운트되며 같은 상세 API를
+ * 중복 호출하는 경우가 있어, 같은 id의 진행 중 요청은 하나로 합친다.
+ */
+const announcementDetailInFlight = new Map<number, Promise<AnnouncementDetail>>();
+
 export async function getAnnouncementDetail(id: number) {
-  const response = await apiClient.get<AnnouncementDetail>(`/announcements/${id}`);
-  return response.data;
+  const inFlight = announcementDetailInFlight.get(id);
+  if (inFlight) return inFlight;
+
+  const request = apiClient
+    .get<AnnouncementDetail>(`/announcements/${id}`)
+    .then((response) => response.data)
+    .finally(() => {
+      announcementDetailInFlight.delete(id);
+    });
+
+  announcementDetailInFlight.set(id, request);
+  return request;
 }
 
 export async function createAnnouncement(payload: AnnouncementWritePayload) {

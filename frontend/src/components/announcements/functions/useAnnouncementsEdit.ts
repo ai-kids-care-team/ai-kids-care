@@ -10,7 +10,7 @@ import {
   updateAnnouncement,
 } from '@/services/apis/announcements.api';
 
-type StatusCode = 'ACTIVE' | 'PENDING' | 'DISABLED';
+import {StatusCode} from '@/types/announcement'
 
 function toIsoOrNull(value: string) {
   if (!value) return null;
@@ -29,7 +29,7 @@ function toLocalDatetimeInput(value: string | null) {
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
-export function useAnnouncementsUpdate() {
+export function useAnnouncementsEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = Number(searchParams.get('id') ?? 0);

@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useAnnouncementsUpdate } from '../model/useAnnouncementsUpdate';
+import { useAnnouncementsEdit } from '@/components/announcements/functions/useAnnouncementsEdit';
 
-export function AnnouncementsUpdateForm() {
+export function AnnouncementsEditForm() {
   const {
     id,
     title,
@@ -29,7 +29,7 @@ export function AnnouncementsUpdateForm() {
     submitting,
     error,
     handleSubmit,
-  } = useAnnouncementsUpdate();
+  } = useAnnouncementsEdit();
 
   const loading = loadingMeta || loadingAnnouncement;
 

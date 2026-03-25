@@ -10,7 +10,7 @@ import {
   type AnnouncementWritePayload,
 } from '@/services/apis/announcements.api';
 
-type StatusCode = 'ACTIVE' | 'PENDING' | 'DISABLED';
+import {StatusCode} from '@/types/announcement'
 
 function toIsoOrNull(value: string) {
   if (!value) return null;

@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { Bell, Plus, Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import type { AnnouncementItem } from './model/useAnnouncements';
+import {AnnouncementItem} from '@/types/announcement';
 
 type AnnouncementsListFormProps = {
   announcements: AnnouncementItem[];

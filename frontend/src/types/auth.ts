@@ -141,7 +141,7 @@ const mapBackendRoleToFrontendRole = (role: string): UserRole => {
 const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
   levelCode === 'DIRECTOR' || levelCode === 'PRINCIPAL' ? 'KINDERGARTEN_ADMIN' : 'TEACHER';
 
-export function useSignup() {
+export function auth() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [loginApi] = useLoginMutation();
@@ -422,7 +422,7 @@ export function useSignup() {
 
   useEffect(() => {
     const fetchCommonCodes = async (group: string): Promise<CommonCodeItem[]> => {
-      const response = await fetch(`${API_BASE_URL}/auth/common-codes?group=${encodeURIComponent(group)}`);
+      const response = await fetch(`${API_BASE_URL}/common_codes/code_group/${encodeURIComponent(group)}`);
       if (!response.ok) throw new Error(`공통코드 조회 실패: ${group}`);
       return response.json();
     };

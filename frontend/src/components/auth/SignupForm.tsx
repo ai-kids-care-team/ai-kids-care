@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useSignup } from './model/useSignup';
+import { auth } from '@/types/auth';
 import { GuardianForm } from './(signup)/GuardianForm';
 import { KindergartenForm } from './(signup)/KindergartenForm';
 import { SuperadminForm } from './(signup)/SuperadminForm';
@@ -47,7 +47,7 @@ export function SignupForm() {
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
     filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
     handleAccountFieldBlur,
-  } = useSignup();
+  } = auth();
   const [showChildSearchBack7, setShowChildSearchBack7] = useState(false);
 
   useEffect(() => {

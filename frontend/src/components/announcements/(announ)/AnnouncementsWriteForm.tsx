@@ -1,6 +1,6 @@
 'use client';
 
-import { useAnnouncementsWrite } from '../model/useAnnouncementsWrite';
+import { useAnnouncementsWrite } from '@/components/announcements/functions/useAnnouncementsWrite';
 
 export function AnnouncementsWriteForm() {
   const {

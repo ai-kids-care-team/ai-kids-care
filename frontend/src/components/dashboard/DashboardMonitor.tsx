@@ -16,7 +16,7 @@ import { Button } from '@/components/shared/ui/button';
 import { Card } from '@/components/shared/ui/card';
 import type { Camera, AnomalyEvent, UserRole } from '@/types/anomaly';
 import { anomalyTypeLabels, rolePermissions } from '@/types/anomaly';
-import { useRouter } from 'next/navigation'; // 리다이렉트를 위해 추가
+import { openLoginModal } from '@/utils/auth-modal';
 
 const KINDERGARTEN_ID = '1';
 
@@ -46,7 +46,6 @@ const generateMockEvents = (): AnomalyEvent[] => {
 
 
 export function DashboardMonitor() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
   const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
@@ -153,7 +152,7 @@ export function DashboardMonitor() {
             <h2 className="text-xl font-bold text-gray-800 mb-2">로그인이 필요합니다</h2>
             <p className="text-sm text-gray-500">세션이 만료되었거나 로그인 정보가 없습니다.</p>
           </div>
-          <Button onClick={() => router.push('/login')}>로그인 페이지로 이동</Button>
+          <Button onClick={openLoginModal}>로그인</Button>
         </div>
     );
   }

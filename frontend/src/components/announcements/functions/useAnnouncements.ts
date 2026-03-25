@@ -8,14 +8,7 @@ import {
 } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
 
-export type AnnouncementItem = {
-  id: number;
-  title: string;
-  date: string;
-  isNew: boolean;
-  views: number;
-  href: string;
-};
+import {AnnouncementItem} from '@/types/announcement';
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -48,31 +41,49 @@ export function useAnnouncements() {
       setLoading(true);
       setError('');
       try {
-        const [pageData, meta] = await Promise.all([
-          getAnnouncements({
-            keyword: appliedKeyword || undefined,
-            page,
-            size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
-          }),
-          getAnnouncementsMeta(),
-        ]);
+        const pageData = await getAnnouncements({
+          keyword: appliedKeyword || undefined,
+          page,
+          size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
+        });
         const now = Date.now();
         setTotalPages(pageData.totalPages);
         setAnnouncements(
           pageData.content.map((item) => {
             const baseDate = item.publishedAt ?? item.createdAt;
+            if (!baseDate) {
+              return {
+                id: item.id,
+                title: item.title,
+                date: '-',
+                isNew: false,
+                views: item.viewCount ?? 0,
+                href: `/announcements/read?id=${item.id}`,
+              };
+            }
             const isNew = now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000;
             return {
               id: item.id,
               title: item.title,
               date: formatDate(baseDate),
               isNew,
-              views: item.viewCount,
+              views: item.viewCount ?? 0,
               href: `/announcements/read?id=${item.id}`,
             };
           }),
         );
-        setCanWrite(meta.canWrite);
+
+        // 목록 조회는 비로그인도 가능하므로, 쓰기 권한 조회 실패가 목록 자체를 막지 않게 분리한다.
+        if (isAuthenticated && user && token) {
+          try {
+            const meta = await getAnnouncementsMeta();
+            setCanWrite(meta.canWrite);
+          } catch {
+            setCanWrite(false);
+          }
+        } else {
+          setCanWrite(false);
+        }
       } catch (e) {
         console.error('공지사항 목록 조회 실패:', e);
         setError('공지사항 목록을 불러오지 못했습니다.');
@@ -82,7 +93,7 @@ export function useAnnouncements() {
     };
 
     void load();
-  }, [appliedKeyword, page, user?.id, token, isAuthenticated]);
+  }, [appliedKeyword, page, user, token, isAuthenticated]);
 
   const handleSearch = () => {
     setAppliedKeyword(keyword.trim());

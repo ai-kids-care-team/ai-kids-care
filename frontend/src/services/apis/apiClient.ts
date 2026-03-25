@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 import { index as appStore } from '@/store/index';
+import { openLoginModal } from '@/utils/auth-modal';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -69,7 +70,7 @@ apiClient.interceptors.response.use(
           window.localStorage.removeItem('accessToken');
           window.localStorage.removeItem('token');
           window.localStorage.removeItem('refreshToken');
-          window.location.href = '/login'; // 로그인 페이지로 쫓아냄
+          openLoginModal();
         }
         return Promise.reject(refreshError);
       }

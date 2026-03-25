@@ -27,7 +27,7 @@ export function ResetPasswordForm() {
     try {
       await resetPasswordApi({ token, newPassword }).unwrap();
       alert('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해 주세요.');
-      router.push('/auth/login');
+      router.push('/login');
     } catch (err: any) {
       setError(err?.data?.message || '유효하지 않거나 만료된 인증코드입니다.');
     }

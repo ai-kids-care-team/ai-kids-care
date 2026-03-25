@@ -1,7 +1,7 @@
 'use client';
 
 import { AnnouncementsListForm } from './AnnouncementsListForm';
-import { useAnnouncements } from './model/useAnnouncements';
+import { useAnnouncements } from '@/components/announcements/functions/useAnnouncements';
 
 export function AnnouncementsListPage() {
   const {

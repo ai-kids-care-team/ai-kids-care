@@ -14,7 +14,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const { user } = useAppSelector((state) => state.user);
     const pathname = usePathname();
 
-    const hiddenTopBarRoutes = ['/login', '/forgot-password', '/reset-password'];
+    const hiddenTopBarRoutes = ['/forgot-password', '/reset-password'];
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
     const noScrollRoutes = ['/dashboard', '/detectionEvents'];
     const contentOverflowClass = noScrollRoutes.includes(pathname) ? 'overflow-hidden' : 'overflow-auto';
