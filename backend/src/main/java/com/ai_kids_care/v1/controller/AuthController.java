@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Tag(name = "Auth")
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -38,7 +40,8 @@ public class AuthController {
     }
 
     @PostMapping("/password-resets")
-    public AuthPasswordResetsPost200Response resetPassword(@RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
+    public ResponseEntity<AuthPasswordResetsVO> resetPassword(@RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
+        authService.passwordResets(authPasswordResetRequest);
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -48,7 +51,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public TokenVO refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
+    public ResponseEntity<TokenVO> refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -59,12 +62,12 @@ public class AuthController {
     }
 
     @PostMapping("/verification-codes/{challengeId}/verifications")
-    public VerifyVerificationCodeResponse authVerificationCodesChallengeIdVerificationsPost(@PathVariable String challengeId, @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
+    public ResponseEntity<VerifyVerificationCodeVO> authVerificationCodesChallengeIdVerificationsPost(@PathVariable String challengeId, @RequestBody VerifyVerificationCodeRequest verifyVerificationCodeRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
     @PostMapping("/verification-codes")
-    public VerificationCodeCreateResponse verifyCodes(@RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
+    public ResponseEntity<VerificationCodeCreateVO> verifyCodes(@RequestBody VerificationCodeCreateRequest verificationCodeCreateRequest) {
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -72,21 +75,8 @@ public class AuthController {
      * /register/availability?field=loginId|email|phone&amp;value=...
      */
     @GetMapping("/register/availability")
-    public AuthRegisterVO registerFieldAvailability(
-            @RequestParam("field") String field,
-            @RequestParam(value = "value", required = false, defaultValue = "") String value
-    ) {
-        try {
-            return authService.checkRegisterFieldAvailability(field, value);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
-    }
-
-    @GetMapping("/kindergartens")
-    public java.util.List<KindergartenVO> lookupByBusinessRegistrationNo(
-            @RequestParam("businessRegistrationNo") String businessRegistrationNo
-    ) {
-        return kindergartenService.searchForSignupByBusinessRegistrationNo(businessRegistrationNo);
+    public ResponseEntity<AuthRegisterVO> registerFieldAvailability(@RequestParam(value = "field") String field,
+                                                                    @RequestParam(value = "value") String value) {
+        return ResponseEntity.ok(authService.checkRegisterFieldAvailability(field, value));
     }
 }

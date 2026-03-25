@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.dto;
+package com.ai_kids_care.v1.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MenuResponse {
+public class MenuVO {
     private Long menuId;
     private Long parentId;
     private String menuName;

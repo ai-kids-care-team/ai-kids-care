@@ -1,7 +1,8 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.*;
-import com.ai_kids_care.v1.vo.*;
+import com.ai_kids_care.v1.dto.AuthLoginDTO;
+import com.ai_kids_care.v1.dto.AuthPasswordResetRequest;
+import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
 import com.ai_kids_care.v1.security.JwtUtil;
@@ -9,15 +10,15 @@ import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.TokenTypeEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
+import com.ai_kids_care.v1.vo.AuthRegisterResponse;
+import com.ai_kids_care.v1.vo.AuthRegisterVO;
+import com.ai_kids_care.v1.vo.TokenVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -54,90 +55,63 @@ public class AuthService {
 
     @Transactional
     public AuthRegisterResponse register(AuthRegisterDTO request) {
+        User user = User.builder()
+                .loginId(request.getLoginId())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .status(StatusEnum.ACTIVE)
+                .lastLoginAt(null)
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .build();
+        User userSaved = userRepository.save(user);
 
-        try {
-            validateRegisterRequest(request);
-            assertRegisterCredentialsAvailable(request);
+        // UserRoleAssignment
+        UserRoleEnum role = request.getUserRole();
+        UserRoleAssignmentScopeType scopeType;
+        Long scopeId = null;
+        switch (role) {
+            case GUARDIAN:
+            case TEACHER:
+            case KINDERGARTEN_ADMIN:
+                scopeType = UserRoleAssignmentScopeType.KINDERGARTEN;
+                scopeId = request.getKindergartenId();
+                break;
 
-            Child resolvedChild = null;
-            Long kindergartenScopeId = request.getKindergartenId();
+            case PLATFORM_IT_ADMIN:
+            case SUPERADMIN:
+                scopeType = UserRoleAssignmentScopeType.PLATFORM;
+                break;
 
-            if (request.getUserRole() == UserRoleEnum.GUARDIAN) {
-                resolvedChild = resolveChild(request); //주민번호 앞 + 뒤 자리로 찾기
-                kindergartenScopeId = resolvedChild.getKindergarten().getId();
-            } else if (request.getUserRole() == UserRoleEnum.TEACHER
-                    || request.getUserRole() == UserRoleEnum.KINDERGARTEN_ADMIN) {
-                if (request.getKindergartenId() == null) {
-                    throw new IllegalArgumentException("유치원을 선택해주세요.");
-                }
-                kindergartenScopeId = request.getKindergartenId();
-                if (!StringUtils.hasText(request.getEmergencyContactName())
-                        || !StringUtils.hasText(request.getEmergencyContactPhone())) {
-                    throw new IllegalArgumentException("비상 연락처를 입력해주세요.");
-                }
-                if (request.getLevel() == null) {
-                    throw new IllegalArgumentException("직급을 선택해주세요.");
-                }
-            }
-
-            User user = User.builder()
-                    .loginId(request.getLoginId())
-                    .email(request.getEmail())
-                    .phone(request.getPhone())
-                    .passwordHash(passwordEncoder.encode(request.getPassword()))
-                    .status(StatusEnum.ACTIVE)
-                    .lastLoginAt(null)
-                    .createdAt(OffsetDateTime.now())
-                    .updatedAt(OffsetDateTime.now())
-                    .build();
-            User userSaved = userRepository.save(user);
-
-            UserRoleAssignmentScopeType scopeType;
-            Long scopeId = null;
-            switch (request.getUserRole()) {
-                case GUARDIAN:
-                case TEACHER:
-                case KINDERGARTEN_ADMIN:
-                    scopeType = UserRoleAssignmentScopeType.KINDERGARTEN;
-                    scopeId = kindergartenScopeId;
-                    break;
-                case PLATFORM_IT_ADMIN:
-                case SUPERADMIN:
-                    scopeType = UserRoleAssignmentScopeType.PLATFORM;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported role: " + request.getUserRole());
-            }
-
-            UserRoleAssignment userRoleAssignment = UserRoleAssignment.builder()
-                    .user(userSaved)
-                    .role(request.getUserRole())
-                    .scopeType(scopeType)
-                    .scopeId(scopeId)
-                    .status(StatusEnum.ACTIVE)
-                    .grantedAt(OffsetDateTime.now())
-                    .grantedByUser(null)
-                    .revokedAt(null)
-                    .revokedByUser(null)
-                    .build();
-            userRoleAssignmentRepository.save(userRoleAssignment);
-
-            switch (request.getUserRole()) {
-                case GUARDIAN -> registerGuardian(userSaved, request);
-                case TEACHER, KINDERGARTEN_ADMIN -> registerTeacher(userSaved, request);
-                case PLATFORM_IT_ADMIN -> registerPlatformItAdmin(userSaved, request);
-                case SUPERADMIN -> registerSuperadmin(userSaved, request);
-                default -> throw new IllegalArgumentException("지원하지 않는 회원유형입니다.");
-            }
-
-            return AuthRegisterResponse.builder()
-                    .userId(userSaved.getId())
-                    .status(userSaved.getStatus())
-                    .createdAt(userSaved.getCreatedAt())
-                    .build();
-        } finally {
-
+            default:
+                throw new IllegalArgumentException("Unsupported role: " + role);
         }
+
+        UserRoleAssignment userRoleAssignment = UserRoleAssignment.builder()
+                .user(userSaved)
+                .role(request.getUserRole())
+                .scopeType(scopeType)
+                .scopeId(scopeId)
+                .status(StatusEnum.ACTIVE)
+                .grantedAt(OffsetDateTime.now())
+                .grantedByUser(null)
+                .revokedAt(null)
+                .revokedByUser(null)
+                .build();
+        userRoleAssignmentRepository.save(userRoleAssignment);
+
+        BiConsumer<User, AuthRegisterDTO> registerFunction = roleRegisterStrategies.get(role);
+        if (registerFunction == null) {
+            throw new IllegalArgumentException("지원하지 않는 회원유형입니다.");
+        }
+        registerFunction.accept(userSaved, request);
+
+        return AuthRegisterResponse.builder()
+                .userId(userSaved.getId())
+                .status(userSaved.getStatus())
+                .createdAt(userSaved.getCreatedAt())
+                .build();
     }
 
     public TokenVO login(AuthLoginDTO request) {
@@ -171,13 +145,13 @@ public class AuthService {
         String to = request.getTo();
         boolean exists = userRepository.existsByLoginIdOrEmailOrPhone(to, to, to);
         // TODO: 메일/인증코드 발송 로직 연동
+        throw new IllegalArgumentException("Not implemented");
     }
 
 
     private void registerGuardian(User user, AuthRegisterDTO request) {
-        Child child = childrenService.findChildByRrnParts(request.getChildRrnFirst6(), request.getChildRrnBack7())
-                .orElseThrow(() -> new EntityNotFoundException("아이 정보를 찾을 수 없습니다."));
-
+        Child child = childrenService.getChildEntityByRRN(request.getChildRrnFirst6(), request.getChildRrnBack7())
+                .orElseThrow(() -> new EntityNotFoundException("Child not found"));
         Guardian guardian = Guardian.builder()
                 .user(user)
                 .kindergarten(child.getKindergarten())
@@ -275,90 +249,17 @@ public class AuthService {
         superadminRepository.save(superadmin);
     }
 
-    private void validateRegisterRequest(AuthRegisterDTO request) {
-        if (request.getUserRole() == UserRoleEnum.GUARDIAN) {
-
-            boolean hasChildRrn = StringUtils.hasText(request.getChildRrnFirst6())
-                    && StringUtils.hasText(request.getChildRrnBack7());
-            if (!hasChildRrn) {
-                throw new IllegalArgumentException("아이 찾기(주민번호) 정보가 필요합니다.");
-            }
-            if (request.getRelationship() == null) {
-                throw new IllegalArgumentException("보호자 관계를 선택해주세요.");
-            }
-        }
-        if (request.getUserRole() == UserRoleEnum.TEACHER
-                || request.getUserRole() == UserRoleEnum.KINDERGARTEN_ADMIN
-                || request.getUserRole() == UserRoleEnum.GUARDIAN) {
-            if (request.getGender() == null) {
-                throw new IllegalArgumentException("성별을 입력해주세요.");
-            }
-            if (!StringUtils.hasText(request.getRrnFirst6()) || request.getRrnFirst6().length() != 6) {
-                throw new IllegalArgumentException("주민등록번호 앞 6자리를 입력해주세요.");
-            }
-            if (!StringUtils.hasText(request.getRrnBack7()) || request.getRrnBack7().length() != 7) {
-                throw new IllegalArgumentException("주민등록번호 뒤 7자리를 입력해주세요.");
-            }
-        }
-        if (request.getUserRole() == UserRoleEnum.SUPERADMIN
-                && !StringUtils.hasText(request.getDepartment())) {
-            throw new IllegalArgumentException("행정청 부서명을 입력해주세요.");
-        }
-    }
-
-    /**
-     * DB 유니크 제약(uq_user_account_*) 위반 전에 동일 조건으로 선검사 — 프론트 blur 검사를 건너뛴 경우에도 한글 메시지로 응답 가능.
-     */
-    private void assertRegisterCredentialsAvailable(AuthRegisterDTO request) {
-        if (request.getLoginId() != null && StringUtils.hasText(request.getLoginId().trim())) {
-            if (userRepository.existsByLoginId(request.getLoginId().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 로그인 ID입니다.");
-            }
-        }
-        if (request.getEmail() != null && StringUtils.hasText(request.getEmail().trim())) {
-            if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
-            }
-        }
-        if (request.getPhone() != null && StringUtils.hasText(request.getPhone().trim())) {
-            if (userRepository.existsByPhone(request.getPhone().trim().replaceAll("\\D", ""))){
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 등록된 연락처(전화번호)입니다.");
-            }
-
-        }
-    }
-
-    private Child resolveChild(AuthRegisterDTO request) {
-        return childrenService.findChildByRrnParts(request.getChildRrnFirst6(), request.getChildRrnBack7())
-                .orElseThrow(() -> new EntityNotFoundException("아이 정보를 찾을 수 없습니다."));
-    }
-
-    @Transactional(readOnly = true)
     public AuthRegisterVO checkRegisterFieldAvailability(String field, String value) {
-        String normalizedField = field == null ? "" : field.trim().toLowerCase();
-        String normalizedValue = value == null ? "" : value.trim();
-
-        if (!StringUtils.hasText(normalizedField)) {
-            throw new IllegalArgumentException("field 값이 필요합니다.");
-        }
-        if (!StringUtils.hasText(normalizedValue)) {
-            return new AuthRegisterVO(false, "값을 입력해주세요.");
-        }
-
-        return switch (normalizedField) {
-            case "loginid", "login_id", "login-id" -> userRepository.existsByLoginId(normalizedValue)
+        return switch (field) {
+            case "login_id", "login-id" -> userRepository.existsByLoginId(value)
                     ? new AuthRegisterVO(false, "이미 사용 중인 로그인 ID입니다.")
-                    : new AuthRegisterVO(true, null);
-            case "email" -> userRepository.existsByEmailIgnoreCase(normalizedValue)
+                    : new AuthRegisterVO(true, "");
+            case "email" -> userRepository.existsByEmailIgnoreCase(value)
                     ? new AuthRegisterVO(false, "이미 사용 중인 이메일입니다.")
-                    : new AuthRegisterVO(true, null);
-            case "phone" -> {
-                String digits = normalizedValue.replaceAll("\\D", "");
-                boolean exists = userRepository.existsByPhone(digits);
-                yield exists
-                        ? new AuthRegisterVO(false, "이미 등록된 연락처(전화번호)입니다.")
-                        : new AuthRegisterVO(true, null);
-            }
+                    : new AuthRegisterVO(true, "");
+            case "phone" -> userRepository.existsByPhone(value)
+                    ? new AuthRegisterVO(false, "이미 등록된 연락처(전화번호)입니다.")
+                    : new AuthRegisterVO(true, "");
             default -> throw new IllegalArgumentException("지원하지 않는 field 입니다: " + field);
         };
     }

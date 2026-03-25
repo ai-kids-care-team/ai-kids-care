@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.dto;
+package com.ai_kids_care.v1.vo;
 
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -18,7 +18,7 @@ import jakarta.annotation.Generated;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class VerificationCodeCreateResponse {
+public class VerificationCodeCreateVO {
 
   
   @NonNull

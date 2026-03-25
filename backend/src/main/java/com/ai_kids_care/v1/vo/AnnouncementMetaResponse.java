@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.dto;
+package com.ai_kids_care.v1.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

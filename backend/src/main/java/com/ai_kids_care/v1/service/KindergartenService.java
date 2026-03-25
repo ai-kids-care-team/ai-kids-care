@@ -61,7 +61,7 @@ public class KindergartenService {
         if (digits.length() != 10) {
             return List.of();
         }
-        return repository.findByBusinessRegistrationDigits(digits).stream()
+        return repository.findByBusinessRegistrationNoContains(digits).stream()
                 .map(mapper::toVO)
                 .toList();
     }

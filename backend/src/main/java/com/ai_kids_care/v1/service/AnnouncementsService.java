@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.*;
-import com.ai_kids_care.v1.vo.CommonCodeVO;
+import com.ai_kids_care.v1.vo.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
