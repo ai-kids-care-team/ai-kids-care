@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
-import com.ai_kids_care.v1.dto.AuthPasswordResetRequest;
+import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
@@ -141,7 +141,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public void passwordResets(AuthPasswordResetRequest request) {
+    public void passwordResets(AuthPasswordResetDTO request) {
         String to = request.getTo();
         boolean exists = userRepository.existsByLoginIdOrEmailOrPhone(to, to, to);
         // TODO: 메일/인증코드 발송 로직 연동
@@ -235,6 +235,7 @@ public class AuthService {
 
     private void registerPlatformItAdmin(User user, AuthRegisterDTO request) {
         //TODO
+        throw new IllegalArgumentException("Not implemented");
     }
 
     private void registerSuperadmin(User user, AuthRegisterDTO request) {

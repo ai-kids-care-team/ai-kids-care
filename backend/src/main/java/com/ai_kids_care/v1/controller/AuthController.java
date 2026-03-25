@@ -1,18 +1,15 @@
 package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.*;
+import com.ai_kids_care.v1.service.AuthService;
 import com.ai_kids_care.v1.service.KindergartenService;
 import com.ai_kids_care.v1.vo.*;
-import com.ai_kids_care.v1.service.AuthService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @Tag(name = "Auth")
 @RestController
@@ -40,8 +37,8 @@ public class AuthController {
     }
 
     @PostMapping("/password-resets")
-    public ResponseEntity<AuthPasswordResetsVO> resetPassword(@RequestBody AuthPasswordResetRequest authPasswordResetRequest) {
-        authService.passwordResets(authPasswordResetRequest);
+    public ResponseEntity<AuthPasswordResetsVO> resetPassword(@RequestBody AuthPasswordResetDTO authPasswordResetDTO) {
+        authService.passwordResets(authPasswordResetDTO);
         throw new IllegalArgumentException("Not implemented");
     }
 
@@ -56,7 +53,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthRegisterResponse> register(@Parameter(name = "AuthRegisterRequest", description = "", required = true) @RequestBody AuthRegisterDTO authRegisterDTO) {
+    public ResponseEntity<AuthRegisterResponse> register(@Parameter(name = "AuthRegisterRequest", required = true) @RequestBody AuthRegisterDTO authRegisterDTO) {
         AuthRegisterResponse response = authService.register(authRegisterDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

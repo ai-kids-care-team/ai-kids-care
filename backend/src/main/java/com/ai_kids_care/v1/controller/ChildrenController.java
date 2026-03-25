@@ -2,13 +2,10 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.ChildCreateDTO;
 import com.ai_kids_care.v1.dto.ChildUpdateDTO;
-import com.ai_kids_care.v1.service.AuthService;
 import com.ai_kids_care.v1.service.ChildrenService;
 import com.ai_kids_care.v1.vo.ChildVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 public class ChildrenController {
 
     private final ChildrenService service;
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     @GetMapping
     public ResponseEntity<Page<ChildVO>> listChildren(@RequestParam("keyword") String keyword, @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
