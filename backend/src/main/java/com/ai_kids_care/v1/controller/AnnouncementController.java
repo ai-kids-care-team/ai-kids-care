@@ -23,7 +23,7 @@ public class AnnouncementController {
     private final AnnouncementService service;
 
     @GetMapping
-    public ResponseEntity<Page<AnnouncementVO>> listAnnouncements(
+    public ResponseEntity<Page<AnnouncementVO>> listActiveAnnouncements(
             @RequestParam(required = false) String keyword,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
