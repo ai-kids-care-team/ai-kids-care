@@ -15,6 +15,24 @@ export const USER_ROLES: UserRole[] = [
   'GUARDIAN',
 ];
 
+/** 공지사항 글쓰기·수정·삭제 UI (GUARDIAN 제외) */
+export const ANNOUNCEMENT_EDITOR_ROLES: readonly UserRole[] = [
+  'TEACHER',
+  'KINDERGARTEN_ADMIN',
+  'PLATFORM_IT_ADMIN',
+  'SUPERADMIN',
+];
+
+export function canManageAnnouncements(role: UserRole | string | null | undefined): boolean {
+  if (role == null || role === '') return false;
+  return (ANNOUNCEMENT_EDITOR_ROLES as readonly string[]).includes(role);
+}
+
+/** 공지 작성·수정 안내 문구용 — 기술 역할명 대신 화면용 한글명만 나열 */
+export function describeAnnouncementEditorRolesKorean(): string {
+  return ANNOUNCEMENT_EDITOR_ROLES.map((r) => roleLabels[r]).join('·');
+}
+
 export interface RolePermissions {
   canViewAllCameras: boolean;
   canViewOwnClassroom: boolean;
