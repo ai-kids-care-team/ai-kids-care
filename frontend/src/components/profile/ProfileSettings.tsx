@@ -10,6 +10,7 @@ import { switchRole, setCredentials } from '@/store/slices/userSlice';
 import { useChangePasswordMutation } from '@/services/apis/auth.api';
 import { TopBar } from '@/layout/TopBar';
 import { openLoginModal } from '@/utils/auth-modal';
+import { roleLabels } from '@/types/user-role';
 
 export function ProfileSettings() {
   const router = useRouter();
@@ -68,6 +69,8 @@ export function ProfileSettings() {
     return null;
   }
 
+  const currentRole = user.role;
+
   const handleRoleChange = (role: any) => {
     dispatch(switchRole(role));
   };
@@ -115,7 +118,7 @@ export function ProfileSettings() {
                   <User className="w-10 h-10" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900">{user.name}</h2>
-                <p className="text-sm text-slate-500 mb-4">{user.role}</p>
+                <p className="text-sm text-slate-500 mb-4">{roleLabels[currentRole]}</p>
 
                 <div className="text-left bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                   <div>

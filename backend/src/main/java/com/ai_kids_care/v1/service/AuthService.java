@@ -136,6 +136,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .refreshExpiresIn(expireSecond)
                 .role(resolvedRole.name())
+                .id(user.getId())
                 .loginId(user.getLoginId())
                 .build();
     }

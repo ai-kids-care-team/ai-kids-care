@@ -106,9 +106,9 @@ FROM (
         ('child_class_assignment', 'PENDING', '배정정지', 2),
         ('child_class_assignment', 'DISABLED', '배정해제', 3),
 
-        ('teacher', 'ACTIVE', '재직', 1),
-        ('teacher', 'PENDING', '휴직', 2),
-        ('teacher', 'DISABLED', '퇴사', 3),
+        ('TEACHER', 'ACTIVE', '재직', 1),
+        ('TEACHER', 'PENDING', '휴직', 2),
+        ('TEACHER', 'DISABLED', '퇴사', 3),
 
         ('class_teacher_assignment', 'ACTIVE', '배정완료', 1),
         ('class_teacher_assignment', 'PENDING', '배정정지', 2),
@@ -126,9 +126,9 @@ FROM (
         ('cctv_camera', 'PENDING', '정지', 2),
         ('cctv_camera', 'DISABLED', '중지', 3),
 
-        ('guardian', 'ACTIVE', '활성', 1),
-        ('guardian', 'PENDING', '대기', 2),
-        ('guardian', 'DISABLED', '중지', 3),
+        ('GUARDIAN', 'ACTIVE', '활성', 1),
+        ('GUARDIAN', 'PENDING', '대기', 2),
+        ('GUARDIAN', 'DISABLED', '중지', 3),
 
         ('user_kindergarten_membership', 'ACTIVE', '활성', 1),
         ('user_kindergarten_membership', 'PENDING', '대기', 2),

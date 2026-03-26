@@ -19,8 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/shared/ui/dropdown-menu';
-import type { UserRole } from '@/types/anomaly';
-import { roleLabels } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
+import { menuApiRoleType, roleLabels, USER_ROLES } from '@/types/user-role';
 import { useGetMenusQuery } from '@/services/apis/menu.api';
 import { LoginModal } from '@/components/home/LoginModal';
 
@@ -30,24 +30,8 @@ interface TopBarProps {
   onRoleChange?: (role: UserRole) => void;
 }
 
-const roles: UserRole[] = ['super_admin', 'system_admin', 'admin', 'teacher', 'guardian'];
+const roles = USER_ROLES;
 const KINDERGARTEN_ID = '1';
-
-const mapFrontendRoleToMenuRole = (role: UserRole): string => {
-  switch (role) {
-    case 'teacher':
-      return 'TEACHER';
-    case 'admin':
-      return 'ADMIN';
-    case 'system_admin':
-      return 'PLATFORM_IT_ADMIN';
-    case 'super_admin':
-      return 'SUPERADMIN';
-    case 'guardian':
-    default:
-      return 'GUARDIAN';
-  }
-};
 
 export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
   const router = useRouter();
@@ -66,7 +50,7 @@ export function TopBar({ currentRole, username, onRoleChange }: TopBarProps) {
 
   const [markAllAsReadApi] = useMarkAllNotificationsAsReadMutation();
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
-  const menuRoleType = isGuest ? 'ALL' : mapFrontendRoleToMenuRole(currentRole);
+  const menuRoleType = isGuest ? 'ALL' : menuApiRoleType(currentRole);
   const { data: menuItems = [] } = useGetMenusQuery(menuRoleType);
   const fallbackMenus = [
     { menuId: -1, menuName: '대시보드', path: '/dashboard' },

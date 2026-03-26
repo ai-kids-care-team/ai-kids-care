@@ -1,9 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { UserRole } from '@/types/user-role';
 
-export type UserRole = 'super_admin' | 'system_admin' | 'admin' | 'teacher' | 'guardian';
+export type { UserRole };
 
 export interface User {
   id: string;
+  loginId : string;
   name: string;
   username: string; // 로그인 ID
   role: UserRole;

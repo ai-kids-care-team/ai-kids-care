@@ -6,22 +6,12 @@ import Link from 'next/link';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useForgotPasswordMutation, useLoginMutation } from '@/services/apis/auth.api';
-import type { UserRole } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const mapBackendRoleToFrontendRole = (role: string): UserRole => {
-  const normalized = String(role ?? '').trim().toUpperCase();
-
-  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') return 'super_admin';
-  if (normalized === 'PLATFORM_IT_ADMIN' || normalized === 'SYSTEM_ADMIN') return 'system_admin';
-  if (normalized === 'KINDERGARTEN_ADMIN' || normalized === 'ADMIN') return 'admin';
-  if (normalized === 'TEACHER') return 'teacher';
-  return 'guardian';
-};
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
@@ -80,15 +70,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       }).unwrap();
 
       const responseLoginId = response?.loginId ?? formData.loginId;
-      const role = response?.role ?? 'guardian';
+      const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
       const name = response?.name;
 
       const user = {
         id: responseLoginId,
+        loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
-        role: mapBackendRoleToFrontendRole(role),
+        role: role as UserRole,
       };
 
       dispatch(setCredentials({ user, token }));
