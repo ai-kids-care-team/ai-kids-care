@@ -47,35 +47,6 @@ WHERE NOT EXISTS (
     SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'FATHER'
 );
 
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDMOTHER', '외할머니', 3, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDMOTHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDFATHER', '외할아버지', 4, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDFATHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDMOTHER', '친할머니', 5, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDMOTHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDFATHER', '친할아버지', 6, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDFATHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT NULL, 'GUARDIAN_RELATIONSHIP', 'OTHER', '기타', 99, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'OTHER'
-);
 
 -- =========================================================
 -- Status code seed data by category
