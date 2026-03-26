@@ -9,6 +9,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 
@@ -60,14 +62,16 @@ public class Announcement {
     @NotNull
     @ColumnDefault("0")
     @Column(name = "view_count", nullable = false)
-    private Long viewCount;
+    private Long viewCount = 0L;
 
     @NotNull
+    @CreationTimestamp
     @ColumnDefault("now()")
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     @NotNull
+    @UpdateTimestamp
     @ColumnDefault("now()")
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
@@ -75,5 +79,28 @@ public class Announcement {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        OffsetDateTime now = OffsetDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+        if (viewCount == null) {
+            viewCount = 0L;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (updatedAt == null) {
+            updatedAt = OffsetDateTime.now();
+        }
+        if (viewCount == null) {
+            viewCount = 0L;
+        }
+    }
 
 }

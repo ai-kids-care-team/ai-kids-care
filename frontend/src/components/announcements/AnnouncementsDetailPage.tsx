@@ -144,7 +144,7 @@ export function AnnouncementsDetailPage() {
                 {canWrite && (
                   <div className="flex items-center gap-3">
                     <Link
-                      href={`/announcements/update?id=${announcement.id}`}
+                      href={`/announcements/edit?id=${announcement.id}`}
                       className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm text-white hover:bg-blue-700"
                     >
                       <Pencil className="h-5 w-5" />
