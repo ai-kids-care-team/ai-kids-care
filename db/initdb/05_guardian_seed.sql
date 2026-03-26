@@ -153,7 +153,7 @@ SELECT 3005,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3005);
 
--- 4) guardian user accounts (password: password)
+-- 4) GUARDIAN user accounts (password: password)
 -- Verified bcrypt hash
 -- $2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm
 -- guardian_4001 plaintext password: password
@@ -303,7 +303,7 @@ SELECT 5005,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5005);
 
--- 5-1 teacher user accounts (password: password)
+-- 5-1 TEACHER user accounts (password: password)
 -- teacher_4101 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4101,
@@ -408,7 +408,7 @@ SELECT 5203,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE teacher_id = 5203);
 
--- 6) child-guardian relationship (5)
+-- 6) child-GUARDIAN relationship (5)
 INSERT INTO child_guardian_relationships (kindergarten_id, child_id, guardian_id, relationship, is_primary, priority,
                                           start_date, end_date, created_at, updated_at)
 SELECT 1001,
@@ -489,7 +489,7 @@ WHERE NOT EXISTS (SELECT 1
                   FROM child_guardian_relationships
                   WHERE kindergarten_id = 1001 AND child_id = 3005 AND guardian_id = 5005);
 
--- 7) role assignment (guardian)
+-- 7) role assignment (GUARDIAN)
 INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
                                    granted_by_user_id, revoked_at)
 SELECT 6001,
@@ -604,7 +604,7 @@ WHERE NOT EXISTS (SELECT 1
                     AND ura.scope_id = 1001
                     AND ura.status = 'ACTIVE');
 
--- 7-1 role assignment (teacher)
+-- 7-1 role assignment (TEACHER)
 INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
                                    granted_by_user_id, revoked_at)
 SELECT 6101,
@@ -734,7 +734,7 @@ WHERE NOT EXISTS (SELECT 1
                   FROM user_kindergarten_memberships
                   WHERE user_id = 4005 AND kindergarten_id = 1001 AND status = 'ACTIVE');
 
--- 8-1) kindergarten membership (teacher)
+-- 8-1) kindergarten membership (TEACHER)
 INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
                                            created_at, updated_at)
 SELECT 7101,
