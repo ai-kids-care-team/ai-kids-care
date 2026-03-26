@@ -40,6 +40,7 @@ export function useAnnouncements() {
           keyword: appliedKeyword || undefined,
           page,
           size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
+          sort: ['isPinned,desc', 'publishedAt,desc', 'id,desc'],
         });
         const now = Date.now();
         setTotalPages(pageData.totalPages);

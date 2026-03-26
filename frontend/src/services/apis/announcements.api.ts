@@ -44,6 +44,8 @@ export type GetAnnouncementsParams = {
   /** 0부터 */
   page?: number;
   size?: number;
+  /** Spring Pageable sort 형식 예: 'createdAt,desc' 또는 ['isPinned,desc', 'publishedAt,desc'] */
+  sort?: string | string[];
 };
 
 export type AnnouncementDetail = AnnouncementListItem;
@@ -130,11 +132,13 @@ export async function getAnnouncements(
   const page = params?.page ?? 0;
   const size = params?.size ?? ANNOUNCEMENTS_LIST_PAGE_SIZE;
   const keyword = params?.keyword?.trim();
+  const sort = params?.sort;
   const response = await apiClient.get<PageResponse<AnnouncementListItem>>('/announcements', {
     params: {
       page,
       size,
       ...(keyword ? { keyword } : {}),
+      ...(sort ? { sort } : {}),
     },
   });
   return response.data;
