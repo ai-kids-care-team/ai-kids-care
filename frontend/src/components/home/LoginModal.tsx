@@ -29,6 +29,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [forgotPasswordApi, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
   const [viewMode, setViewMode] = useState<'login' | 'forgot'>('login');
   const [formData, setFormData] = useState({
+    id: '',
     loginId: '',
     password: '',
   });
@@ -40,7 +41,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const resetForm = () => {
     setViewMode('login');
-    setFormData({ loginId: '', password: '' });
+    setFormData({ loginId: '', password: '' , id:''});
     setForgotEmail('');
     setForgotError('');
     setForgotSuccess(false);
@@ -67,15 +68,18 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const response = await loginApi({
         identifier: formData.loginId,
         password: formData.password,
+          id : formData.id,
       }).unwrap();
 
+
       const responseLoginId = response?.loginId ?? formData.loginId;
+        const responseId = response?.id ?? formData.id;
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
       const name = response?.name;
 
       const user = {
-        id: responseLoginId,
+        id: responseId,
         loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,

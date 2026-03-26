@@ -61,10 +61,12 @@ export type AnnouncementEdit = {
   endsAt: string | null;
 };
 
-export type AnnouncementMeta = {
-  canWrite: boolean;
-  statusOptions: AnnouncementStatusOption[];
-};
+/** 메타 API 대신 작성/수정 폼에서 사용하는 기본 상태 옵션 */
+export const DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS: AnnouncementStatusOption[] = [
+  { code: 'PENDING', codeName: '대기', sortOrder: 1 },
+  { code: 'ACTIVE', codeName: '게시', sortOrder: 2 },
+  { code: 'DISABLED', codeName: '비활성', sortOrder: 3 },
+];
 
 /**
  * 백엔드 `AnnouncementCreateDTO` / `AnnouncementUpdateDTO`와 필드명을 맞춘다.
@@ -138,11 +140,6 @@ export async function getAnnouncements(
   return response.data;
 }
 
-export async function getAnnouncementsMeta() {
-  const response = await apiClient.get<AnnouncementMeta>('/announcements/meta');
-  return response.data;
-}
-
 /**
  * 개발 모드(StrictMode)에서 동일 컴포넌트가 즉시 재마운트되며 같은 상세 API를
  * 중복 호출하는 경우가 있어, 같은 id의 진행 중 요청은 하나로 합친다.
@@ -165,6 +162,7 @@ export async function getAnnouncementDetail(id: number) {
 }
 
 export async function createAnnouncement(payload: AnnouncementWritePayload) {
+
   const response = await apiClient.post<AnnouncementRecord>('/announcements', payload);
   return response.data;
 }

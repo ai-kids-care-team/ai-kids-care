@@ -26,9 +26,9 @@ CREATE INDEX idx_user_role_sort ON user_role(sort_order);
 INSERT INTO user_role (role_code, role_name, role_desc, sort_order)
 VALUES
 ('GUARDIAN',            '양육자',       '아동 등록/조회, 병원 선택 등 일반 사용자', 10),
-('TEACHER',             '유치원',       '유치원 관계자(교사) 기능 접근',           20),
-('KINDERGARTEN_ADMIN',  '유치원원장',   '유치원 관리자(원장) 기능 접근',           30),
-('PLATFORM_IT_ADMIN',   '시스템관리자', '플랫폼 운영/기술 관리 기능 접근',          40),
+('TEACHER',             '유치원 선생님',       '유치원 관계자(교사) 기능 접근',           20),
+('KINDERGARTEN_ADMIN',  '유치원 원장',   '유치원 관리자(원장) 기능 접근',           30),
+('PLATFORM_IT_ADMIN',   '시스템 관리자', '플랫폼 운영/기술 관리 기능 접근',          40),
 ('SUPERADMIN',          '행정청',       '행정청 권한(최상위) 기능 접근',             50);
 
 
@@ -38,7 +38,7 @@ COMMENT ON COLUMN user_role.role_id IS '권한 고유 ID';
 
 COMMENT ON COLUMN user_role.role_code IS '권한 코드 (GUARDIAN / TEACHER / KINDERGARTEN_ADMIN / PLATFORM_IT_ADMIN / SUPERADMIN)';
 
-COMMENT ON COLUMN user_role.role_name IS '권한 이름 (양육자 / 유치원 / 유치원원장 / 시스템관리자 / 행정청)';
+COMMENT ON COLUMN user_role.role_name IS '권한 이름 (양육자 / 유치원 성생님 / 유치원 원장 / 시스템 관리자 / 행정청)';
 
 COMMENT ON COLUMN user_role.role_desc IS '권한 설명';
 

@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createAnnouncement,
-  getAnnouncementsMeta,
+  DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS,
   validateAnnouncementCreateAuditFields,
-  type AnnouncementStatusOption,
   type AnnouncementWritePayload,
 } from '@/services/apis/announcements.api';
+import { useAppSelector } from '@/store/hook';
+import { canManageAnnouncements } from '@/types/user-role';
 
-import {StatusCode} from '@/types/announcement'
+import { StatusCode } from '@/types/announcement';
 
 function toIsoOrNull(value: string) {
   if (!value) return null;
@@ -19,6 +20,21 @@ function toIsoOrNull(value: string) {
 
 export function useAnnouncementsWrite() {
   const router = useRouter();
+  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+
+
+    console.log(user , token, isAuthenticated);
+
+  const authorIdHiddenValue = user?.id ?? '';
+  const authorId = useMemo(() => {
+    const parsed = Number(user?.id);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [user?.id]);
+  const canWrite = useMemo(
+    () => Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
+    [isAuthenticated, user, token],
+  );
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isPinned, setIsPinned] = useState(false);
@@ -27,9 +43,7 @@ export function useAnnouncementsWrite() {
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [status, setStatus] = useState<StatusCode>('PENDING');
-  const [statusOptions, setStatusOptions] = useState<AnnouncementStatusOption[]>([]);
-  const [canWrite, setCanWrite] = useState(false);
-  const [loadingMeta, setLoadingMeta] = useState(true);
+  const statusOptions = DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,28 +61,6 @@ export function useAnnouncementsWrite() {
     router.push('/announcements', { scroll: true });
   };
 
-  useEffect(() => {
-    const loadMeta = async () => {
-      setLoadingMeta(true);
-      setError('');
-      try {
-        const meta = await getAnnouncementsMeta();
-        setCanWrite(meta.canWrite);
-        setStatusOptions(meta.statusOptions);
-        if (meta.statusOptions.length > 0) {
-          setStatus(meta.statusOptions[0].code);
-        }
-      } catch (e) {
-        console.error('공지사항 메타 정보 조회 실패:', e);
-        setError('권한/코드 정보를 불러오지 못했습니다.');
-      } finally {
-        setLoadingMeta(false);
-      }
-    };
-
-    void loadMeta();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -83,6 +75,10 @@ export function useAnnouncementsWrite() {
     }
     if (!content.trim()) {
       setError('내용을 입력해주세요.');
+      return;
+    }
+    if (authorId == null) {
+      setError('로그인 사용자 ID를 확인할 수 없습니다.');
       return;
     }
     if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
@@ -110,6 +106,7 @@ export function useAnnouncementsWrite() {
       endsAt: toIsoOrNull(endsAt),
       createdAt,
       updatedAt,
+      authorId,
     };
     try {
       setSubmitting(true);
@@ -141,8 +138,8 @@ export function useAnnouncementsWrite() {
     status,
     setStatus,
     statusOptions,
+    authorIdHiddenValue,
     canWrite,
-    loadingMeta,
     submitting,
     error,
     handleSubmit,

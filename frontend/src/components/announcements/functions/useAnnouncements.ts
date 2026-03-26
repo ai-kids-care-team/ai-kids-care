@@ -1,12 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  ANNOUNCEMENTS_LIST_PAGE_SIZE,
-  getAnnouncements,
-  getAnnouncementsMeta,
-} from '@/services/apis/announcements.api';
+import { useEffect, useMemo, useState } from 'react';
+import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
+import { canManageAnnouncements } from '@/types/user-role';
 
 import {AnnouncementItem} from '@/types/announcement';
 
@@ -25,16 +22,14 @@ export function useAnnouncements() {
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [canWrite, setCanWrite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // 로그아웃 직후에는 메타 재조회 응답을 기다리지 않고 즉시 숨긴다.
-    if (!isAuthenticated || !user || !token) {
-      setCanWrite(false);
-    }
-  }, [isAuthenticated, user, token]);
+  const canWrite = useMemo(
+    () =>
+      Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
+    [isAuthenticated, user, token],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -72,18 +67,6 @@ export function useAnnouncements() {
             };
           }),
         );
-
-        // 목록 조회는 비로그인도 가능하므로, 쓰기 권한 조회 실패가 목록 자체를 막지 않게 분리한다.
-        if (isAuthenticated && user && token) {
-          try {
-            const meta = await getAnnouncementsMeta();
-            setCanWrite(meta.canWrite);
-          } catch {
-            setCanWrite(false);
-          }
-        } else {
-          setCanWrite(false);
-        }
       } catch (e) {
         console.error('공지사항 목록 조회 실패:', e);
         setError('공지사항 목록을 불러오지 못했습니다.');
@@ -93,7 +76,7 @@ export function useAnnouncements() {
     };
 
     void load();
-  }, [appliedKeyword, page, user, token, isAuthenticated]);
+  }, [appliedKeyword, page]);
 
   const handleSearch = () => {
     setAppliedKeyword(keyword.trim());
