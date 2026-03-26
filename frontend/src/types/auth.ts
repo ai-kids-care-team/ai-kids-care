@@ -460,16 +460,11 @@ export function auth() {
       setChildSearchResults([]);
       return;
     }
-    const rrnKeyword = `${first6}-${back7}`;
-
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const encodedKeyword = encodeURIComponent(rrnKeyword);
       const candidateUrls = [
-        `${API_BASE_URL}/children?keyword=${encodedKeyword}`,
-        `${API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
-        `${LEGACY_API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
+        `${API_BASE_URL}/children/rrn?rrn_First6=${encodeURIComponent(first6)}&rrn_Last7=${encodeURIComponent(back7)}`,
       ];
 
       let data: ChildLookupItem[] | null = null;
@@ -483,6 +478,9 @@ export function auth() {
 
         if (!response.ok) {
           lastStatus = response.status;
+          if (response.status === 401) {
+            throw new Error('아이 조회 권한이 없습니다. 로그인 상태 또는 백엔드 권한 설정을 확인해주세요.');
+          }
           continue;
         }
 
@@ -491,7 +489,7 @@ export function auth() {
           ? payload
           : Array.isArray(payload?.content)
             ? payload.content
-            : [];
+            : (payload && typeof payload === 'object' ? [payload as ChildApiItem] : []);
 
         data = rawItems
           .map((item) => {
@@ -522,9 +520,6 @@ export function auth() {
       }
 
       if (!data) {
-        if (lastStatus === 401) {
-          throw new Error('아이 조회 권한이 없습니다. 백엔드 공개 조회 경로를 확인해주세요.');
-        }
         throw new Error('아이 조회에 실패했습니다.');
       }
 
