@@ -6,7 +6,7 @@ import { User, Lock, Save, AlertCircle, ArrowLeft } from 'lucide-react';
 
 import { useAppSelector, useAppDispatch } from '@/store/hook';
 // 💡 [수정] setCredentials 액션 추가
-import { switchRole, setCredentials } from '@/store/slices/userSlice';
+import { setCredentials } from '@/store/slices/userSlice';
 import { useChangePasswordMutation } from '@/services/apis/auth.api';
 import { TopBar } from '@/layout/TopBar';
 import { openLoginModal } from '@/utils/auth-modal';
@@ -71,10 +71,6 @@ export function ProfileSettings() {
 
   const currentRole = user.role;
 
-  const handleRoleChange = (role: any) => {
-    dispatch(switchRole(role));
-  };
-
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -97,7 +93,7 @@ export function ProfileSettings() {
 
   return (
       <div className="min-h-screen flex flex-col bg-slate-50">
-        <TopBar currentRole={user.role} username={user.name} onRoleChange={handleRoleChange} />
+        <TopBar currentRole={user.role} username={user.name} />
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-10">
           <button

@@ -2,7 +2,7 @@
 
 import { TopBar } from '@/layout/TopBar';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { setCredentials, switchRole, logout } from '@/store/slices/userSlice';
+import { setCredentials, logout } from '@/store/slices/userSlice';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import type { UserRole } from '@/types/user-role';
@@ -54,7 +54,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <TopBar
                     currentRole={currentRole}
                     username={username}
-                    onRoleChange={user ? (r) => dispatch(switchRole(r)) : undefined}
                 />
             )}
 
