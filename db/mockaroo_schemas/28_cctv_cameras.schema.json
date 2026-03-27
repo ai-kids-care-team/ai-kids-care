@@ -1,0 +1,99 @@
+{
+  "id": 723773,
+  "num_rows": 42,
+  "file_format": "sql",
+  "name": "28_cctv_cameras",
+  "table_name": "cctv_cameras",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "camera_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "27_rooms",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "serial_no",
+      "null_percentage": 10,
+      "type": "Blank",
+      "formula": "'CAM-' + random(1, 99999999).to_s.rjust(8, '0')"
+    },
+    {
+      "name": "camera_name",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "27_rooms",
+      "column": "name",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this+' 카메라'"
+    },
+    {
+      "name": "model",
+      "null_percentage": 10,
+      "type": "Blank",
+      "formula": "['Hikvision DS-2CD', 'Dahua IPC-HFW', 'Hanwha XNO-6080R', 'Axis P1448-LE'].sample"
+    },
+    {
+      "name": "created_by_user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "100+(kindergarten_id.to_i-1)*100+random(1,2)"
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "now - hours(1000) + minutes(camera_id.number)"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    },
+    {
+      "name": "last_seen_at",
+      "null_percentage": 10,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

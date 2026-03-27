@@ -1,0 +1,10 @@
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (1, 1, '최서준', 'ACTIVE', '경기도청 보육정책과', '2026-01-11 21:19:28.000000 +00:00', '2026-01-28 16:13:15');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (2, 2, '임시우', 'ACTIVE', '경기도청 보육정책과', '2025-09-27 00:21:26.000000 +00:00', '2025-09-27 00:21:26.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (3, 3, '김서연', 'ACTIVE', '경기도청 보육정책과', '2025-02-25 08:36:53.000000 +00:00', '2025-02-25 08:36:53.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (4, 4, '장지우', 'ACTIVE', '경기도청 보육정책과', '2025-11-08 04:06:23.000000 +00:00', '2025-11-08 04:06:23.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (5, 5, '윤하윤', 'ACTIVE', '교육부 유아교육정책과', '2026-03-10 23:59:32.000000 +00:00', '2026-03-10 23:59:32.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (6, 6, '김서연', 'ACTIVE', '서울시청 아동담당관', '2025-05-09 23:57:38.000000 +00:00', '2025-09-24 22:50:53');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (7, 7, '강하윤', 'ACTIVE', '경기도청 보육정책과', '2025-08-15 14:20:43.000000 +00:00', '2025-08-15 14:20:43.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (8, 8, '이도윤', 'ACTIVE', '교육부 유아교육정책과', '2026-01-13 09:54:22.000000 +00:00', '2026-01-13 09:54:22.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (9, 9, '정서준', 'ACTIVE', '교육부 유아교육정책과', '2025-12-21 19:01:32.000000 +00:00', '2025-12-21 19:01:32.000000 +00:00');
+insert into superadmins (superadmin_id, user_id, name, status, department, created_at, updated_at) values (10, 10, '이서준', 'ACTIVE', '교육부 유아교육정책과', '2025-11-03 19:53:33.000000 +00:00', '2025-11-03 19:53:33.000000 +00:00');

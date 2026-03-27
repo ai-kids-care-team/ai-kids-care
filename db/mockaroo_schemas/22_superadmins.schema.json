@@ -1,0 +1,84 @@
+{
+  "id": 723764,
+  "num_rows": 10,
+  "file_format": "sql",
+  "name": "22_superadmins",
+  "table_name": "superadmins",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "superadmin_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": ""
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'].sample + ['서준', '도윤', '시우', '지호', '지훈', '서연', '하윤', '지우', '서현', '민서'].sample"
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "10",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "department",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "종로구청 아동복지과",
+        "중구청 가족정책과",
+        "용산구청 아동청소년과",
+        "성동구청 아동청년과",
+        "광진구청 아동청소년과",
+        "동대문구청 아동청소년과",
+        "중랑구청 아동청소년과",
+        "성북구청 아동청소년과",
+        "강북구청 청소년과",
+        "도봉구청 아동청소년과"
+      ],
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "['서울시청 아동담당관', '경기도청 보육정책과', '인천시청 영유아정책과', '부산시청 아동청소년과', '교육부 유아교육정책과'].sample"
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"21_users\",\"created_at\",user_id:user_id)"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}
