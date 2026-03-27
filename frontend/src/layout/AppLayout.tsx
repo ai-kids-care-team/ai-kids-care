@@ -5,7 +5,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { setCredentials, switchRole, logout } from '@/store/slices/userSlice';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import type { UserRole } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
 import { Toaster } from '@/components/shared/ui/sonner';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
     const noScrollRoutes = ['/dashboard', '/detectionEvents'];
     const contentOverflowClass = noScrollRoutes.includes(pathname) ? 'overflow-hidden' : 'overflow-auto';
-    const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
+    const currentRole: UserRole = user?.role ?? 'GUARDIAN';
     const username = user?.name ?? user?.username ?? '게스트';
 
     useEffect(() => {
@@ -30,7 +30,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
             if (storedUser && storedToken) {
                 const parsedUser = JSON.parse(storedUser);
-                dispatch(setCredentials({ user: parsedUser, token: storedToken }));
+                const user = parsedUser;
+                dispatch(setCredentials({ user, token: storedToken }));
                 return;
             }
 

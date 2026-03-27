@@ -20,9 +20,11 @@ import { Badge } from '@/components/shared/ui/badge';
 import { Button } from '@/components/shared/ui/button';
 import { ScrollArea } from '@/components/shared/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/shared/ui/tabs';
-import type { AnomalyEvent, UserRole } from '../../types/anomaly';
+import type { AnomalyEvent } from '../../types/anomaly';
 import type { Camera as CameraType } from '../../types/anomaly';
-import { anomalyTypeLabels, anomalyTypeColors, rolePermissions } from '../../types/anomaly';
+import { anomalyTypeLabels, anomalyTypeColors } from '../../types/anomaly';
+import type { UserRole } from '@/types/user-role';
+import { rolePermissions } from '@/types/user-role';
 
 interface RightPanelProps {
   events: AnomalyEvent[];

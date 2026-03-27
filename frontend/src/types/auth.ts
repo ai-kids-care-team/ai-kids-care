@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/apis/auth.api';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
-import type { UserRole } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
 import { API_BASE_URL, LEGACY_API_BASE_URL } from '@/config/api';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
@@ -125,16 +125,6 @@ const INITIAL_FORM_STATE = {
   emergencyContactName: '',
   emergencyContactPhone: '',
   level: '',
-};
-
-const mapBackendRoleToFrontendRole = (role: string): UserRole => {
-  const normalized = String(role ?? '').trim().toUpperCase();
-
-  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') return 'super_admin';
-  if (normalized === 'PLATFORM_IT_ADMIN' || normalized === 'SYSTEM_ADMIN') return 'system_admin';
-  if (normalized === 'KINDERGARTEN_ADMIN' || normalized === 'ADMIN') return 'admin';
-  if (normalized === 'TEACHER') return 'teacher';
-  return 'guardian';
 };
 
 /** 원장(DIRECTOR) → 백엔드 KINDERGARTEN_ADMIN, 그 외 직급 → TEACHER 역할 */
@@ -470,16 +460,11 @@ export function auth() {
       setChildSearchResults([]);
       return;
     }
-    const rrnKeyword = `${first6}-${back7}`;
-
     setChildSearchError('');
     setIsChildSearching(true);
     try {
-      const encodedKeyword = encodeURIComponent(rrnKeyword);
       const candidateUrls = [
-        `${API_BASE_URL}/children?keyword=${encodedKeyword}`,
-        `${API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
-        `${LEGACY_API_BASE_URL}/auth/children?keyword=${encodedKeyword}`,
+        `${API_BASE_URL}/children/rrn?rrn_First6=${encodeURIComponent(first6)}&rrn_Last7=${encodeURIComponent(back7)}`,
       ];
 
       let data: ChildLookupItem[] | null = null;
@@ -493,6 +478,9 @@ export function auth() {
 
         if (!response.ok) {
           lastStatus = response.status;
+          if (response.status === 401) {
+            throw new Error('아이 조회 권한이 없습니다. 로그인 상태 또는 백엔드 권한 설정을 확인해주세요.');
+          }
           continue;
         }
 
@@ -501,7 +489,7 @@ export function auth() {
           ? payload
           : Array.isArray(payload?.content)
             ? payload.content
-            : [];
+            : (payload && typeof payload === 'object' ? [payload as ChildApiItem] : []);
 
         data = rawItems
           .map((item) => {
@@ -532,9 +520,6 @@ export function auth() {
       }
 
       if (!data) {
-        if (lastStatus === 401) {
-          throw new Error('아이 조회 권한이 없습니다. 백엔드 공개 조회 경로를 확인해주세요.');
-        }
         throw new Error('아이 조회에 실패했습니다.');
       }
 
@@ -839,14 +824,15 @@ export function auth() {
       }).unwrap();
 
       const responseLoginId = loginResponse?.loginId ?? form.loginId;
-      const role = loginResponse?.role ?? 'guardian';
+      const role = loginResponse?.role ?? 'GUARDIAN';
       const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
       const name = loginResponse?.name;
       const user = {
         id: responseLoginId,
+        loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
-        role: mapBackendRoleToFrontendRole(role),
+        role: role as UserRole,
       };
 
       dispatch(setCredentials({ user, token }));

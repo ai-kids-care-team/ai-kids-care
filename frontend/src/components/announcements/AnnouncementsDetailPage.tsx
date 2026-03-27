@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { Pencil, Trash2, List } from 'lucide-react';
 import { toast } from 'sonner';
-import { deleteAnnouncement, getAnnouncementDetail, getAnnouncementsMeta, type AnnouncementDetail } from '@/services/apis/announcements.api';
+import { deleteAnnouncement, getAnnouncementDetail, type AnnouncementDetail } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
+import { canManageAnnouncements } from '@/types/user-role';
 
 function formatDate(value: string | null) {
   if (!value) return '-';
@@ -24,10 +25,10 @@ export function AnnouncementsDetailPage() {
   const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
   const id = Number(searchParams.get('id') ?? 0);
   const [announcement, setAnnouncement] = useState<AnnouncementDetail | null>(null);
-  const [canWrite, setCanWrite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const authorIdHiddenValue = user?.id ?? '';
 
   useEffect(() => {
     const resetToTop = () => {
@@ -46,12 +47,10 @@ export function AnnouncementsDetailPage() {
     return () => window.cancelAnimationFrame(frame);
   }, [id]);
 
-  useEffect(() => {
-    // 로그아웃 직후에는 버튼이 즉시 숨겨지도록 처리
-    if (!isAuthenticated || !user || !token) {
-      setCanWrite(false);
-    }
-  }, [isAuthenticated, user, token]);
+  const canWrite = useMemo(
+    () => Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
+    [isAuthenticated, user, token],
+  );
 
   useEffect(() => {
     if (!Number.isFinite(id) || id <= 0) {
@@ -78,22 +77,6 @@ export function AnnouncementsDetailPage() {
     void load();
   }, [id]);
 
-  useEffect(() => {
-    if (!isAuthenticated || !user || !token) {
-      setCanWrite(false);
-      return;
-    }
-    const loadMeta = async () => {
-      try {
-        const meta = await getAnnouncementsMeta();
-        setCanWrite(meta.canWrite);
-      } catch {
-        setCanWrite(false);
-      }
-    };
-    void loadMeta();
-  }, [isAuthenticated, user, token]);
-
   const handleDelete = async () => {
     if (!Number.isFinite(id) || id <= 0) {
       setError('유효하지 않은 공지사항 ID입니다.');
@@ -113,6 +96,18 @@ export function AnnouncementsDetailPage() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleDeleteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const authorIdValue = String(formData.get('authorId') ?? '').trim();
+    const parsedAuthorId = Number(authorIdValue);
+    if (!Number.isFinite(parsedAuthorId) || parsedAuthorId <= 0) {
+      setError('로그인 사용자 ID를 확인할 수 없습니다.');
+      return;
+    }
+    await handleDelete();
   };
 
   if (loading) {
@@ -149,21 +144,23 @@ export function AnnouncementsDetailPage() {
                 {canWrite && (
                   <div className="flex items-center gap-3">
                     <Link
-                      href={`/announcements/update?id=${announcement.id}`}
+                      href={`/announcements/edit?id=${announcement.id}`}
                       className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm text-white hover:bg-blue-700"
                     >
                       <Pencil className="h-5 w-5" />
                       수정
                     </Link>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                      {deleting ? '삭제 중...' : '삭제'}
-                    </button>
+                    <form onSubmit={handleDeleteSubmit}>
+                      <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
+                      <button
+                        type="submit"
+                        disabled={deleting}
+                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                        {deleting ? '삭제 중...' : '삭제'}
+                      </button>
+                    </form>
                   </div>
                 )}
               </div>

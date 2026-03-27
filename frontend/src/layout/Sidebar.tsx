@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { Shield, User } from 'lucide-react';
 import { Card } from '@/components/shared/ui/card';
 import { Badge } from '@/components/shared/ui/badge';
-import type { UserRole } from '@/types/anomaly';
-import { roleLabels } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
+import { roleLabels } from '@/types/user-role';
 
 interface SidebarProps {
   currentRole: UserRole;
@@ -18,11 +18,11 @@ interface SidebarProps {
 }
 
 const roleColors: Record<UserRole, string> = {
-  'super_admin': 'bg-purple-600',
-  'system_admin': 'bg-indigo-600',
-  'admin': 'bg-blue-600',
-  'teacher': 'bg-green-600',
-  'guardian': 'bg-orange-600'
+  SUPERADMIN: 'bg-purple-600',
+  PLATFORM_IT_ADMIN: 'bg-indigo-600',
+  KINDERGARTEN_ADMIN: 'bg-blue-600',
+  TEACHER: 'bg-green-600',
+  GUARDIAN: 'bg-orange-600',
 };
 
 export function Sidebar({ currentRole, userName, cameraStats, onCategoryFilter, currentCategory = 'all' }: SidebarProps) {
@@ -66,7 +66,7 @@ export function Sidebar({ currentRole, userName, cameraStats, onCategoryFilter, 
           <Card className={`p-3 ${roleColors[currentRole]} text-white`}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                {currentRole === 'super_admin' || currentRole === 'system_admin' || currentRole === 'admin' ? (
+                {currentRole === 'SUPERADMIN' || currentRole === 'PLATFORM_IT_ADMIN' || currentRole === 'KINDERGARTEN_ADMIN' ? (
                     <Shield className="w-5 h-5" />
                 ) : (
                     <User className="w-5 h-5" />

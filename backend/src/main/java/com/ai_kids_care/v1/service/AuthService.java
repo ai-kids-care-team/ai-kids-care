@@ -136,6 +136,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .refreshExpiresIn(expireSecond)
                 .role(resolvedRole.name())
+                .id(user.getId())
                 .loginId(user.getLoginId())
                 .build();
     }
@@ -234,8 +235,16 @@ public class AuthService {
     }
 
     private void registerPlatformItAdmin(User user, AuthRegisterDTO request) {
-        //TODO
-        throw new IllegalArgumentException("Not implemented");
+        //TODO 관리자는 없어서 같이 공유함.
+        Superadmin superadmin = Superadmin.builder()
+                .user(user)
+                .name(request.getName())
+                .department(request.getDepartment())
+                .status(StatusEnum.ACTIVE)
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .build();
+        superadminRepository.save(superadmin);
     }
 
     private void registerSuperadmin(User user, AuthRegisterDTO request) {
@@ -252,7 +261,7 @@ public class AuthService {
 
     public AuthRegisterVO checkRegisterFieldAvailability(String field, String value) {
         return switch (field) {
-            case "login_id", "login-id" -> userRepository.existsByLoginId(value)
+            case "login_id", "login-id", "loginId" -> userRepository.existsByLoginId(value)
                     ? new AuthRegisterVO(false, "이미 사용 중인 로그인 ID입니다.")
                     : new AuthRegisterVO(true, "");
             case "email" -> userRepository.existsByEmailIgnoreCase(value)
