@@ -14,8 +14,10 @@ import { RightPanel } from '@/components/monitoring/RightPanel';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
 import { Card } from '@/components/shared/ui/card';
-import type { Camera, AnomalyEvent, UserRole } from '@/types/anomaly';
-import { anomalyTypeLabels, rolePermissions } from '@/types/anomaly';
+import type { Camera, AnomalyEvent } from '@/types/anomaly';
+import { anomalyTypeLabels } from '@/types/anomaly';
+import type { UserRole } from '@/types/user-role';
+import { rolePermissions } from '@/types/user-role';
 import { openLoginModal } from '@/utils/auth-modal';
 
 const KINDERGARTEN_ID = '1';
@@ -48,7 +50,7 @@ const generateMockEvents = (): AnomalyEvent[] => {
 export function DashboardMonitor() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
-  const currentRole: UserRole = (user?.role ?? 'guardian') as UserRole;
+  const currentRole: UserRole = user?.role ?? 'GUARDIAN';
 
   // 인증 대기 상태
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -69,8 +71,6 @@ export function DashboardMonitor() {
     if (storedUser && storedToken) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // 3. 백업된 정보가 있으면 Redux 스토어에 복구
-        // 이제 storedToken은 무조건 string임이 보장되므로 빨간 줄이 사라집니다.
         dispatch(setCredentials({ user: parsedUser, token: storedToken }));
       } catch (error) {
         console.error("로컬스토리지 데이터 파싱 실패", error);
@@ -110,8 +110,8 @@ export function DashboardMonitor() {
     let sourceCameras = isCameraError || !serverCameras ? allCameras : serverCameras;
 
     if (!permissions.canViewAllCameras && permissions.canViewOwnClassroom) {
-      if (currentRole === 'teacher') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
-      else if (currentRole === 'guardian') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
+      if (currentRole === 'TEACHER') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' && c.assignedTeacher === 'teacher1');
+      else if (currentRole === 'GUARDIAN') sourceCameras = sourceCameras.filter(c => c.category === 'classroom' || c.category === 'playground');
     }
 
     if (categoryFilter === 'all') setFilteredCameras(sourceCameras);
@@ -200,7 +200,7 @@ export function DashboardMonitor() {
         <div className="h-screen flex flex-col bg-gray-50">
           <div className="flex-1 flex overflow-hidden">
             <Sidebar
-                currentRole={user.role}
+                currentRole={currentRole}
                 userName={user.name}
                 cameraStats={cameraStats}
                 onCategoryFilter={setCategoryFilter}
@@ -312,7 +312,7 @@ export function DashboardMonitor() {
             <RightPanel
                 events={localEvents}
                 onEventClick={(id) => setSelectedEvent(localEvents.find(e => e.id === id) || null)}
-                currentRole={user.role}
+                currentRole={currentRole}
                 onLayoutChange={setLayout}
                 currentLayout={layout}
                 isRecording={isRecording}

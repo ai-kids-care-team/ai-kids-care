@@ -47,35 +47,6 @@ WHERE NOT EXISTS (
     SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'FATHER'
 );
 
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDMOTHER', '외할머니', 3, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDMOTHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'MATERNAL_GRANDFATHER', '외할아버지', 4, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'MATERNAL_GRANDFATHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'FEMALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDMOTHER', '친할머니', 5, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDMOTHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT 'MALE', 'GUARDIAN_RELATIONSHIP', 'PATERNAL_GRANDFATHER', '친할아버지', 6, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'PATERNAL_GRANDFATHER'
-);
-
-INSERT INTO common_codes (parent_code, code_group, code, code_name, sort_order, is_active,  created_at, updated_at)
-SELECT NULL, 'GUARDIAN_RELATIONSHIP', 'OTHER', '기타', 99, true,  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-WHERE NOT EXISTS (
-    SELECT 1 FROM common_codes WHERE code_group = 'GUARDIAN_RELATIONSHIP' AND code = 'OTHER'
-);
 
 -- =========================================================
 -- Status code seed data by category
@@ -106,9 +77,9 @@ FROM (
         ('child_class_assignment', 'PENDING', '배정정지', 2),
         ('child_class_assignment', 'DISABLED', '배정해제', 3),
 
-        ('teacher', 'ACTIVE', '재직', 1),
-        ('teacher', 'PENDING', '휴직', 2),
-        ('teacher', 'DISABLED', '퇴사', 3),
+        ('TEACHER', 'ACTIVE', '재직', 1),
+        ('TEACHER', 'PENDING', '휴직', 2),
+        ('TEACHER', 'DISABLED', '퇴사', 3),
 
         ('class_teacher_assignment', 'ACTIVE', '배정완료', 1),
         ('class_teacher_assignment', 'PENDING', '배정정지', 2),
@@ -126,9 +97,9 @@ FROM (
         ('cctv_camera', 'PENDING', '정지', 2),
         ('cctv_camera', 'DISABLED', '중지', 3),
 
-        ('guardian', 'ACTIVE', '활성', 1),
-        ('guardian', 'PENDING', '대기', 2),
-        ('guardian', 'DISABLED', '중지', 3),
+        ('GUARDIAN', 'ACTIVE', '활성', 1),
+        ('GUARDIAN', 'PENDING', '대기', 2),
+        ('GUARDIAN', 'DISABLED', '중지', 3),
 
         ('user_kindergarten_membership', 'ACTIVE', '활성', 1),
         ('user_kindergarten_membership', 'PENDING', '대기', 2),

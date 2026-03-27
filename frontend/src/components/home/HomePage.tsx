@@ -32,7 +32,11 @@ export function HomePage() {
   useEffect(() => {
     const loadAnnouncements = async () => {
       try {
-        const pageData = await getAnnouncements({ page: 0, size: ANNOUNCEMENTS_LIST_PAGE_SIZE });
+        const pageData = await getAnnouncements({
+          page: 0,
+          size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
+          sort: ['isPinned,desc', 'publishedAt,desc', 'id,desc'],
+        });
         const list = pageData.content;
         const now = Date.now();
         const mapped = list.map((item) => {

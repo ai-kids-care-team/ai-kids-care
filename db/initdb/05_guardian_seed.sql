@@ -65,7 +65,7 @@ SELECT 3001,
        1001,
        '김하린',
        'C-2026-001',
-       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDM3OTI2IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.quu2m84M7cvVYQZHzUpLS85UCWWEf2YkMVLkfdO3bOQ',
+       '$2b$12$GvzjrpbBmVUgUAWKSFJ/3uZJghO9MmljN/KvI0SAaqtRT.4/iT.HC',
        '200101',
        DATE '2020-01-01',
        'FEMALE',
@@ -84,7 +84,7 @@ SELECT 3002,
        1001,
        '이준호',
        'C-2026-002',
-       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMDQ1MTIzIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.oiEUaD4EH5b0n_8wvYgdOggUqeOHkl10ovgRgXWcbm8',
+       '$2b$12$nOA.5pYF7pU5hxLs7wa1Pe6lsIeKcm5pWU94Hewdz5e8R247EhIA2',
        '200315',
        DATE '2020-03-15',
        'MALE',
@@ -103,7 +103,7 @@ SELECT 3003,
        1001,
        '박서윤',
        'C-2026-003',
-       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDM0NTY3IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.ae2TCiX6hDCNGWSP8QpqFWC8upUYqGtixdphZ0xvVBk',
+       '$2b$12$tgP47OJqPXQFlBE2AlWj0ud65A73u.g6tgQY8nfXFi60KmC1O5gfu',
        '200707',
        DATE '2020-07-07',
        'FEMALE',
@@ -122,7 +122,7 @@ SELECT 3004,
        1001,
        '최민우',
        'C-2026-004',
-       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzMDk4NzY1IiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.H9_JDe4bfxi-d3pJivkodfG5KwyOumPFDK2rJGlwddU',
+       '$2b$12$FpG34DjcXi8nUKH26y/AAeVkzANMNCQSa25Ukvx8ufojDdxENkd6y',
        '200920',
        DATE '2020-09-20',
        'MALE',
@@ -141,7 +141,7 @@ SELECT 3005,
        1001,
        '정지안',
        'C-2026-005',
-       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MDQzMjEwIiwiaWF0IjoxNzczOTcxOTM0LCJleHAiOjQxMDI0NDQ4MDB9.Akre1ZoIFicSgDzi80GEK1c2FSOBLwlPAsEQWF-uhbU',
+       '$2b$12$VFSbUPq3/RXGZqZPqjnuqeKcW.ehyVOR7FYCJhuhU9dLV8cY8Q1cO',
        '201211',
        DATE '2020-12-11',
        'FEMALE',
@@ -153,7 +153,7 @@ SELECT 3005,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM children WHERE child_id = 3005);
 
--- 4) guardian user accounts (password: password)
+-- 4) GUARDIAN user accounts (password: password)
 -- Verified bcrypt hash
 -- $2a$10$b.n.JJjUqCXeE4oddfSaa.pNAV1bNFVfaGaZJiqemWqWK/c5zSELm
 -- guardian_4001 plaintext password: password
@@ -303,7 +303,7 @@ SELECT 5005,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = 5005);
 
--- 5-1 teacher user accounts (password: password)
+-- 5-1 TEACHER user accounts (password: password)
 -- teacher_4101 plaintext password: password
 INSERT INTO users (user_id, login_id, password_hash, email, phone, status, last_login_at, created_at, updated_at)
 SELECT 4101,
@@ -408,7 +408,7 @@ SELECT 5203,
        CURRENT_TIMESTAMP
 WHERE NOT EXISTS (SELECT 1 FROM teachers WHERE teacher_id = 5203);
 
--- 6) child-guardian relationship (5)
+-- 6) child-GUARDIAN relationship (5)
 INSERT INTO child_guardian_relationships (kindergarten_id, child_id, guardian_id, relationship, is_primary, priority,
                                           start_date, end_date, created_at, updated_at)
 SELECT 1001,
@@ -489,7 +489,7 @@ WHERE NOT EXISTS (SELECT 1
                   FROM child_guardian_relationships
                   WHERE kindergarten_id = 1001 AND child_id = 3005 AND guardian_id = 5005);
 
--- 7) role assignment (guardian)
+-- 7) role assignment (GUARDIAN)
 INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
                                    granted_by_user_id, revoked_at)
 SELECT 6001,
@@ -604,7 +604,7 @@ WHERE NOT EXISTS (SELECT 1
                     AND ura.scope_id = 1001
                     AND ura.status = 'ACTIVE');
 
--- 7-1 role assignment (teacher)
+-- 7-1 role assignment (TEACHER)
 INSERT INTO user_role_assignments (role_assignment_id, user_id, role, scope_type, scope_id, status, granted_at,
                                    granted_by_user_id, revoked_at)
 SELECT 6101,
@@ -734,7 +734,7 @@ WHERE NOT EXISTS (SELECT 1
                   FROM user_kindergarten_memberships
                   WHERE user_id = 4005 AND kindergarten_id = 1001 AND status = 'ACTIVE');
 
--- 8-1) kindergarten membership (teacher)
+-- 8-1) kindergarten membership (TEACHER)
 INSERT INTO user_kindergarten_memberships (membership_id, user_id, kindergarten_id, status, joined_at, left_at,
                                            created_at, updated_at)
 SELECT 7101,

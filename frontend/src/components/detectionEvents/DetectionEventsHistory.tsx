@@ -12,7 +12,7 @@ import { TopBar } from '@/layout/TopBar';
 import { Sidebar } from '@/layout/Sidebar';
 import { Button } from '@/components/shared/ui/button';
 import type { AnomalyEvent, AnomalyType } from '@/types/anomaly';
-import { rolePermissions } from '@/types/anomaly';
+import { rolePermissions } from '@/types/user-role';
 
 const KINDERGARTEN_ID = '1';
 
@@ -51,7 +51,8 @@ export function DetectionEventsHistory() {
   const totalPages = data?.totalPages || 1;
 
   if (!user) return null;
-  const permissions = rolePermissions[user.role];
+  const currentRole = user.role;
+  const permissions = rolePermissions[currentRole];
 
   const handleEventClick = (event: AnomalyEvent) => {
     setSelectedEvent(event);
@@ -82,11 +83,11 @@ export function DetectionEventsHistory() {
   return (
     <>
       <div className="h-screen flex flex-col bg-gray-50">
-        <TopBar currentRole={user.role} username={user.name} onRoleChange={(r) => dispatch(switchRole(r))} />
+        <TopBar currentRole={currentRole} username={user.name} onRoleChange={(r) => dispatch(switchRole(r))} />
 
         <div className="flex-1 flex overflow-hidden">
           <Sidebar
-            currentRole={user.role}
+            currentRole={currentRole}
             userName={user.name}
             cameraStats={{ total: 0, online: 0, offline: 0 }}
             onCategoryFilter={() => {}}

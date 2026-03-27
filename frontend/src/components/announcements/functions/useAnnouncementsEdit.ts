@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS,
   getAnnouncementForEdit,
-  getAnnouncementsMeta,
-  type AnnouncementStatusOption,
   type AnnouncementWritePayload,
   updateAnnouncement,
 } from '@/services/apis/announcements.api';
+import { useAppSelector } from '@/store/hook';
+import { canManageAnnouncements } from '@/types/user-role';
 
-import {StatusCode} from '@/types/announcement'
+import { StatusCode } from '@/types/announcement';
 
 function toIsoOrNull(value: string) {
   if (!value) return null;
@@ -33,6 +34,17 @@ export function useAnnouncementsEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = Number(searchParams.get('id') ?? 0);
+  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const authorIdHiddenValue = user?.id ?? '';
+  const authorId = useMemo(() => {
+    const parsed = Number(user?.id);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [user?.id]);
+  const canWrite = useMemo(
+    () => Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
+    [isAuthenticated, user, token],
+  );
+  const statusOptions = DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS;
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -42,9 +54,6 @@ export function useAnnouncementsEdit() {
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [status, setStatus] = useState<StatusCode>('PENDING');
-  const [statusOptions, setStatusOptions] = useState<AnnouncementStatusOption[]>([]);
-  const [canWrite, setCanWrite] = useState(false);
-  const [loadingMeta, setLoadingMeta] = useState(true);
   const [loadingAnnouncement, setLoadingAnnouncement] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -53,27 +62,12 @@ export function useAnnouncementsEdit() {
     const load = async () => {
       if (!Number.isFinite(id) || id <= 0) {
         setError('유효하지 않은 공지사항 ID입니다.');
-        setLoadingMeta(false);
         setLoadingAnnouncement(false);
         return;
       }
 
-      setLoadingMeta(true);
       setLoadingAnnouncement(true);
       setError('');
-
-      try {
-        const meta = await getAnnouncementsMeta();
-        setCanWrite(meta.canWrite);
-        setStatusOptions(meta.statusOptions);
-        if (meta.statusOptions.length > 0) {
-          setStatus(meta.statusOptions[0].code);
-        }
-      } catch (e) {
-        console.error('공지사항 메타 정보 조회 실패:', e);
-      } finally {
-        setLoadingMeta(false);
-      }
 
       try {
         const target = await getAnnouncementForEdit(id);
@@ -118,6 +112,10 @@ export function useAnnouncementsEdit() {
       setError('내용을 입력해주세요.');
       return;
     }
+    if (authorId == null) {
+      setError('로그인 사용자 ID를 확인할 수 없습니다.');
+      return;
+    }
     if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
       setError('게시 종료일은 게시 시작일보다 빠를 수 없습니다.');
       return;
@@ -132,6 +130,7 @@ export function useAnnouncementsEdit() {
       publishedAt: toIsoOrNull(publishedAt),
       startsAt: toIsoOrNull(startsAt),
       endsAt: toIsoOrNull(endsAt),
+      authorId,
     };
 
     try {
@@ -165,8 +164,8 @@ export function useAnnouncementsEdit() {
     status,
     setStatus,
     statusOptions,
+    authorIdHiddenValue,
     canWrite,
-    loadingMeta,
     loadingAnnouncement,
     submitting,
     error,

@@ -44,6 +44,8 @@ export type GetAnnouncementsParams = {
   /** 0부터 */
   page?: number;
   size?: number;
+  /** Spring Pageable sort 형식 예: 'createdAt,desc' 또는 ['isPinned,desc', 'publishedAt,desc'] */
+  sort?: string | string[];
 };
 
 export type AnnouncementDetail = AnnouncementListItem;
@@ -61,10 +63,12 @@ export type AnnouncementEdit = {
   endsAt: string | null;
 };
 
-export type AnnouncementMeta = {
-  canWrite: boolean;
-  statusOptions: AnnouncementStatusOption[];
-};
+/** 메타 API 대신 작성/수정 폼에서 사용하는 기본 상태 옵션 */
+export const DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS: AnnouncementStatusOption[] = [
+  { code: 'PENDING', codeName: '대기', sortOrder: 1 },
+  { code: 'ACTIVE', codeName: '게시', sortOrder: 2 },
+  { code: 'DISABLED', codeName: '비활성', sortOrder: 3 },
+];
 
 /**
  * 백엔드 `AnnouncementCreateDTO` / `AnnouncementUpdateDTO`와 필드명을 맞춘다.
@@ -128,18 +132,15 @@ export async function getAnnouncements(
   const page = params?.page ?? 0;
   const size = params?.size ?? ANNOUNCEMENTS_LIST_PAGE_SIZE;
   const keyword = params?.keyword?.trim();
+  const sort = params?.sort;
   const response = await apiClient.get<PageResponse<AnnouncementListItem>>('/announcements', {
     params: {
       page,
       size,
       ...(keyword ? { keyword } : {}),
+      ...(sort ? { sort } : {}),
     },
   });
-  return response.data;
-}
-
-export async function getAnnouncementsMeta() {
-  const response = await apiClient.get<AnnouncementMeta>('/announcements/meta');
   return response.data;
 }
 
@@ -165,6 +166,7 @@ export async function getAnnouncementDetail(id: number) {
 }
 
 export async function createAnnouncement(payload: AnnouncementWritePayload) {
+
   const response = await apiClient.post<AnnouncementRecord>('/announcements', payload);
   return response.data;
 }

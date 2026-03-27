@@ -8,17 +8,7 @@ import { Eye, EyeOff, Shield } from 'lucide-react';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
-import type { UserRole } from '@/types/anomaly';
-
-const mapBackendRoleToFrontendRole = (role: string): UserRole => {
-  const normalized = String(role ?? '').trim().toUpperCase();
-
-  if (normalized === 'SUPERADMIN' || normalized === 'SUPER_ADMIN') return 'super_admin';
-  if (normalized === 'PLATFORM_IT_ADMIN' || normalized === 'SYSTEM_ADMIN') return 'system_admin';
-  if (normalized === 'KINDERGARTEN_ADMIN' || normalized === 'ADMIN') return 'admin';
-  if (normalized === 'TEACHER') return 'teacher';
-  return 'guardian';
-};
+import type { UserRole } from '@/types/user-role';
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
@@ -43,7 +33,7 @@ export function LoginForm() {
       const response = await loginApi({ identifier: loginId, password }).unwrap();
 
       const responseLoginId = response?.loginId ?? loginId;
-      const role = response?.role ?? 'guardian';
+      const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
       const displayName = response?.name ?? responseLoginId;
 
@@ -52,7 +42,7 @@ export function LoginForm() {
           username: responseLoginId,
           loginId: responseLoginId,
           name: displayName,
-          role: mapBackendRoleToFrontendRole(role),
+          role: role as UserRole,
       };
 
       // 1. Redux 스토어에 유저 정보와 토큰 저장

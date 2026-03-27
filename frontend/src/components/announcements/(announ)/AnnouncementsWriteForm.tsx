@@ -1,6 +1,7 @@
 'use client';
 
 import { useAnnouncementsWrite } from '@/components/announcements/functions/useAnnouncementsWrite';
+import { describeAnnouncementEditorRolesKorean } from '@/types/user-role';
 
 export function AnnouncementsWriteForm() {
   const {
@@ -21,8 +22,8 @@ export function AnnouncementsWriteForm() {
     status,
     setStatus,
     statusOptions,
+    authorIdHiddenValue,
     canWrite,
-    loadingMeta,
     submitting,
     error,
     handleSubmit,
@@ -39,10 +40,11 @@ export function AnnouncementsWriteForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {loadingMeta && <p className="text-sm text-gray-500">권한 및 코드 정보를 불러오는 중입니다.</p>}
-            {!loadingMeta && !canWrite && (
+            <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
+            {!canWrite && (
               <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                현재 계정은 공지사항 작성 권한이 없습니다.
+                공지 등록은 <span className="font-medium">{describeAnnouncementEditorRolesKorean()}</span> 계정에서만
+                할 수 있어요. 해당 권한이 있는 계정으로 로그인했는지 확인해 주세요.
               </p>
             )}
 
