@@ -1,0 +1,238 @@
+{
+  "id": 723945,
+  "num_rows": 900,
+  "file_format": "sql",
+  "name": "43_event_reviews",
+  "table_name": "event_reviews",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "review_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "event_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "event_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "random(100+(kindergarten_id-1)*300+1,100+(kindergarten_id-1)*300+20)"
+    },
+    {
+      "name": "from_status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "OPEN",
+        "ACKNOWLEDGED",
+        "IN_REVIEW",
+        "RESOLVED",
+        "DISMISSED",
+        "ESCALATED"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "frequencies": {
+            "OPEN": "1",
+            "ACKNOWLEDGED": "1",
+            "IN_REVIEW": "1",
+            "RESOLVED": "1",
+            "DISMISSED": "0",
+            "ESCALATED": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "result_status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "OPEN",
+        "ACKNOWLEDGED",
+        "IN_REVIEW",
+        "RESOLVED",
+        "DISMISSED",
+        "ESCALATED"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "from_status == \"OPEN\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "1",
+            "IN_REVIEW": "0",
+            "RESOLVED": "0",
+            "DISMISSED": "1",
+            "ESCALATED": "0"
+          }
+        },
+        {
+          "rule": "from_status == \"ACKNOWLEDGED\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "0",
+            "IN_REVIEW": "1",
+            "RESOLVED": "0",
+            "DISMISSED": "1",
+            "ESCALATED": "0"
+          }
+        },
+        {
+          "rule": "from_status == \"IN_REVIEW\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "1",
+            "IN_REVIEW": "0",
+            "RESOLVED": "1",
+            "DISMISSED": "0",
+            "ESCALATED": "0"
+          }
+        },
+        {
+          "rule": "from_status == \"RESOLVED\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "0",
+            "IN_REVIEW": "0",
+            "RESOLVED": "0",
+            "DISMISSED": "0",
+            "ESCALATED": "1"
+          }
+        },
+        {
+          "rule": "from_status == \"DISMISSED\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "0",
+            "IN_REVIEW": "0",
+            "RESOLVED": "0",
+            "DISMISSED": "0",
+            "ESCALATED": "0"
+          }
+        },
+        {
+          "rule": "from_status == \"ESCALATED\"",
+          "frequencies": {
+            "OPEN": "0",
+            "ACKNOWLEDGED": "0",
+            "IN_REVIEW": "0",
+            "RESOLVED": "0",
+            "DISMISSED": "0",
+            "ESCALATED": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "comment",
+      "null_percentage": 10,
+      "type": "Custom List",
+      "values": [
+        "탐지 사건 확인 완료.",
+        "처리중.",
+        "사건 처리 완료",
+        "오탐지로 확인됨.",
+        "행정청으로 보고되었음."
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "result_status == \"OPEN\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "0",
+            "처리중.": "0",
+            "사건 처리 완료": "0",
+            "오탐지로 확인됨.": "0",
+            "행정청으로 보고되었음.": "0"
+          }
+        },
+        {
+          "rule": "result_status == \"ACKNOWLEDGED\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "1",
+            "처리중.": "0",
+            "사건 처리 완료": "0",
+            "오탐지로 확인됨.": "0",
+            "행정청으로 보고되었음.": "0"
+          }
+        },
+        {
+          "rule": "result_status == \"IN_REVIEW\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "0",
+            "처리중.": "1",
+            "사건 처리 완료": "0",
+            "오탐지로 확인됨.": "0",
+            "행정청으로 보고되었음.": "0"
+          }
+        },
+        {
+          "rule": "result_status == \"RESOLVED\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "0",
+            "처리중.": "0",
+            "사건 처리 완료": "1",
+            "오탐지로 확인됨.": "0",
+            "행정청으로 보고되었음.": "0"
+          }
+        },
+        {
+          "rule": "result_status == \"DISMISSED\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "0",
+            "처리중.": "0",
+            "사건 처리 완료": "0",
+            "오탐지로 확인됨.": "1",
+            "행정청으로 보고되었음.": "0"
+          }
+        },
+        {
+          "rule": "result_status == \"ESCALATED\"",
+          "frequencies": {
+            "탐지 사건 확인 완료.": "0",
+            "처리중.": "0",
+            "사건 처리 완료": "0",
+            "오탐지로 확인됨.": "1",
+            "행정청으로 보고되었음.": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "updated_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    }
+  ]
+}

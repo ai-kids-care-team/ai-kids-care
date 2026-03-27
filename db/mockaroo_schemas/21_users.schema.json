@@ -1,0 +1,88 @@
+{
+  "id": 723750,
+  "num_rows": 1000,
+  "file_format": "csv",
+  "name": "21_users",
+  "include_header": true,
+  "columns": [
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "login_id",
+      "null_percentage": 0,
+      "type": "Username",
+      "formula": null
+    },
+    {
+      "name": "email",
+      "null_percentage": 10,
+      "type": "Email Address",
+      "formula": null
+    },
+    {
+      "name": "phone",
+      "null_percentage": 10,
+      "type": "Regular Expression",
+      "value": "010-\\d{4}-\\d{4}",
+      "formula": null
+    },
+    {
+      "name": "password_hash",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "bcrypt(login_id)"
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "8",
+            "PENDING": "1",
+            "DISABLED": "1"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": null
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[created_at, this].max"
+    },
+    {
+      "name": "last_login_at",
+      "null_percentage": 10,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[created_at, this].max"
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "id": 723948,
+  "num_rows": 900,
+  "file_format": "sql",
+  "name": "45_notifications",
+  "table_name": "notifications",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "notification_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "event_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "event_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "recipient_user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "random(100+(kindergarten_id.to_i-1)*300+1,100+(kindergarten_id.to_i-1)*300+20)"
+    },
+    {
+      "name": "channel",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "PUSH",
+        "SMS",
+        "EMAIL"
+      ],
+      "selectionStyle": null,
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "title",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "[긴급] 낙상 사고 탐지",
+        "[알림] 이상 행동 감지",
+        "[주의] 위험 구역 접근"
+      ],
+      "selectionStyle": null,
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "body",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "해당 구역의 CCTV 영상을 확인해주세요."
+      ],
+      "selectionStyle": null,
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "QUEUED",
+        "SENDING",
+        "SENT",
+        "DELIVERED",
+        "READ",
+        "FAILED",
+        "CANCELED"
+      ],
+      "selectionStyle": null,
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "dedupe_key",
+      "null_percentage": 0,
+      "type": "SHA256",
+      "formula": null
+    },
+    {
+      "name": "retry_count",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "status == \"QUEUED\"",
+          "frequencies": {
+            "0": "10",
+            "1": "0",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "status == \"SENDING\"",
+          "frequencies": {
+            "0": "10",
+            "1": "0",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "status == \"SENT\"",
+          "frequencies": {
+            "0": "8",
+            "1": "1",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "status == \"DELIVERED\"",
+          "frequencies": {
+            "0": "8",
+            "1": "1",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "status == \"READ\"",
+          "frequencies": {
+            "0": "8",
+            "1": "1",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "status == \"FAILED\"",
+          "frequencies": {
+            "0": "0",
+            "1": "0",
+            "2": "0",
+            "3": "10"
+          }
+        },
+        {
+          "rule": "status == \"CANCELED\"",
+          "frequencies": {
+            "0": "1",
+            "1": "1",
+            "2": "1",
+            "3": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "fail_reason",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "",
+        "Timeout",
+        "Invalid Token",
+        "Network Error"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "status == \"QUEUED\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        },
+        {
+          "rule": "status == \"SENDING\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        },
+        {
+          "rule": "status == \"SENT\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        },
+        {
+          "rule": "status == \"DELIVERED\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        },
+        {
+          "rule": "status == \"READ\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        },
+        {
+          "rule": "status == \"FAILED\"",
+          "frequencies": {
+            "": "0",
+            "Timeout": "1",
+            "Invalid Token": "1",
+            "Network Error": "1"
+          }
+        },
+        {
+          "rule": "status == \"CANCELED\"",
+          "frequencies": {
+            "": "1",
+            "Timeout": "0",
+            "Invalid Token": "0",
+            "Network Error": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "sent_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "date(created_at)+seconds(random(1,30))"
+    }
+  ]
+}

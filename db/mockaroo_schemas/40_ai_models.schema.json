@@ -1,0 +1,76 @@
+{
+  "id": 723752,
+  "num_rows": 6,
+  "file_format": "csv",
+  "name": "40_ai_models",
+  "include_header": true,
+  "columns": [
+    {
+      "name": "model_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "YOLOv8_Pose",
+        "YOLOv8_Detection",
+        "MediaPipe_Face",
+        "Action_Recognition_v1",
+        "Fall_Detection_v2",
+        "Behavior_Analysis_v1"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": "['YOLOv8_Pose', 'YOLOv8_Detection', 'MediaPipe_Face', 'Action_Recognition_v1', 'Fall_Detection_v2', 'Behavior_Analysis_v1'].sample"
+    },
+    {
+      "name": "version",
+      "null_percentage": 0,
+      "type": "App Version",
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "now - days(100) + days(model_id.number)"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

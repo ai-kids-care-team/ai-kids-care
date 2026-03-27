@@ -1,0 +1,119 @@
+{
+  "id": 723946,
+  "num_rows": 900,
+  "file_format": "sql",
+  "name": "44_event_evidence_files",
+  "table_name": "event_evidence_files",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "evidence_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "event_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "event_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "IMAGE",
+        "VIDEO"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "IMAGE": "2",
+            "VIDEO": "8"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "42_detection_events",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "storage_uri",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "concat('s3://ai-kids-care/evidence/',epoch(date(created_at)),(type == 'IMAGE' ? '.jpg' : '.mp4'))"
+    },
+    {
+      "name": "mime_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "image/jpeg",
+        "image/png",
+        "video/mp4"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "type == \"IMAGE\"",
+          "frequencies": {
+            "image/jpeg": "1",
+            "image/png": "0",
+            "video/mp4": "0"
+          }
+        },
+        {
+          "rule": "type == \"VIDEO\"",
+          "frequencies": {
+            "image/jpeg": "0",
+            "image/png": "0",
+            "video/mp4": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "retention_until",
+      "null_percentage": 20,
+      "type": "Blank",
+      "formula": "date(created_at)+months(1)"
+    },
+    {
+      "name": "hold",
+      "null_percentage": 0,
+      "type": "Boolean",
+      "formula": "if retention_until==nil or retention_until>now() then true\nelse false end"
+    },
+    {
+      "name": "hash",
+      "null_percentage": 0,
+      "type": "MD5",
+      "formula": null
+    }
+  ]
+}

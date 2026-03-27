@@ -1,0 +1,330 @@
+{
+  "id": 723874,
+  "num_rows": 84,
+  "file_format": "csv",
+  "name": "39_camera_streams",
+  "include_header": true,
+  "columns": [
+    {
+      "name": "stream_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "camera_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "camera_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "stream_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "MAIN",
+        "SUB",
+        "SNAPSHOT",
+        "RECORDING",
+        "OTHER"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "stream_id <= 42",
+          "frequencies": {
+            "MAIN": "1",
+            "SUB": "0",
+            "SNAPSHOT": "0",
+            "RECORDING": "0",
+            "OTHER": "0"
+          }
+        },
+        {
+          "rule": "stream_id <= 84",
+          "frequencies": {
+            "MAIN": "0",
+            "SUB": "1",
+            "SNAPSHOT": "0",
+            "RECORDING": "0",
+            "OTHER": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "stream_url",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "'rtsp://admin:pass@' + random(10, 255).to_s + '.' + random(0, 255).to_s + '.' + random(0, 255).to_s + '.' + random(1, 254).to_s + ':554/stream1'"
+    },
+    {
+      "name": "stream_user",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "'admin'"
+    },
+    {
+      "name": "stream_password_encrypted",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "bcrypt(\"1234567\")"
+    },
+    {
+      "name": "protocol",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "RTSP",
+        "ONVIF",
+        "HTTP",
+        "HTTPS"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "fps",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "15",
+        "24",
+        "30",
+        "60",
+        "120"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "stream_type == \"MAIN\"",
+          "frequencies": {
+            "15": "0",
+            "24": "0",
+            "30": "0",
+            "60": "1",
+            "120": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"SUB\"",
+          "frequencies": {
+            "15": "1",
+            "24": "1",
+            "30": "1",
+            "60": "0",
+            "120": "0"
+          }
+        },
+        {
+          "rule": "stream_type == \"SNAPSHOT\"",
+          "frequencies": {
+            "15": "1",
+            "24": "0",
+            "30": "0",
+            "60": "0",
+            "120": "0"
+          }
+        },
+        {
+          "rule": "stream_type == \"RECORDING\"",
+          "frequencies": {
+            "15": "1",
+            "24": "0",
+            "30": "0",
+            "60": "0",
+            "120": "0"
+          }
+        },
+        {
+          "rule": "stream_type == \"OTHER\"",
+          "frequencies": {
+            "15": "1",
+            "24": "0",
+            "30": "0",
+            "60": "0",
+            "120": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "resolution",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "1920x1080",
+        "1280x720",
+        "640x480"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "stream_type == \"MAIN\"",
+          "frequencies": {
+            "1920x1080": "1",
+            "1280x720": "1",
+            "640x480": "0"
+          }
+        },
+        {
+          "rule": "stream_type == \"SUB\"",
+          "frequencies": {
+            "1920x1080": "0",
+            "1280x720": "1",
+            "640x480": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"SNAPSHOT\"",
+          "frequencies": {
+            "1920x1080": "0",
+            "1280x720": "0",
+            "640x480": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"RECORDING\"",
+          "frequencies": {
+            "1920x1080": "0",
+            "1280x720": "0",
+            "640x480": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"OTHER\"",
+          "frequencies": {
+            "1920x1080": "0",
+            "1280x720": "0",
+            "640x480": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "is_primary",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "true",
+        "false"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "stream_type == \"MAIN\"",
+          "frequencies": {
+            "true": "1",
+            "false": "0"
+          }
+        },
+        {
+          "rule": "stream_type == \"SUB\"",
+          "frequencies": {
+            "true": "0",
+            "false": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"SNAPSHOT\"",
+          "frequencies": {
+            "true": "0",
+            "false": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"RECORDING\"",
+          "frequencies": {
+            "true": "0",
+            "false": "1"
+          }
+        },
+        {
+          "rule": "stream_type == \"OTHER\"",
+          "frequencies": {
+            "true": "0",
+            "false": "1"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "enabled",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "true",
+        "false"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "true": "1",
+            "false": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "10",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

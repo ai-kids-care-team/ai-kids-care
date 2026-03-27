@@ -1,0 +1,111 @@
+{
+  "id": 723977,
+  "num_rows": 21,
+  "file_format": "sql",
+  "name": "36_class_room_assignments",
+  "table_name": "class_room_assignments",
+  "include_create_sql": false,
+  "columns": [
+    {
+      "name": "assignment_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "class_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "class_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "room_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "class_id+(class_id-1)/7*7"
+    },
+    {
+      "name": "start_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "start_date",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "end_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "end_date",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "purpose",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": null
+    },
+    {
+      "name": "note",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "교실 분배"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"25_classes\",\"status\",class_id:class_id)"
+    },
+    {
+      "name": "created_by_user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "100+(kindergarten_id-1)*300+random(1,2)"
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "25_classes",
+      "column": "updated_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    }
+  ]
+}

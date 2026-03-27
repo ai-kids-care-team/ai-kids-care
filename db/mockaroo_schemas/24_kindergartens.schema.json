@@ -1,0 +1,145 @@
+{
+  "id": 723751,
+  "num_rows": 3,
+  "file_format": "sql",
+  "name": "24_kindergartens",
+  "table_name": "kindergartens",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "햇살",
+        "새싹",
+        "꼬마별",
+        "꿈나무",
+        "아이사랑",
+        "자연",
+        "숲속",
+        "하늘",
+        "은하수",
+        "튼튼"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": "concat(this, \"유치원\")"
+    },
+    {
+      "name": "address",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "서울특별시 강남구",
+        "경기도 성남시 분당구",
+        "인천광역시 연수구"
+      ],
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "concat(this,\" \",random(1,99).to_s,\"길 \",random(1,99).to_s)"
+    },
+    {
+      "name": "region_code",
+      "null_percentage": 10,
+      "type": "Custom List",
+      "values": [
+        "11000",
+        "21000",
+        "22000",
+        "23000",
+        "24000",
+        "25000"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "code",
+      "null_percentage": 10,
+      "type": "Custom List",
+      "values": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": "concat(this, random(1,9999).to_s.rjust(4, '0'))"
+    },
+    {
+      "name": "business_registration_no",
+      "null_percentage": 0,
+      "type": "Regular Expression",
+      "value": "\\d{3}-\\d{2}-\\d{5}",
+      "formula": null
+    },
+    {
+      "name": "contact_name",
+      "null_percentage": 0,
+      "type": "Formula",
+      "value": "['김', '이', '박', '최', '정'].sample + ['민준', '서연', '도윤', '하윤', '시우'].sample",
+      "formula": "last_names = ['김','이','박','최','정']\nfirst_names = ['민준','서연','도윤','하윤','시우']\n\nlast_names[row.number % last_names.length] +\nfirst_names[(row.number / last_names.length) % first_names.length]"
+    },
+    {
+      "name": "contact_phone",
+      "null_percentage": 0,
+      "type": "Regular Expression",
+      "value": "010-\\d{4}-\\d{4}",
+      "formula": null
+    },
+    {
+      "name": "contact_email",
+      "null_percentage": 0,
+      "type": "Email Address",
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "10",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": ""
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}
