@@ -30,6 +30,6 @@ export const baseApi = createApi({
     },
   }),
   // 자동 데이터 갱신을 위한 캐시 태그
-  tagTypes: ['User', 'Camera', 'Event', 'Notification', 'Metrics'],
+  tagTypes: ['User', 'Camera', 'Event', 'Metrics'],
   endpoints: () => ({}),
 });

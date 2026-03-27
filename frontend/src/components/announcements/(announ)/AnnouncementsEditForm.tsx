@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAnnouncementsEdit } from '@/components/announcements/functions/useAnnouncementsEdit';
+import { describeAnnouncementEditorRolesKorean } from '@/types/user-role';
 
 export function AnnouncementsEditForm() {
   const {
@@ -23,15 +24,15 @@ export function AnnouncementsEditForm() {
     status,
     setStatus,
     statusOptions,
+    authorIdHiddenValue,
     canWrite,
-    loadingMeta,
     loadingAnnouncement,
     submitting,
     error,
     handleSubmit,
   } = useAnnouncementsEdit();
 
-  const loading = loadingMeta || loadingAnnouncement;
+  const loading = loadingAnnouncement;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -43,10 +44,12 @@ export function AnnouncementsEditForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
             {loading && <p className="text-sm text-gray-500">수정 정보를 불러오는 중입니다.</p>}
             {!loading && !canWrite && (
               <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                현재 계정은 공지사항 수정 권한이 없습니다.
+                공지 수정은 <span className="font-medium">{describeAnnouncementEditorRolesKorean()}</span> 계정에서만
+                할 수 있어요. 해당 권한이 있는 계정으로 로그인했는지 확인해 주세요.
               </p>
             )}
 

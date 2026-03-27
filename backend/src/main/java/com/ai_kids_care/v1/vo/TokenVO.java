@@ -45,6 +45,10 @@ public class TokenVO {
     @JsonProperty("refreshExpiresIn")
     private Integer refreshExpiresIn;
 
+    @Schema(name = "id")
+    @JsonProperty("id")
+    private Long id;
+
     /** {@link com.ai_kids_care.v1.type.UserRoleEnum} 이름 (예: SUPERADMIN, GUARDIAN) */
     @Schema(name = "role")
     @JsonProperty("role")
@@ -53,6 +57,5 @@ public class TokenVO {
     @Schema(name = "loginId")
     @JsonProperty("loginId")
     private String loginId;
-
 }
 

@@ -1,7 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserRole } from '../../types/anomaly';
+import type { UserRole } from '@/types/user-role';
+import { USER_ROLES } from '@/types/user-role';
 import { apiClient } from '@/services/apis/apiClient'; // 👈 새로 만든 API 클라이언트 불러오기
 
 interface User {
@@ -39,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsedUser = JSON.parse(savedUser);
 
         // [핵심 수정 1 유지] 과거에 잘못 저장된 로컬 스토리지 권한 데이터 강제 복구
-        const validRoles = ['super_admin', 'system_admin', 'admin', 'teacher', 'guardian'];
-        if (!validRoles.includes(parsedUser.role)) {
-            parsedUser.role = 'guardian'; // 잘못된 권한이면 기본값으로 덮어씀
+        const validRoles = new Set<string>(USER_ROLES);
+        if (!validRoles.has(parsedUser.role)) {
+          parsedUser.role = 'GUARDIAN';
         }
 
         setUser(parsedUser);
@@ -72,17 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data;
 
       // 백엔드에서 넘어올 수 있는 모든 형태의 권한 키값 유연하게 추출
-      const rawRole = data.user?.memberType || data.memberType || data.user?.role || data.role || 'guardian';
-
-      // [핵심 수정 2 유지] 프론트엔드의 정확한 규격에 맞게 예외 없이 강제 매핑
-      let mappedRole: UserRole = 'guardian';
-      const upperRole = String(rawRole).toUpperCase();
-
-      if (upperRole.includes('TEACHER')) mappedRole = 'teacher';
-      else if (upperRole.includes('KINDERGARTEN') || upperRole === 'ADMIN') mappedRole = 'admin';
-      else if (upperRole.includes('SYSTEM')) mappedRole = 'system_admin';
-      else if (upperRole.includes('PLATFORM') || upperRole.includes('SUPER')) mappedRole = 'super_admin';
-      else mappedRole = 'guardian';
+      const rawRole = data.user?.memberType || data.memberType || data.user?.role || data.role || 'GUARDIAN';
+      const mappedRole = String(rawRole).toUpperCase() as UserRole;
 
       const loggedInUser: User = {
         id: data.user?.id || data.id || 'unknown',
