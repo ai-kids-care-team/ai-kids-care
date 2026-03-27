@@ -29,6 +29,7 @@ export function AnnouncementsEditForm() {
     loadingAnnouncement,
     submitting,
     error,
+    publishedAtError,
     handleSubmit,
   } = useAnnouncementsEdit();
 
@@ -59,6 +60,7 @@ export function AnnouncementsEditForm() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                maxLength={200}
                 placeholder="공지사항 제목을 입력하세요"
                 disabled={loading || !canWrite || submitting}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
@@ -123,6 +125,7 @@ export function AnnouncementsEditForm() {
                 disabled={loading || !canWrite || submitting}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
               />
+              {publishedAtError && <p className="mt-1 text-sm text-red-500">{publishedAtError}</p>}
             </div>
 
             <div>
