@@ -1,4 +1,4 @@
-// version: v 1.2.1
+// version: v 1.2.0
 
 //============================================================
 // Enums
@@ -229,14 +229,14 @@ Table teachers {
   gender gender_enum [not null, note: "성별"]
   emergency_contact_name varchar [note: "비상 연락처 이름"]
   emergency_contact_phone varchar [note: "비상 연락처 전화번호"]
-  rrn_encrypted varchar [note: "주민등록번호 뒤 7자리 암호문(암호화 저장)"]
-  rrn_first6 varchar [note: "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"]
-  level level_enum [note: "직급(예: 원장/부원장/일반교사/기타)"]
-  start_date date [note: "근무 시작일"]
+  rrn_encrypted varchar [not null, note: "주민등록번호 뒤 7자리 암호문(암호화 저장)"]
+  rrn_first6 varchar [not null, note: "주민등록번호 앞 6자리(생년월일, 검색/중복확인용)"]
+  level level_enum [not null, note: "직급(예: 원장/부원장/일반교사/기타)"]
+  start_date date [not null, note: "근무 시작일"]
   end_date date [note: "근무 종료일"]
-  status status_enum [note: "재직 상태"]
-  created_at timestamptz [default: "now()", note: "생성 일시"]
-  updated_at timestamptz [default: "now()", note: "수정 일시"]
+  status status_enum [not null, note: "재직 상태"]
+  created_at timestamptz [not null, default: "now()", note: "생성 일시"]
+  updated_at timestamptz [not null, default: "now()", note: "수정 일시"]
   Indexes {
     (kindergarten_id, teacher_id) [unique, name: "uq_teacher_kg_teacherid"]
     (kindergarten_id, staff_no) [unique, name: "uq_teacher_kg_staffno"]
@@ -605,7 +605,7 @@ Table announcements {
   body text [not null]
   is_pinned boolean [not null, default: false]
   pinned_until timestamptz
-  status status_enum [not null, default: 'ACTIVE']
+  status status_enum [not null, default: 'ACTIVE', note: "ACTIVE | PENDING | DISABLED"]
   published_at timestamptz [note: "게시 일시(게시 상태로 전환된 시각); 초안(DISABLED)인 경우 null"]
   starts_at timestamptz [note: "노출 시작 일시(선택)"]
   ends_at timestamptz [note: "노출 종료 일시(선택)"]

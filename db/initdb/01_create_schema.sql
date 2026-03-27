@@ -200,14 +200,14 @@ CREATE TABLE "teachers" (
   "gender" gender_enum NOT NULL,
   "emergency_contact_name" varchar,
   "emergency_contact_phone" varchar,
-  "rrn_encrypted" varchar,
-  "rrn_first6" varchar,
-  "level" level_enum,
-  "start_date" date,
+  "rrn_encrypted" varchar NOT NULL,
+  "rrn_first6" varchar NOT NULL,
+  "level" level_enum NOT NULL,
+  "start_date" date NOT NULL,
   "end_date" date,
-  "status" status_enum,
-  "created_at" timestamptz DEFAULT 'now()',
-  "updated_at" timestamptz DEFAULT 'now()'
+  "status" status_enum NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT 'now()',
+  "updated_at" timestamptz NOT NULL DEFAULT 'now()'
 );
 
 CREATE TABLE "superadmins" (
