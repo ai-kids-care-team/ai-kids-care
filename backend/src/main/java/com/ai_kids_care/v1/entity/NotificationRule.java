@@ -3,10 +3,9 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.NotificationTargetType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
@@ -16,7 +15,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "notification_rules", schema = "public", indexes = {
+@Table(name = "notification_rules", indexes = {
         @Index(name = "idx_rule_owner", columnList = "kindergarten_id, user_id"),
         @Index(name = "idx_rule_enabled", columnList = "kindergarten_id, enabled")
 })
@@ -40,22 +39,26 @@ public class NotificationRule {
     @Column(name = "target_type", columnDefinition = "notification_target_type")
     private NotificationTargetType targetType;
 
-    @Column(name = "target_id")
+    @NotNull
+    @Column(name = "target_id", nullable = false)
     private Long targetId;
 
     @Column(name = "event_type", length = Integer.MAX_VALUE)
     private String eventType;
 
-    @Column(name = "min_severity")
+    @NotNull
+    @Column(name = "min_severity", nullable = false)
     private Integer minSeverity;
 
     @Column(name = "quiet_hours_json", length = Integer.MAX_VALUE)
     private String quietHoursJson;
 
-    @Column(name = "enabled")
+    @NotNull
+    @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
 

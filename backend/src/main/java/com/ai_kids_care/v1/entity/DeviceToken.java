@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.DevicePlatformEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -16,7 +17,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "device_tokens", schema = "public", indexes = {
+@Table(name = "device_tokens", indexes = {
         @Index(name = "uq_device_tokens_platform_push_token", columnList = "platform, push_token", unique = true),
         @Index(name = "idx_device_tokens_user_status", columnList = "user_id, status")
 })
@@ -31,20 +32,25 @@ public class DeviceToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "platform", length = Integer.MAX_VALUE)
-    private String platform;
+    @NotNull
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "platform", columnDefinition = "device_platform_enum not null")
+    private DevicePlatformEnum platform;
 
-    @Column(name = "push_token", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "push_token", nullable = false, length = Integer.MAX_VALUE)
     private String pushToken;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
     @Column(name = "last_seen_at")
     private OffsetDateTime lastSeenAt;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
 

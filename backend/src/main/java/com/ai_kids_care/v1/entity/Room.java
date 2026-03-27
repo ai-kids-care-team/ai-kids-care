@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "rooms", schema = "public", indexes = {
+@Table(name = "rooms", indexes = {
         @Index(name = "uq_room_kg_roomid", columnList = "kindergarten_id, room_id", unique = true),
         @Index(name = "uq_room_kg_roomcode", columnList = "kindergarten_id, room_code", unique = true)
 })
@@ -31,7 +31,8 @@ public class Room {
     @JoinColumn(name = "kindergarten_id", nullable = false)
     private Kindergarten kindergarten;
 
-    @Column(name = "name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
     @Column(name = "room_code", length = Integer.MAX_VALUE)
@@ -40,17 +41,20 @@ public class Room {
     @Column(name = "location_note", length = Integer.MAX_VALUE)
     private String locationNote;
 
-    @Column(name = "room_type", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "room_type", nullable = false, length = Integer.MAX_VALUE)
     private String roomType;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 

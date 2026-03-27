@@ -18,7 +18,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "user_role_assignments", schema = "public", indexes = {
+@Table(name = "user_role_assignments", indexes = {
         @Index(name = "uq_ura_user_role_scope", columnList = "user_id, role, scope_type, scope_id", unique = true),
         @Index(name = "idx_ura_scope_status", columnList = "scope_type, scope_id, status")
 })
@@ -34,21 +34,22 @@ public class UserRoleAssignment {
     private User user;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "role", columnDefinition = "user_role_enum")
+    @Column(name = "role", columnDefinition = "user_role_enum not null")
     private UserRoleEnum role;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type")
+    @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type not null")
     private UserRoleAssignmentScopeType scopeType;
 
     @Column(name = "scope_id")
     private Long scopeId;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "granted_at")
+    @NotNull
+    @Column(name = "granted_at", nullable = false)
     private OffsetDateTime grantedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)

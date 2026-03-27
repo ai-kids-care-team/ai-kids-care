@@ -1,9 +1,12 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.EvidenceFileTypeEnum;
+import jakarta.activation.MimeType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -13,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "event_evidence_files", schema = "public", indexes = {
+@Table(name = "event_evidence_files", indexes = {
         @Index(name = "idx_evidence_event_time", columnList = "kindergarten_id, event_id, created_at")
 })
 public class EventEvidenceFile {
@@ -27,25 +30,33 @@ public class EventEvidenceFile {
     @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
-    @Column(name = "type", length = Integer.MAX_VALUE)
-    private String type;
+    @NotNull
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "type", columnDefinition = "evidence_file_type_enum not null")
+    private EvidenceFileTypeEnum type;
 
-    @Column(name = "storage_uri", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "storage_uri", nullable = false, length = Integer.MAX_VALUE)
     private String storageUri;
 
-    @Column(name = "mime_type", length = Integer.MAX_VALUE)
-    private String mimeType;
+    @NotNull
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "mime_type", columnDefinition = "mime_type_enum not null")
+    private MimeType mimeType;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
     @Column(name = "retention_until")
     private OffsetDateTime retentionUntil;
 
-    @Column(name = "hold")
+    @NotNull
+    @Column(name = "hold", nullable = false)
     private Boolean hold;
 
-    @Column(name = "hash", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "hash", nullable = false, length = Integer.MAX_VALUE)
     private String hash;
 
 

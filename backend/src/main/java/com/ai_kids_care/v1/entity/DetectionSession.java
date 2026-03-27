@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "detection_sessions", schema = "public", indexes = {
+@Table(name = "detection_sessions", indexes = {
         @Index(name = "uq_session_kg_sessionid", columnList = "kindergarten_id, session_id", unique = true),
         @Index(name = "idx_session_camera_time", columnList = "kindergarten_id, camera_id, started_at")
 })

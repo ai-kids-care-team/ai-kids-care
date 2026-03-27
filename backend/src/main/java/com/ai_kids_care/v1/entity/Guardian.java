@@ -17,7 +17,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "guardians", schema = "public", indexes = {
+@Table(name = "guardians", indexes = {
         @Index(name = "uq_guardian_kg_guardianid", columnList = "kindergarten_id, guardian_id", unique = true),
         @Index(name = "uq_guardian_user_id", columnList = "user_id", unique = true)
 })
@@ -37,30 +37,36 @@ public class Guardian {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
-    @Column(name = "rrn_encrypted", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
     private String rrnEncrypted;
 
-    @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "gender", columnDefinition = "gender_enum")
+    @Column(name = "gender", columnDefinition = "gender_enum not null")
     private GenderEnum gender;
 
-    @Column(name = "address", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "address", nullable = false, length = Integer.MAX_VALUE)
     private String address;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 
