@@ -34,18 +34,15 @@ public class RoomCameraAssignment {
     private Room rooms;
 
     @NotNull
-    @ColumnDefault("'2026-03-17 12:56:22.099651+00'")
     @Column(name = "start_at", nullable = false)
     private OffsetDateTime startAt;
 
     @Column(name = "end_at")
     private OffsetDateTime endAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.099651+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.099651+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

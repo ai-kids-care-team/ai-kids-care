@@ -48,7 +48,6 @@ public class UserRoleAssignment {
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
-    @ColumnDefault("'2026-03-17 12:56:22.138783+00'")
     @Column(name = "granted_at")
     private OffsetDateTime grantedAt;
 

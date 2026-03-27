@@ -46,7 +46,6 @@ public class EventReview {
     @Column(name = "comment", length = Integer.MAX_VALUE)
     private String comment;
 
-    @ColumnDefault("'2026-03-17 12:56:22.184038+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

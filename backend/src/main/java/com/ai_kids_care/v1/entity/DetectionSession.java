@@ -36,7 +36,6 @@ public class DetectionSession {
     @JoinColumn(name = "model_id", nullable = false)
     private AiModel model;
 
-    @ColumnDefault("'2026-03-17 12:56:22.166748+00'")
     @Column(name = "started_at")
     private OffsetDateTime startedAt;
 

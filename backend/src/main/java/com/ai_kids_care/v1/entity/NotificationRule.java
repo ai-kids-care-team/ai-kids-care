@@ -55,7 +55,6 @@ public class NotificationRule {
     @Column(name = "enabled")
     private Boolean enabled;
 
-    @ColumnDefault("'2026-03-17 12:56:22.215651+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

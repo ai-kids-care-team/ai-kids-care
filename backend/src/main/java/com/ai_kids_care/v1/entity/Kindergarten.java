@@ -50,11 +50,9 @@ public class Kindergarten {
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
-    @ColumnDefault("'2026-03-17 12:56:21.964081+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:21.964081+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

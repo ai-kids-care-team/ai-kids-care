@@ -52,7 +52,6 @@ public class DetectionEvent {
     @Column(name = "confidence")
     private Double confidence;
 
-    @ColumnDefault("'2026-03-17 12:56:22.173225+00'")
     @Column(name = "detected_at")
     private OffsetDateTime detectedAt;
 
@@ -66,11 +65,9 @@ public class DetectionEvent {
     @Column(name = "status", columnDefinition = "event_status_enum")
     private EventStatusEnum status;
 
-    @ColumnDefault("'2026-03-17 12:56:22.173225+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.173225+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

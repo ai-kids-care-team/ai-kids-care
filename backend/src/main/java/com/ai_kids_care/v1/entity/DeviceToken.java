@@ -44,7 +44,6 @@ public class DeviceToken {
     @Column(name = "last_seen_at")
     private OffsetDateTime lastSeenAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.204973+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

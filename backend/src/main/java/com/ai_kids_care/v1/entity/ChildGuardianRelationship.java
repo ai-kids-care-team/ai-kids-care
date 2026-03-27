@@ -56,11 +56,9 @@ public class ChildGuardianRelationship {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @ColumnDefault("'2026-03-17 12:56:22.120648+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.120648+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

@@ -60,11 +60,9 @@ public class ClassTeacherAssignment {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    @ColumnDefault("'2026-03-17 12:56:22.016653+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 12:56:22.016653+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

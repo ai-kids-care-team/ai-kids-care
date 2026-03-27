@@ -36,7 +36,6 @@ public class EventEvidenceFile {
     @Column(name = "mime_type", length = Integer.MAX_VALUE)
     private String mimeType;
 
-    @ColumnDefault("'2026-03-17 12:56:22.194471+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
