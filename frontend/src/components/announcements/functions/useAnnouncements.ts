@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
 import { canManageAnnouncements } from '@/types/user-role';
+import { getAnnouncementBaseDate, isAnnouncementNew, sortAnnouncementsByNewPriority } from './announcement-sort';
 
 import {AnnouncementItem} from '@/types/announcement';
 
@@ -40,13 +41,14 @@ export function useAnnouncements() {
           keyword: appliedKeyword || undefined,
           page,
           size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
-          sort: ['isPinned,desc', 'publishedAt,desc', 'id,desc'],
+          sort: ['status,asc', 'isPinned,desc', 'publishedAt,desc'],
         });
         const now = Date.now();
+        const sortedContent = sortAnnouncementsByNewPriority(pageData.content, now);
         setTotalPages(pageData.totalPages);
         setAnnouncements(
-          pageData.content.map((item) => {
-            const baseDate = item.publishedAt ?? item.createdAt;
+          sortedContent.map((item) => {
+            const baseDate = getAnnouncementBaseDate(item);
             if (!baseDate) {
               return {
                 id: item.id,
@@ -57,12 +59,11 @@ export function useAnnouncements() {
                 href: `/announcements/read?id=${item.id}`,
               };
             }
-            const isNew = now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000;
             return {
               id: item.id,
               title: item.title,
               date: formatDate(baseDate),
-              isNew,
+              isNew: isAnnouncementNew(item, now),
               views: item.viewCount ?? 0,
               href: `/announcements/read?id=${item.id}`,
             };

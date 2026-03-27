@@ -57,6 +57,13 @@ export function useAnnouncementsEdit() {
   const [loadingAnnouncement, setLoadingAnnouncement] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [publishedAtError, setPublishedAtError] = useState('');
+
+  useEffect(() => {
+    if (publishedAt) {
+      setPublishedAtError('');
+    }
+  }, [publishedAt]);
 
   useEffect(() => {
     const load = async () => {
@@ -95,6 +102,7 @@ export function useAnnouncementsEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPublishedAtError('');
 
     if (!canWrite) {
       setError('공지사항 수정 권한이 없습니다.');
@@ -108,8 +116,16 @@ export function useAnnouncementsEdit() {
       setError('제목을 입력해주세요.');
       return;
     }
+    if (title.trim().length > 200) {
+      setError('제목은 200자 이하여야 합니다.');
+      return;
+    }
     if (!content.trim()) {
       setError('내용을 입력해주세요.');
+      return;
+    }
+    if (!publishedAt) {
+      setPublishedAtError('게시일시는 필수 입력입니다.');
       return;
     }
     if (authorId == null) {
@@ -169,6 +185,7 @@ export function useAnnouncementsEdit() {
     loadingAnnouncement,
     submitting,
     error,
+    publishedAtError,
     handleSubmit,
   };
 }

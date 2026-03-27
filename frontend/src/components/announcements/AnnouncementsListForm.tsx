@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell, Plus, Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -34,6 +34,11 @@ export function AnnouncementsListForm({
 }: AnnouncementsListFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const scrollY = sessionStorage.getItem('announcements:list:scrollY');
@@ -67,7 +72,7 @@ export function AnnouncementsListForm({
               <Bell className="h-7 w-7 text-[#006b52]" />
               <h2 className="text-3xl">공지사항</h2>
             </div>
-            {canWrite && (
+            {mounted && canWrite && (
               <Link
                 href="/announcements/write"
                 className="flex items-center gap-2 rounded-lg bg-[#006b52] px-5 py-2.5 text-white transition-colors hover:bg-[#005640]"
