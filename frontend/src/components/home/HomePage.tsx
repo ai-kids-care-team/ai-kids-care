@@ -7,6 +7,7 @@ import { HeroSlider } from '@/components/home/HeroSlider';
 import { Footer } from '@/layout/Footer';
 import { useAppSelector } from '@/store/hook';
 import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
+import { getAnnouncementBaseDate, isAnnouncementNew, sortAnnouncementsByNewPriority } from '@/components/announcements/functions/announcement-sort';
 import { openLoginModal } from '@/utils/auth-modal';
 
 
@@ -35,12 +36,12 @@ export function HomePage() {
         const pageData = await getAnnouncements({
           page: 0,
           size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
-          sort: ['isPinned,desc', 'publishedAt,desc', 'id,desc'],
+          sort: ['status,asc', 'isPinned,desc', 'publishedAt,desc'],
         });
-        const list = pageData.content;
         const now = Date.now();
+        const list = sortAnnouncementsByNewPriority(pageData.content, now);
         const mapped = list.map((item) => {
-            const baseDate = item.publishedAt ?? item.createdAt;
+            const baseDate = getAnnouncementBaseDate(item);
             if (!baseDate) {
               return {
                 id: item.id,
@@ -53,7 +54,7 @@ export function HomePage() {
               id: item.id,
               title: item.title,
               date: formatDate(baseDate),
-              isNew: now - new Date(baseDate).getTime() <= 7 * 24 * 60 * 60 * 1000,
+              isNew: isAnnouncementNew(item, now),
             };
           });
         setAnnouncements(mapped);
