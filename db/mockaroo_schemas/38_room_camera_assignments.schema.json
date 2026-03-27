@@ -1,0 +1,82 @@
+{
+  "id": 723980,
+  "num_rows": 42,
+  "file_format": "sql",
+  "name": "38_room_camera_assignments",
+  "table_name": "room_camera_assignments",
+  "include_create_sql": false,
+  "columns": [
+    {
+      "name": "assignment_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "camera_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "camera_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "room_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "27_rooms",
+      "column": "room_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "start_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "end_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "28_cctv_cameras",
+      "column": "updated_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    }
+  ]
+}

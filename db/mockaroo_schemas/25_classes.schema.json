@@ -1,0 +1,172 @@
+{
+  "id": 723765,
+  "num_rows": 21,
+  "file_format": "sql",
+  "name": "25_classes",
+  "table_name": "classes",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "class_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "24_kindergartens",
+      "column": "kindergarten_id",
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "class_id<=7",
+          "frequencies": {
+            "1": "1",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "class_id<=14",
+          "frequencies": {
+            "1": "0",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "햇살",
+        "새싹",
+        "별빛",
+        "달빛",
+        "하늘",
+        "바다",
+        "우주",
+        "슬기",
+        "지혜",
+        "푸른"
+      ],
+      "selectionStyle": "cartesian",
+      "distribution": null,
+      "formula": "this + '반'"
+    },
+    {
+      "name": "academic_year",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "2023",
+        "2024",
+        "2025"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "(class_id-1)%7+1<=2",
+          "frequencies": {
+            "2023": "1",
+            "2024": "0",
+            "2025": "0"
+          }
+        },
+        {
+          "rule": "(class_id-1)%7+1<=4",
+          "frequencies": {
+            "2023": "0",
+            "2024": "1",
+            "2025": "0"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "2023": "0",
+            "2024": "0",
+            "2025": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "grade",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "concat(\"만\",(year(now)-academic_year+2).to_s,\"세\")"
+    },
+    {
+      "name": "start_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "academic_year.to_s + '-03-01'"
+    },
+    {
+      "name": "end_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "(academic_year+3).to_s + '-02-25'"
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "0",
+            "PENDING": "0",
+            "DISABLED": "1"
+          },
+          "rule": "end_date<now"
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "now - minutes(1000) + minutes(class_id.number)"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

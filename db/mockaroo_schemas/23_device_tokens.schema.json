@@ -1,0 +1,90 @@
+{
+  "id": 723947,
+  "num_rows": 1000,
+  "file_format": "sql",
+  "name": "23_device_tokens",
+  "table_name": "device_tokens",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "device_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "21_users",
+      "column": "user_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "platform",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "IOS",
+        "ANDROID"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "IOS": "4",
+            "ANDROID": "6"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "push_token",
+      "null_percentage": 0,
+      "type": "SHA256",
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "8",
+            "PENDING": "1",
+            "DISABLED": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": null
+    },
+    {
+      "name": "last_seen_at",
+      "null_percentage": 10,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}
