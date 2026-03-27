@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createAnnouncement,
@@ -16,6 +16,16 @@ import { StatusCode } from '@/types/announcement';
 function toIsoOrNull(value: string) {
   if (!value) return null;
   return new Date(value).toISOString();
+}
+
+function toLocalDatetimeInputNow() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mi = String(now.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
 }
 
 export function useAnnouncementsWrite() {
@@ -37,15 +47,22 @@ export function useAnnouncementsWrite() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [isPinned, setIsPinned] = useState(false);
-  const [pinnedUntil, setPinnedUntil] = useState('');
-  const [publishedAt, setPublishedAt] = useState('');
-  const [startsAt, setStartsAt] = useState('');
+  const [isPinned, setIsPinned] = useState(true);
+  const [pinnedUntil, setPinnedUntil] = useState(() => toLocalDatetimeInputNow());
+  const [publishedAt, setPublishedAt] = useState(() => toLocalDatetimeInputNow());
+  const [startsAt, setStartsAt] = useState(() => toLocalDatetimeInputNow());
   const [endsAt, setEndsAt] = useState('');
-  const [status, setStatus] = useState<StatusCode>('PENDING');
+  const [status, setStatus] = useState<StatusCode>('ACTIVE');
   const statusOptions = DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [publishedAtError, setPublishedAtError] = useState('');
+
+  useEffect(() => {
+    if (publishedAt) {
+      setPublishedAtError('');
+    }
+  }, [publishedAt]);
 
   const moveToAnnouncementsList = () => {
     if (typeof window !== 'undefined') {
@@ -64,6 +81,7 @@ export function useAnnouncementsWrite() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPublishedAtError('');
 
     if (!canWrite) {
       setError('공지사항 작성 권한이 없습니다.');
@@ -73,8 +91,16 @@ export function useAnnouncementsWrite() {
       setError('제목을 입력해주세요.');
       return;
     }
+    if (title.trim().length > 200) {
+      setError('제목은 200자 이하여야 합니다.');
+      return;
+    }
     if (!content.trim()) {
       setError('내용을 입력해주세요.');
+      return;
+    }
+    if (!publishedAt) {
+      setPublishedAtError('게시일시는 필수 입력입니다.');
       return;
     }
     if (authorId == null) {
@@ -142,6 +168,7 @@ export function useAnnouncementsWrite() {
     canWrite,
     submitting,
     error,
+    publishedAtError,
     handleSubmit,
     moveToAnnouncementsList,
   };
