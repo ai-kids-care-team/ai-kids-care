@@ -1,0 +1,104 @@
+{
+  "id": 723973,
+  "num_rows": 420,
+  "file_format": "sql",
+  "name": "34_child_class_assignments",
+  "table_name": "child_class_assignments",
+  "include_create_sql": false,
+  "columns": [
+    {
+      "name": "assignment_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "26_children",
+      "column": "kindergarten_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i\n"
+    },
+    {
+      "name": "child_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "26_children",
+      "column": "child_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "class_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "(child_id-1)/20+1"
+    },
+    {
+      "name": "start_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"25_classes\",\"start_date\",class_id:class_id)"
+    },
+    {
+      "name": "end_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"25_classes\",\"end_date\",class_id:class_id)"
+    },
+    {
+      "name": "reason",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": null
+    },
+    {
+      "name": "note",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": null
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "random",
+      "distribution": null,
+      "formula": null
+    },
+    {
+      "name": "created_by_user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "100+(kindergarten_id-1)*300+random(1,2)"
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "26_children",
+      "column": "created_at",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

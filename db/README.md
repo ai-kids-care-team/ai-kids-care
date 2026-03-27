@@ -51,11 +51,11 @@ POSTGRES_DB=child_db
 - [guardian_RefData.md](./db_sample/guardian_RefData.md)
 
 실행 SQL:
-- [05_guardian_seed.sql](./initdb/05_guardian_seed.sql)
+- [89_guardian_seed.sql](initdb/89_guardian_seed.sql)
 
 실행 명령(프로젝트 현재 컨테이너 기준):
 ```bash
-docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/05_guardian_seed.sql
+docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/89_guardian_seed.sql
 ```
 
 
@@ -70,7 +70,7 @@ PowerShell 예시:
 ```powershell
 chcp 65001
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
-docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/05_guardian_seed.sql
+docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/89_guardian_seed.sql
 ```
 
 추가 권장:

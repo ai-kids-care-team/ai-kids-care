@@ -6,21 +6,21 @@
 
 ## 반영 파일
 - `db/initdb/03_KINDERGARTEN.sql`
-- `db/initdb/05_guardian_seed.sql`
+- `db/initdb/89_guardian_seed.sql`
 
 ## 변경 이력
 - 2026-03-07: 샘플 INSERT 중복 제거 완료 (`03_KINDERGARTEN.sql`에서 샘플 블록 제거, `guardian_seed.sql` 단일 유지)
-- 2026-03-08: 샘플 SQL 파일을 `db/db_sample/guardian_seed.sql`에서 `db/initdb/05_guardian_seed.sql`로 이동 및 리네임
+- 2026-03-08: 샘플 SQL 파일을 `db/db_sample/guardian_seed.sql`에서 `db/initdb/89_guardian_seed.sql`로 이동 및 리네임
 
 ## 실행 방법
 ### 1) Docker(PostgreSQL 컨테이너)에서 실행
 ```bash
-docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/05_guardian_seed.sql
+docker exec -i ai-kids-postgres psql -U kids_user -d kids_postgres_db < db/initdb/89_guardian_seed.sql
 ```
 
 ### 2) 로컬 psql로 실행 (선택)
 ```bash
-psql -h localhost -p 5432 -U kids_user -d kids_postgres_db -f db/initdb/05_guardian_seed.sql
+psql -h localhost -p 5432 -U kids_user -d kids_postgres_db -f db/initdb/89_guardian_seed.sql
 ```
 
 ## 빠른 검증 쿼리

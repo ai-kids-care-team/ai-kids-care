@@ -1,0 +1,169 @@
+{
+  "id": 723774,
+  "num_rows": 420,
+  "file_format": "sql",
+  "name": "26_children",
+  "table_name": "children",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "child_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "24_kindergartens",
+      "column": "kindergarten_id",
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "child_id<=140",
+          "frequencies": {
+            "1": "1",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "child_id<=280",
+          "frequencies": {
+            "1": "0",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "1"
+          }
+        }
+      ],
+      "formula": "(child_id-1)/200+1"
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "['김', '이', '박', '최', '정', '강', '조', '윤'].sample + ['민준', '서연', '도윤', '하윤', '시우', '지우', '지호', '서현', '지훈', '민서'].sample"
+    },
+    {
+      "name": "child_no",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "'C' + child_id.to_s.rjust(4, '0')"
+    },
+    {
+      "name": "birth_date",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2020",
+      "max": "12/31/2022",
+      "format": "%Y-%m-%d",
+      "formula": "if month(this) == 2 and day(this) == 29 then\n  if ((child_id - 1) / 20 + 1) % 7 <= 1 then\n    \"2020-02-29\"\n  elsif ((child_id - 1) / 20 + 1) % 7 <= 4 then\n    \"2021-02-28\"\n  else\n    \"2022-02-28\"\n  end\nelse\n  if ((child_id - 1) / 20 + 1) % 7 <= 1 then\n    concat(\"2020-\", pad(month(this).to_s, 2, \"0\", \"left\"), \"-\", pad(day(this).to_s, 2, \"0\", \"left\"))\n  elsif ((child_id - 1) / 20 + 1) % 7 <= 4 then\n    concat(\"2021-\", pad(month(this).to_s, 2, \"0\", \"left\"), \"-\", pad(day(this).to_s, 2, \"0\", \"left\"))\n  else\n    concat(\"2022-\", pad(month(this).to_s, 2, \"0\", \"left\"), \"-\", pad(day(this).to_s, 2, \"0\", \"left\"))\n  end\nend"
+    },
+    {
+      "name": "rrn_first6",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "concat(birth_date[2,2], birth_date[5,2], birth_date[8,2])"
+    },
+    {
+      "name": "rrn_encrypted",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "bcrypt(\"1234567\")"
+    },
+    {
+      "name": "gender",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "MALE",
+        "FEMALE"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "MALE": "6",
+            "FEMALE": "4"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "address",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "['서울특별시 강남구', '경기도 성남시', '부산광역시 해운대구', '대구광역시 수성구', '인천광역시 연수구'].sample + ' ' + random(1, 99).to_s + '길 ' + random(1, 99).to_s"
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "Date.strptime(birth_date, '%Y-%m-%d').year==2020",
+          "frequencies": {
+            "ACTIVE": "0",
+            "PENDING": "0",
+            "DISABLED": "1"
+          }
+        },
+        {
+          "frequencies": {
+            "ACTIVE": "8",
+            "PENDING": "1",
+            "DISABLED": "1"
+          },
+          "rule": ""
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "enroll_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "concat(Date.strptime(birth_date, '%Y-%m-%d').year+3,\"-03-01\")"
+    },
+    {
+      "name": "leave_date",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "if status=='DISABLED' then \n  if birth_date[0,4]==\"2020\" then concat(Date.strptime(enroll_date, '%Y-%m-%d').year+3,\"-02-25\")\n  else now-years(random(0,1))-days(random(1,100)) end\nelse this end   \n\n"
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "concat(enroll_date,\" \",time(this))"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

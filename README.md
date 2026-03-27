@@ -56,7 +56,7 @@ npm run dev
 ├── db/
 │   └── initdb/
 │       ├── 00_init.sql           # DB 기본 초기화 스키마
-│       └── 05_guardian_seed.sql  # Guardian 샘플 데이터
+│       └── 89_guardian_seed.sql  # Guardian 샘플 데이터
 ├── docker-compose.yml
 └── README.md
 ```
