@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import lombok.*;
@@ -15,17 +16,19 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "kindergartens", schema = "public")
+@Table(name = "kindergartens")
 public class Kindergarten {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "kindergarten_id", nullable = false)
     private Long id;
 
-    @Column(name = "name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
-    @Column(name = "address", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "address", nullable = false, length = Integer.MAX_VALUE)
     private String address;
 
     @Column(name = "region_code", length = Integer.MAX_VALUE)
@@ -34,26 +37,32 @@ public class Kindergarten {
     @Column(name = "code", length = Integer.MAX_VALUE)
     private String code;
 
-    @Column(name = "business_registration_no", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "business_registration_no", nullable = false, length = Integer.MAX_VALUE)
     private String businessRegistrationNo;
 
-    @Column(name = "contact_name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "contact_name", nullable = false, length = Integer.MAX_VALUE)
     private String contactName;
 
-    @Column(name = "contact_phone", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "contact_phone", nullable = false, length = Integer.MAX_VALUE)
     private String contactPhone;
 
-    @Column(name = "contact_email", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "contact_email", nullable = false, length = Integer.MAX_VALUE)
     private String contactEmail;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 

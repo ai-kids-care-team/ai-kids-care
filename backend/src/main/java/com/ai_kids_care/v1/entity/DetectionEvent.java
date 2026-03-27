@@ -1,12 +1,12 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -16,12 +16,11 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "detection_events", schema = "public", indexes = {
+@Table(name = "detection_events", indexes = {
         @Index(name = "uq_event_kg_eventid", columnList = "kindergarten_id, event_id", unique = true),
         @Index(name = "idx_event_camera_time", columnList = "kindergarten_id, camera_id, detected_at"),
         @Index(name = "idx_event_room_time", columnList = "kindergarten_id, room_id, detected_at"),
-        @Index(name = "idx_event_status_time", columnList = "kindergarten_id, status, detected_at")
-})
+        @Index(name = "idx_event_status_time", columnList = "kindergarten_id, status, detected_at")})
 public class DetectionEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,32 +42,40 @@ public class DetectionEvent {
     @JoinColumn(name = "session_id", nullable = false)
     private DetectionSession detectionSessions;
 
-    @Column(name = "event_type", length = Integer.MAX_VALUE)
-    private String eventType;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "event_type", columnDefinition = "event_type_enum not null")
+    private EventTypeEnum eventType;
 
-    @Column(name = "severity")
+    @NotNull
+    @Column(name = "severity", nullable = false)
     private Integer severity;
 
-    @Column(name = "confidence")
+    @NotNull
+    @Column(name = "confidence", nullable = false)
     private Double confidence;
 
-    @Column(name = "detected_at")
+    @NotNull
+    @Column(name = "detected_at", nullable = false)
     private OffsetDateTime detectedAt;
 
-    @Column(name = "start_time")
+    @NotNull
+    @Column(name = "start_time", nullable = false)
     private OffsetDateTime startTime;
 
-    @Column(name = "end_time")
+    @NotNull
+    @Column(name = "end_time", nullable = false)
     private OffsetDateTime endTime;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "event_status_enum")
+    @Column(name = "status", columnDefinition = "event_status_enum not null")
     private EventStatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 

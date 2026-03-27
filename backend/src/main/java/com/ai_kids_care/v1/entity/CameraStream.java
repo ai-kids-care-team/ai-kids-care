@@ -1,13 +1,13 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
+import com.ai_kids_care.v1.type.ProtocolEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
@@ -17,12 +17,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "camera_streams", schema = "public", indexes = {
-        @Index(name = "uq_stream_kg_camera_streamid", columnList = "kindergarten_id, camera_id, stream_id", unique = true),
-        @Index(name = "idx_stream_camera_primary", columnList = "kindergarten_id, camera_id, is_primary"),
-        @Index(name = "idx_stream_camera_enabled", columnList = "kindergarten_id, camera_id, enabled"),
-        @Index(name = "idx_stream_camera", columnList = "kindergarten_id, camera_id")
-})
+@Table(name = "camera_streams", indexes = {@Index(name = "uq_stream_kg_camera_streamid", columnList = "kindergarten_id, camera_id, stream_id", unique = true), @Index(name = "idx_stream_camera_primary", columnList = "kindergarten_id, camera_id, is_primary"), @Index(name = "idx_stream_camera_enabled", columnList = "kindergarten_id, camera_id, enabled"), @Index(name = "idx_stream_camera", columnList = "kindergarten_id, camera_id")})
 public class CameraStream {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,8 +42,9 @@ public class CameraStream {
     @Column(name = "stream_password_encrypted", length = Integer.MAX_VALUE)
     private String streamPasswordEncrypted;
 
-    @Column(name = "protocol", length = Integer.MAX_VALUE)
-    private String protocol;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "protocol", columnDefinition = "protocol_enum")
+    private ProtocolEnum protocol;
 
     @Column(name = "fps")
     private Integer fps;

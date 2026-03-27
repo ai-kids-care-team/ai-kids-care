@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "ai_models", schema = "public")
+@Table(name = "ai_models")
 public class AiModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

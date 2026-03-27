@@ -3,7 +3,6 @@ package com.ai_kids_care.v1.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.time.OffsetDateTime;
 
@@ -13,7 +12,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "room_camera_assignments", schema = "public", indexes = {
+@Table(name = "room_camera_assignments", indexes = {
         @Index(name = "idx_rca_camera_time", columnList = "kindergarten_id, camera_id, start_at, end_at"),
         @Index(name = "idx_rca_room_time", columnList = "kindergarten_id, room_id, start_at, end_at")
 })
@@ -40,10 +39,12 @@ public class RoomCameraAssignment {
     @Column(name = "end_at")
     private OffsetDateTime endAt;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 

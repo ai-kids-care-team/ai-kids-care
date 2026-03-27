@@ -2,11 +2,10 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -17,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "child_class_assignments", schema = "public", indexes = {
+@Table(name = "child_class_assignments", indexes = {
         @Index(name = "idx_cca_child_time", columnList = "kindergarten_id, child_id, start_date, end_date"),
         @Index(name = "idx_cca_child", columnList = "kindergarten_id, child_id"),
         @Index(name = "idx_cca_class_time", columnList = "kindergarten_id, class_id, start_date, end_date")
@@ -38,7 +37,8 @@ public class ChildClassAssignment {
     @JoinColumn(name = "class_id", nullable = false)
     private Class classes;
 
-    @Column(name = "start_date")
+    @NotNull
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
     @Column(name = "end_date")
@@ -54,14 +54,17 @@ public class ChildClassAssignment {
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_user_id")
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdByUser;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 

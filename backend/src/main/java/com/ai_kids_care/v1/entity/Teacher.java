@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "teachers", schema = "public", indexes = {
+@Table(name = "teachers", indexes = {
         @Index(name = "uq_teacher_kg_teacherid", columnList = "kindergarten_id, teacher_id", unique = true),
         @Index(name = "uq_teacher_kg_staffno", columnList = "kindergarten_id, staff_no", unique = true),
         @Index(name = "uq_teacher_user_id", columnList = "user_id", unique = true)
@@ -40,14 +40,16 @@ public class Teacher {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "staff_no", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "staff_no", nullable = false, length = Integer.MAX_VALUE)
     private String staffNo;
 
-    @Column(name = "name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "gender", columnDefinition = "gender_enum")
+    @Column(name = "gender", columnDefinition = "gender_enum not null")
     private GenderEnum gender;
 
     @Column(name = "emergency_contact_name", length = Integer.MAX_VALUE)
@@ -56,29 +58,34 @@ public class Teacher {
     @Column(name = "emergency_contact_phone", length = Integer.MAX_VALUE)
     private String emergencyContactPhone;
 
-    @Column(name = "rrn_encrypted", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
     private String rrnEncrypted;
 
-    @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "level", columnDefinition = "level_enum")
+    @Column(name = "level", columnDefinition = "level_enum not null")
     private LevelEnum level;
 
-    @Column(name = "start_date")
+    @NotNull
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
     @Column(name = "end_date")
     private LocalDate endDate;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 }

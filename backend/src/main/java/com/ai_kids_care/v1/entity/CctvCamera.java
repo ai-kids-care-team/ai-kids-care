@@ -2,11 +2,10 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -16,7 +15,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "cctv_cameras", schema = "public", indexes = {
+@Table(name = "cctv_cameras", indexes = {
         @Index(name = "uq_camera_kg_cameraid", columnList = "kindergarten_id, camera_id", unique = true),
         @Index(name = "uq_camera_kg_serialno", columnList = "kindergarten_id, serial_no", unique = true)
 })
@@ -34,26 +33,30 @@ public class CctvCamera {
     @Column(name = "serial_no", length = Integer.MAX_VALUE)
     private String serialNo;
 
-    @Column(name = "camera_name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "camera_name", nullable = false, length = Integer.MAX_VALUE)
     private String cameraName;
 
     @Column(name = "model", length = Integer.MAX_VALUE)
     private String model;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by_user_id")
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdByUser;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
     @Column(name = "last_seen_at")
     private OffsetDateTime lastSeenAt;
 
+    @NotNull
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
+    @NotNull
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

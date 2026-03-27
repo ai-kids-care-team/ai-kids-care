@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.NotificationChannelEnum;
 import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -16,7 +17,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "notifications", schema = "public", indexes = {
+@Table(name = "notifications", indexes = {
         @Index(name = "uq_notifications_dedupe", columnList = "kindergarten_id, dedupe_key", unique = true),
         @Index(name = "idx_notif_event", columnList = "kindergarten_id, event_id"),
         @Index(name = "idx_notif_recipient_time", columnList = "kindergarten_id, recipient_user_id, created_at"),
@@ -38,32 +39,40 @@ public class Notification {
     @JoinColumn(name = "recipient_user_id", nullable = false)
     private User recipientUser;
 
-    @Column(name = "channel", length = Integer.MAX_VALUE)
-    private String channel;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "channel", columnDefinition = "notification_channel_enum not null")
+    private NotificationChannelEnum channel;
 
-    @Column(name = "title", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "title", nullable = false, length = Integer.MAX_VALUE)
     private String title;
 
-    @Column(name = "body", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "body", nullable = false, length = Integer.MAX_VALUE)
     private String body;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "notification_status_enum")
+    @Column(name = "status", columnDefinition = "notification_status_enum not null")
     private NotificationStatusEnum status;
 
-    @Column(name = "dedupe_key", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "dedupe_key", nullable = false, length = Integer.MAX_VALUE)
     private String dedupeKey;
 
-    @Column(name = "sent_at")
+    @NotNull
+    @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
 
-    @Column(name = "fail_reason", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "fail_reason", nullable = false, length = Integer.MAX_VALUE)
     private String failReason;
 
-    @Column(name = "retry_count")
+    @NotNull
+    @Column(name = "retry_count", nullable = false)
     private Integer retryCount;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
 

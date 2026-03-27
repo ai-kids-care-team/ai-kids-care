@@ -1,10 +1,10 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.GenderEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -17,7 +17,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "children", schema = "public", indexes = {
+@Table(name = "children", indexes = {
         @Index(name = "uq_child_kg_childid", columnList = "kindergarten_id, child_id", unique = true),
         @Index(name = "uq_child_kg_childno", columnList = "kindergarten_id, child_no", unique = true)
 })
@@ -31,42 +31,51 @@ public class Child {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "kindergarten_id", nullable = false)
     private Kindergarten kindergarten;
-
-    @Column(name = "name", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
-    @Column(name = "child_no", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "child_no", nullable = false, length = Integer.MAX_VALUE)
     private String childNo;
 
-    @Column(name = "rrn_encrypted", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
     private String rrnEncrypted;
 
-    @Column(name = "rrn_first6", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
-    @Column(name = "birth_date")
+    @NotNull
+    @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
-    @Column(name = "gender", length = Integer.MAX_VALUE)
-    private String gender;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "gender", columnDefinition = "gender_enum not null")
+    private GenderEnum gender;
 
-    @Column(name = "address", length = Integer.MAX_VALUE)
+    @NotNull
+    @Column(name = "address", nullable = false, length = Integer.MAX_VALUE)
     private String address;
 
-    @Column(name = "enroll_date")
+    @NotNull
+    @Column(name = "enroll_date", nullable = false)
     private LocalDate enrollDate;
 
     @Column(name = "leave_date")
     private LocalDate leaveDate;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
-    @Column(name = "created_at")
+    @NotNull
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @NotNull
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 
