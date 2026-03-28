@@ -139,10 +139,10 @@ export function HomePage() {
                       </button>
                     ) : (
                       <Link
-                        href="/dashboard"
+                        href="/announcements"
                         className="flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                       >
-                        <span className="text-sm">대시보드</span>
+                        <span className="text-sm">공지사항</span>
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     )}

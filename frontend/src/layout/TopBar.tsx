@@ -11,7 +11,7 @@ import { logout } from '@/store/slices/userSlice';
 import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import type { UserRole } from '@/types/user-role';
-import { menuApiRoleType, roleLabels } from '@/types/user-role';
+import { roleLabels } from '@/types/user-role';
 import { useGetMenusQuery } from '@/services/apis/menu.api';
 import { LoginModal } from '@/components/home/LoginModal';
 
@@ -26,10 +26,11 @@ export function TopBar({ currentRole, username }: TopBarProps) {
   const { user } = useAppSelector((state) => state.user);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isGuest = !user;
-  const menuRoleType = isGuest ? 'ALL' : menuApiRoleType(currentRole);
+  /** `/menus?roleType=` — 백엔드 `UserRoleEnum` 이름과 동일한 문자열을 넘긴다 (`menu.role_type`과 매칭). */
+  const menuRoleType = isGuest ? 'ALL' : currentRole;
   const { data: menuItems = [] } = useGetMenusQuery(menuRoleType);
   const fallbackMenus = [
-    { menuId: -1, menuName: '대시보드', path: '/dashboard' },
+    { menuId: -1, menuName: '홈', path: '/' },
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
   const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;

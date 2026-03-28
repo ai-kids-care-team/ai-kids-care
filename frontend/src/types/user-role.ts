@@ -1,4 +1,7 @@
-/** 백엔드 `UserRoleEnum` 과 동일한 값. 로그인 세션·Redux·권한·레이블의 단일 기준 타입. */
+/**
+ * 백엔드 `com.ai_kids_care.v1.type.UserRoleEnum` 과 동일한 문자열.
+ * 로그인 세션·Redux·권한·레이블·`/api/v1/menus?roleType=`(DB `menu.role_type`) 의 단일 기준.
+ */
 export type UserRole =
   | 'GUARDIAN'
   | 'TEACHER'
@@ -110,12 +113,3 @@ export const rolePermissions: Record<UserRole, RolePermissions> = {
     canViewStatistics: false,
   },
 };
-
-/**
- * `/menus?roleType=` 조회용. DB 시드에 원장 전용 행과 ADMIN 행이 분리되어 있어,
- * KINDERGARTEN_ADMIN 세션은 기존처럼 ADMIN 행(대시보드 등)까지 보이게 맞춤.
- */
-export function menuApiRoleType(userRole: UserRole): string {
-  if (userRole === 'KINDERGARTEN_ADMIN') return 'ADMIN';
-  return userRole;
-}

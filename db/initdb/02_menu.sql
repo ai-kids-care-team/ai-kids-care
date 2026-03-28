@@ -39,27 +39,33 @@ COMMENT ON COLUMN menu.is_active IS '메뉴 활성 여부';
 COMMENT ON COLUMN menu.created_at IS '생성 일시';
 COMMENT ON COLUMN menu.updated_at IS '수정 일시';
 
-
-INSERT INTO menu
-(menu_name, menu_key, path, component, icon, role_type, sort_order, created_at, updated_at)
+INSERT INTO public.menu (
+    parent_id,
+    menu_name,
+    menu_key,
+    path,
+    component,
+    icon,
+    role_type,
+    sort_order,
+    is_active,
+    created_at,
+    updated_at
+)
 VALUES
-('대시보드', 'DASHBOARD', '/dashboard', 'DashboardPage', 'dashboard', 'ADMIN', 1, now(), now()),
-('대시보드', 'DASHBOARD', '/dashboard', 'DashboardPage', 'dashboard', 'TEACHER', 1, now(), now()),
+    (NULL, '회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'KINDERGARTEN_ADMIN', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'TEACHER', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '아동관리', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '통계관리', 'STATISTICS', '/stats', 'StatisticsPage', 'chart', 'KINDERGARTEN_ADMIN', 4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '설정', 'SETTING', '/setting', 'SettingPage', 'setting', 'ALL', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'ALL', 7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'KINDERGARTEN_ADMIN', 2, now(), now()),
-('회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'TEACHER', 2, now(), now()),
+    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('아동관리', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 3, now(), now()),
-('통계관리', 'STATISTICS', '/stats', 'StatisticsPage', 'chart', 'ADMIN', 4, now(), now()),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'KINDERGARTEN_ADMIN', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'TEACHER', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-('설정', 'SETTING', '/setting', 'SettingPage', 'setting', 'ALL', 5, now(), now()),
-('알림서비스', 'ALARM', '/alarm', 'AlarmPage', 'alarm', 'ALL', 6, now(), now()),
-('감사편지', 'THANK_LETTER', '/letters', 'LetterPage', 'letterPage', 'ALL', 6, now(), now()),
-('공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'ALL', 7, now(), now());
-
-
-
-
-
-
-
+    (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'ALL', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

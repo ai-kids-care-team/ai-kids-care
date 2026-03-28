@@ -16,8 +16,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const hiddenTopBarRoutes = ['/forgot-password', '/reset-password'];
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
-    const noScrollRoutes = ['/dashboard', '/detectionEvents'];
-    const contentOverflowClass = noScrollRoutes.includes(pathname) ? 'overflow-hidden' : 'overflow-auto';
+    const contentOverflowClass = 'overflow-auto';
     const currentRole: UserRole = user?.role ?? 'GUARDIAN';
     const username = user?.name ?? user?.username ?? '게스트';
 
