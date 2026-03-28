@@ -55,7 +55,6 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
       try {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        localStorage.removeItem('cctv_user');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } catch {

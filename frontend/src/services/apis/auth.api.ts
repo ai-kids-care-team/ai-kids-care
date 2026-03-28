@@ -82,13 +82,6 @@ export const authApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
-    changePassword: build.mutation<void, any>({
-      query: (data) => ({
-        url: '/auth/password/change',
-        method: 'POST',
-        body: data,
-      }),
-    }),
     getCommonCodes: build.query<CommonCodeItem[], string>({
       query: (group) => `/auth/common-codes?group=${encodeURIComponent(group)}`,
     }),
@@ -107,7 +100,6 @@ export const {
   useVerifyCodeMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
-  useChangePasswordMutation,
   useGetCommonCodesQuery,
   useLazySearchChildrenQuery,
 } = authApi;

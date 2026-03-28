@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { auth } from '@/types/auth';
+import { auth, FIELD_ERROR_FOCUS_ORDER } from '@/types/auth';
 import { GuardianForm } from './(signup)/GuardianForm';
 import { KindergartenForm } from './(signup)/KindergartenForm';
 import { SuperadminForm } from './(signup)/SuperadminForm';
@@ -15,8 +15,8 @@ const MEMBER_TYPES = [
   { value: 'PLATFORM_IT_ADMIN', label: '플랫폼 관리자', description: '시스템 운영 및 모니터링', icon: '🛠️' },
 ] as const;
 const CHILD_SEARCH_EXAMPLES = [
-  { name: '김하린', rrn: '200101-4037926' },
-  { name: '이준호', rrn: '200315-3045123' },
+  { name: '정하윤', rrn: '200921-4037926' },
+  { name: '이지우', rrn: '200319-3045123' },
 ] as const;
 
 export function SignupForm() {
@@ -51,26 +51,7 @@ export function SignupForm() {
   const [showChildSearchBack7, setShowChildSearchBack7] = useState(false);
 
   useEffect(() => {
-    const keyOrder: Array<keyof typeof fieldErrors> = [
-      'name',
-      'loginId',
-      'email',
-      'phone',
-      'password',
-      'confirmPassword',
-      'child',
-      'kindergarten',
-      'rrn',
-      'relationship',
-      'department',
-      'staffNo',
-      'level',
-      'emergencyContactName',
-      'emergencyContactPhone',
-      'agreeTerms',
-    ];
-
-    const targetKey = keyOrder.find((key) => !!fieldErrors[key]);
+    const targetKey = FIELD_ERROR_FOCUS_ORDER.find((key) => !!fieldErrors[key]);
     if (!targetKey) return;
 
     const fieldNameMap: Partial<Record<keyof typeof fieldErrors, string>> = {
@@ -239,7 +220,11 @@ export function SignupForm() {
         </label>
         {fieldErrors.agreeTerms && <p className="text-xs text-red-500">{fieldErrors.agreeTerms}</p>}
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end pt-2">
           <button
@@ -428,7 +413,7 @@ export function SignupForm() {
                     }
                   }}
                   className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                  placeholder="123"
+                  placeholder="599"
                   inputMode="numeric"
                   maxLength={3}
                   aria-label="사업자등록번호 앞 3자리"
@@ -446,7 +431,7 @@ export function SignupForm() {
                     }
                   }}
                   className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                  placeholder="45"
+                  placeholder="91"
                   inputMode="numeric"
                   maxLength={2}
                   aria-label="사업자등록번호 중간 2자리"
@@ -464,7 +449,7 @@ export function SignupForm() {
                     }
                   }}
                   className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                  placeholder="67890"
+                  placeholder="66110"
                   inputMode="numeric"
                   maxLength={5}
                   aria-label="사업자등록번호 뒤 5자리"

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/components/shared/ui/utils';
 
 type CommonCodeItem = {
   code: string;
@@ -113,6 +114,22 @@ export function KindergartenForm({
     }
   };
 
+  const accountInputClass = (hasError: boolean) =>
+    cn(
+      'w-full rounded-lg border bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500',
+      hasError ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-300'
+    );
+  const accountPasswordClass = (hasError: boolean) =>
+    cn(
+      'w-full rounded-lg border bg-white px-4 py-2 pr-11 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500',
+      hasError ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-300'
+    );
+  const bizPartClass = (hasError: boolean) =>
+    cn(
+      'w-full min-w-0 rounded-lg border bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500',
+      hasError ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-300'
+    );
+
   return (
     <>
       <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -125,7 +142,7 @@ export function KindergartenForm({
               name="name"
               value={form.name}
               onChange={(e) => onChange('name', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.name)}
               placeholder="홍길동"
               required
             />
@@ -139,7 +156,7 @@ export function KindergartenForm({
               value={form.loginId}
               onChange={(e) => onChange('loginId', e.target.value)}
               onBlur={(e) => onAccountFieldBlur?.('loginId', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.loginId)}
               placeholder="kindergarten-staff-id"
               required
             />
@@ -153,7 +170,7 @@ export function KindergartenForm({
               value={form.email}
               onChange={(e) => onChange('email', e.target.value)}
               onBlur={(e) => onAccountFieldBlur?.('email', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.email)}
               placeholder="email@example.com"
               required
             />
@@ -167,7 +184,7 @@ export function KindergartenForm({
               value={form.phone}
               onChange={(e) => onChange('phone', e.target.value)}
               onBlur={(e) => onAccountFieldBlur?.('phone', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.phone)}
               placeholder="010-0000-0000"
               required
             />
@@ -181,7 +198,7 @@ export function KindergartenForm({
                 name="password"
                 value={form.password}
                 onChange={(e) => onChange('password', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 pr-11 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                className={accountPasswordClass(!!fieldErrors.password)}
                 placeholder="••••••••"
                 required
               />
@@ -205,7 +222,7 @@ export function KindergartenForm({
                 name="confirmPassword"
                 value={form.confirmPassword}
                 onChange={(e) => onChange('confirmPassword', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 pr-11 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                className={accountPasswordClass(!!fieldErrors.confirmPassword)}
                 placeholder="••••••••"
                 required
               />
@@ -240,8 +257,8 @@ export function KindergartenForm({
               value={kindergartenBizPart1}
               onChange={(e) => setKindergartenBizPart1(e.target.value.replace(/\D/g, '').slice(0, 3))}
               onKeyDown={handleKindergartenEnter}
-              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-              placeholder="123"
+              className={bizPartClass(!!fieldErrors.kindergarten)}
+              placeholder="599"
               inputMode="numeric"
               maxLength={3}
               aria-label="사업자등록번호 앞 3자리"
@@ -253,8 +270,8 @@ export function KindergartenForm({
               value={kindergartenBizPart2}
               onChange={(e) => setKindergartenBizPart2(e.target.value.replace(/\D/g, '').slice(0, 2))}
               onKeyDown={handleKindergartenEnter}
-              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-              placeholder="45"
+              className={bizPartClass(!!fieldErrors.kindergarten)}
+              placeholder="91"
               inputMode="numeric"
               maxLength={2}
               aria-label="사업자등록번호 중간 2자리"
@@ -266,8 +283,8 @@ export function KindergartenForm({
               value={kindergartenBizPart3}
               onChange={(e) => setKindergartenBizPart3(e.target.value.replace(/\D/g, '').slice(0, 5))}
               onKeyDown={handleKindergartenEnter}
-              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-center text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-              placeholder="67890"
+              className={bizPartClass(!!fieldErrors.kindergarten)}
+              placeholder="66110"
               inputMode="numeric"
               maxLength={5}
               aria-label="사업자등록번호 뒤 5자리"
@@ -304,7 +321,7 @@ export function KindergartenForm({
               name="staffNo"
               value={form.staffNo}
               onChange={(e) => onChange('staffNo', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.staffNo)}
               placeholder="예: T-2026-001"
             />
             {fieldErrors.staffNo && <p className="mt-1 text-xs text-red-500">{fieldErrors.staffNo}</p>}
@@ -316,7 +333,7 @@ export function KindergartenForm({
               name="level"
               value={form.level}
               onChange={(e) => onChange('level', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.level)}
             >
               <option value="">- 선택 -</option>
               {teacherLevelOptions.map((option) => (
@@ -336,7 +353,7 @@ export function KindergartenForm({
                 name="rrnFirst6"
                 value={rrnFirst6}
                 onChange={(e) => setRrnFirst6(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                className={accountInputClass(!!fieldErrors.rrn)}
                 placeholder="900101"
                 inputMode="numeric"
                 maxLength={6}
@@ -347,7 +364,7 @@ export function KindergartenForm({
                   type={showRrnBack7 ? 'text' : 'password'}
                   value={rrnBack7}
                   onChange={(e) => onRrnBack7Change(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 pr-11 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                  className={accountPasswordClass(!!fieldErrors.rrn)}
                   placeholder="1234567"
                   inputMode="numeric"
                   maxLength={7}
@@ -385,7 +402,7 @@ export function KindergartenForm({
               name="emergencyContactName"
               value={form.emergencyContactName}
               onChange={(e) => onChange('emergencyContactName', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.emergencyContactName)}
               placeholder="예: 김보호"
             />
             {fieldErrors.emergencyContactName && <p className="mt-1 text-xs text-red-500">{fieldErrors.emergencyContactName}</p>}
@@ -398,7 +415,7 @@ export function KindergartenForm({
               name="emergencyContactPhone"
               value={form.emergencyContactPhone}
               onChange={(e) => onChange('emergencyContactPhone', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+              className={accountInputClass(!!fieldErrors.emergencyContactPhone)}
               placeholder="010-0000-0000"
             />
             {fieldErrors.emergencyContactPhone && <p className="mt-1 text-xs text-red-500">{fieldErrors.emergencyContactPhone}</p>}
