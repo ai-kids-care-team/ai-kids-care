@@ -97,11 +97,11 @@ export function ProfileSettings() {
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-10">
           <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/')}
               className="flex items-center gap-2 text-slate-500 hover:text-purple-600 mb-6 transition-colors font-medium text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            대시보드로 돌아가기
+            홈으로 돌아가기
           </button>
 
           <h1 className="text-2xl font-bold text-slate-900 mb-8">내 프로필 설정</h1>

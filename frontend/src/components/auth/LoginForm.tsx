@@ -56,8 +56,7 @@ export function LoginForm() {
       }
       // -------------------------------------------------------------
 
-      // 3. 대시보드로 이동
-      router.push('/dashboard');
+      router.push('/');
 
     } catch (err: any) {
       setError(err?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
