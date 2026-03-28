@@ -1,5 +1,3 @@
-//TEST 중
-
 export type AnnouncementItem = {
     id: number;
     title: string;
@@ -8,6 +6,5 @@ export type AnnouncementItem = {
     views: number;
     href: string;
 };
-
 
 export type StatusCode = 'ACTIVE' | 'PENDING' | 'DISABLED';

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
+/** 플랫폼 IT 관리자 가입 시 Superadmin.department 로 전달 (auth.ts register 본문과 동일 값) */
+export const PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT = '시스템관리부서';
+
 type PlatformItAdminFormProps = {
   form: {
     name: string;
@@ -24,6 +27,13 @@ export function PlatformItAdminForm({ form, onChange, fieldErrors, onAccountFiel
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <input
+        type="hidden"
+        name="department"
+        value={PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT}
+        readOnly
+        aria-hidden
+      />
       <h2 className="text-sm font-semibold text-slate-700">플랫폼 관리자 정보</h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>

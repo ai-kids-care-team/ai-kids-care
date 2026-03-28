@@ -53,19 +53,32 @@ INSERT INTO public.menu (
     updated_at
 )
 VALUES
-    (NULL, '회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'KINDERGARTEN_ADMIN', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '회원관리', 'USER_MANAGE', '/users', 'UserManagePage', 'users', 'TEACHER', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '아동관리', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '통계관리', 'STATISTICS', '/stats', 'StatisticsPage', 'chart', 'KINDERGARTEN_ADMIN', 4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '설정', 'SETTING', '/setting', 'SettingPage', 'setting', 'ALL', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'ALL', 7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'ANONYMOUS', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'PLATFORM_IT_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '알림서비스', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'KINDERGARTEN_ADMIN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'TEACHER', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'KINDERGARTEN_ADMIN', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'TEACHER', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'TEACHER', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'ALL', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'KINDERGARTEN_ADMIN', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'TEACHER', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'GUARDIAN', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'ANONYMOUS', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'PLATFORM_IT_ADMIN', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'SUPERADMIN', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'KINDERGARTEN_ADMIN', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'TEACHER', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '공지사항', 'ANNOUNCEMENTS', '/announcements', 'AnnouncementsPage', 'announcements', 'GUARDIAN', 25, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
