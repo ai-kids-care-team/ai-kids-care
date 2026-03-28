@@ -125,6 +125,11 @@ Enum notification_channel_enum{
   EMAIL
 }
 
+Enum appreciation_target_type_enum {
+  KINDERGARTEN
+  TEACHER
+}
+
 //============================================================
 // Tables
 //============================================================
@@ -615,6 +620,25 @@ Table announcements {
   deleted_at timestamptz [note: "소프트 삭제 일시(선택)"]
 }
 
+Table appreciation_letters {
+  letter_id bigint [pk, increment, note: "감사편지ID"]
+  kindergarten_id bigint [not null, note: "소속 유치원ID"]
+  sender_user_id bigint [not null, note: "발송자user_id,(대개 부모)"]
+  target_type appreciation_target_type_enum [not null, note: "감사 대상 Type"]
+  target_id bigint [not null, note: "감사 대상ID(teacher_id / kindergarten_id)"]
+  title varchar [not null, note: "제목"]
+  content text [not null, note: "내용"]
+  is_public boolean [not null, default: false, note: "공개여부"]
+  status status_enum [not null, note: "ACTIVE | PENDING | DISABLED"]
+  created_at timestamptz [not null, default: "now()"]
+  updated_at timestamptz [not null, default: "now()"]
+
+  Indexes {
+    (kindergarten_id, target_type, target_id) [name: "idx_letter_target"]
+    (kindergarten_id, sender_user_id) [name: "idx_letter_sender"]
+  }
+}
+
 //============================================================
 // Refs (relationships) - 강한 테넌트 일관성(복합 FK 중심)
 //============================================================
@@ -697,3 +721,7 @@ Ref: audit_logs.user_id > users.user_id
 
 // announcements
 Ref: announcements.author_id > users.user_id
+
+// appreciation_letters
+Ref: appreciation_letters.sender_user_id > users.user_id
+Ref: appreciation_letters.kindergarten_id > kindergartens.kindergarten_id

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EvidenceFileTypeEnum;
-import jakarta.activation.MimeType;
+import com.ai_kids_care.v1.type.MimeTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -42,7 +42,7 @@ public class EventEvidenceFile {
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "mime_type", columnDefinition = "mime_type_enum not null")
-    private MimeType mimeType;
+    private MimeTypeEnum mimeType;
 
     @NotNull
     @Column(name = "created_at", nullable = false)
