@@ -18,6 +18,8 @@ export const menuApi = baseApi.injectEndpoints({
         const normalized = (roleType ?? 'ALL').toUpperCase();
         return `/menus?roleType=${encodeURIComponent(normalized)}`;
       },
+      /** 메뉴는 자주 바뀌지 않음 — 캐시를 길게 유지해 라우트 전환 시 재요청·깜박임을 줄임 */
+      keepUnusedDataFor: 86400,
     }),
   }),
   overrideExisting: false,

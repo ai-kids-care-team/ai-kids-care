@@ -93,7 +93,12 @@ export function ProfileSettings() {
 
   return (
       <div className="min-h-screen flex flex-col bg-slate-50">
-        <TopBar currentRole={user.role} username={user.name} />
+        <TopBar
+          currentRole={user.role}
+          username={user.name}
+          menuRoleType={user.role}
+          hasSession
+        />
 
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-10">
           <button
