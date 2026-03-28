@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 
@@ -45,6 +46,8 @@ public class AuditLog {
     @Column(name = "user_agent", length = Integer.MAX_VALUE)
     private String userAgent;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 }

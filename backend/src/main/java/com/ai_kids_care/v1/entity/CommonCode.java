@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 
@@ -48,10 +50,14 @@ public class CommonCode {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @UpdateTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
