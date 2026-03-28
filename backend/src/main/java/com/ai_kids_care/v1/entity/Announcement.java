@@ -65,7 +65,7 @@ public class Announcement {
     @NotNull
     @ColumnDefault("0")
     @Column(name = "view_count", nullable = false)
-    private Long viewCount = 0L;
+    private Long viewCount;
 
     @CreationTimestamp
     @ColumnDefault("now()")
