@@ -15,7 +15,7 @@ public interface AnnouncementMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(source = "authorId", target = "author.id")
-    @Mapping(target = "viewCount", ignore = true)
+    @Mapping(target = "viewCount", constant = "0L")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Announcement toEntity(AnnouncementCreateDTO dto);

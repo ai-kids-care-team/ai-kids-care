@@ -2,7 +2,9 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -49,10 +51,14 @@ public class Room {
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @UpdateTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

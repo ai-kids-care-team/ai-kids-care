@@ -2,7 +2,9 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -57,9 +59,13 @@ public class ClassRoomAssignment {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
+    @UpdateTimestamp
+    @ColumnDefault("now()")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

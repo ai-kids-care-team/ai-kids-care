@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.DevicePlatformEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
@@ -49,6 +50,8 @@ public class DeviceToken {
     @Column(name = "last_seen_at")
     private OffsetDateTime lastSeenAt;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
