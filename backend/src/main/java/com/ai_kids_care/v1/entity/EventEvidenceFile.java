@@ -5,6 +5,8 @@ import com.ai_kids_care.v1.type.MimeTypeEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -44,6 +46,8 @@ public class EventEvidenceFile {
     @Column(name = "mime_type", columnDefinition = "mime_type_enum")
     private MimeTypeEnum mimeType;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

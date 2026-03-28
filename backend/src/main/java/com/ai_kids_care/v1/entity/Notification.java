@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.entity;
 import com.ai_kids_care.v1.type.NotificationChannelEnum;
 import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
@@ -72,6 +73,8 @@ public class Notification {
     @Column(name = "retry_count", nullable = false)
     private Integer retryCount;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
