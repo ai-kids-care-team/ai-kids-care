@@ -48,8 +48,9 @@ public class Teacher {
     @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
     private String name;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "gender", columnDefinition = "gender_enum not null")
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @Column(name = "emergency_contact_name", length = Integer.MAX_VALUE)
@@ -66,8 +67,9 @@ public class Teacher {
     @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "level", columnDefinition = "level_enum not null")
+    @Column(name = "level", columnDefinition = "level_enum")
     private LevelEnum level;
 
     @NotNull
@@ -77,8 +79,9 @@ public class Teacher {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

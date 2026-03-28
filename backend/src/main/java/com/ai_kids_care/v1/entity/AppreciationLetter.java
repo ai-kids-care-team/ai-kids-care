@@ -1,28 +1,24 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.AppreciationTargetTypeEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
 @Entity
-@Table(name = "classes", indexes = {
-        @Index(name = "uq_class_kg_classid", columnList = "kindergarten_id, class_id", unique = true)
-})
-public class Class {
+@Table(name = "appreciation_letters")
+public class AppreciationLetter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "class_id", nullable = false)
+    @Column(name = "letter_id", nullable = false)
     private Long id;
 
     @NotNull
@@ -31,24 +27,30 @@ public class Class {
     private Kindergarten kindergarten;
 
     @NotNull
-    @Column(name = "name", nullable = false, length = Integer.MAX_VALUE)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "sender_user_id", nullable = false)
+    private User senderUser;
 
     @NotNull
-    @Column(name = "grade", nullable = false, length = Integer.MAX_VALUE)
-    private String grade;
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "target_type", columnDefinition = "appreciation_target_type_enum")
+    private AppreciationTargetTypeEnum targetType;
 
     @NotNull
-    @Column(name = "academic_year", nullable = false)
-    private Long academicYear;
+    @Column(name = "target_id", nullable = false)
+    private Long targetId;
 
     @NotNull
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
+    @Column(name = "title", nullable = false, length = Integer.MAX_VALUE)
+    private String title;
 
     @NotNull
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
+    @Column(name = "content", nullable = false, length = Integer.MAX_VALUE)
+    private String content;
+
+    @NotNull
+    @Column(name = "is_public", nullable = false)
+    private Boolean isPublic;
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

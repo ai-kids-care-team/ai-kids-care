@@ -31,8 +31,9 @@ public class AiModel {
     @Column(name = "version", nullable = false, length = Integer.MAX_VALUE)
     private String version;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

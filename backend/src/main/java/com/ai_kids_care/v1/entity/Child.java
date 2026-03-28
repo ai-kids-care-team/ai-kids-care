@@ -51,8 +51,9 @@ public class Child {
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "gender", columnDefinition = "gender_enum not null")
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @NotNull
@@ -66,8 +67,9 @@ public class Child {
     @Column(name = "leave_date")
     private LocalDate leaveDate;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

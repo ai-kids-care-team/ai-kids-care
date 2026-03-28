@@ -48,9 +48,10 @@ public class Announcement {
     @Column(name = "pinned_until")
     private OffsetDateTime pinnedUntil;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @ColumnDefault("'ACTIVE'")
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "published_at")

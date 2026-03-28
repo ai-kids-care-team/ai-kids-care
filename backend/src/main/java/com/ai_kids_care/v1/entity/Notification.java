@@ -39,8 +39,9 @@ public class Notification {
     @JoinColumn(name = "recipient_user_id", nullable = false)
     private User recipientUser;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "channel", columnDefinition = "notification_channel_enum not null")
+    @Column(name = "channel", columnDefinition = "notification_channel_enum")
     private NotificationChannelEnum channel;
 
     @NotNull
@@ -52,7 +53,7 @@ public class Notification {
     private String body;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "notification_status_enum not null")
+    @Column(name = "status", columnDefinition = "notification_status_enum")
     private NotificationStatusEnum status;
 
     @NotNull

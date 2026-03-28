@@ -40,8 +40,9 @@ public class ChildGuardianRelationship {
     @JoinColumn(name = "guardian_id", nullable = false)
     private Guardian guardians;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "relationship", columnDefinition = "relationship_enum not null")
+    @Column(name = "relationship", columnDefinition = "relationship_enum")
     private RelationshipEnum relationship;
 
     @NotNull

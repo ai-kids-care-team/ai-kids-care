@@ -34,7 +34,7 @@ public class DeviceToken {
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "platform", columnDefinition = "device_platform_enum not null")
+    @Column(name = "platform", columnDefinition = "device_platform_enum")
     private DevicePlatformEnum platform;
 
     @NotNull
@@ -43,7 +43,7 @@ public class DeviceToken {
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "last_seen_at")

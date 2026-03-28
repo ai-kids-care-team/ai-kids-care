@@ -45,8 +45,9 @@ public class CctvCamera {
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdByUser;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "last_seen_at")
