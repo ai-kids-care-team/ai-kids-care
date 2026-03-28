@@ -3,6 +3,9 @@ package com.ai_kids_care.v1.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 
@@ -39,10 +42,14 @@ public class RoomCameraAssignment {
     @Column(name = "end_at")
     private OffsetDateTime endAt;
 
+    @CreationTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @UpdateTimestamp
+    @ColumnDefault("now()")
     @NotNull
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
