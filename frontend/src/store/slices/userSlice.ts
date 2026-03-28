@@ -43,14 +43,8 @@ const userSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
     },
-    // 데모용 역할 전환 기능
-    switchRole: (state, action: PayloadAction<UserRole>) => {
-      if (state.user) {
-        state.user.role = action.payload;
-      }
-    },
   },
 });
 
-export const { setCredentials, logout, switchRole } = userSlice.actions;
+export const { setCredentials, logout } = userSlice.actions;
 export default userSlice.reducer;

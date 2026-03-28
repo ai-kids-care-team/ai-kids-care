@@ -10,6 +10,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
+    restart: on-failure
     environment:
       DB_HOST: db
       DB_PORT: 5432

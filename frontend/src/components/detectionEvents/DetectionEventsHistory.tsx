@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { Search, Calendar, Filter, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 
-import { useAppSelector, useAppDispatch } from '@/store/hook';
-import { switchRole } from '@/store/slices/userSlice';
+import { useAppSelector } from '@/store/hook';
 //import { useGetEventLogsQuery, useUpdateEventStatusMutation } from '@/entities/detectionEvents';
 import { useGetEventsQuery, useUpdateEventStatusMutation } from '@/services/apis/event.api';
 import { DetectionEventsDetailModal } from '@/components/detectionEvents/DetectionEventsDetailModal';
@@ -17,7 +16,6 @@ import { rolePermissions } from '@/types/user-role';
 const KINDERGARTEN_ID = '1';
 
 export function DetectionEventsHistory() {
-  const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.user);
 
   // 모달 상태
@@ -83,7 +81,7 @@ export function DetectionEventsHistory() {
   return (
     <>
       <div className="h-screen flex flex-col bg-gray-50">
-        <TopBar currentRole={currentRole} username={user.name} onRoleChange={(r) => dispatch(switchRole(r))} />
+        <TopBar currentRole={currentRole} username={user.name} />
 
         <div className="flex-1 flex overflow-hidden">
           <Sidebar

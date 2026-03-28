@@ -220,3 +220,47 @@ WHERE NOT EXISTS (
       AND c.code_group = 'user'
       AND c.code = v.code
 );
+
+
+--event_type 설정 (Assault,Fight,Burglary,Vandalism) 만 고려하기
+INSERT INTO common_codes (
+    parent_code,
+    code_group,
+    code,
+    code_name,
+    sort_order,
+    is_active,
+    created_at,
+    updated_at
+)
+SELECT
+    'event_type',
+    v.code_group,
+    v.code,
+    v.code_name,
+    v.sort_order,
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM (
+         VALUES
+             ('detection_events', 'Assault', '폭행', 1),
+             ('detection_events', 'Fight', '싸움', 2),
+             ('detection_events', 'Burglary', '절도', 3),
+             ('detection_events', 'Vandalism', '기물파손', 4),
+             ('detection_events', 'Swoon', '실신', 5),
+             ('detection_events', 'Wander', '배회', 6),
+             ('detection_events', 'Trespass', '침입', 7),
+             ('detection_events', 'Dump', '투기', 8),
+             ('detection_events', 'Robbery', '강도', 9),
+             ('detection_events', 'Datefight', '데이트폭력 및 추행', 10),
+             ('detection_events', 'Kidnap', '납치', 11),
+             ('detection_events', 'Drunken', '주취행동', 12)
+     ) AS v(code_group, code, code_name, sort_order)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM common_codes c
+    WHERE c.parent_code = 'event_type'
+      AND c.code_group = v.code_group
+      AND c.code = v.code
+);

@@ -204,19 +204,6 @@ export function Sidebar({ currentRole, userName, cameraStats, onCategoryFilter, 
           </div>
         </div>
 
-        {/* Demo Role Switcher (개발/테스트용) */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <p className="text-xs text-gray-500 text-center mb-2">🔧 데모용 역할 전환</p>
-          <details className="text-xs">
-            <summary className="cursor-pointer text-purple-600 hover:text-purple-700 font-medium">
-              다른 역할로 테스트
-            </summary>
-            <div className="mt-2 text-gray-600 space-y-1">
-              <p>• 실제 운영시 이 기능은</p>
-              <p className="ml-2">로그인 정보로 대체됩니다</p>
-            </div>
-          </details>
-        </div>
       </div>
   );
 }
