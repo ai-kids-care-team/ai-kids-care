@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "audit_logs", schema = "public")
+@Table(name = "audit_logs")
 public class AuditLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,9 +45,6 @@ public class AuditLog {
     @Column(name = "user_agent", length = Integer.MAX_VALUE)
     private String userAgent;
 
-    @ColumnDefault("'2026-03-17 11:27:14.122221+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
-
-
 }

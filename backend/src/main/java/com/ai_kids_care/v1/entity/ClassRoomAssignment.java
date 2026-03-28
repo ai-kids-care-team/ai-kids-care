@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "class_room_assignments", schema = "public", indexes = {
+@Table(name = "class_room_assignments", indexes = {
         @Index(name = "idx_cra_class_time", columnList = "kindergarten_id, class_id, start_at, end_at"),
         @Index(name = "idx_cra_room_time", columnList = "kindergarten_id, room_id, start_at, end_at")
 })
@@ -57,11 +57,9 @@ public class ClassRoomAssignment {
     @JoinColumn(name = "created_by_user_id")
     private User createdByUser;
 
-    @ColumnDefault("'2026-03-17 11:27:13.997732+00'")
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
-    @ColumnDefault("'2026-03-17 11:27:13.997732+00'")
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

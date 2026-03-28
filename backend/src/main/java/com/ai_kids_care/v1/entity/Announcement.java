@@ -2,18 +2,20 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.StatusEnum;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @Entity
@@ -47,7 +49,8 @@ public class Announcement {
     private OffsetDateTime pinnedUntil;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum")
+    @ColumnDefault("'ACTIVE'")
+    @Column(name = "status", columnDefinition = "status_enum not null")
     private StatusEnum status;
 
     @Column(name = "published_at")

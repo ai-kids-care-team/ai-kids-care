@@ -12,7 +12,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "common_codes", schema = "public")
+@Table(name = "common_codes")
 public class CommonCode {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

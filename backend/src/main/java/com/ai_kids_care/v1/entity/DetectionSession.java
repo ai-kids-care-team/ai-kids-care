@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "detection_sessions", schema = "public", indexes = {
+@Table(name = "detection_sessions", indexes = {
         @Index(name = "uq_session_kg_sessionid", columnList = "kindergarten_id, session_id", unique = true),
         @Index(name = "idx_session_camera_time", columnList = "kindergarten_id, camera_id, started_at")
 })
@@ -36,7 +36,6 @@ public class DetectionSession {
     @JoinColumn(name = "model_id", nullable = false)
     private AiModel model;
 
-    @ColumnDefault("'2026-03-17 12:56:22.166748+00'")
     @Column(name = "started_at")
     private OffsetDateTime startedAt;
 
