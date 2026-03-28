@@ -29,7 +29,6 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  // 자동 데이터 갱신을 위한 캐시 태그
-  tagTypes: ['User'],
+  tagTypes: [],
   endpoints: () => ({}),
 });
