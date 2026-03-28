@@ -39,7 +39,7 @@ public class Superadmin {
     private String department;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

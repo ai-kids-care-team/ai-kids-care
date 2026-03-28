@@ -42,8 +42,9 @@ public class DetectionEvent {
     @JoinColumn(name = "session_id", nullable = false)
     private DetectionSession detectionSessions;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "event_type", columnDefinition = "event_type_enum not null")
+    @Column(name = "event_type", columnDefinition = "event_type_enum")
     private EventTypeEnum eventType;
 
     @NotNull
@@ -66,8 +67,9 @@ public class DetectionEvent {
     @Column(name = "end_time", nullable = false)
     private OffsetDateTime endTime;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "event_status_enum not null")
+    @Column(name = "status", columnDefinition = "event_status_enum")
     private EventStatusEnum status;
 
     @NotNull

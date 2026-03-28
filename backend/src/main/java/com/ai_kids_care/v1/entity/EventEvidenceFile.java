@@ -32,7 +32,7 @@ public class EventEvidenceFile {
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "type", columnDefinition = "evidence_file_type_enum not null")
+    @Column(name = "type", columnDefinition = "evidence_file_type_enum")
     private EvidenceFileTypeEnum type;
 
     @NotNull
@@ -41,7 +41,7 @@ public class EventEvidenceFile {
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "mime_type", columnDefinition = "mime_type_enum not null")
+    @Column(name = "mime_type", columnDefinition = "mime_type_enum")
     private MimeTypeEnum mimeType;
 
     @NotNull

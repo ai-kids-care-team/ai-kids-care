@@ -45,8 +45,9 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = Integer.MAX_VALUE)
     private String passwordHash;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @Column(name = "last_login_at")

@@ -31,8 +31,9 @@ public class AppreciationLetter {
     @JoinColumn(name = "sender_user_id", nullable = false)
     private User senderUser;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "target_type", columnDefinition = "appreciation_target_type_enum not null")
+    @Column(name = "target_type", columnDefinition = "appreciation_target_type_enum")
     private AppreciationTargetTypeEnum targetType;
 
     @NotNull
@@ -51,8 +52,9 @@ public class AppreciationLetter {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

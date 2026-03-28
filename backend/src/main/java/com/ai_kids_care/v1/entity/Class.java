@@ -50,8 +50,9 @@ public class Class {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

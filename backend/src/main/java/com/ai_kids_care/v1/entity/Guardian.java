@@ -50,7 +50,7 @@ public class Guardian {
     private String rrnFirst6;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "gender", columnDefinition = "gender_enum not null")
+    @Column(name = "gender", columnDefinition = "gender_enum")
     private GenderEnum gender;
 
     @NotNull
@@ -58,7 +58,7 @@ public class Guardian {
     private String address;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

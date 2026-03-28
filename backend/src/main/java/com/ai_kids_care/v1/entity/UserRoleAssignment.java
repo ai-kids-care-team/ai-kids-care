@@ -33,19 +33,22 @@ public class UserRoleAssignment {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "role", columnDefinition = "user_role_enum not null")
+    @Column(name = "role", columnDefinition = "user_role_enum")
     private UserRoleEnum role;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type not null")
+    @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type")
     private UserRoleAssignmentScopeType scopeType;
 
     @Column(name = "scope_id")
     private Long scopeId;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull

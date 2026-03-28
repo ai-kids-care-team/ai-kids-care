@@ -34,12 +34,13 @@ public class EventReview {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "from_status", columnDefinition = "event_status_enum not null")
+    @Column(name = "from_status", columnDefinition = "event_status_enum")
     private EventStatusEnum fromStatus;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "result_status", columnDefinition = "event_status_enum not null")
+    @Column(name = "result_status", columnDefinition = "event_status_enum")
     private EventStatusEnum resultStatus;
 
     @Column(name = "comment", length = Integer.MAX_VALUE)

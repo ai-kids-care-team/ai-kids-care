@@ -52,8 +52,9 @@ public class ClassTeacherAssignment {
     @Column(name = "note", length = Integer.MAX_VALUE)
     private String note;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status", columnDefinition = "status_enum not null")
+    @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
     @NotNull
