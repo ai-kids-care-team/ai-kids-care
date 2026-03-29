@@ -182,3 +182,5 @@ cython_debug/
 
 # datasets
 data/
+# outputs
+outputs/
