@@ -25,7 +25,7 @@ public class MenuService {
                     SELECT menu_id, parent_id, menu_name, menu_key, path, icon, role_type, sort_order
                       FROM menu
                      WHERE is_active = TRUE
-                       AND role_type = 'ALL'
+                       --AND role_type = 'ALL'
                      ORDER BY sort_order, menu_id
                     """,
                     (rs, rowNum) -> new MenuVO(
