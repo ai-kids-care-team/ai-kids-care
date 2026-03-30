@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
-import { useAppSelector, useAppDispatch } from '@/store/hook';
+import { useAppDispatch } from '@/store/hook';
 import { logout } from '@/store/slices/userSlice';
 import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
@@ -18,17 +18,22 @@ import { LoginModal } from '@/components/home/LoginModal';
 interface TopBarProps {
   currentRole: UserRole;
   username: string;
+  /** `/menus?roleType=` — 세션 없으면 ALL */
+  menuRoleType: string;
+  hasSession: boolean;
 }
 
-export function TopBar({ currentRole, username }: TopBarProps) {
+export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopBarProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.user);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const isGuest = !user;
-  /** `/menus?roleType=` — 백엔드 `UserRoleEnum` 이름과 동일한 문자열을 넘긴다 (`menu.role_type`과 매칭). */
-  const menuRoleType = isGuest ? 'ALL' : currentRole;
-  const { data: menuItems = [] } = useGetMenusQuery(menuRoleType);
+  const isGuest = !hasSession;
+  const { data: menuItems = [] } = useGetMenusQuery(menuRoleType, {
+    /** 라우트 이동·창 포커스마다 재조회하면 상단 메뉴가 잠깐 비거나 바뀌는 것처럼 보일 수 있음 */
+    refetchOnMountOrArgChange: false,
+    refetchOnFocus: false,
+    refetchOnReconnect: false,
+  });
   const fallbackMenus = [
     { menuId: -1, menuName: '홈', path: '/' },
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
@@ -50,7 +55,6 @@ export function TopBar({ currentRole, username }: TopBarProps) {
       try {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        localStorage.removeItem('cctv_user');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } catch {
@@ -101,7 +105,10 @@ export function TopBar({ currentRole, username }: TopBarProps) {
           </div>
         </div>
 
-        <div className="bg-[#005640] text-white px-6 py-2 border-t border-white/20">
+        <div
+          className="bg-[#005640] text-white px-6 py-2 border-t border-white/20"
+          suppressHydrationWarning
+        >
           <div className="flex items-center justify-start text-sm">
             <div className="flex items-center gap-6">
               {renderedMenus.map((menu) => {

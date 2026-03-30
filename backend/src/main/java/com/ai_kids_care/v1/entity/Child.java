@@ -44,11 +44,11 @@ public class Child {
 
     @NotNull
     @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
-    private String rrnEncrypted;
+    private String rrnFirst6;
 
     @NotNull
     @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
-    private String rrnFirst6;
+    private String rrnEncrypted;
 
     @NotNull
     @Column(name = "birth_date", nullable = false)

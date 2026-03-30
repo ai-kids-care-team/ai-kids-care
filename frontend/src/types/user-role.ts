@@ -9,15 +9,6 @@ export type UserRole =
   | 'PLATFORM_IT_ADMIN'
   | 'SUPERADMIN';
 
-/** UI(데모 역할 전환 등)에서 쓰는 고정 순서 */
-export const USER_ROLES: UserRole[] = [
-  'SUPERADMIN',
-  'PLATFORM_IT_ADMIN',
-  'KINDERGARTEN_ADMIN',
-  'TEACHER',
-  'GUARDIAN',
-];
-
 /** 공지사항 글쓰기·수정·삭제 UI (GUARDIAN 제외) */
 export const ANNOUNCEMENT_EDITOR_ROLES: readonly UserRole[] = [
   'TEACHER',

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT } from '@/components/auth/(signup)/PlatformItAdminForm';
 import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/apis/auth.api';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
@@ -113,6 +114,7 @@ function isDuplicateAccountFieldMessage(msg: string | undefined): boolean {
   if (!msg) return false;
   return msg.includes('이미 사용 중인') || msg.includes('이미 등록된 연락처');
 }
+
 const INITIAL_FORM_STATE = {
   name: '',
   loginId: '',
@@ -126,6 +128,179 @@ const INITIAL_FORM_STATE = {
   emergencyContactPhone: '',
   level: '',
 };
+
+type SignupFormState = typeof INITIAL_FORM_STATE;
+
+/** SignupForm `useEffect` 스크롤 순서와 동일하게 유지 */
+export const FIELD_ERROR_FOCUS_ORDER: FieldErrorKey[] = [
+  'name',
+  'loginId',
+  'email',
+  'phone',
+  'password',
+  'confirmPassword',
+  'child',
+  'kindergarten',
+  'rrn',
+  'relationship',
+  'department',
+  'staffNo',
+  'level',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'agreeTerms',
+];
+
+function firstFieldErrorMessage(errors: Partial<Record<FieldErrorKey, string>>): string {
+  for (const key of FIELD_ERROR_FOCUS_ORDER) {
+    const msg = errors[key];
+    if (msg) return msg;
+  }
+  const first = Object.values(errors)[0];
+  return first ?? '';
+}
+
+function focusFirstFieldError(errors: Partial<Record<FieldErrorKey, string>>) {
+  const fieldNameMap: Partial<Record<FieldErrorKey, string>> = {
+    child: 'childSearchFirst6',
+    kindergarten: 'kindergartenBizPart1',
+    rrn: 'rrnFirst6',
+  };
+  for (const key of FIELD_ERROR_FOCUS_ORDER) {
+    if (!errors[key]) continue;
+    const targetName = fieldNameMap[key] ?? key;
+    const targetElement = document.querySelector(`[name="${targetName}"]`) as HTMLElement | null;
+    targetElement?.focus();
+    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    break;
+  }
+}
+
+function focusFirstDuplicateAccountField(fieldErrors: Partial<Record<FieldErrorKey, string>>) {
+  const order: Array<'loginId' | 'email' | 'phone'> = ['loginId', 'email', 'phone'];
+  for (const key of order) {
+    if (!isDuplicateAccountFieldMessage(fieldErrors[key])) continue;
+    const targetElement = document.querySelector(`[name="${key}"]`) as HTMLElement | null;
+    targetElement?.focus();
+    targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    break;
+  }
+}
+
+function buildSignupFieldErrors(args: {
+  form: SignupFormState;
+  memberType: MemberType;
+  agreeTerms: boolean;
+  selectedChild: ChildLookupItem | null;
+  selectedKindergarten: KindergartenLookupItem | null;
+  rrnFirst6: string;
+  rrnBack7: string;
+  relationship: string;
+  customRelationship: string;
+}): Partial<Record<FieldErrorKey, string>> {
+  const {
+    form,
+    memberType,
+    agreeTerms,
+    selectedChild,
+    selectedKindergarten,
+    rrnFirst6,
+    rrnBack7,
+    relationship,
+    customRelationship,
+  } = args;
+  const e: Partial<Record<FieldErrorKey, string>> = {};
+
+  if (!form.name.trim()) e.name = '이름을 입력해주세요.';
+  if (!form.loginId.trim()) e.loginId = '로그인 ID를 입력해주세요.';
+  if (!form.email.trim()) e.email = '이메일을 입력해주세요.';
+  if (!form.phone.trim()) {
+    e.phone = '전화번호를 입력해주세요.';
+  } else {
+    const phoneDigits = digitsOnlyPhone(form.phone);
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      e.phone = '전화번호를 10~11자리 숫자로 입력해주세요.';
+    }
+  }
+  if (!form.password.trim()) e.password = '비밀번호를 입력해주세요.';
+  if (!form.confirmPassword.trim()) e.confirmPassword = '비밀번호 확인을 입력해주세요.';
+  if (!agreeTerms) e.agreeTerms = '서비스 이용약관 및 개인정보 처리방침 동의가 필요합니다.';
+
+  if (form.password.trim() && form.confirmPassword.trim() && form.password !== form.confirmPassword) {
+    e.confirmPassword = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
+  }
+
+  if (memberType === 'GUARDIAN') {
+    if (!selectedChild) e.child = '아이 찾기에서 아이를 선택해주세요.';
+    if (rrnFirst6.length !== 6 || rrnBack7.length !== 7) e.rrn = '주민등록번호를 정확히 입력해주세요.';
+    if (!relationship) e.relationship = '관계를 선택해주세요.';
+    else if (relationship === 'OTHER' && !customRelationship.trim()) {
+      e.relationship = '기타 관계를 입력해주세요.';
+    }
+  }
+
+  if (memberType === 'SUPERADMIN' && !form.department.trim()) {
+    e.department = '행정청 부서명을 입력해주세요.';
+  }
+
+  if (memberType === 'KINDERGARTEN') {
+    if (!selectedKindergarten) e.kindergarten = '유치원 찾기에서 유치원을 선택해주세요.';
+    if (!form.staffNo.trim()) e.staffNo = '직원(사번)을 입력해주세요.';
+    if (rrnFirst6.length !== 6 || rrnBack7.length !== 7) e.rrn = '주민등록번호를 정확히 입력해주세요.';
+    if (!form.emergencyContactName.trim()) e.emergencyContactName = '비상 연락처 이름을 입력해주세요.';
+    if (!form.emergencyContactPhone.trim()) e.emergencyContactPhone = '비상 연락처 전화번호를 입력해주세요.';
+    if (!form.level.trim()) e.level = '직급을 선택해주세요.';
+  }
+
+  return e;
+}
+
+async function fetchAccountFieldDuplicatesOnSubmit(
+  form: SignupFormState
+): Promise<Partial<Record<FieldErrorKey, string>>> {
+  const out: Partial<Record<FieldErrorKey, string>> = {};
+  const loginId = form.loginId.trim();
+  const email = form.email.trim();
+  const phoneDigits = digitsOnlyPhone(form.phone);
+
+  const tasks: Promise<void>[] = [];
+
+  if (loginId.length >= 2) {
+    tasks.push(
+      fetchRegisterFieldAvailability('loginId', loginId)
+        .then(({ available, message }) => {
+          if (!available) out.loginId = message ?? '이미 사용 중인 로그인 ID입니다.';
+        })
+        .catch(() => {})
+    );
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    tasks.push(
+      fetchRegisterFieldAvailability('email', email)
+        .then(({ available, message }) => {
+          if (!available) out.email = message ?? '이미 사용 중인 이메일입니다.';
+        })
+        .catch(() => {})
+    );
+  }
+  if (phoneDigits.length >= 10 && phoneDigits.length <= 11) {
+    tasks.push(
+      fetchRegisterFieldAvailability('phone', phoneDigits)
+        .then(({ available, message }) => {
+          if (!available) {
+            out.phone =
+              message && (message.includes('이미') || message.includes('중복'))
+                ? message
+                : '이미 등록된 연락처(전화번호)입니다.';
+          }
+        })
+        .catch(() => {})
+    );
+  }
+
+  await Promise.all(tasks);
+  return out;
+}
 
 /** 원장(DIRECTOR) → 백엔드 KINDERGARTEN_ADMIN, 그 외 직급 → TEACHER 역할 */
 const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
@@ -154,7 +329,7 @@ export function auth() {
   const [childSearchResults, setChildSearchResults] = useState<ChildLookupItem[]>([]);
   const [isChildSearching, setIsChildSearching] = useState(false);
   const [childSearchError, setChildSearchError] = useState('');
-  /** 사업자등록번호 10자리 — 화면은 3-2-5 분할 입력 (예: 123-45-67890) */
+  /** 사업자등록번호 10자리 — 화면은 3-2-5 분할 입력 (예: 599-91-66110 ) */
   const [kindergartenBizPart1, setKindergartenBizPart1] = useState('');
   const [kindergartenBizPart2, setKindergartenBizPart2] = useState('');
   const [kindergartenBizPart3, setKindergartenBizPart3] = useState('');
@@ -610,118 +785,38 @@ export function auth() {
       isDuplicateAccountFieldMessage(fieldErrors.phone)
     ) {
       setError('로그인 ID·이메일·연락처 중복 안내를 확인한 뒤 수정해주세요.');
+      queueMicrotask(() => focusFirstDuplicateAccountField(fieldErrors));
       return;
     }
+
+    const clientErrors = buildSignupFieldErrors({
+      form,
+      memberType,
+      agreeTerms,
+      selectedChild,
+      selectedKindergarten,
+      rrnFirst6,
+      rrnBack7,
+      relationship,
+      customRelationship,
+    });
+
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      setError(firstFieldErrorMessage(clientErrors));
+      queueMicrotask(() => focusFirstFieldError(clientErrors));
+      return;
+    }
+
     setError('');
     setFieldErrors({});
 
-    if (!form.name.trim()) {
-      setFieldErrors({ name: '이름을 입력해주세요.' });
-      setError('이름을 입력해주세요.');
+    const duplicateOnSubmit = await fetchAccountFieldDuplicatesOnSubmit(form);
+    if (Object.keys(duplicateOnSubmit).length > 0) {
+      setFieldErrors(duplicateOnSubmit);
+      setError(firstFieldErrorMessage(duplicateOnSubmit));
+      queueMicrotask(() => focusFirstFieldError(duplicateOnSubmit));
       return;
-    }
-    if (!form.loginId.trim()) {
-      setFieldErrors({ loginId: '로그인 ID를 입력해주세요.' });
-      setError('로그인 ID를 입력해주세요.');
-      return;
-    }
-    if (!form.email.trim()) {
-      setFieldErrors({ email: '이메일을 입력해주세요.' });
-      setError('이메일을 입력해주세요.');
-      return;
-    }
-    if (!form.phone.trim()) {
-      setFieldErrors({ phone: '전화번호를 입력해주세요.' });
-      setError('전화번호를 입력해주세요.');
-      return;
-    }
-    const phoneDigits = digitsOnlyPhone(form.phone);
-    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      setFieldErrors({ phone: '전화번호를 10~11자리 숫자로 입력해주세요.' });
-      setError('전화번호를 10~11자리 숫자로 입력해주세요.');
-      return;
-    }
-    if (!form.password.trim()) {
-      setFieldErrors({ password: '비밀번호를 입력해주세요.' });
-      setError('비밀번호를 입력해주세요.');
-      return;
-    }
-    if (!form.confirmPassword.trim()) {
-      setFieldErrors({ confirmPassword: '비밀번호 확인을 입력해주세요.' });
-      setError('비밀번호 확인을 입력해주세요.');
-      return;
-    }
-    if (!agreeTerms) {
-      setFieldErrors({ agreeTerms: '서비스 이용약관 및 개인정보 처리방침 동의가 필요합니다.' });
-      setError('서비스 이용약관 및 개인정보 처리방침 동의가 필요합니다.');
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      setFieldErrors({ confirmPassword: '비밀번호와 비밀번호 확인이 일치하지 않습니다.' });
-      return;
-    }
-
-    if (memberType === 'GUARDIAN') {
-      if (!selectedChild) {
-        setFieldErrors({ child: '아이 찾기에서 아이를 선택해주세요.' });
-        setError('아이 찾기에서 아이를 선택해주세요.');
-        return;
-      }
-      if (rrnFirst6.length !== 6 || rrnBack7.length !== 7) {
-        setFieldErrors({ rrn: '주민등록번호를 정확히 입력해주세요.' });
-        setError('주민등록번호를 정확히 입력해주세요.');
-        return;
-      }
-      if (!relationship) {
-        setFieldErrors({ relationship: '관계를 선택해주세요.' });
-        setError('관계를 선택해주세요.');
-        return;
-      }
-      if (relationship === 'OTHER' && !customRelationship.trim()) {
-        setFieldErrors({ relationship: '기타 관계를 입력해주세요.' });
-        setError('기타 관계를 입력해주세요.');
-        return;
-      }
-    }
-
-    if (memberType === 'SUPERADMIN' && !form.department.trim()) {
-      setFieldErrors({ department: '행정청 부서명을 입력해주세요.' });
-      setError('행정청 부서명을 입력해주세요.');
-      return;
-    }
-
-    if (memberType === 'KINDERGARTEN') {
-      if (!selectedKindergarten) {
-        setFieldErrors({ kindergarten: '유치원 찾기에서 유치원을 선택해주세요.' });
-        setError('유치원 찾기에서 유치원을 선택해주세요.');
-        return;
-      }
-      if (!form.staffNo.trim()) {
-        setFieldErrors({ staffNo: '직원(사번)을 입력해주세요.' });
-        setError('직원(사번)을 입력해주세요.');
-        return;
-      }
-      if (rrnFirst6.length !== 6 || rrnBack7.length !== 7) {
-        setFieldErrors({ rrn: '주민등록번호를 정확히 입력해주세요.' });
-        setError('주민등록번호를 정확히 입력해주세요.');
-        return;
-      }
-      if (!form.emergencyContactName.trim()) {
-        setFieldErrors({ emergencyContactName: '비상 연락처 이름을 입력해주세요.' });
-        setError('비상 연락처 이름을 입력해주세요.');
-        return;
-      }
-      if (!form.emergencyContactPhone.trim()) {
-        setFieldErrors({ emergencyContactPhone: '비상 연락처 전화번호를 입력해주세요.' });
-        setError('비상 연락처 전화번호를 입력해주세요.');
-        return;
-      }
-      if (!form.level.trim()) {
-        setFieldErrors({ level: '직급을 선택해주세요.' });
-        setError('직급을 선택해주세요.');
-        return;
-      }
     }
 
     if (
@@ -733,6 +828,8 @@ export function auth() {
       setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
       return;
     }
+
+    const phoneDigits = digitsOnlyPhone(form.phone);
 
     setIsSubmitting(true);
     try {
@@ -797,6 +894,7 @@ export function auth() {
           email: form.email,
           phone: phoneDigits,
           name: form.name.trim(),
+          department: PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT,
         };
       } else {
         setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
