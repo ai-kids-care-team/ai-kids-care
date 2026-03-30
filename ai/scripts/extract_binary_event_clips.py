@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import csv
+import random
 import shutil
 import subprocess
 from pathlib import Path
@@ -40,7 +41,6 @@ def run_ffmpeg(
     output_path = Path(output_path)
 
     cmd = ["ffmpeg"]
-
     cmd.append("-y" if overwrite else "-n")
 
     if use_hwaccel:
@@ -76,36 +76,132 @@ def run_ffmpeg(
     subprocess.run(cmd, check=True)
 
 
-def choose_negative_clip_start(
+def safe_total_duration_sec(total_frames: float, fps: float) -> float | None:
+    if fps <= 0:
+        return None
+    return total_frames / fps
+
+
+def overlaps_event(
+        clip_start: float,
+        clip_duration: float,
+        event_start: float,
+        event_duration: float,
+        margin_sec: float = 1.0,
+) -> bool:
+    clip_end = clip_start + clip_duration
+    event_end = event_start + event_duration
+
+    safe_event_start = max(0.0, event_start - margin_sec)
+    safe_event_end = event_end + margin_sec
+
+    return not (clip_end <= safe_event_start or clip_start >= safe_event_end)
+
+
+def collect_intra_video_negative_starts(
         event_start_sec: float,
         event_duration_sec: float,
         total_duration_sec: float,
         clip_duration: float,
         margin_sec: float = 1.0,
-) -> float | None:
+        num_random_trials: int = 20,
+) -> list[tuple[str, float]]:
     """
-    Choose a negative clip that does NOT overlap with the event region.
+    Return candidate negative clip starts from the SAME source video.
 
-    Priority:
-    1. clip before event
-    2. clip after event
-    3. if neither fits, return None
+    Returns list of tuples:
+    [
+        ("before", start_sec),
+        ("after", start_sec),
+        ("random_intra", start_sec),
+        ...
+    ]
     """
+    candidates: list[tuple[str, float]] = []
+
     event_end_sec = event_start_sec + event_duration_sec
 
-    # valid negative regions:
-    # [0, event_start_sec - margin_sec)
-    # (event_end_sec + margin_sec, total_duration_sec]
-    before_end = event_start_sec - margin_sec
+    # 1) before-event clip
+    before_start = event_start_sec - margin_sec - clip_duration
+    if before_start >= 0:
+        candidates.append(("before", before_start))
+
+    # 2) after-event clip
     after_start = event_end_sec + margin_sec
+    if after_start + clip_duration <= total_duration_sec:
+        candidates.append(("after", after_start))
 
-    # Try before-event region first
-    if before_end >= clip_duration:
-        return max(0.0, before_end - clip_duration)
+    # 3) random intra-video negative
+    if total_duration_sec > clip_duration:
+        for _ in range(num_random_trials):
+            start = random.uniform(0, total_duration_sec - clip_duration)
+            if not overlaps_event(
+                    clip_start=start,
+                    clip_duration=clip_duration,
+                    event_start=event_start_sec,
+                    event_duration=event_duration_sec,
+                    margin_sec=margin_sec,
+            ):
+                candidates.append(("random_intra", start))
 
-    # Then try after-event region
-    if total_duration_sec - after_start >= clip_duration:
-        return after_start
+    # deduplicate near-identical starts
+    dedup = []
+    seen = set()
+    for role, start in candidates:
+        key = round(start, 1)
+        if key not in seen:
+            seen.add(key)
+            dedup.append((role, start))
+
+    return dedup
+
+
+def sample_cross_video_negative(
+        df: pd.DataFrame,
+        current_video_path: str,
+        clip_duration: float,
+        split: str,
+        max_trials: int = 30,
+) -> tuple[str, float] | None:
+    """
+    Sample one negative clip from a DIFFERENT source video.
+
+    Returns:
+        (other_video_path, start_sec)
+    """
+    same_split_df = df[df["split"] == split]
+    candidate_df = same_split_df[same_split_df["video_path"] != current_video_path]
+
+    if len(candidate_df) == 0:
+        return None
+
+    for _ in range(max_trials):
+        row = candidate_df.sample(n=1).iloc[0]
+
+        other_video = str(row["video_path"])
+        total_frames = float(row["total_frames"])
+        fps = float(row["fps"])
+        event_start_sec = float(row["event_start_sec"])
+        event_duration_sec = float(row["event_duration_sec"])
+
+        total_duration_sec = safe_total_duration_sec(total_frames, fps)
+        if total_duration_sec is None or total_duration_sec <= clip_duration:
+            continue
+
+        candidates = collect_intra_video_negative_starts(
+            event_start_sec=event_start_sec,
+            event_duration_sec=event_duration_sec,
+            total_duration_sec=total_duration_sec,
+            clip_duration=clip_duration,
+            margin_sec=1.0,
+            num_random_trials=10,
+        )
+
+        if not candidates:
+            continue
+
+        _, start_sec = random.choice(candidates)
+        return other_video, start_sec
 
     return None
 
@@ -114,14 +210,16 @@ def extract_binary_clips(
         manifest_path: str | Path,
         output_dir: str | Path,
         output_manifest: str | Path,
-        positive_label: str = "assault",
         negative_label: str = "normal",
         clip_duration: float = 5.0,
         use_gpu: bool = True,
         use_hwaccel: bool = False,
         overwrite: bool = False,
+        max_negative_per_positive: int = 2,
+        random_seed: int = 42,
 ) -> None:
     check_ffmpeg_available()
+    random.seed(random_seed)
 
     manifest_path = Path(manifest_path).resolve()
     output_dir = Path(output_dir).resolve()
@@ -130,7 +228,7 @@ def extract_binary_clips(
     output_dir.mkdir(parents=True, exist_ok=True)
     output_manifest.parent.mkdir(parents=True, exist_ok=True)
 
-    df = pd.read_csv(manifest_path)[0:100]
+    df = pd.read_csv(manifest_path)
     if len(df) == 0:
         raise ValueError(f"Manifest is empty: {manifest_path}")
 
@@ -174,7 +272,7 @@ def extract_binary_clips(
         pos_clip_start_sec = max(0.0, event_center_sec - clip_duration / 2.0)
 
         # ---------- positive clip ----------
-        pos_dir = output_dir / split / positive_label
+        pos_dir = output_dir / split / src_label
         pos_dir.mkdir(parents=True, exist_ok=True)
 
         pos_output = pos_dir / f"{source_video.stem}_pos.mp4"
@@ -193,7 +291,7 @@ def extract_binary_clips(
 
             rows.append({
                 "video_path": str(pos_output),
-                "label": positive_label,
+                "label": src_label,
                 "split": split,
                 "source_video": str(source_video),
                 "clip_start_sec": pos_clip_start_sec,
@@ -201,69 +299,88 @@ def extract_binary_clips(
                 "event_start_sec": event_start_sec,
                 "event_duration_sec": event_duration_sec,
                 "clip_role": "positive",
+                "negative_source_type": "",
             })
         except Exception as e:
             failed_rows.append({
                 "video_path": str(source_video),
                 "split": split,
-                "label": positive_label,
+                "label": src_label,
                 "error": f"positive clip failed: {e}",
             })
             continue
 
-        # ---------- negative clip ----------
-        neg_clip_start_sec = choose_negative_clip_start(
+        # ---------- diversified negatives ----------
+        negative_jobs: list[tuple[str, str, float]] = []
+        # format: (source_type, input_video_path, start_sec)
+
+        intra_candidates = collect_intra_video_negative_starts(
             event_start_sec=event_start_sec,
             event_duration_sec=event_duration_sec,
             total_duration_sec=total_duration_sec,
             clip_duration=clip_duration,
             margin_sec=1.0,
+            num_random_trials=20,
         )
 
-        if neg_clip_start_sec is None:
-            failed_rows.append({
-                "video_path": str(source_video),
-                "split": split,
-                "label": negative_label,
-                "error": "no valid negative window found",
-            })
-            continue
+        # 优先从同视频选一个
+        if intra_candidates:
+            source_type, start_sec = random.choice(intra_candidates)
+            negative_jobs.append((source_type, str(source_video), start_sec))
+
+        # 再尝试从其他视频选一个
+        cross_sample = sample_cross_video_negative(
+            df=df,
+            current_video_path=str(source_video),
+            clip_duration=clip_duration,
+            split=split,
+            max_trials=30,
+        )
+        if cross_sample is not None:
+            other_video_path, start_sec = cross_sample
+            negative_jobs.append(("cross_video", other_video_path, start_sec))
+
+        # 限制数量
+        negative_jobs = negative_jobs[:max_negative_per_positive]
 
         neg_dir = output_dir / split / negative_label
         neg_dir.mkdir(parents=True, exist_ok=True)
 
-        neg_output = neg_dir / f"{source_video.stem}_neg.mp4"
+        for neg_idx, (source_type, neg_source_video, neg_clip_start_sec) in enumerate(negative_jobs):
+            neg_source_video = Path(neg_source_video)
+            neg_output = neg_dir / f"{source_video.stem}_neg{neg_idx}_{source_type}.mp4"
 
-        try:
-            if not neg_output.exists() or overwrite:
-                run_ffmpeg(
-                    input_path=source_video,
-                    output_path=neg_output,
-                    start_sec=neg_clip_start_sec,
-                    duration_sec=clip_duration,
-                    use_gpu=use_gpu,
-                    use_hwaccel=use_hwaccel,
-                    overwrite=overwrite,
-                )
+            try:
+                if not neg_output.exists() or overwrite:
+                    run_ffmpeg(
+                        input_path=neg_source_video,
+                        output_path=neg_output,
+                        start_sec=neg_clip_start_sec,
+                        duration_sec=clip_duration,
+                        use_gpu=use_gpu,
+                        use_hwaccel=use_hwaccel,
+                        overwrite=overwrite,
+                    )
 
-            rows.append({
-                "video_path": str(neg_output),
-                "label": negative_label,
-                "split": split,
-                "source_video": str(source_video),
-                "clip_start_sec": neg_clip_start_sec,
-                "clip_duration": clip_duration,
-                "event_start_sec": event_start_sec,
-                "event_duration_sec": event_duration_sec,
-                "clip_role": "negative",
-            })
-        except Exception as e:
-            failed_rows.append({
-                "video_path": str(source_video),
-                "split": split,
-                "label": negative_label,
-                "error": f"negative clip failed: {e}",
-            })
+                rows.append({
+                    "video_path": str(neg_output),
+                    "label": negative_label,
+                    "split": split,
+                    "source_video": str(neg_source_video),
+                    "clip_start_sec": neg_clip_start_sec,
+                    "clip_duration": clip_duration,
+                    "event_start_sec": event_start_sec,
+                    "event_duration_sec": event_duration_sec,
+                    "clip_role": "negative",
+                    "negative_source_type": source_type,
+                })
+            except Exception as e:
+                failed_rows.append({
+                    "video_path": str(neg_source_video),
+                    "split": split,
+                    "label": negative_label,
+                    "error": f"negative clip failed: {e}",
+                })
 
     fieldnames = [
         "video_path",
@@ -275,6 +392,7 @@ def extract_binary_clips(
         "event_start_sec",
         "event_duration_sec",
         "clip_role",
+        "negative_source_type",
     ]
 
     with open(output_manifest, "w", newline="", encoding="utf-8") as f:
@@ -298,13 +416,14 @@ def extract_binary_clips(
 
 if __name__ == "__main__":
     extract_binary_clips(
-        manifest_path="../data/processed/manifest.csv",
-        output_dir="../data/processed/event_clips_binary",
-        output_manifest="../data/processed/manifest_clips_binary.csv",
-        positive_label="assault",
+        manifest_path="../data/processed/01_manifest.csv",
+        output_dir="../data/processed/event_clips",
+        output_manifest="../data/processed/01_manifest_clips.csv",
         negative_label="normal",
         clip_duration=5.0,
         use_gpu=True,
         use_hwaccel=False,
         overwrite=False,
+        max_negative_per_positive=2,
+        random_seed=42,
     )
