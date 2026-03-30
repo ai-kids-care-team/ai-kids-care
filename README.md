@@ -91,7 +91,7 @@ docker rmi postgres:16
 
 # 4) 컨테이너 up
 powershell
-docker compose build --no-cache; docker compose up -d
+cd
 
 command
 docker compose build --no-cache&& docker compose up -d

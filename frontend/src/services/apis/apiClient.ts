@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 import { index as appStore } from '@/store/index';
-import { openLoginModal } from '@/utils/auth-modal';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -40,14 +39,18 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // 무한 루프 방지용 플래그
 
+      if (!isBrowser) {
+        return Promise.reject(error);
+      }
+
+      const refreshToken = window.localStorage.getItem('refreshToken');
+      /* 리프레시 토큰이 없으면 갱신 시도 없이 그대로 실패 처리.
+       * (로그인 API가 refresh를 내려주지 않는 경우 401마다 로그인 창이 뜨는 문제 방지) */
+      if (!refreshToken) {
+        return Promise.reject(error);
+      }
+
       try {
-        if (!isBrowser) {
-          throw new Error('브라우저 환경이 아니어서 토큰 갱신을 수행할 수 없습니다.');
-        }
-
-        const refreshToken = window.localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
-
         // 토큰 갱신 API 호출 (openapi 명세서 기준)
         const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken, // 백엔드 설계에 따라 Header나 Cookie로 보낼 수도 있음
@@ -63,16 +66,10 @@ apiClient.interceptors.response.use(
         // 실패했던 원래 요청의 헤더를 새 토큰으로 교체하고 다시 요청!
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return apiClient(originalRequest);
-
-      } catch (refreshError) {
-        // 리프레시 토큰마저 만료되었거나 에러가 났다면 강제 로그아웃
-        if (isBrowser) {
-          window.localStorage.removeItem('accessToken');
-          window.localStorage.removeItem('token');
-          window.localStorage.removeItem('refreshToken');
-          openLoginModal();
-        }
-        return Promise.reject(refreshError);
+      } catch {
+        /* 갱신 실패 시 자동 로그아웃·로그인 모달 호출은 하지 않음.
+         * 각 화면에서 401 메시지로 처리하고, 로그인은 사용자가 버튼으로 연다. */
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error); // 401이 아닌 다른 에러는 그대로 반환
