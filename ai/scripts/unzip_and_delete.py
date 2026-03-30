@@ -42,5 +42,5 @@ def unzip_and_delete(root_dir):
 
 
 if __name__ == "__main__":
-    root_directory = "./data/이상행동 CCTV 영상/01.폭행(assult)"  # ← 改成你的目录
+    root_directory = "../data/이상행동 CCTV 영상/"  # ← 改成你的目录
     unzip_and_delete(root_directory)
