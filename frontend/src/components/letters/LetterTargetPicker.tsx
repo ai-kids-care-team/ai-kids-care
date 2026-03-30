@@ -38,6 +38,7 @@ type LetterTargetPickerProps = {
   onSelectTeacher: (row: TeacherVO) => void;
   selectedDisplayText: string;
   hasSelection: boolean;
+  onClearTarget?: () => void;
   /** 수정 폼: 교사 대상 글일 때 유치원 2단계를 미리 채움 */
   presetKindergartenForTeacherFlow?: { kindergartenId: number; name: string } | null;
 };
@@ -49,10 +50,12 @@ export function LetterTargetPicker({
   onSelectTeacher,
   selectedDisplayText,
   hasSelection,
+  onClearTarget,
   presetKindergartenForTeacherFlow = null,
 }: LetterTargetPickerProps) {
   const [inputQuery, setInputQuery] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [kindergartenRows, setKindergartenRows] = useState<KindergartenVO[]>([]);
@@ -75,6 +78,7 @@ export function LetterTargetPicker({
     if (targetTypeChanged) {
       setInputQuery('');
       setAppliedQuery('');
+      setReloadNonce(0);
       setKindergartenRows([]);
       setTeacherRows([]);
       setError('');
@@ -165,10 +169,21 @@ export function LetterTargetPicker({
     return () => {
       cancelled = true;
     };
-  }, [targetType, appliedQuery, pickedKgForTeacher?.kindergartenId]);
+  }, [targetType, appliedQuery, pickedKgForTeacher?.kindergartenId, reloadNonce]);
 
   const applySearch = () => {
     setAppliedQuery(inputQuery.trim());
+  };
+
+  const clearSearchFieldsAndReload = () => {
+    setInputQuery('');
+    setAppliedQuery('');
+    setReloadNonce((n) => n + 1);
+  };
+
+  const resetSearchForUser = () => {
+    clearSearchFieldsAndReload();
+    onClearTarget?.();
   };
 
   const handleClickKindergartenRow = (row: KindergartenVO) => {
@@ -178,8 +193,7 @@ export function LetterTargetPicker({
     }
     skipNextPresetRef.current = false;
     setPickedKgForTeacher(row);
-    setInputQuery('');
-    setAppliedQuery('');
+    clearSearchFieldsAndReload();
   };
 
   const rows = isKgTarget || teacherStepPickKg ? kindergartenRows : teacherRows;
@@ -248,8 +262,7 @@ export function LetterTargetPicker({
             onClick={() => {
               skipNextPresetRef.current = true;
               setPickedKgForTeacher(null);
-              setInputQuery('');
-              setAppliedQuery('');
+              resetSearchForUser();
             }}
           >
             다른 유치원 선택
@@ -282,12 +295,8 @@ export function LetterTargetPicker({
         </button>
         <button
           type="button"
-          onClick={() => {
-            setInputQuery('');
-            setAppliedQuery('');
-          }}
-          disabled={loading}
-          className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-600 hover:bg-gray-50 disabled:opacity-50"
+          onClick={resetSearchForUser}
+          className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-600 hover:bg-gray-50"
         >
           초기화
         </button>

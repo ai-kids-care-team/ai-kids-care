@@ -5,11 +5,16 @@ import { useEffect, useState } from 'react';
 import { Heart, Plus, Search } from 'lucide-react';
 
 export type AppreciationLetterListItem = {
-  letterId: number;
+  /** React key·중복 방지 (예: api-16-r0, demo-16-r0) */
+  key: string;
   title: string;
   date: string;
   statusLabel: string;
-  href: string;
+  /** 백엔드 응답에서 letterId가 null이면 링크를 만들 수 없어서 optional 처리 */
+  href?: string;
+  /** false면 비공개 — 프론트에서 작성자 본인만 목록에 표시 */
+  isPublic?: boolean;
+  senderUserId?: number;
 };
 
 type AppreciationLettersListFormProps = {
@@ -103,21 +108,42 @@ export function AppreciationLettersListForm({
               </p>
             ) : (
               items.map((item) => (
-                <Link
-                  key={item.letterId}
-                  href={item.href}
-                  className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-lg transition-colors hover:text-[#006b52]">{item.title}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                        <span>{item.date}</span>
-                        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{item.statusLabel}</span>
+                item.href ? (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg transition-colors hover:text-[#006b52]">{item.title}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                          <span>{item.date}</span>
+                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                            {item.statusLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    key={item.key}
+                    className="block rounded-lg border border-gray-200 p-5 opacity-70"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg">{item.title}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                          <span>{item.date}</span>
+                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                            {item.statusLabel}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </Link>
+                )
               ))
             )}
           </div>

@@ -38,7 +38,31 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
     { menuId: -1, menuName: '홈', path: '/' },
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
-  const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
+  const renderedMenus =
+    menuItems.length > 0
+      ? menuItems
+      : fallbackMenus;
+
+  // 게스트도 공개 감사편지는 반드시 볼 수 있어야 함.
+  // 백엔드 메뉴 시드가 ANONYMOUS에 대해 비어있을 수 있으므로 프론트에서 최소 링크를 보강.
+  const ensuredMenus = (() => {
+    if (!isGuest) return renderedMenus;
+    const alreadyHasLetters = renderedMenus.some(
+      (m) => m.path === '/letters' || m.path === '/appreciationLetter',
+    );
+    if (alreadyHasLetters) return renderedMenus;
+
+    // "로그인했을 때"와 같은 위치로 보이도록 `공지사항(/announcements)` 바로 앞에 삽입.
+    const insertIndex = renderedMenus.findIndex((m) => m.path === '/announcements');
+    const appreciationMenu = { menuId: -99, menuName: '감사편지', path: '/letters' };
+
+    if (insertIndex >= 0) {
+      return [...renderedMenus.slice(0, insertIndex), appreciationMenu, ...renderedMenus.slice(insertIndex)];
+    }
+
+    // 공지사항 메뉴가 없으면 마지막에 추가
+    return [...renderedMenus, appreciationMenu];
+  })();
 
   useEffect(() => {
     const handler = () => setIsLoginModalOpen(true);
@@ -111,7 +135,7 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         >
           <div className="flex items-center justify-start text-sm">
             <div className="flex items-center gap-6">
-              {renderedMenus.map((menu) => {
+              {ensuredMenus.map((menu) => {
                 if (!menu.path) return null;
                 return (
                   <Link key={menu.menuId} href={menu.path} className="hover:text-green-300 transition-colors">

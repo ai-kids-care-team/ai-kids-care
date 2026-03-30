@@ -10,16 +10,23 @@ import {
   getAppreciationLetterDetail,
 } from '@/services/apis/appreciationLetters.api';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
-import { getDummyAppreciationLetterById } from '@/lib/dummy-data/appreciationLetters';
+import {
+  getClientCachedLetterBySeq,
+  listClientCachedLetters,
+  removeClientCachedLetter,
+  parseClientLetterSeqParam,
+} from './appreciation-letter-client-cache';
 import {
   formatLetterDateTime,
+  isAppreciationLetterPublic,
   isSameAppreciationLetterAuthor,
   letterStatusLabel,
   parseLetterIdQueryParam,
   targetTypeLabel,
-} from '@/lib/appreciation-letter-utils';
+  viewerMaySeeAppreciationLetter,
+} from './appreciation-letter-utils';
 import { getGuardianByLoginId, getGuardianByUserId } from '@/services/apis/guardians.api';
-import { getUserById } from '@/services/apis/usersPublic.api';
+import { getLoginIdByUserId } from '@/services/apis/usersPublic.api';
 import { getKindergarten } from '@/services/apis/kindergartens.api';
 import { getTeacher } from '@/services/apis/teachers.api';
 import { useAppSelector } from '@/store/hook';
@@ -29,9 +36,15 @@ export function AppreciationLettersDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const clientSeq = parseClientLetterSeqParam(searchParams.get('cid'));
   const id = parseLetterIdQueryParam(searchParams.get('id')) ?? NaN;
+  const sig = searchParams.get('sig')?.trim() ?? '';
+  const isSigView = sig !== '';
+  const isClientView = clientSeq != null;
   const [hydrated, setHydrated] = useState(false);
   const [letter, setLetter] = useState<AppreciationLetterVO | null>(null);
+  const [resolvedClientSeq, setResolvedClientSeq] = useState<number | null>(null);
+  const [resolvedLetterId, setResolvedLetterId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -61,11 +74,25 @@ export function AppreciationLettersDetailPage() {
           token &&
           letter &&
           user &&
+          (resolvedClientSeq != null || resolvedLetterId != null || (Number.isFinite(id) && id > 0)) &&
           canWriteAppreciationLetters(user.role) &&
           isSameAppreciationLetterAuthor(user.id, letter.senderUserId),
       ),
-    [isAuthenticated, token, letter, user],
+    [isAuthenticated, token, letter, user, resolvedClientSeq, resolvedLetterId, id],
   );
+
+  const resolvedAuthorLoginLabel = useMemo(() => {
+    if (metaLoading) return null;
+    const fromApi = senderLoginId?.trim();
+    if (fromApi) return fromApi;
+    if (user && letter && isSameAppreciationLetterAuthor(user.id, letter.senderUserId)) {
+      const fromStore = (user.loginId || user.username || '').trim();
+      if (fromStore) return fromStore;
+      const idStr = String(user.id ?? '').trim();
+      if (idStr && !/^\d+$/.test(idStr)) return idStr;
+    }
+    return null;
+  }, [metaLoading, senderLoginId, user, letter]);
 
   useEffect(() => {
     if (!letter) {
@@ -87,12 +114,12 @@ export function AppreciationLettersDetailPage() {
       let loginFromUser: string | null = null;
       try {
         if (Number.isFinite(sid) && sid > 0) {
-          const [ur, gr] = await Promise.allSettled([
-            getUserById(sid),
+          const [loginRes, gr] = await Promise.allSettled([
+            getLoginIdByUserId(sid),
             getGuardianByUserId(sid),
           ]);
-          if (ur.status === 'fulfilled' && ur.value) {
-            loginFromUser = ur.value.loginId?.trim() ?? null;
+          if (loginRes.status === 'fulfilled' && loginRes.value?.trim()) {
+            loginFromUser = loginRes.value.trim();
           }
           if (gr.status === 'fulfilled' && gr.value?.name?.trim()) {
             senderName = gr.value.name.trim();
@@ -121,13 +148,16 @@ export function AppreciationLettersDetailPage() {
             getTeacher(letter.targetId),
             getKindergarten(letter.kindergartenId),
           ]);
-          summary = `${trow.name} · ${krow.name} (교사 ID ${letter.targetId})`;
+          // 공개 범위: 교사 ID는 숨김
+          summary = `${trow.name} · ${krow.name}`;
         } else {
           const krow = await getKindergarten(letter.targetId);
-          summary = `${krow.name} (유치원 ID ${letter.targetId})`;
+          // 공개 범위: 유치원 ID도 함께 숨김(기본값은 이름만 표시)
+          summary = `${krow.name}`;
         }
       } catch {
-        summary = `${targetTypeLabel(letter.targetType)} · ID ${letter.targetId}`;
+        // 조회 실패 시에도 ID를 노출하지 않음
+        summary = `${targetTypeLabel(letter.targetType)}`;
       }
       if (!cancelled) setTargetSummary(summary);
       if (!cancelled) setMetaLoading(false);
@@ -152,43 +182,189 @@ export function AppreciationLettersDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!Number.isFinite(id) || id <= 0) {
-      setLetter(null);
-      setError('유효하지 않은 감사 편지 ID입니다.');
-      setLoading(false);
-      return;
-    }
-
     const load = async () => {
       setLoading(true);
       setError('');
+      setResolvedClientSeq(null);
+      setResolvedLetterId(null);
+
+      if (isClientView) {
+        const cached = getClientCachedLetterBySeq(clientSeq!);
+        if (!cached) {
+          setLetter(null);
+          setError('작성 직후 캐시 글을 불러오지 못했습니다. 목록에서 다시 열어 주세요.');
+          setLoading(false);
+          return;
+        }
+        if (!viewerMaySeeAppreciationLetter(cached, user?.id, isAuthenticated)) {
+          setLetter(null);
+          setError('비공개 글입니다. 작성자 본인만 볼 수 있습니다.');
+          setLoading(false);
+          return;
+        }
+        setLetter(cached);
+        setResolvedClientSeq(clientSeq!);
+        setLoading(false);
+        return;
+      }
+
+      if (isSigView) {
+        type SigPayload = {
+          title: string;
+          senderUserId: number;
+          targetType: string;
+          targetId: number;
+        };
+
+        const parseSigPayload = (raw: string): SigPayload | null => {
+          try {
+            const parsed = JSON.parse(raw) as {
+              title?: unknown;
+              senderUserId?: unknown;
+              targetType?: unknown;
+              targetId?: unknown;
+            };
+            const title = typeof parsed?.title === 'string' ? parsed.title : null;
+            const senderUserId = Number(parsed?.senderUserId);
+            const targetType =
+              typeof parsed?.targetType === 'string' ? parsed.targetType : null;
+            const targetId = Number(parsed?.targetId);
+
+            if (title && Number.isFinite(senderUserId) && targetType && Number.isFinite(targetId)) {
+              return {
+                title,
+                senderUserId,
+                targetType: String(targetType).toUpperCase(),
+                targetId,
+              };
+            }
+          } catch {
+            // ignore
+          }
+          return null;
+        };
+
+        const payload = parseSigPayload(sig);
+        if (!payload) {
+          setLetter(null);
+          setError('잘못된 시그니처입니다.');
+          setLoading(false);
+          return;
+        }
+
+        // 1) 먼저 client cache에서 찾기 (작성 직후 빠른 열람)
+        const candidates = listClientCachedLetters();
+        const found = candidates.find(({ vo }) => {
+          return (
+            vo.title === payload.title &&
+            vo.senderUserId === payload.senderUserId &&
+            String(vo.targetType ?? '').toUpperCase() === payload.targetType &&
+            vo.targetId === payload.targetId
+          );
+        });
+
+        if (found) {
+          if (!viewerMaySeeAppreciationLetter(found.vo, user?.id, isAuthenticated)) {
+            setLetter(null);
+            setError('비공개 글입니다. 작성자 본인만 볼 수 있습니다.');
+            setResolvedClientSeq(null);
+            setResolvedLetterId(null);
+            setLoading(false);
+            return;
+          }
+          setLetter(found.vo);
+          setResolvedClientSeq(found.seq);
+          setLoading(false);
+          return;
+        }
+
+        // 2) cache에 없으면 백엔드(DB)에서 실제 id를 찾아서 상세 표시
+        const MAX_RESOLVE_ID = 200;
+        for (let did = 1; did <= MAX_RESOLVE_ID; did++) {
+          let detail: AppreciationLetterVO | null = null;
+          try {
+            detail = await getAppreciationLetterDetail(did);
+          } catch {
+            // 해당 id가 없을 수 있음
+          }
+          if (!detail) continue;
+
+          const isMatch =
+            detail.title === payload.title &&
+            detail.senderUserId === payload.senderUserId &&
+            String(detail.targetType ?? '').toUpperCase() === payload.targetType &&
+            detail.targetId === payload.targetId;
+
+          if (!isMatch) continue;
+
+          if (!viewerMaySeeAppreciationLetter(detail, user?.id, isAuthenticated)) {
+            setLetter(null);
+            setError('비공개 글입니다. 작성자 본인만 볼 수 있습니다.');
+            setResolvedClientSeq(null);
+            setResolvedLetterId(null);
+            setLoading(false);
+            return;
+          }
+
+          setLetter(detail);
+          setResolvedLetterId(did);
+          setLoading(false);
+          return;
+        }
+
+        setLetter(null);
+        setError('해당 글을 찾지 못했습니다. 목록에서 다시 열어 주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (!Number.isFinite(id) || id <= 0) {
+        setLetter(null);
+        setError('유효하지 않은 감사 편지 ID입니다.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const detail = await getAppreciationLetterDetail(id);
-        setLetter(detail);
-      } catch (e) {
-        console.warn('감사 편지 상세 조회 실패 — 데모 데이터를 시도합니다.', e);
-        const dummy = getDummyAppreciationLetterById(id);
-        if (dummy) {
-          setLetter(dummy);
-          setError('');
-        } else {
-          setError('감사 편지를 불러오지 못했습니다.');
+        if (!viewerMaySeeAppreciationLetter(detail, user?.id, isAuthenticated)) {
           setLetter(null);
+          setError('비공개 글입니다. 작성자 본인만 볼 수 있습니다.');
+        } else {
+          setLetter(detail);
         }
+      } catch (e) {
+        console.warn('감사 편지 상세 조회 실패:', e);
+        setError('감사 편지를 불러오지 못했습니다.');
+        setLetter(null);
       } finally {
         setLoading(false);
       }
     };
 
     void load();
-  }, [id]);
+  }, [id, clientSeq, isClientView, sig, isSigView, user?.id, isAuthenticated]);
 
   const handleDeleteConfirm = async () => {
     if (!letter || !canEdit) return;
     setDeleteConfirmOpen(false);
     setDeleting(true);
     try {
-      await deleteAppreciationLetter(letter.letterId);
+      if (resolvedClientSeq != null) {
+        removeClientCachedLetter(resolvedClientSeq);
+        toast.success('삭제되었습니다.');
+        router.push('/letters');
+        return;
+      }
+
+      if (resolvedLetterId != null) {
+        await deleteAppreciationLetter(resolvedLetterId);
+      } else if (Number.isFinite(id) && id > 0) {
+        await deleteAppreciationLetter(id);
+      } else {
+        toast.error('삭제할 수 없습니다. 목록에서 다시 열어 주세요.');
+        return;
+      }
       toast.success('삭제되었습니다.');
       router.push('/letters');
     } catch (e) {
@@ -212,13 +388,23 @@ export function AppreciationLettersDetailPage() {
           </Link>
           {hydrated && !loading && !error && letter && canEdit && (
             <div className="flex items-center gap-2">
-              <Link
-                href={`/letters/edit?id=${letter.letterId}`}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50"
-              >
-                <Pencil className="h-4 w-4" />
-                수정
-              </Link>
+              {(resolvedClientSeq != null ||
+                (resolvedLetterId != null && Number.isFinite(resolvedLetterId)) ||
+                (Number.isFinite(id) && id > 0)) && (
+                <Link
+                  href={
+                    resolvedClientSeq != null
+                      ? `/letters/edit?cid=${resolvedClientSeq}`
+                      : resolvedLetterId != null
+                        ? `/letters/edit?id=${resolvedLetterId}`
+                        : `/letters/edit?id=${id}`
+                  }
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                  수정
+                </Link>
+              )}
               <button
                 type="button"
                 disabled={deleting}
@@ -259,24 +445,6 @@ export function AppreciationLettersDetailPage() {
                         <span className="text-slate-400">—</span>
                       )}
                     </span>
-                    <span className="text-slate-300" aria-hidden>
-                      |
-                    </span>
-                    <span>
-                      <span className="text-slate-600">로그인 ID</span>{' '}
-                      <span className="font-mono font-medium text-slate-900">
-                        {metaLoading ? '…' : senderLoginId ?? '—'}
-                      </span>
-                    </span>
-                    <span className="text-slate-300" aria-hidden>
-                      |
-                    </span>
-                    <span>
-                      <span className="text-slate-600">회원 ID</span>{' '}
-                      <span className="font-mono font-medium text-slate-900">
-                        {letter.senderUserId}
-                      </span>
-                    </span>
                   </p>
                   {hydrated &&
                     user &&
@@ -285,7 +453,7 @@ export function AppreciationLettersDetailPage() {
                     )}
                   {hydrated && user && !isSameAppreciationLetterAuthor(user.id, letter.senderUserId) && (
                     <p className="mt-2 text-xs text-slate-500">
-                      수정·삭제는 작성자 회원 ID와 동일한 계정으로 로그인한 경우에만 가능합니다.
+                      수정·삭제는 작성자 본인 계정으로 로그인한 경우에만 가능합니다.
                     </p>
                   )}
                 </div>
@@ -301,10 +469,10 @@ export function AppreciationLettersDetailPage() {
                     ? ` — ${targetSummary}`
                     : metaLoading
                       ? ' — 이름 불러오는 중…'
-                      : ` — ID ${letter.targetId}`}
+                      : ''}
                 </span>
                 <span className="text-gray-300">|</span>
-                <span>{letter.isPublic ? '공개' : '비공개'}</span>
+                <span>{isAppreciationLetterPublic(letter) ? '공개' : '비공개'}</span>
                 <span className="text-gray-300">|</span>
                 <span>상태: {letterStatusLabel(letter.status)}</span>
               </div>
