@@ -280,8 +280,8 @@ if __name__ == "__main__":
     data_dir = (base_dir / "../data").resolve()
 
     build_manifest_with_split(
-        root_dir=str(data_dir / "이상행동 CCTV 영상"),
-        out_csv=str(data_dir / "manifest.csv"),
+        root_dir=str(data_dir / "raw/이상행동 CCTV 영상"),
+        out_csv=str(data_dir / "processed/manifest.csv"),
         train_ratio=0.8,
         val_ratio=0.1,
         test_ratio=0.1,
