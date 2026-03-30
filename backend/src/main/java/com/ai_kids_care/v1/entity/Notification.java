@@ -75,7 +75,6 @@ public class Notification {
 
     @CreationTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 

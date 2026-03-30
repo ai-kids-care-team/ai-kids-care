@@ -88,13 +88,11 @@ public class Teacher {
 
     @CreationTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
     @UpdateTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 }
