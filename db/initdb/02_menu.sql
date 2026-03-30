@@ -39,6 +39,7 @@ COMMENT ON COLUMN menu.is_active IS '메뉴 활성 여부';
 COMMENT ON COLUMN menu.created_at IS '생성 일시';
 COMMENT ON COLUMN menu.updated_at IS '수정 일시';
 
+
 INSERT INTO public.menu (
     parent_id,
     menu_name,
@@ -66,10 +67,10 @@ VALUES
     (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'TEACHER', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, 'AI알림', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
     (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'KINDERGARTEN_ADMIN', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'TEACHER', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
