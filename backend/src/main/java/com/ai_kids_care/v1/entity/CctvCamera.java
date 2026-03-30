@@ -58,13 +58,11 @@ public class CctvCamera {
 
     @CreationTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
     @UpdateTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 

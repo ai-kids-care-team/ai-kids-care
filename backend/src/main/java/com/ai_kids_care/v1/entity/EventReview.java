@@ -50,7 +50,6 @@ public class EventReview {
 
     @CreationTimestamp
     @ColumnDefault("now()")
-    @NotNull
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
