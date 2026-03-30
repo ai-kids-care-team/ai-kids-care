@@ -1,0 +1,4 @@
+transformers==5.4.0
+av==17.0.0
+torch==2.11.0+cu130
+torchvision==0.26.0+cu130

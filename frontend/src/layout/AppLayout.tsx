@@ -4,7 +4,7 @@ import { TopBar } from '@/layout/TopBar';
 import { useAppSelector, useAppDispatch } from '@/store/hook';
 import { setCredentials, logout } from '@/store/slices/userSlice';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import type { UserRole } from '@/types/user-role';
 import { Toaster } from '@/components/shared/ui/sonner';
 
@@ -17,10 +17,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const hiddenTopBarRoutes = ['/forgot-password', '/reset-password'];
     const shouldShowTopBar = !hiddenTopBarRoutes.includes(pathname);
     const contentOverflowClass = 'overflow-auto';
-    const currentRole: UserRole = user?.role ?? 'GUARDIAN';
-    const username = user?.name ?? user?.username ?? '게스트';
+    /** localStorage는 클라이언트 전용이라 첫 렌더에서 읽으면 SSR과 HTML이 달라 하이드레이션 오류가 난다. 세션 표시는 Redux만 사용하고, 아래 useLayoutEffect에서 스토어를 복구한다. */
+    const sessionUser = user;
+    const hasSession = Boolean(sessionUser);
+    const currentRole: UserRole = sessionUser?.role ?? 'GUARDIAN';
+    const username = sessionUser?.name ?? sessionUser?.username ?? '게스트';
+    /** 로그인 세션이 없을 때만 ALL — `user`만 비고 localStorage에 유저가 있으면 역할 그대로 */
+    const menuRoleType = hasSession ? sessionUser!.role : 'ANONYMOUS';
 
-    useEffect(() => {
+    /** `useEffect`보다 먼저 실행되어 첫 페인트 전에 Redux에 세션을 복구해, 메뉴 API가 ALL→역할로 두 번 호출되는 것을 막는다. */
+    useLayoutEffect(() => {
         if (typeof window === 'undefined' || user) return;
 
         try {
@@ -47,16 +53,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }, [dispatch, user]);
 
     return (
-        <div className="h-screen flex flex-col">
+        <div className="flex h-screen min-h-0 flex-col">
 
             {shouldShowTopBar && (
-                <TopBar
-                    currentRole={currentRole}
-                    username={username}
-                />
+                <header className="shrink-0">
+                    <TopBar
+                        currentRole={currentRole}
+                        username={username}
+                        menuRoleType={menuRoleType}
+                        hasSession={hasSession}
+                    />
+                </header>
             )}
 
-            <div id="app-scroll-container" className={`flex-1 ${contentOverflowClass}`}>
+            <div
+                id="app-scroll-container"
+                className={`min-h-0 flex-1 ${contentOverflowClass}`}
+            >
                 {children}
             </div>
 

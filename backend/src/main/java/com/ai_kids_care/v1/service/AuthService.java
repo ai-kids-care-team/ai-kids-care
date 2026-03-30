@@ -117,7 +117,7 @@ public class AuthService {
     public TokenVO login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid loginId/email/phone or password");
         }
 
@@ -174,13 +174,15 @@ public class AuthService {
                 .guardianId(guardian.getId())
                 .build();
 
+        boolean primaryGuardian = !Boolean.FALSE.equals(request.getIsPrimaryGuardian());
         ChildGuardianRelationship childGuardianRelationship = ChildGuardianRelationship.builder()
                 .id(relationshipId)
                 .kindergarten(kg)
                 .children(child)
                 .guardians(guardian)
                 .relationship(request.getRelationship())
-                .isPrimary(request.getIsPrimaryGuardian())
+                .isPrimary(primaryGuardian)
+                .priority(primaryGuardian ? 1 : 2)
                 .startDate(LocalDate.now())
                 .endDate(null)
                 .createdAt(OffsetDateTime.now())
@@ -214,7 +216,8 @@ public class AuthService {
                 .rrnEncrypted(passwordEncoder.encode(request.getRrnBack7()))
                 .rrnFirst6(request.getRrnFirst6())
                 .level(request.getLevel())
-                .startDate(null)
+                .staffNo(request.getStaffNo())
+                .startDate(LocalDate.now())
                 .endDate(null)
                 .status(StatusEnum.ACTIVE)
                 .createdAt(OffsetDateTime.now())
