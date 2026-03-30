@@ -8,7 +8,7 @@ import { Heart, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { createAppreciationLetter } from '@/services/apis/appreciationLetters.api';
 import type { KindergartenVO } from '@/services/apis/kindergartens.api';
-import type { TeacherVO } from '@/services/apis/teachers.api';
+import { normalizeTeacherVO, type TeacherApiRow, type TeacherVO } from '@/services/apis/teachers.api';
 import type { AppreciationTargetType } from '@/types/appreciationLetter';
 import { useAppSelector } from '@/store/hook';
 import { canWriteAppreciationLetters } from '@/types/user-role';
@@ -65,16 +65,17 @@ export function AppreciationLettersWritePage() {
   };
 
   const handleSelectTeacher = (row: TeacherVO) => {
-    const tid = Number(row.teacherId);
-    const kid = Number(row.kindergartenId);
-    if (!Number.isFinite(tid) || tid <= 0 || !Number.isFinite(kid) || kid <= 0) {
+    const n = normalizeTeacherVO(row as TeacherApiRow);
+    const tid = n.teacherId;
+    const kid = n.kindergartenId;
+    if (tid <= 0 || kid <= 0) {
       toast.error('교사 정보가 올바르지 않습니다. 새로고침 후 다시 선택해 주세요.');
       return;
     }
     setTargetType('TEACHER');
     setKindergartenId(kid);
     setTargetId(tid);
-    setTargetLabel(`${row.name} (교사)`);
+    setTargetLabel(`${n.name} (교사)`);
   };
 
   const handleSubmit = async (e: FormEvent) => {

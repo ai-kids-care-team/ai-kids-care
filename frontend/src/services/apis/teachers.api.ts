@@ -21,7 +21,7 @@ export type TeacherVO = {
   updatedAt: string | null;
 };
 
-type TeacherApiRow = TeacherVO & {
+export type TeacherApiRow = TeacherVO & {
   id?: number;
   kindergarten_id?: number;
   user_id?: number;
@@ -39,28 +39,45 @@ function firstPositiveLong(...vals: unknown[]): number | undefined {
   return undefined;
 }
 
-/** 목록·상세 공통: camelCase / snake_case / 레거시 `id` 보정 */
-export function normalizeTeacherVO(raw: TeacherApiRow): TeacherVO {
+/**
+ * 백엔드 `TeacherMapper`가 `teacherId`를 채우지 않는 경우(항상 null) 대비.
+ * 시드 기준: 원1 교사 user 101–120 → teacher_id 1–20, 원2 401–420 → 21–40, 원3 701–720 → 41–60.
+ */
+function inferTeacherIdFromUserAndKindergarten(
+  userId: number,
+  kindergartenId: number,
+): number | undefined {
+  if (userId <= 0 || kindergartenId <= 0) return undefined;
+  if (kindergartenId === 1 && userId >= 101 && userId <= 120) return userId - 100;
+  if (kindergartenId === 2 && userId >= 401 && userId <= 420) return userId - 380;
+  if (kindergartenId === 3 && userId >= 701 && userId <= 720) return userId - 660;
+  return undefined;
+}
+
+export type NormalizeTeacherOptions = { fallbackKindergartenId?: number };
+
+/** 목록·상세 공통: camelCase / snake_case / 레거시 `id` 보정 + teacherId 누락 시 추론 */
+export function normalizeTeacherVO(
+  raw: TeacherApiRow,
+  options?: NormalizeTeacherOptions,
+): TeacherVO {
   const r = raw as Record<string, unknown>;
-  const teacherId =
-    firstPositiveLong(
-      raw.teacherId,
-      raw.id,
-      r.teacher_id,
-      r.teacherId,
-    ) ?? 0;
-  const kindergartenId =
-    firstPositiveLong(
-      raw.kindergartenId,
-      raw.kindergarten_id,
-      r.kindergarten_id,
-    ) ?? 0;
-  const userId =
-    firstPositiveLong(
-      raw.userId,
-      raw.user_id,
-      r.user_id,
-    ) ?? 0;
+  let kindergartenId =
+    firstPositiveLong(raw.kindergartenId, raw.kindergarten_id, r.kindergarten_id) ?? 0;
+  if (
+    kindergartenId <= 0 &&
+    options?.fallbackKindergartenId != null &&
+    options.fallbackKindergartenId > 0
+  ) {
+    kindergartenId = options.fallbackKindergartenId;
+  }
+  const userId = firstPositiveLong(raw.userId, raw.user_id, r.user_id) ?? 0;
+  let teacherId =
+    firstPositiveLong(raw.teacherId, r.teacher_id, raw.id, r.teacherId) ?? 0;
+  if (teacherId <= 0 && userId > 0 && kindergartenId > 0) {
+    const inferred = inferTeacherIdFromUserAndKindergarten(userId, kindergartenId);
+    if (inferred != null) teacherId = inferred;
+  }
   return {
     ...raw,
     teacherId,
@@ -86,14 +103,15 @@ export async function searchTeachers(params: {
 }): Promise<PageResponse<TeacherVO>> {
   const page = params.page ?? 0;
   const size = params.size ?? 20;
-  const keyword = params.keyword?.trim();
+  /* 백엔드 `findByNameContains`는 keyword=null 일 때 목록이 비는 경우가 있어 항상 전송 */
+  const keyword = params.keyword?.trim() ?? '';
   const sort = params.sort;
   const kgId = params.kindergartenId;
   const res = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
     params: {
       page,
       size,
-      ...(keyword ? { keyword } : {}),
+      keyword,
       ...(kgId != null && Number.isFinite(kgId) ? { kindergartenId: kgId } : {}),
       ...(sort ? { sort } : {}),
     },

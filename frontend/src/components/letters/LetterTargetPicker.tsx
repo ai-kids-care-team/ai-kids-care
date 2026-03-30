@@ -3,7 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { searchKindergartens, type KindergartenVO } from '@/services/apis/kindergartens.api';
-import { normalizeTeacherVO, searchTeachers, type TeacherVO } from '@/services/apis/teachers.api';
+import {
+  normalizeTeacherVO,
+  searchTeachers,
+  type TeacherApiRow,
+  type TeacherVO,
+} from '@/services/apis/teachers.api';
 import type { AppreciationTargetType } from '@/types/appreciationLetter';
 
 const LIST_PAGE_SIZE = 100;
@@ -104,10 +109,10 @@ export function LetterTargetPicker({
       setLoading(true);
       setError('');
       try {
-        const keyword = appliedQuery.trim() || undefined;
+        const q = appliedQuery.trim();
         if (isKgTarget || teacherStepPickKg) {
           const page = await searchKindergartens({
-            keyword,
+            keyword: q,
             page: 0,
             size: LIST_PAGE_SIZE,
             sort: 'name,asc',
@@ -117,70 +122,40 @@ export function LetterTargetPicker({
           setTeacherRows([]);
           setTotalCount(page.totalElements ?? (page.content?.length ?? 0));
         } else if (teacherStepPickTeacher && pickedKgForTeacher) {
+          /* 백엔드는 kindergartenId 필터 없음 → 넉넉히 받아서 프론트에서 원만 필터 */
           const kgId = pickedKgForTeacher.kindergartenId;
-          let page = await searchTeachers({
-            keyword,
-            kindergartenId: kgId,
+          const kwLower = q.toLowerCase();
+          const page = await searchTeachers({
+            keyword: q,
             page: 0,
-            size: LIST_PAGE_SIZE,
+            size: TEACHER_FALLBACK_SIZE,
             sort: 'name,asc',
           });
           if (cancelled) return;
-          let content = page.content ?? [];
-          /* 백엔드 kindergartenId 필터 미배포·오류 대비: 전체 목록에서 해당 원만 필터 */
-          if (content.length === 0 && !keyword) {
-            const fallback = await searchTeachers({
-              page: 0,
-              size: TEACHER_FALLBACK_SIZE,
-              sort: 'name,asc',
-            });
-            if (cancelled) return;
-            content = (fallback.content ?? []).filter((t) => t.kindergartenId === kgId);
-            setTeacherRows(content);
-            setKindergartenRows([]);
-            setTotalCount(content.length);
-            return;
+          const normOpts =
+            kgId > 0 ? ({ fallbackKindergartenId: kgId } as const) : undefined;
+          let content = (page.content ?? []).map((row) =>
+            normalizeTeacherVO(row as TeacherApiRow, normOpts),
+          );
+          content = content.filter((t) => t.kindergartenId === kgId);
+          if (kwLower) {
+            content = content.filter(
+              (t) =>
+                (t.name || '').toLowerCase().includes(kwLower) ||
+                String(t.teacherId).includes(kwLower),
+            );
           }
           setTeacherRows(content);
           setKindergartenRows([]);
-          setTotalCount(page.totalElements ?? content.length);
+          setTotalCount(content.length);
         }
       } catch (e) {
         if (cancelled) return;
         console.warn('대상 목록 조회 실패:', e);
-        if (teacherStepPickTeacher && pickedKgForTeacher) {
-          try {
-            const kgId = pickedKgForTeacher.kindergartenId;
-            const fallback = await searchTeachers({
-              page: 0,
-              size: TEACHER_FALLBACK_SIZE,
-              sort: 'name,asc',
-            });
-            if (cancelled) return;
-            const kw = (appliedQuery.trim() || '').toLowerCase();
-            let content = (fallback.content ?? []).filter((t) => t.kindergartenId === kgId);
-            if (kw) {
-              content = content.filter(
-                (t) =>
-                  t.name.toLowerCase().includes(kw) || String(t.teacherId).includes(kw),
-              );
-            }
-            setTeacherRows(content);
-            setKindergartenRows([]);
-            setTotalCount(content.length);
-            setError('');
-          } catch {
-            setError('목록을 불러오지 못했습니다. 백엔드 연결을 확인해 주세요.');
-            setKindergartenRows([]);
-            setTeacherRows([]);
-            setTotalCount(0);
-          }
-        } else {
-          setError('목록을 불러오지 못했습니다. 백엔드 연결을 확인해 주세요.');
-          setKindergartenRows([]);
-          setTeacherRows([]);
-          setTotalCount(0);
-        }
+        setError('목록을 불러오지 못했습니다. 백엔드 연결을 확인해 주세요.');
+        setKindergartenRows([]);
+        setTeacherRows([]);
+        setTotalCount(0);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -388,9 +363,12 @@ export function LetterTargetPicker({
                   type="button"
                   onClick={() =>
                     onSelectTeacher(
-                      normalizeTeacherVO(
-                        row as TeacherVO & { id?: number; kindergarten_id?: number; user_id?: number },
-                      ),
+                      normalizeTeacherVO(row as TeacherApiRow, {
+                        fallbackKindergartenId:
+                          pickedKgForTeacher && pickedKgForTeacher.kindergartenId > 0
+                            ? pickedKgForTeacher.kindergartenId
+                            : undefined,
+                      }),
                     )
                   }
                   className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm transition-colors hover:bg-emerald-50"

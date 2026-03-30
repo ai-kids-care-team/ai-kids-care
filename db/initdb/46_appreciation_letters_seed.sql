@@ -1,5 +1,4 @@
--- 감사 편지 샘플 (21_users_seed, 24_kindergartens_seed, 30_teachers_seed, 29_guardians_seed 이후 실행)
--- letter_id는 프론트 오프라인 폴백(`lib/dummy-data/appreciationLetters`)과 맞춤
+-- 감사 편지 샘플 (21_users_seed, 24_kindergartens_seed, 30_teachers_seed, 29_guardians_seed 이후 실행
 --
 -- [시드 정합 규칙 — 21_users_seed / 30_teachers_seed / 29_guardians_seed 기준]
 --   전역: user_id 1~10 = 슈퍼어드민(superadmins). 감사편지 발신자로 쓰지 않음.

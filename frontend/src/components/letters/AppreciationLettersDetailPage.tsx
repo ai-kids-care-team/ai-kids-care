@@ -103,13 +103,13 @@ export function AppreciationLettersDetailPage() {
           }
         }
         if (!cancelled) {
-          setSenderLoginId(loginFromUser);
-          setSenderGuardianName(senderName);
+          setSenderLoginId(loginFromUser ?? letter.senderLoginId?.trim() ?? null);
+          setSenderGuardianName(senderName ?? letter.senderGuardianName?.trim() ?? null);
         }
       } catch {
         if (!cancelled) {
-          setSenderLoginId(null);
-          setSenderGuardianName(null);
+          setSenderLoginId(letter.senderLoginId?.trim() ?? null);
+          setSenderGuardianName(letter.senderGuardianName?.trim() ?? null);
         }
       }
 

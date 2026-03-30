@@ -15,10 +15,12 @@ apiClient.interceptors.request.use(
     /* localStorage + Redux: 로그인 직후·하이드레이션 타이밍에 한쪽만 채워질 수 있음 */
     let token: string | null = null;
     if (typeof window !== 'undefined') {
+      /* Redux(현재 세션) 우선 — 예전에 남은 만료 토큰이 localStorage에만 있으면 401이 반복되는 문제 방지 */
       token =
+        appStore.getState().user.token ??
         localStorage.getItem('accessToken') ??
         localStorage.getItem('token') ??
-        appStore.getState().user.token;
+        null;
     }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착

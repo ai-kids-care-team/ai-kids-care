@@ -11,9 +11,13 @@ import {
   updateAppreciationLetter,
 } from '@/services/apis/appreciationLetters.api';
 import { getKindergarten } from '@/services/apis/kindergartens.api';
-import { getTeacher } from '@/services/apis/teachers.api';
+import {
+  getTeacher,
+  normalizeTeacherVO,
+  type TeacherApiRow,
+  type TeacherVO,
+} from '@/services/apis/teachers.api';
 import type { KindergartenVO } from '@/services/apis/kindergartens.api';
-import type { TeacherVO } from '@/services/apis/teachers.api';
 import type { AppreciationTargetType } from '@/types/appreciationLetter';
 import { useAppSelector } from '@/store/hook';
 import { index as appStore } from '@/store/index';
@@ -70,10 +74,11 @@ export function AppreciationLettersEditPage() {
   };
 
   const handleSelectTeacher = (row: TeacherVO) => {
+    const n = normalizeTeacherVO(row as TeacherApiRow);
     setTargetType('TEACHER');
-    setKindergartenId(row.kindergartenId);
-    setTargetId(row.teacherId);
-    setTargetLabel(`${row.name} (교사)`);
+    setKindergartenId(n.kindergartenId);
+    setTargetId(n.teacherId);
+    setTargetLabel(`${n.name} (교사)`);
   };
 
   useEffect(() => {

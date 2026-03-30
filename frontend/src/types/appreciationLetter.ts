@@ -19,6 +19,13 @@ export type AppreciationLetterVO = {
   status: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * 오프라인 더미(`lib/dummy-data/appreciationLetters`) 전용. API 응답에는 없을 수 있음.
+   * 상세 화면에서 `getUserById` 실패 시 로그인 ID 표시용.
+   */
+  senderLoginId?: string;
+  /** 더미 전용. API 실패 시 작성자 이름 폴백. */
+  senderGuardianName?: string;
 };
 
 export const APPRECIATION_LETTER_STATUS_OPTIONS: { value: AppreciationLetterStatus; label: string }[] = [
