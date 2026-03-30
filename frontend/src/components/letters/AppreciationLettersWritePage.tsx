@@ -15,7 +15,8 @@ import { canWriteAppreciationLetters } from '@/types/user-role';
 import { openLoginModal } from '@/utils/auth-modal';
 import { GuardianAuthorCard } from './GuardianAuthorCard';
 import { LetterTargetPicker } from './LetterTargetPicker';
-import { getApiErrorMessage } from '@/lib/api-error-message';
+import { getApiErrorMessage } from './api-error-message';
+import { pushClientAppreciationLetter } from './appreciation-letter-client-cache';
 
 export function AppreciationLettersWritePage() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function AppreciationLettersWritePage() {
   const [targetLabel, setTargetLabel] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -78,6 +79,12 @@ export function AppreciationLettersWritePage() {
     setTargetLabel(`${n.name} (교사)`);
   };
 
+  const handleClearLetterTarget = () => {
+    setKindergartenId(null);
+    setTargetId(null);
+    setTargetLabel('');
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -93,7 +100,7 @@ export function AppreciationLettersWritePage() {
 
     setSubmitting(true);
     try {
-      await createAppreciationLetter({
+      const created = await createAppreciationLetter({
         kindergartenId,
         senderUserId: senderNum,
         targetType,
@@ -102,6 +109,18 @@ export function AppreciationLettersWritePage() {
         content: content.trim(),
         isPublic,
         status: 'ACTIVE',
+      });
+      // 목록 API에서 PK 매핑이 누락될 수 있어, 방금 작성한 글을 캐시에 즉시 반영합니다.
+      pushClientAppreciationLetter({
+        kindergartenId,
+        senderUserId: senderNum,
+        targetType,
+        targetId,
+        title: title.trim(),
+        content: content.trim(),
+        isPublic,
+        status: 'ACTIVE',
+        senderLoginId: (user?.loginId || user?.username || '').trim() || undefined,
       });
       toast.success('등록되었습니다.');
       router.push('/letters');
@@ -164,7 +183,7 @@ export function AppreciationLettersWritePage() {
             </div>
           ) : (
             <form onSubmit={(ev) => void handleSubmit(ev)} className="space-y-5">
-              <GuardianAuthorCard footnote="이 계정(로그인 ID·회원 ID)으로 로그인한 경우에만 이 글을 수정·삭제할 수 있습니다." />
+              <GuardianAuthorCard footnote="이 글을 작성한 본인 계정으로 로그인한 경우에만 이 글을 수정·삭제할 수 있습니다." />
 
               <LetterTargetPicker
                 targetType={targetType}
@@ -173,6 +192,7 @@ export function AppreciationLettersWritePage() {
                 onSelectTeacher={handleSelectTeacher}
                 selectedDisplayText={targetLabel}
                 hasSelection={hasTarget}
+                onClearTarget={handleClearLetterTarget}
               />
 
               <p className="text-xs text-gray-500">
@@ -201,10 +221,17 @@ export function AppreciationLettersWritePage() {
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-                공개
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={!isPublic}
+                  onChange={(e) => setIsPublic(!e.target.checked)}
+                />
+                비공개 (나만 보기)
               </label>
+              <p className="text-xs text-slate-500">
+                체크하면 목록·상세에서 로그인한 작성자 본인에게만 보입니다.
+              </p>
 
               <div className="flex justify-end gap-2 border-t border-gray-100 pt-6">
                 <Link
