@@ -73,16 +73,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
 
       const responseLoginId = response?.loginId ?? formData.loginId;
-        const responseId = response?.id ?? formData.id;
+      const rawId = response?.id ?? formData.id;
+      const responseId =
+        rawId != null && rawId !== '' ? String(rawId) : '';
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
-      const name = response?.name;
+      const nameRaw = response?.name;
+      const nameFromApi =
+        typeof nameRaw === 'string' && nameRaw.trim() !== '' ? nameRaw.trim() : '';
 
       const user = {
-        id: responseId,
+        id: responseId || responseLoginId,
         loginId: responseLoginId,
         username: responseLoginId,
-        name: name || responseLoginId,
+        /** 토큰 응답에 이름이 없으면 로그인 ID로만 채움. 보호자 실명은 감사편지 등에서 `/guardians/by-user/{userId}` 사용 */
+        name: nameFromApi || responseLoginId,
         role: role as UserRole,
       };
 
@@ -91,6 +96,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       if (token) {
         localStorage.setItem('token', token);
         localStorage.setItem('accessToken', token);
+      }
+      const refresh = response?.refreshToken;
+      if (refresh) {
+        localStorage.setItem('refreshToken', refresh);
       }
       handleModalClose();
     } catch (err: any) {

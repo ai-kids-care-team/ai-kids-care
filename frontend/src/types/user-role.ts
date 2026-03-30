@@ -22,6 +22,11 @@ export function canManageAnnouncements(role: UserRole | string | null | undefine
   return (ANNOUNCEMENT_EDITOR_ROLES as readonly string[]).includes(role);
 }
 
+/** 감사 편지 작성·수정·삭제(본인 글) — 보호자(학부모)만 */
+export function canWriteAppreciationLetters(role: UserRole | string | null | undefined): boolean {
+  return role === 'GUARDIAN';
+}
+
 /** 공지 작성·수정 안내 문구용 — 기술 역할명 대신 화면용 한글명만 나열 */
 export function describeAnnouncementEditorRolesKorean(): string {
   return ANNOUNCEMENT_EDITOR_ROLES.map((r) => roleLabels[r]).join('·');

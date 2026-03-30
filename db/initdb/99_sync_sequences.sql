@@ -130,4 +130,9 @@ SELECT setval(pg_get_serial_sequence('"announcements"', 'id'),
               MAX("id") IS NOT NULL)
 FROM "announcements";
 
+SELECT setval(pg_get_serial_sequence('"appreciation_letters"', 'letter_id'),
+              COALESCE(MAX("letter_id"), 1),
+              MAX("letter_id") IS NOT NULL)
+FROM "appreciation_letters";
+
 COMMIT;
