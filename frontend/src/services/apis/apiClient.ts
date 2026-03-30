@@ -15,12 +15,16 @@ apiClient.interceptors.request.use(
     /* localStorage + Redux: 로그인 직후·하이드레이션 타이밍에 한쪽만 채워질 수 있음 */
     let token: string | null = null;
     if (typeof window !== 'undefined') {
+      const isAuthenticated = appStore.getState().user.isAuthenticated;
       /* Redux(현재 세션) 우선 — 예전에 남은 만료 토큰이 localStorage에만 있으면 401이 반복되는 문제 방지 */
-      token =
-        appStore.getState().user.token ??
-        localStorage.getItem('accessToken') ??
-        localStorage.getItem('token') ??
-        null;
+      // 게스트(로그아웃) 상태에서는 Authorization 헤더를 아예 붙이지 않음.
+      // (localStorage에 남아있는 과거 토큰이 있으면, 백엔드가 허용해도 프론트 UX가 꼬일 수 있음)
+      token = isAuthenticated
+        ? appStore.getState().user.token ??
+          localStorage.getItem('accessToken') ??
+          localStorage.getItem('token') ??
+          null
+        : null;
     }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착
