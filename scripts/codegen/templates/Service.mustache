@@ -19,11 +19,13 @@ public class {{entity_name}}Service {
     private final {{entity_name}}Repository repository;
     private final {{entity_name}}Mapper mapper;
 
+    @Transactional(readOnly = true)
     public Page<{{entity_name}}VO> list{{entity_name}}s(String keyword, Pageable pageable) {
         // TODO: filter {{entity_name}} by keyword
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
+    @Transactional(readOnly = true)
     public {{entity_name}}VO get{{entity_name}}(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
