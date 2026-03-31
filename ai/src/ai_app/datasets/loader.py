@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import gc
 import time
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,11 @@ class VideoClipManifestDataset(Dataset):
             num_frames: int = 16,
             sampling_rate: int = 4,
             train_random_sampling: bool = True,
+            decode_thread_type: str | None = None,
+            gc_collect_interval: int = 0,
+            skip_decode_errors: bool = False,
+            max_decode_retries: int = 8,
+            min_video_size_bytes: int = 0,
     ) -> None:
         super().__init__()
 
@@ -54,6 +60,14 @@ class VideoClipManifestDataset(Dataset):
         self.sampling_rate = sampling_rate
         self.clip_len = num_frames * sampling_rate
         self.train_random_sampling = train_random_sampling
+
+        self.decode_thread_type = decode_thread_type
+        self.gc_collect_interval = max(0, int(gc_collect_interval))
+        self.skip_decode_errors = skip_decode_errors
+        self.max_decode_retries = max(1, int(max_decode_retries))
+        self.min_video_size_bytes = max(0, int(min_video_size_bytes))
+        self._getitem_calls = 0
+        self._bad_sample_indices: set[int] = set()
 
         df = pd.read_csv(self.manifest_path)
         df = df[df["split"] == split].reset_index(drop=True)
@@ -66,8 +80,15 @@ class VideoClipManifestDataset(Dataset):
         if missing:
             raise ValueError(f"Missing required columns in manifest: {missing}")
 
-        # 比起每次 __getitem__ 用 iloc/Series，提前转 records 更轻
         self.records = df.to_dict("records")
+        if self.min_video_size_bytes > 0:
+            self.records = self._filter_small_or_missing_files(self.records)
+
+        if len(self.records) == 0:
+            raise ValueError(
+                f"No valid samples left for split='{split}' after filtering "
+                f"(min_video_size_bytes={self.min_video_size_bytes})."
+            )
 
         if label2id is None:
             labels = sorted(df["label"].dropna().unique().tolist())
@@ -81,33 +102,96 @@ class VideoClipManifestDataset(Dataset):
         return len(self.records)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
-        row = self.records[idx]
+        self._maybe_collect_gc()
 
-        video_path = str(row["video_path"])
-        label_name = str(row["label"])
-        label_id = self.label2id[label_name]
+        num_records = len(self.records)
+        current_idx = idx % num_records
+        max_tries = min(self.max_decode_retries, num_records) if self.skip_decode_errors else 1
+        last_error: Exception | None = None
 
-        frames = self._load_and_sample_frames(video_path)
-        inputs = self.processor(frames, return_tensors="pt")
+        for _ in range(max_tries):
+            if current_idx in self._bad_sample_indices:
+                current_idx = (current_idx + 1) % num_records
+                continue
 
-        sample = {
-            "pixel_values": inputs["pixel_values"].squeeze(0),  # [T, C, H, W]
-            "labels": torch.tensor(label_id, dtype=torch.long),
-            "label_name": label_name,
-            "video_path": video_path,
-        }
+            row = self.records[current_idx]
+            video_path = str(row["video_path"])
+            label_name = str(row["label"])
+            label_id = self.label2id[label_name]
 
-        for key in [
-            "source_video",
-            "clip_start_sec",
-            "clip_duration",
-            "event_start_sec",
-            "event_duration_sec",
-        ]:
-            if key in row and pd.notna(row[key]):
-                sample[key] = row[key]
+            try:
+                frames = self._load_and_sample_frames(video_path)
+                inputs = self.processor(frames, return_tensors="pt")
+            except Exception as exc:
+                last_error = exc
+                if not self.skip_decode_errors:
+                    raise
 
-        return sample
+                self._bad_sample_indices.add(current_idx)
+                if len(self._bad_sample_indices) <= 10:
+                    print(
+                        f"[WARN] split={self.split}: skip unreadable sample idx={current_idx} "
+                        f"path={video_path} ({type(exc).__name__}: {exc})"
+                    )
+                current_idx = (current_idx + 1) % num_records
+                continue
+
+            sample = {
+                "pixel_values": inputs["pixel_values"].squeeze(0),  # [T, C, H, W]
+                "labels": torch.tensor(label_id, dtype=torch.long),
+                "label_name": label_name,
+                "video_path": video_path,
+            }
+
+            for key in [
+                "source_video",
+                "clip_start_sec",
+                "clip_duration",
+                "event_start_sec",
+                "event_duration_sec",
+            ]:
+                if key in row and pd.notna(row[key]):
+                    sample[key] = row[key]
+
+            return sample
+
+        raise RuntimeError(
+            f"Failed to fetch a decodable sample for split='{self.split}' after {max_tries} tries. "
+            f"last_error={last_error}"
+        )
+
+    def _maybe_collect_gc(self) -> None:
+        self._getitem_calls += 1
+        if self.gc_collect_interval > 0 and self._getitem_calls % self.gc_collect_interval == 0:
+            gc.collect()
+
+    def _filter_small_or_missing_files(self, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        filtered_records = []
+        dropped_paths = []
+
+        for row in records:
+            video_path = Path(str(row["video_path"]))
+            try:
+                is_valid = video_path.is_file() and video_path.stat().st_size >= self.min_video_size_bytes
+            except OSError:
+                is_valid = False
+
+            if is_valid:
+                filtered_records.append(row)
+            else:
+                dropped_paths.append(str(video_path))
+
+        if dropped_paths:
+            print(
+                f"[WARN] split={self.split}: dropped {len(dropped_paths)} invalid/tiny clips "
+                f"(size < {self.min_video_size_bytes} bytes)."
+            )
+            for path in dropped_paths[:10]:
+                print(f"  - {path}")
+            if len(dropped_paths) > 10:
+                print("  - ...")
+
+        return filtered_records
 
     def _load_and_sample_frames(self, video_path: str) -> list[np.ndarray]:
         total_frames = self._probe_total_frames(video_path)
@@ -159,6 +243,9 @@ class VideoClipManifestDataset(Dataset):
         """
         container = av.open(video_path)
         try:
+            if not container.streams.video:
+                raise ValueError(f"No video stream found: {video_path}")
+
             stream = container.streams.video[0]
             if stream.frames and stream.frames > 0:
                 return int(stream.frames)
@@ -170,11 +257,9 @@ class VideoClipManifestDataset(Dataset):
         finally:
             container.close()
 
-    @staticmethod
-    def _decode_selected_frames_pyav(video_path: str, indices: list[int]) -> list[np.ndarray]:
+    def _decode_selected_frames_pyav(self, video_path: str, indices: list[int]) -> list[np.ndarray]:
         """
         Decode clip sequentially, but only convert requested frames to ndarray.
-        This is much cheaper than converting all frames.
         """
         if not indices:
             return []
@@ -187,10 +272,12 @@ class VideoClipManifestDataset(Dataset):
         decoded = {}
 
         try:
-            stream = container.streams.video[0]
+            if not container.streams.video:
+                raise ValueError(f"No video stream found: {video_path}")
 
-            # 开启 FFmpeg/PyAV 的多线程解码
-            stream.thread_type = "AUTO"
+            stream = container.streams.video[0]
+            if self.decode_thread_type:
+                stream.thread_type = self.decode_thread_type
 
             for i, frame in enumerate(container.decode(video=0)):
                 if i > max_index:
@@ -198,9 +285,10 @@ class VideoClipManifestDataset(Dataset):
 
                 if i in target_set:
                     decoded[i] = frame.to_ndarray(format="rgb24")
-
                     if len(decoded) == len(target_set):
                         break
+
+                del frame
         finally:
             container.close()
 

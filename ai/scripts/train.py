@@ -14,6 +14,7 @@ import random
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score
 from transformers import (
@@ -28,6 +29,7 @@ from src.ai_app.datasets.loader import (
     build_label_mappings,
     videomae_collate_fn,
 )
+from src.ai_app.training.callbacks import MemoryCleanupCallback
 
 
 def set_seed(seed: int = 42) -> None:
@@ -44,17 +46,69 @@ def compute_metrics(eval_pred):
     return {"accuracy": acc}
 
 
+def filter_manifest_by_file_size(
+        manifest_path: Path,
+        output_dir: Path,
+        min_video_size_bytes: int = 1024,
+) -> Path:
+    """
+    Drop missing/tiny video files before training starts.
+    """
+    df = pd.read_csv(manifest_path)
+
+    valid_mask = []
+    dropped_paths = []
+    for raw_path in df["video_path"].astype(str).tolist():
+        path = Path(raw_path)
+        try:
+            is_valid = path.is_file() and path.stat().st_size >= min_video_size_bytes
+        except OSError:
+            is_valid = False
+
+        valid_mask.append(is_valid)
+        if not is_valid:
+            dropped_paths.append(raw_path)
+
+    valid_df = df[np.array(valid_mask, dtype=bool)].reset_index(drop=True)
+    dropped_count = len(df) - len(valid_df)
+    if dropped_count == 0:
+        return manifest_path
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    filtered_manifest_path = output_dir / "manifest_clips_all.filtered.csv"
+    valid_df.to_csv(filtered_manifest_path, index=False, encoding="utf-8")
+
+    print(
+        f"[WARN] Dropped {dropped_count} missing/tiny clips "
+        f"(size < {min_video_size_bytes} bytes) before training."
+    )
+    for path in dropped_paths[:10]:
+        print(f"  - {path}")
+    if len(dropped_paths) > 10:
+        print("  - ...")
+    print(f"[INFO] Using filtered manifest: {filtered_manifest_path}")
+
+    return filtered_manifest_path
+
+
 def main():
     set_seed(42)
 
     project_root = Path(__file__).resolve().parent.parent
-    manifest_path = project_root / "data" / "processed" / "manifest_clips_binary.csv"
+    manifest_path = project_root / "data" / "processed" / "manifest_clips_all.csv"
     output_dir = project_root / "outputs" / "videomae_baseline"
 
     checkpoint = "MCG-NJU/videomae-base-finetuned-kinetics"
 
     num_frames = 16
     sampling_rate = 4
+    min_video_size_bytes = 1024
+
+    manifest_path = filter_manifest_by_file_size(
+        manifest_path=manifest_path,
+        output_dir=output_dir,
+        min_video_size_bytes=min_video_size_bytes,
+    )
 
     processor = VideoMAEImageProcessor.from_pretrained(checkpoint)
     label2id, id2label = build_label_mappings(manifest_path)
@@ -62,24 +116,30 @@ def main():
     print("label2id:", label2id)
     print("id2label:", id2label)
 
+    common_dataset_kwargs = {
+        "manifest_path": manifest_path,
+        "processor": processor,
+        "label2id": label2id,
+        "num_frames": num_frames,
+        "sampling_rate": sampling_rate,
+        "decode_thread_type": None,
+        "skip_decode_errors": True,
+        "max_decode_retries": 16,
+        "min_video_size_bytes": min_video_size_bytes,
+    }
+
     train_dataset = VideoClipManifestDataset(
-        manifest_path=manifest_path,
-        processor=processor,
-        label2id=label2id,
+        **common_dataset_kwargs,
         split="train",
-        num_frames=num_frames,
-        sampling_rate=sampling_rate,
         train_random_sampling=True,
+        gc_collect_interval=5,
     )
 
     eval_dataset = VideoClipManifestDataset(
-        manifest_path=manifest_path,
-        processor=processor,
-        label2id=label2id,
+        **common_dataset_kwargs,
         split="val",
-        num_frames=num_frames,
-        sampling_rate=sampling_rate,
         train_random_sampling=False,
+        gc_collect_interval=5,
     )
 
     print(f"train dataset size: {len(train_dataset)}")
@@ -123,6 +183,7 @@ def main():
         processing_class=processor,
         data_collator=videomae_collate_fn,
         compute_metrics=compute_metrics,
+        callbacks=[MemoryCleanupCallback(gc_every_n_steps=5)],
     )
 
     train_result = trainer.train()
