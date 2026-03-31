@@ -8,27 +8,6 @@
 from __future__ import annotations
 
 import time
-
-from tqdm import tqdm
-
-# !/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Simple VideoMAE loader for pre-extracted short clips.
-
-Expected manifest columns:
-- video_path
-- label
-- split
-
-Optional columns:
-- source_video
-- clip_start_sec
-- clip_duration
-- event_start_sec
-- event_duration_sec
-"""
-
 from pathlib import Path
 from typing import Any
 
@@ -37,17 +16,23 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 from transformers import VideoMAEImageProcessor
+
+
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 
 class VideoClipManifestDataset(Dataset):
     """
     Dataset for short pre-extracted video clips.
 
-    This loader assumes:
-    - videos are already clipped offline with FFmpeg
-    - each clip is short enough that decoding is manageable
-    - no event-region seeking is needed anymore
+    External interface is unchanged.
+    Internal optimization:
+    - do not convert all decoded frames to ndarray
+    - only keep selected frames
+    - enable PyAV threaded decode
     """
 
     def __init__(
@@ -81,10 +66,11 @@ class VideoClipManifestDataset(Dataset):
         if missing:
             raise ValueError(f"Missing required columns in manifest: {missing}")
 
-        self.df = df
+        # 比起每次 __getitem__ 用 iloc/Series，提前转 records 更轻
+        self.records = df.to_dict("records")
 
         if label2id is None:
-            labels = sorted(self.df["label"].dropna().unique().tolist())
+            labels = sorted(df["label"].dropna().unique().tolist())
             self.label2id = {label: idx for idx, label in enumerate(labels)}
         else:
             self.label2id = label2id
@@ -92,10 +78,10 @@ class VideoClipManifestDataset(Dataset):
         self.id2label = {v: k for k, v in self.label2id.items()}
 
     def __len__(self) -> int:
-        return len(self.df)
+        return len(self.records)
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
-        row = self.df.iloc[idx]
+        row = self.records[idx]
 
         video_path = str(row["video_path"])
         label_name = str(row["label"])
@@ -111,7 +97,6 @@ class VideoClipManifestDataset(Dataset):
             "video_path": video_path,
         }
 
-        # Optional metadata passthrough
         for key in [
             "source_video",
             "clip_start_sec",
@@ -119,24 +104,29 @@ class VideoClipManifestDataset(Dataset):
             "event_start_sec",
             "event_duration_sec",
         ]:
-            if key in row and not pd.isna(row[key]):
+            if key in row and pd.notna(row[key]):
                 sample[key] = row[key]
 
         return sample
 
     def _load_and_sample_frames(self, video_path: str) -> list[np.ndarray]:
-        frames = self._decode_video_pyav(video_path)
+        total_frames = self._probe_total_frames(video_path)
 
-        total_frames = len(frames)
-        if total_frames == 0:
-            raise ValueError(f"No frames decoded from video: {video_path}")
+        if total_frames <= 0:
+            raise ValueError(f"No frames found in video: {video_path}")
 
         indices = self._sample_frame_indices(
             total_frames=total_frames,
             is_train=(self.split == "train"),
         )
 
-        sampled_frames = [frames[i] for i in indices]
+        sampled_frames = self._decode_selected_frames_pyav(video_path, indices)
+
+        if len(sampled_frames) != len(indices):
+            raise ValueError(
+                f"Decoded {len(sampled_frames)} frames, but expected {len(indices)} from {video_path}"
+            )
+
         return sampled_frames
 
     def _sample_frame_indices(
@@ -144,16 +134,6 @@ class VideoClipManifestDataset(Dataset):
             total_frames: int,
             is_train: bool,
     ) -> list[int]:
-        """
-        Sample num_frames from a short clip.
-
-        Strategy:
-        - if clip is long enough for stride-based sampling:
-            - train: random offset
-            - val/test: center offset
-        - otherwise:
-            - evenly sample num_frames across the whole clip
-        """
         needed_len = self.clip_len
 
         if total_frames >= needed_len:
@@ -172,22 +152,65 @@ class VideoClipManifestDataset(Dataset):
         return indices.tolist()
 
     @staticmethod
-    def _decode_video_pyav(video_path: str) -> list[np.ndarray]:
+    def _probe_total_frames(video_path: str) -> int:
         """
-        Decode all frames from a short clip using PyAV.
-
-        Since clips are already pre-extracted and short,
-        decoding the full clip is acceptable and much simpler.
+        Fast path: use stream.frames if available.
+        Fallback: decode-count only when metadata is missing.
         """
         container = av.open(video_path)
-        frames = []
         try:
-            for frame in container.decode(video=0):
-                frames.append(frame.to_ndarray(format="rgb24"))
+            stream = container.streams.video[0]
+            if stream.frames and stream.frames > 0:
+                return int(stream.frames)
+
+            count = 0
+            for _ in container.decode(video=0):
+                count += 1
+            return count
         finally:
             container.close()
 
-        return frames
+    @staticmethod
+    def _decode_selected_frames_pyav(video_path: str, indices: list[int]) -> list[np.ndarray]:
+        """
+        Decode clip sequentially, but only convert requested frames to ndarray.
+        This is much cheaper than converting all frames.
+        """
+        if not indices:
+            return []
+
+        target_indices = sorted(set(int(i) for i in indices))
+        max_index = target_indices[-1]
+        target_set = set(target_indices)
+
+        container = av.open(video_path)
+        decoded = {}
+
+        try:
+            stream = container.streams.video[0]
+
+            # 开启 FFmpeg/PyAV 的多线程解码
+            stream.thread_type = "AUTO"
+
+            for i, frame in enumerate(container.decode(video=0)):
+                if i > max_index:
+                    break
+
+                if i in target_set:
+                    decoded[i] = frame.to_ndarray(format="rgb24")
+
+                    if len(decoded) == len(target_set):
+                        break
+        finally:
+            container.close()
+
+        missing = [i for i in indices if i not in decoded]
+        if missing:
+            raise ValueError(
+                f"Failed to decode target frames {missing[:10]} from video: {video_path}"
+            )
+
+        return [decoded[i] for i in indices]
 
 
 def build_label_mappings(
@@ -209,7 +232,6 @@ def videomae_collate_fn(batch: list[dict[str, Any]]) -> dict[str, Any]:
         "labels": labels,  # [B]
     }
 
-    # Optional debug metadata
     if "label_name" in batch[0]:
         output["label_name"] = [item["label_name"] for item in batch]
     if "video_path" in batch[0]:
@@ -219,7 +241,7 @@ def videomae_collate_fn(batch: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    manifest_path = "../../../data/processed/manifest_clips.csv"
+    manifest_path = "../../../data/processed/manifest_clips_all.csv"
     checkpoint = "MCG-NJU/videomae-base-finetuned-kinetics"
 
     processor = VideoMAEImageProcessor.from_pretrained(checkpoint)
