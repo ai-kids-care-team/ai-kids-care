@@ -103,6 +103,11 @@ def main():
     num_frames = 16
     sampling_rate = 4
     min_video_size_bytes = 1024
+    gc_collect_interval = 20
+    gc_every_n_steps = 20
+    dataloader_num_workers = 8
+    dataloader_persistent_workers = dataloader_num_workers > 0
+    dataloader_prefetch_factor = 4 if dataloader_num_workers > 0 else None
 
     manifest_path = filter_manifest_by_file_size(
         manifest_path=manifest_path,
@@ -132,14 +137,14 @@ def main():
         **common_dataset_kwargs,
         split="train",
         train_random_sampling=True,
-        gc_collect_interval=5,
+        gc_collect_interval=gc_collect_interval,
     )
 
     eval_dataset = VideoClipManifestDataset(
         **common_dataset_kwargs,
         split="val",
         train_random_sampling=False,
-        gc_collect_interval=5,
+        gc_collect_interval=gc_collect_interval,
     )
 
     print(f"train dataset size: {len(train_dataset)}")
@@ -171,7 +176,10 @@ def main():
         weight_decay=0.05,
         warmup_ratio=0.1,
         fp16=torch.cuda.is_available(),
-        dataloader_num_workers=0,
+        dataloader_num_workers=dataloader_num_workers,
+        dataloader_pin_memory=True,
+        dataloader_persistent_workers=dataloader_persistent_workers,
+        dataloader_prefetch_factor=dataloader_prefetch_factor,
         report_to="none",
     )
 
@@ -183,7 +191,7 @@ def main():
         processing_class=processor,
         data_collator=videomae_collate_fn,
         compute_metrics=compute_metrics,
-        callbacks=[MemoryCleanupCallback(gc_every_n_steps=5)],
+        callbacks=[MemoryCleanupCallback(gc_every_n_steps=gc_every_n_steps)],
     )
 
     train_result = trainer.train()

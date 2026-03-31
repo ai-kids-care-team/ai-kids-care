@@ -68,6 +68,7 @@ class VideoClipManifestDataset(Dataset):
         self.min_video_size_bytes = max(0, int(min_video_size_bytes))
         self._getitem_calls = 0
         self._bad_sample_indices: set[int] = set()
+        self._total_frames_cache: dict[str, int] = {}
 
         df = pd.read_csv(self.manifest_path)
         df = df[df["split"] == split].reset_index(drop=True)
@@ -194,7 +195,10 @@ class VideoClipManifestDataset(Dataset):
         return filtered_records
 
     def _load_and_sample_frames(self, video_path: str) -> list[np.ndarray]:
-        total_frames = self._probe_total_frames(video_path)
+        total_frames = self._total_frames_cache.get(video_path)
+        if total_frames is None:
+            total_frames = self._probe_total_frames(video_path)
+            self._total_frames_cache[video_path] = total_frames
 
         if total_frames <= 0:
             raise ValueError(f"No frames found in video: {video_path}")
