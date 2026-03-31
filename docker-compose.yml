@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:16
+    build:
+      context: ./db
+      dockerfile: Dockerfile
     container_name: ai-kids-postgres
     restart: always
     environment:
@@ -13,7 +15,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/initdb:/docker-entrypoint-initdb.d
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kids_user} -d ${POSTGRES_DB:-kids_postgres_db}" ]
       interval: 5s
