@@ -170,7 +170,7 @@ def main():
         logging_steps=10,
         save_total_limit=2,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_macro_f1",
+        metric_for_best_model="eval_accuracy",
         greater_is_better=True,
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
