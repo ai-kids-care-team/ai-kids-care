@@ -12,13 +12,13 @@ import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
-import { useGetMenusQuery } from '@/services/apis/menu.api';
+import { useGetMenusQuery, type MenuItem } from '@/services/apis/menu.api';
 import { LoginModal } from '@/components/home/LoginModal';
 
 interface TopBarProps {
   currentRole: UserRole;
   username: string;
-  /** `/menus?roleType=` — 세션 없으면 ALL */
+  /** `/menus?roleType=` — 세션 없으면 `ANONYMOUS` (`02_menu.sql`) */
   menuRoleType: string;
   hasSession: boolean;
 }
@@ -38,31 +38,11 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
     { menuId: -1, menuName: '홈', path: '/' },
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
-  const renderedMenus =
+  /** `02_menu.sql` + `/menus` — API 실패·빈 응답 시에만 홈·공지 폴백(ANONYMOUS 시드와 동일 구성). */
+  const renderedMenus: MenuItem[] =
     menuItems.length > 0
       ? menuItems
-      : fallbackMenus;
-
-  // 게스트도 공개 감사편지는 반드시 볼 수 있어야 함.
-  // 백엔드 메뉴 시드가 ANONYMOUS에 대해 비어있을 수 있으므로 프론트에서 최소 링크를 보강.
-  const ensuredMenus = (() => {
-    if (!isGuest) return renderedMenus;
-    const alreadyHasLetters = renderedMenus.some(
-      (m) => m.path === '/letters' || m.path === '/appreciationLetter',
-    );
-    if (alreadyHasLetters) return renderedMenus;
-
-    // "로그인했을 때"와 같은 위치로 보이도록 `공지사항(/announcements)` 바로 앞에 삽입.
-    const insertIndex = renderedMenus.findIndex((m) => m.path === '/announcements');
-    const appreciationMenu = { menuId: -99, menuName: '감사편지', path: '/letters' };
-
-    if (insertIndex >= 0) {
-      return [...renderedMenus.slice(0, insertIndex), appreciationMenu, ...renderedMenus.slice(insertIndex)];
-    }
-
-    // 공지사항 메뉴가 없으면 마지막에 추가
-    return [...renderedMenus, appreciationMenu];
-  })();
+      : (fallbackMenus as MenuItem[]);
 
   useEffect(() => {
     const handler = () => setIsLoginModalOpen(true);
@@ -135,7 +115,7 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         >
           <div className="flex items-center justify-start text-sm">
             <div className="flex items-center gap-6">
-              {ensuredMenus.map((menu) => {
+              {renderedMenus.map((menu) => {
                 if (!menu.path) return null;
                 return (
                   <Link key={menu.menuId} href={menu.path} className="hover:text-green-300 transition-colors">
