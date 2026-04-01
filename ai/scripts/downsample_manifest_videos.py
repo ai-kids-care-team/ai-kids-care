@@ -10,7 +10,7 @@ Full run command (PowerShell):
     & 'F:\\ai-kids-care\\ai\\.venv\\Scripts\\python.exe' scripts\\downsample_manifest_videos.py `
       --manifest-path data\\processed\\manifest_clips_all.csv `
       --output-dir data\\processed\\event_clips_downsampled `
-      --output-manifest data\\processed\\manifest_clips_all.downsampled.csv `
+      --output-manifest data\\processed\\manifest_clips_all_downsampled.csv `
       --shorter-side 320
 """
 # !/usr/bin/env python
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     downsample_manifest_videos(
         manifest_path=project_root / "data" / "processed" / "manifest_clips_all.csv",
         output_dir=project_root / "data" / "processed" / "event_clips_downsampled",
-        output_manifest=project_root / "data" / "processed" / "manifest_clips_all.downsampled.csv",
+        output_manifest=project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv",
         shorter_side=540,
         crf=23,
         preset="fast",

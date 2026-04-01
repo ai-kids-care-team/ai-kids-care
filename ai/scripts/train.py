@@ -76,7 +76,7 @@ def filter_manifest_by_file_size(
         return manifest_path
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    filtered_manifest_path = output_dir / "manifest_clips_all.filtered.csv"
+    filtered_manifest_path = output_dir / "manifest_clips_all_filtered.csv"
     valid_df.to_csv(filtered_manifest_path, index=False, encoding="utf-8")
 
     print(
