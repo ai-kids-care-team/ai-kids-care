@@ -28,6 +28,12 @@ public class TeacherService {
                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
     }
 
+    public TeacherVO getTeacherNameByUserId(Long userId) {
+        Teacher teacher = repository.findByUserId(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
+        return mapper.toVO(teacher);
+    }
+
     public TeacherVO createTeacher(TeacherCreateDTO createDTO) {
         return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }

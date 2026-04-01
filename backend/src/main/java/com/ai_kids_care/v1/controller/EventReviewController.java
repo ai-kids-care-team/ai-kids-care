@@ -50,6 +50,7 @@ public class EventReviewController {
         return ResponseEntity.ok(service.listReviewsByEventId(eventId));
     }
 
+    @Transactional
     @PostMapping
     public ResponseEntity<EventReviewVO> createEventReview(@RequestBody EventReviewCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createEventReview(createDTO));

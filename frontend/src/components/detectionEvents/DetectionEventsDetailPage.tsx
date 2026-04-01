@@ -1,9 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertTriangle, ArrowLeft, ClipboardList, CheckSquare, Search, CheckCircle2, XCircle, Megaphone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, ClipboardList, CheckSquare, Search, CheckCircle2, XCircle, Megaphone } from 'lucide-react';
 import { useDetectionEventDetail } from '@/components/detectionEvents/functions/useDetectionEventDetail';
 import { EventReviewFlow } from '@/components/detectionEvents/EventReviewFlow';
+import { createEventReview, getLatestEventReview, type CreateEventReviewDTO, type EventReview } from '@/services/apis/eventReviews.api';
+import { updateDetectionEvent } from '@/services/apis/detectionEvents.api';
+import { useAppSelector } from '@/store/hook';
+import { getParentCommonCodeList, type CommonCode } from '@/services/apis/commonCodes.api';
 
 function formatDateTime(value: string | null): string {
   if (!value) return '-';
@@ -22,7 +27,93 @@ function formatDateTime(value: string | null): string {
 }
 
 export function DetectionEventsDetailPage() {
-  const { id, detail, loading, error } = useDetectionEventDetail();
+  const { id, detail, loading, error, reload } = useDetectionEventDetail();
+  const { user } = useAppSelector((state) => state.user);
+  const [latestReview, setLatestReview] = useState<EventReview | null>(null);
+  const [memo, setMemo] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [eventTypeLabel, setEventTypeLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadLatest = async () => {
+      if (!Number.isFinite(id) || id <= 0) return;
+      try {
+        const review = await getLatestEventReview(id);
+        setLatestReview(review);
+      } catch (e) {
+        console.error('최신 처리 상태 조회 실패:', e);
+      }
+    };
+
+    void loadLatest();
+  }, [id]);
+
+  // 사건 유형 코드 → 한글 명칭 매핑
+  useEffect(() => {
+    const loadEventTypeLabel = async () => {
+      if (!detail?.eventType) {
+        setEventTypeLabel(null);
+        return;
+      }
+      try {
+        const codes: CommonCode[] = await getParentCommonCodeList('detection_events', 'event_type');
+        const normalized = detail.eventType.trim().toLowerCase();
+        const matched = codes.find((c) => c.code.trim().toLowerCase() === normalized);
+        const label = (matched?.codeName ?? matched?.code_name)?.trim();
+        setEventTypeLabel(label || null);
+      } catch (e) {
+        console.error('사건 유형 공통코드 로딩 실패:', e);
+        setEventTypeLabel(null);
+      }
+    };
+
+    void loadEventTypeLabel();
+  }, [detail?.eventType]);
+
+  const latestStatus = latestReview?.result_status ?? null;
+  const showConfirm = latestStatus === 'OPEN';
+  const showReview = latestStatus === 'ACKNOWLEDGED';
+  const showResolve = latestStatus === 'IN_REVIEW';
+  const showDismiss =
+    latestStatus === 'ACKNOWLEDGED' || latestStatus === 'IN_REVIEW';
+  const showEscalate = latestStatus === 'RESOLVED';
+  const hasAnyAction = showConfirm || showReview || showResolve || showDismiss || showEscalate;
+
+  const handleStatusChange = async (
+    nextStatus: 'ACKNOWLEDGED' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED',
+  ) => {
+    if (!Number.isFinite(id) || id <= 0) return;
+    if (!user || !user.id) {
+      console.warn('로그인한 사용자 정보가 없습니다.');
+      return;
+    }
+
+    const reviewDto: CreateEventReviewDTO = {
+      event_id: id,
+      user_id: user.id,
+      from_status: latestStatus ?? null,
+      result_status: nextStatus,
+      comment: memo.trim() || null,
+    };
+
+    const detectionUpdateDto = {
+      status: nextStatus,
+    } as const;
+
+    try {
+      await Promise.all([
+        createEventReview(reviewDto),
+        updateDetectionEvent(id, detectionUpdateDto),
+      ]);
+      // 상세 정보 전체 재조회
+      await reload();
+      const refreshed = await getLatestEventReview(id);
+      setLatestReview(refreshed);
+      setRefreshKey((prev) => prev + 1);
+    } catch (e) {
+      console.error('상태 변경 처리 실패:', e);
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 p-6 text-center text-gray-500">불러오는 중입니다.</div>;
@@ -39,9 +130,9 @@ export function DetectionEventsDetailPage() {
             </div>
             <Link
               href="/detectionEvents"
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm text-slate-700 hover:bg-slate-200"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-100 hover:border-slate-300"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ClipboardList className="h-4 w-4 text-slate-600" />
               목록으로
             </Link>
           </div>
@@ -55,7 +146,7 @@ export function DetectionEventsDetailPage() {
           {!error && detail && (
             <div className="space-y-10">
               {/* 처리 프로세스 플로우 */}
-              <EventReviewFlow eventId={id} />
+              <EventReviewFlow key={refreshKey} eventId={id} />
 
               {/* 기본 정보 */}
               <section>
@@ -81,7 +172,7 @@ export function DetectionEventsDetailPage() {
                       사건 유형
                     </div>
                     <div className="border-b border-r border-slate-200 px-4 py-3 text-slate-800">
-                      {detail.eventType ?? '이벤트 유형 미지정'}
+                      {eventTypeLabel ?? detail.eventType ?? '이벤트 유형 미지정'}
                     </div>
                     <div className="border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700">
                       탐지 발생 일시
@@ -201,53 +292,65 @@ export function DetectionEventsDetailPage() {
                 <textarea
                   className="h-32 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
                   placeholder="처리 내용이나 특이사항을 입력하세요..."
-                  readOnly
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  readOnly={!hasAnyAction}
                 />
               </section>
 
               {/* 상태 변경 (UI만, 동작 없음) */}
               <section>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                  >
-                    <CheckSquare className="h-4 w-4 text-emerald-600" />
-                    <span>확인</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                  >
-                    <Search className="h-4 w-4 text-slate-700" />
-                    <span>검토</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>완료</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                  >
-                    <XCircle className="h-4 w-4 text-red-500" />
-                    <span>오탐</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                  >
-                    <Megaphone className="h-4 w-4 text-red-500" />
-                    <span>보고</span>
-                  </button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {showConfirm && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
+                      onClick={() => handleStatusChange('ACKNOWLEDGED')}
+                    >
+                      <CheckSquare className="h-4 w-4 text-emerald-600" />
+                      <span>확인</span>
+                    </button>
+                  )}
+                  {showReview && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
+                      onClick={() => handleStatusChange('IN_REVIEW')}
+                    >
+                      <Search className="h-4 w-4 text-slate-700" />
+                      <span>검토</span>
+                    </button>
+                  )}
+                  {showResolve && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
+                      onClick={() => handleStatusChange('RESOLVED')}
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>완료</span>
+                    </button>
+                  )}
+                  {showDismiss && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
+                      onClick={() => handleStatusChange('DISMISSED')}
+                    >
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      <span>오탐</span>
+                    </button>
+                  )}
+                  {showEscalate && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
+                      onClick={() => handleStatusChange('ESCALATED')}
+                    >
+                      <Megaphone className="h-4 w-4 text-red-500" />
+                      <span>보고</span>
+                    </button>
+                  )}
                 </div>
               </section>
             </div>

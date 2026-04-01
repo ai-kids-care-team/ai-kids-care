@@ -63,6 +63,9 @@ export type GetDetectionEventsParams = {
 };
 
 export type DetectionEventDetail = DetectionEventListItem;
+export type DetectionEventUpdateDTO = {
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED';
+};
 
 export async function getDetectionEvents(
   params?: GetDetectionEventsParams,
@@ -99,5 +102,27 @@ export async function getDetectionEventDetail(id: number): Promise<DetectionEven
 
   detectionEventDetailInFlight.set(id, request);
   return request;
+}
+
+export async function updateDetectionEvent(
+  id: number,
+  dto: DetectionEventUpdateDTO,
+): Promise<DetectionEventDetail> {
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('유효하지 않은 이벤트 ID입니다.');
+  }
+
+  const payload = {
+    status: dto.status,
+  };
+
+  const response = await apiClient.put<DetectionEventDetail | { data?: DetectionEventDetail }>(
+    `/detection_events/${id}`,
+    payload,
+  );
+
+  const body: any = response.data;
+  const candidate = body?.data ?? body;
+  return candidate as DetectionEventDetail;
 }
 

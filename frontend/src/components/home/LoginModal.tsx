@@ -73,9 +73,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
 
       const responseLoginId = response?.loginId ?? formData.loginId;
-        const responseId = response?.id ?? formData.id;
+      const responseId = response?.id ?? formData.id;
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
+      const refreshToken = response?.refreshToken ?? '';
       const name = response?.name;
 
       const user = {
@@ -91,6 +92,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       if (token) {
         localStorage.setItem('token', token);
         localStorage.setItem('accessToken', token);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
       handleModalClose();
     } catch (err: any) {

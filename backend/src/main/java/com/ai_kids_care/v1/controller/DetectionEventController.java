@@ -43,6 +43,7 @@ public class DetectionEventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createDetectionEvent(createDTO));
     }
 
+    @Transactional
     @PutMapping("/{id}")
     public ResponseEntity<DetectionEventVO> updateDetectionEvent(
             @PathVariable Long id,
