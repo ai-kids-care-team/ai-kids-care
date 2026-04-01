@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface CctvCameraMapper {
 
-    @Mapping(target = "cameraId", ignore = true)
+    @Mapping(source = "id", target = "cameraId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "createdByUser.id", target = "createdByUserId")
     CctvCameraVO toVO(CctvCamera entity);

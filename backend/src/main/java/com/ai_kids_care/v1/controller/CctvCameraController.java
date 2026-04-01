@@ -24,11 +24,12 @@ public class CctvCameraController {
 
     @GetMapping
     public ResponseEntity<Page<CctvCameraVO>> listCctvCamera(
-            @RequestParam(required = false) String keyword,
+            @RequestParam Long kindergartenId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listCctvCameras(keyword, pageable));
+        return ResponseEntity.ok(service.listCctvCameras(kindergartenId, pageable));
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<CctvCameraVO> getCctvCamera(@PathVariable Long id) {
