@@ -53,4 +53,14 @@ public class CommonCodeService {
         return mapper.toVOList(repository.findByCodeGroupIgnoreCaseAndCodeIgnoreCase(codeGroup, code));
     }
 
+    public List<CommonCodeVO> listAllParentCommonCodes(String codeGroup, String parentCode) {
+        return mapper.toVOList(repository.findByCodeGroupAndParentCode(codeGroup, parentCode));
+
+    }
+
+
+
+
+
+
 }

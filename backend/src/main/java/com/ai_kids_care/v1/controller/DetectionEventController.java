@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name="DetectionEvent")
@@ -22,6 +23,7 @@ public class DetectionEventController {
 
     private final DetectionEventService service;
 
+    @Transactional(readOnly = true)
     @GetMapping
     public ResponseEntity<Page<DetectionEventVO>> listDetectionEvent(
             @RequestParam(required = false) String keyword,

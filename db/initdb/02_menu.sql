@@ -67,10 +67,10 @@ VALUES
     (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'TEACHER', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvent', 'DetectionEventPage', 'detectionEvent', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
     (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'KINDERGARTEN_ADMIN', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (NULL, '감사편지', 'APPRECIATION_LETTER', '/appreciationLetter', 'AppreciationLetterPage', 'appreciationLetter', 'TEACHER', 20, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
