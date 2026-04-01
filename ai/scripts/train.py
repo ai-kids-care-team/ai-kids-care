@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 from transformers import (
     EarlyStoppingCallback,
     VideoMAEForVideoClassification,
@@ -44,7 +44,8 @@ def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=1)
     acc = accuracy_score(labels, preds)
-    return {"accuracy": acc}
+    macro_f1 = f1_score(labels, preds, average="macro")
+    return {"accuracy": acc, "macro_f1": macro_f1}
 
 
 def filter_manifest_by_file_size(
@@ -106,8 +107,8 @@ def main():
     min_video_size_bytes = 1024
     gc_collect_interval = 20
     gc_every_n_steps = 20
-    early_stopping_patience = 5
-    early_stopping_threshold = 1e-3
+    early_stopping_patience = 8
+    early_stopping_threshold = 2e-3
     dataloader_num_workers = 8
     dataloader_persistent_workers = dataloader_num_workers > 0
     dataloader_prefetch_factor = 4 if dataloader_num_workers > 0 else None
@@ -169,8 +170,8 @@ def main():
         logging_steps=10,
         save_total_limit=2,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False,
+        metric_for_best_model="eval_macro_f1",
+        greater_is_better=True,
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
         gradient_accumulation_steps=1,
