@@ -18,6 +18,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score
 from transformers import (
+    EarlyStoppingCallback,
     VideoMAEForVideoClassification,
     VideoMAEImageProcessor,
     Trainer,
@@ -95,7 +96,7 @@ def main():
     set_seed(42)
 
     project_root = Path(__file__).resolve().parent.parent
-    manifest_path = project_root / "data" / "processed" / "manifest_clips_all.csv"
+    manifest_path = project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv"
     output_dir = project_root / "outputs" / "videomae_baseline"
 
     checkpoint = "MCG-NJU/videomae-base-finetuned-kinetics"
@@ -105,6 +106,8 @@ def main():
     min_video_size_bytes = 1024
     gc_collect_interval = 20
     gc_every_n_steps = 20
+    early_stopping_patience = 5
+    early_stopping_threshold = 1e-3
     dataloader_num_workers = 8
     dataloader_persistent_workers = dataloader_num_workers > 0
     dataloader_prefetch_factor = 4 if dataloader_num_workers > 0 else None
@@ -166,20 +169,21 @@ def main():
         logging_steps=10,
         save_total_limit=2,
         load_best_model_at_end=True,
-        metric_for_best_model="accuracy",
-        greater_is_better=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
         gradient_accumulation_steps=1,
-        num_train_epochs=3,
+        num_train_epochs=1000,
         learning_rate=5e-5,
         weight_decay=0.05,
-        warmup_ratio=0.1,
+        warmup_steps=1000,
         fp16=torch.cuda.is_available(),
         dataloader_num_workers=dataloader_num_workers,
         dataloader_pin_memory=True,
         dataloader_persistent_workers=dataloader_persistent_workers,
         dataloader_prefetch_factor=dataloader_prefetch_factor,
+        restore_callback_states_from_checkpoint=False,
         report_to="none",
     )
 
@@ -191,7 +195,13 @@ def main():
         processing_class=processor,
         data_collator=videomae_collate_fn,
         compute_metrics=compute_metrics,
-        callbacks=[MemoryCleanupCallback(gc_every_n_steps=gc_every_n_steps)],
+        callbacks=[
+            MemoryCleanupCallback(gc_every_n_steps=gc_every_n_steps),
+            EarlyStoppingCallback(
+                early_stopping_patience=early_stopping_patience,
+                early_stopping_threshold=early_stopping_threshold,
+            ),
+        ],
     )
 
     train_result = trainer.train()
