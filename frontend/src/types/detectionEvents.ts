@@ -15,6 +15,7 @@ export type DetectionEventItem = {
   startTime: string | null;
   endTime: string | null;
   status: string | null;
+  statusName: string | null;
   createdAt: string | null;
   updatedAt: string | null;
   href: string;

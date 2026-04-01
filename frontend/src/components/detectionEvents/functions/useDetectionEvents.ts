@@ -48,10 +48,13 @@ function formatDateTimeNoSeconds(value: string | null): string {
 function buildListItem(
   vo: DetectionEventListItem,
   eventTypeCodeNameMap: Record<string, string>,
+  statusCodeNameMap: Record<string, string>,
 ): DetectionEventItem {
   const confidence = vo.confidence;
   const normalizedEventTypeCode = normalizeCodeKey(vo.eventType);
   const mappedEventTypeName = normalizedEventTypeCode ? eventTypeCodeNameMap[normalizedEventTypeCode] : undefined;
+  const normalizedStatusCode = normalizeCodeKey(vo.status);
+  const mappedStatusName = normalizedStatusCode ? statusCodeNameMap[normalizedStatusCode] : undefined;
 
   return {
     id: vo.eventId,
@@ -70,6 +73,7 @@ function buildListItem(
     startTime: formatDateTimeNoSeconds(vo.startTime),
     endTime: formatDateTimeNoSeconds(vo.endTime),
     status: vo.status,
+    statusName: mappedStatusName ?? null,
     createdAt: vo.createdAt,
     updatedAt: vo.updatedAt,
     href: `/detectionEvents/read?id=${vo.eventId}`,
@@ -86,6 +90,7 @@ export function useDetectionEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [eventTypeCodeNameMap, setEventTypeCodeNameMap] = useState<Record<string, string>>({});
+  const [statusCodeNameMap, setStatusCodeNameMap] = useState<Record<string, string>>({});
 
   const canWrite = useMemo(() => {
     if (!isAuthenticated || !user || !token) return false;
@@ -94,10 +99,14 @@ export function useDetectionEvents() {
   }, [isAuthenticated, user, token]);
 
   useEffect(() => {
-    const loadEventTypeCodeMap = async () => {
+    const loadCodeMaps = async () => {
       try {
-        const commonCodes = await getParentCommonCodeList('detection_events', 'event_type');
-        const codeMap = commonCodes.reduce<Record<string, string>>((acc, item) => {
+        const [eventTypeCodes, statusCodes] = await Promise.all([
+          getParentCommonCodeList('detection_events', 'event_type'),
+          getParentCommonCodeList('detection_events', 'status'),
+        ]);
+
+        const eventTypeMap = eventTypeCodes.reduce<Record<string, string>>((acc, item) => {
           const normalizedCode = normalizeCodeKey(item.code);
           const normalizedCodeName = (item.codeName ?? item.code_name)?.trim();
           if (normalizedCode && normalizedCodeName) {
@@ -105,13 +114,24 @@ export function useDetectionEvents() {
           }
           return acc;
         }, {});
-        setEventTypeCodeNameMap(codeMap);
+
+        const statusMap = statusCodes.reduce<Record<string, string>>((acc, item) => {
+          const normalizedCode = normalizeCodeKey(item.code);
+          const normalizedCodeName = (item.codeName ?? item.code_name)?.trim();
+          if (normalizedCode && normalizedCodeName) {
+            acc[normalizedCode] = normalizedCodeName;
+          }
+          return acc;
+        }, {});
+
+        setEventTypeCodeNameMap(eventTypeMap);
+        setStatusCodeNameMap(statusMap);
       } catch (e) {
-        console.error('이벤트 유형 공통코드 조회 실패:', e);
+        console.error('이벤트 유형/상태 공통코드 조회 실패:', e);
       }
     };
 
-    void loadEventTypeCodeMap();
+    void loadCodeMaps();
   }, []);
 
   useEffect(() => {
@@ -128,7 +148,7 @@ export function useDetectionEvents() {
 
         const pageData = await getDetectionEvents(params);
         setTotalPages(pageData.totalPages);
-        setEvents(pageData.content.map((item) => buildListItem(item, eventTypeCodeNameMap)));
+        setEvents(pageData.content.map((item) => buildListItem(item, eventTypeCodeNameMap, statusCodeNameMap)));
       } catch (e) {
         console.error('탐지 이벤트 목록 조회 실패:', e);
         setError('탐지 이벤트 목록을 불러오지 못했습니다.');
@@ -138,7 +158,7 @@ export function useDetectionEvents() {
     };
 
     void load();
-  }, [appliedKeyword, page, eventTypeCodeNameMap]);
+  }, [appliedKeyword, page, eventTypeCodeNameMap, statusCodeNameMap]);
 
   const handleSearch = () => {
     setAppliedKeyword(keyword.trim());

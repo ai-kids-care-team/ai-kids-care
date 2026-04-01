@@ -32,6 +32,7 @@ public class DetectionEventController {
         return ResponseEntity.ok(service.listDetectionEvents(keyword, pageable));
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/{id}")
     public ResponseEntity<DetectionEventVO> getDetectionEvent(@PathVariable Long id) {
         return ResponseEntity.ok(service.getDetectionEvent(id));

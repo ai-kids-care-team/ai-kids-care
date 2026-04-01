@@ -24,8 +24,15 @@ public class EventReviewService {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
+
+
     public EventReviewVO getEventReview(Long id) {
         return repository.findById(id).map(mapper::toVO)
+                .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
+    }
+
+    public EventReviewVO findTopByDetectionEvents_IdOrderByIdDesc(Long eventId) {
+        return repository.findTopByDetectionEvents_IdOrderByIdDesc(eventId).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
     }
 

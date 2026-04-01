@@ -35,6 +35,11 @@ public class EventReviewController {
         return ResponseEntity.ok(service.getEventReview(id));
     }
 
+    @GetMapping("/eventId/{id}")
+    public ResponseEntity<EventReviewVO> getEventReviewTopStatus(@PathVariable Long eventId) {
+        return ResponseEntity.ok(service.findTopByDetectionEvents_IdOrderByIdDesc(eventId));
+    }
+
     @PostMapping
     public ResponseEntity<EventReviewVO> createEventReview(@RequestBody EventReviewCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createEventReview(createDTO));

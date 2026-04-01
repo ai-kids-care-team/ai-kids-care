@@ -142,15 +142,6 @@ export function DetectionEventsListForm({
               <AlertTriangle className="h-7 w-7 text-[#d97706]" />
               <h2 className="text-3xl">이상 탐지</h2>
             </div>
-            {mounted && canWrite && (
-              <Link
-                href="/detectionEvents/write"
-                className="flex items-center gap-2 rounded-lg bg-[#006b52] px-5 py-2.5 text-white transition-colors hover:bg-[#005640]"
-              >
-                <Plus className="h-5 w-5" />
-                이벤트 등록
-              </Link>
-            )}
           </div>
 
           <div className="mb-6 flex items-center gap-2">
@@ -237,9 +228,9 @@ export function DetectionEventsListForm({
                                   {severityLabel} {severity}
                                 </span>
                               )}
-                              {event.status && (
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
-                                  {event.status}
+                              {event.statusName && (
+                                <span className="rounded-sm border border-[#f3d27a] bg-[#fff9d6] px-2 py-0.5 text-[11px] text-[#b8860b]">
+                                  {event.statusName}
                                 </span>
                               )}
                               {elapsedLabel && (
