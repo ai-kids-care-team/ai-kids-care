@@ -12,7 +12,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name="EventReview")
 @RestController
@@ -35,9 +38,16 @@ public class EventReviewController {
         return ResponseEntity.ok(service.getEventReview(id));
     }
 
-    @GetMapping("/eventId/{id}")
-    public ResponseEntity<EventReviewVO> getEventReviewTopStatus(@PathVariable Long eventId) {
-        return ResponseEntity.ok(service.findTopByDetectionEvents_IdOrderByIdDesc(eventId));
+    @Transactional(readOnly = true)
+    @GetMapping("/{eventId}/reviews/latest")
+    public ResponseEntity<EventReviewVO> getLatestReview( @PathVariable Long eventId) {
+        return ResponseEntity.ok(service.getLatestReview(eventId));
+    }
+
+    @Transactional(readOnly = true)
+    @GetMapping("{eventId}/reviews")
+    public ResponseEntity<List<EventReviewVO>> listReviewsByEventId(@PathVariable Long eventId) {
+        return ResponseEntity.ok(service.listReviewsByEventId(eventId));
     }
 
     @PostMapping

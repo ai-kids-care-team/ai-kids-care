@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface EventReviewMapper {
 
-    @Mapping(target = "reviewId", ignore = true)
+    @Mapping(source ="id", target = "reviewId")
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "detectionEvents.cctvCameras.kindergarten.id", target = "kindergartenId")

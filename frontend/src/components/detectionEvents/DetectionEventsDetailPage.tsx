@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, ClipboardList, CheckSquare, Search, CheckCircle2, XCircle, Megaphone } from 'lucide-react';
 import { useDetectionEventDetail } from '@/components/detectionEvents/functions/useDetectionEventDetail';
+import { EventReviewFlow } from '@/components/detectionEvents/EventReviewFlow';
 
 function formatDateTime(value: string | null): string {
   if (!value) return '-';
@@ -21,7 +22,7 @@ function formatDateTime(value: string | null): string {
 }
 
 export function DetectionEventsDetailPage() {
-  const { detail, loading, error } = useDetectionEventDetail();
+  const { id, detail, loading, error } = useDetectionEventDetail();
 
   if (loading) {
     return <div className="min-h-screen bg-gray-50 p-6 text-center text-gray-500">불러오는 중입니다.</div>;
@@ -53,6 +54,9 @@ export function DetectionEventsDetailPage() {
 
           {!error && detail && (
             <div className="space-y-10">
+              {/* 처리 프로세스 플로우 */}
+              <EventReviewFlow eventId={id} />
+
               {/* 기본 정보 */}
               <section>
                 <h3 className="mb-4 text-lg font-semibold text-slate-900">기본 정보</h3>

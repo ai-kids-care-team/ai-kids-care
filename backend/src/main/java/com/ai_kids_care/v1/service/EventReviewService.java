@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class EventReviewService {
@@ -24,16 +26,21 @@ public class EventReviewService {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
-
-
     public EventReviewVO getEventReview(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
     }
 
-    public EventReviewVO findTopByDetectionEvents_IdOrderByIdDesc(Long eventId) {
+    public EventReviewVO getLatestReview(Long eventId) {
         return repository.findTopByDetectionEvents_IdOrderByIdDesc(eventId).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
+    }
+
+    public List<EventReviewVO> listReviewsByEventId(Long eventId) {
+        return repository.findAllByDetectionEvents_IdOrderByIdAsc(eventId)
+                .stream()
+                .map(mapper::toVO)
+                .toList();
     }
 
     public EventReviewVO createEventReview(EventReviewCreateDTO createDTO) {
