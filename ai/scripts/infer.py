@@ -17,6 +17,7 @@ import av
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.metrics import precision_recall_fscore_support, confusion_matrix
 from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from transformers import VideoMAEForVideoClassification, VideoMAEImageProcessor
@@ -269,6 +270,7 @@ def evaluate_test_split(
         num_workers: int = 6,
         prefetch_factor: int = 2,
         decode_thread_type: str | None = "AUTO",
+        export_dir: str | Path | None = None,
 ) -> dict[str, float | int | str]:
     model_dir = Path(model_dir)
     manifest_path = Path(manifest_path)
@@ -315,6 +317,8 @@ def evaluate_test_split(
     correct = 0
     failed = 0
     failed_log_limit = 10
+    y_true: list[str] = []
+    y_pred: list[str] = []
 
     with torch.inference_mode():
         for batch in tqdm(dataloader, total=len(dataloader), desc=f"Evaluating {model_dir.name}"):
@@ -335,6 +339,8 @@ def evaluate_test_split(
             for pred_id, true_label in zip(pred_ids, batch["label_name"]):
                 pred_label = model.config.id2label[str(pred_id)] if str(pred_id) in model.config.id2label else \
                     model.config.id2label[pred_id]
+                y_true.append(true_label)
+                y_pred.append(pred_label)
                 if pred_label == true_label:
                     correct += 1
 
@@ -356,6 +362,51 @@ def evaluate_test_split(
     print(f"infer_prefetch_factor: {prefetch_factor if num_workers > 0 else 'N/A'}")
     print(f"decode_thread_type: {decode_thread_type}")
 
+    if export_dir is not None and evaluated > 0:
+        export_dir = Path(export_dir)
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        label_items = []
+        for k, v in model.config.label2id.items():
+            try:
+                label_items.append((int(v), str(k)))
+            except Exception:
+                continue
+        label_items.sort(key=lambda x: x[0])
+        labels = [name for _, name in label_items]
+        extra_labels = sorted(set(y_true).union(set(y_pred)) - set(labels))
+        labels.extend(extra_labels)
+
+        cm = confusion_matrix(y_true, y_pred, labels=labels)
+        cm_df = pd.DataFrame(cm, index=labels, columns=labels)
+        cm_norm_df = cm_df.div(cm_df.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+
+        precision, recall, f1, support = precision_recall_fscore_support(
+            y_true,
+            y_pred,
+            labels=labels,
+            zero_division=0,
+        )
+        per_class_df = pd.DataFrame({
+            "label": labels,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "support": support,
+        })
+
+        cm_path = export_dir / "confusion_matrix.csv"
+        cm_norm_path = export_dir / "confusion_matrix_normalized.csv"
+        per_class_path = export_dir / "per_class_metrics.csv"
+        cm_df.to_csv(cm_path, encoding="utf-8")
+        cm_norm_df.to_csv(cm_norm_path, encoding="utf-8")
+        per_class_df.to_csv(per_class_path, index=False, encoding="utf-8")
+
+        print("\n===== Exported Metrics =====")
+        print(f"confusion_matrix: {cm_path}")
+        print(f"confusion_matrix_normalized: {cm_norm_path}")
+        print(f"per_class_metrics: {per_class_path}")
+
     return {
         "model_dir": str(model_dir),
         "total_test_samples": total,
@@ -375,6 +426,7 @@ if __name__ == "__main__":
     infer_num_workers = 6
     infer_prefetch_factor = 2
     infer_decode_thread_type = "AUTO"
+    metrics_export_dir = project_root / "outputs" / "predictions" / "best_model_test_metrics"
     manifest_candidates = [
         project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv",
     ]
@@ -403,4 +455,5 @@ if __name__ == "__main__":
         num_workers=infer_num_workers,
         prefetch_factor=infer_prefetch_factor,
         decode_thread_type=infer_decode_thread_type,
+        export_dir=metrics_export_dir,
     )
