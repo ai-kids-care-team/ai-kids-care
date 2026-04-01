@@ -19,9 +19,9 @@ public class CctvCameraService {
     private final CctvCameraRepository repository;
     private final CctvCameraMapper mapper;
 
-    public Page<CctvCameraVO> listCctvCameras(String keyword, Pageable pageable) {
-        // TODO: filter CctvCamera by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+    public Page<CctvCameraVO> listCctvCameras(Long kindergartenId, Pageable pageable) {
+        // filter CctvCamera by kindergartenId
+        return repository.findByKindergarten_Id(kindergartenId ,pageable).map(mapper::toVO);
     }
 
     public CctvCameraVO getCctvCamera(Long id) {
