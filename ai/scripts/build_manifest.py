@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Build manifest from videos + same-name XML annotations.
@@ -276,12 +276,15 @@ def build_manifest_with_split(
 
 
 if __name__ == "__main__":
-    base_dir = Path(__file__).resolve().parent
-    data_dir = (base_dir / "../data").resolve()
+    data_root = Path("../data").resolve()
+    raw_root = data_root / "raw"
+    processed_root = data_root / "processed"
+    raw_dataset_dir = raw_root / "이상행동 CCTV 영상"
+    dataset_tag = "06_wander"
 
     build_manifest_with_split(
-        root_dir=str(data_dir / "raw/이상행동 CCTV 영상/01.폭행(assult)"),
-        out_csv=str(data_dir / "processed/01_manifest.csv"),
+        root_dir=str(raw_dataset_dir),
+        out_csv=str(processed_root / f"{dataset_tag}_manifest.csv"),
         train_ratio=0.8,
         val_ratio=0.1,
         test_ratio=0.1,
