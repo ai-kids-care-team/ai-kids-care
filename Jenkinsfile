@@ -17,7 +17,7 @@ pipeline {
     stage('Docker Compose Up') {
       steps {
         sh '''
-        docker compose down || true
+        docker compose down --remove-orphans --volumes --rmi local || true
         docker compose up -d --build
         '''
       }
