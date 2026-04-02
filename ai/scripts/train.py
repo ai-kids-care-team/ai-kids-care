@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 from pathlib import Path
 
@@ -110,6 +111,10 @@ def main():
     gc_every_n_steps = 20
     early_stopping_patience = 10
     early_stopping_threshold = 2e-3
+    per_device_train_batch_size = 2
+    per_device_eval_batch_size = 2
+    gradient_accumulation_steps = 4
+    warmup_ratio_of_one_epoch = 0.05
     dataloader_num_workers = 8
     dataloader_persistent_workers = dataloader_num_workers > 0
     dataloader_prefetch_factor = 4 if dataloader_num_workers > 0 else None
@@ -155,6 +160,16 @@ def main():
     print(f"train dataset size: {len(train_dataset)}")
     print(f"val dataset size: {len(eval_dataset)}")
 
+    steps_per_epoch = max(
+        1,
+        math.ceil(len(train_dataset) / (per_device_train_batch_size * gradient_accumulation_steps)),
+    )
+    warmup_steps = max(1, int(round(steps_per_epoch * warmup_ratio_of_one_epoch)))
+    print(
+        f"steps_per_epoch: {steps_per_epoch}, "
+        f"warmup_steps(5% of one epoch): {warmup_steps}"
+    )
+
     model = VideoMAEForVideoClassification.from_pretrained(
         checkpoint,
         label2id=label2id,
@@ -173,14 +188,14 @@ def main():
         load_best_model_at_end=True,
         metric_for_best_model="eval_accuracy",
         greater_is_better=True,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
-        gradient_accumulation_steps=4,
+        per_device_train_batch_size=per_device_train_batch_size,
+        per_device_eval_batch_size=per_device_eval_batch_size,
+        gradient_accumulation_steps=gradient_accumulation_steps,
         num_train_epochs=1000,
         learning_rate=1e-5,
         weight_decay=0.05,
         max_grad_norm=1.0,
-        warmup_steps=1000,
+        warmup_steps=warmup_steps,
         fp16=torch.cuda.is_available(),
         dataloader_num_workers=dataloader_num_workers,
         dataloader_pin_memory=True,
