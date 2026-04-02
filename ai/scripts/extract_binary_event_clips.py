@@ -15,6 +15,7 @@ import json
 import random
 import shutil
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -367,6 +368,7 @@ def extract_binary_clips(
         enable_quality_reports: bool = True,
         merge_quality_reports: bool = True,
         run_id: str | None = None,
+        extract_workers: int = 1,
         random_seed: int = 42,
 ) -> None:
     check_ffmpeg_available()
@@ -402,29 +404,44 @@ def extract_binary_clips(
     skipped_short_events = 0
     if run_id is None:
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    extract_workers = max(1, int(extract_workers))
 
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Extracting binary clips"):
-        source_video = Path(row["video_path"])
-        split = str(row["split"])
-        src_label = str(row["label"])
+    def process_manifest_row(row: pd.Series) -> tuple[list[dict], list[dict], list[dict], int]:
+        local_rows: list[dict] = []
+        local_failed_rows: list[dict] = []
+        local_quality_rows: list[dict] = []
+        local_skipped_short_events = 0
 
-        event_start_sec = float(row["event_start_sec"])
-        event_duration_sec = float(row["event_duration_sec"])
-        total_frames = float(row["total_frames"])
-        fps = float(row["fps"])
+        source_video = Path(str(row.get("video_path", "")))
+        split = str(row.get("split", ""))
+        src_label = str(row.get("label", ""))
+
+        try:
+            event_start_sec = float(row["event_start_sec"])
+            event_duration_sec = float(row["event_duration_sec"])
+            total_frames = float(row["total_frames"])
+            fps = float(row["fps"])
+        except Exception as e:
+            local_failed_rows.append({
+                "video_path": str(source_video),
+                "split": split,
+                "label": src_label,
+                "error": f"Bad row fields: {e}",
+            })
+            return local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events
 
         if fps <= 0:
-            failed_rows.append({
+            local_failed_rows.append({
                 "video_path": str(source_video),
                 "split": split,
                 "label": src_label,
                 "error": "Invalid fps",
             })
-            continue
+            return local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events
 
         if event_duration_sec < min_event_duration_sec:
-            skipped_short_events += 1
-            continue
+            local_skipped_short_events += 1
+            return local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events
 
         total_duration_sec = total_frames / fps
         pos_clip_starts_sec = build_positive_clip_starts(
@@ -438,13 +455,13 @@ def extract_binary_clips(
             min_positive_overlap_sec=min_positive_overlap_sec,
         )
         if not pos_clip_starts_sec:
-            failed_rows.append({
+            local_failed_rows.append({
                 "video_path": str(source_video),
                 "split": split,
                 "label": src_label,
                 "error": "No valid positive clip start satisfies overlap constraints",
             })
-            continue
+            return local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events
 
         pos_dir = output_dir / split / src_label
         pos_dir.mkdir(parents=True, exist_ok=True)
@@ -467,7 +484,7 @@ def extract_binary_clips(
                         overwrite=overwrite,
                     )
 
-                rows.append({
+                local_rows.append({
                     "video_path": str(pos_output),
                     "label": src_label,
                     "split": split,
@@ -487,7 +504,7 @@ def extract_binary_clips(
                         event_start=event_start_sec,
                         event_duration=event_duration_sec,
                     )
-                    quality_rows.append({
+                    local_quality_rows.append({
                         "run_id": run_id,
                         "split": split,
                         "label": src_label,
@@ -504,7 +521,7 @@ def extract_binary_clips(
                         "is_margin_safe": 1,
                     })
             except Exception as e:
-                failed_rows.append({
+                local_failed_rows.append({
                     "video_path": str(source_video),
                     "split": split,
                     "label": src_label,
@@ -558,7 +575,7 @@ def extract_binary_clips(
                             overwrite=overwrite,
                         )
 
-                    rows.append({
+                    local_rows.append({
                         "video_path": str(neg_output),
                         "label": negative_label,
                         "split": split,
@@ -587,7 +604,7 @@ def extract_binary_clips(
                             event_start=event_start_sec,
                             event_duration=event_duration_sec,
                         )
-                        quality_rows.append({
+                        local_quality_rows.append({
                             "run_id": run_id,
                             "split": split,
                             "label": negative_label,
@@ -604,12 +621,42 @@ def extract_binary_clips(
                             "is_margin_safe": is_margin_safe,
                         })
                 except Exception as e:
-                    failed_rows.append({
+                    local_failed_rows.append({
                         "video_path": str(neg_source_video),
                         "split": split,
                         "label": negative_label,
                         "error": f"negative clip failed: {e}",
                     })
+
+        return local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events
+
+    def process_indexed_row(item: tuple[int, pd.Series]) -> tuple[list[dict], list[dict], list[dict], int]:
+        _, one_row = item
+        return process_manifest_row(one_row)
+
+    indexed_rows = list(df.iterrows())
+
+    if extract_workers == 1:
+        iterator = tqdm(indexed_rows, total=len(indexed_rows), desc="Extracting binary clips")
+        for item in iterator:
+            local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events = process_indexed_row(item)
+            rows.extend(local_rows)
+            failed_rows.extend(local_failed_rows)
+            quality_rows.extend(local_quality_rows)
+            skipped_short_events += local_skipped_short_events
+    else:
+        print(f"Using extract_workers={extract_workers}")
+        with ThreadPoolExecutor(max_workers=extract_workers) as executor:
+            iterator = executor.map(process_indexed_row, indexed_rows)
+            for local_rows, local_failed_rows, local_quality_rows, local_skipped_short_events in tqdm(
+                    iterator,
+                    total=len(indexed_rows),
+                    desc=f"Extracting binary clips ({extract_workers} workers)",
+            ):
+                rows.extend(local_rows)
+                failed_rows.extend(local_failed_rows)
+                quality_rows.extend(local_quality_rows)
+                skipped_short_events += local_skipped_short_events
 
     fieldnames = [
         "video_path",
@@ -677,7 +724,7 @@ def extract_binary_clips(
 
 if __name__ == "__main__":
     dataset_tag = "06_wander"
-    data_root = Path("D:/ai-kids-care/ai/data/processed")
+    data_root = Path("../data/processed")
     extract_binary_clips(
         manifest_path=data_root / f"{dataset_tag}_manifest.csv",
         output_dir=data_root / f"{dataset_tag}_event_clips",
@@ -698,5 +745,6 @@ if __name__ == "__main__":
         enable_quality_reports=True,
         merge_quality_reports=True,
         run_id=None,
+        extract_workers=4,
         random_seed=42,
     )
