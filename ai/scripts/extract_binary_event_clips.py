@@ -304,6 +304,7 @@ def sample_cross_video_negative(
         split: str,
         margin_sec: float = 1.0,
         max_trials: int = 30,
+        enable_random_intra_negative: bool = True,
 ) -> tuple[str, float] | None:
     """
     Sample one negative clip from a DIFFERENT source video.
@@ -336,7 +337,7 @@ def sample_cross_video_negative(
             total_duration_sec=total_duration_sec,
             clip_duration=clip_duration,
             margin_sec=margin_sec,
-            num_random_trials=10,
+            num_random_trials=10 if enable_random_intra_negative else 0,
         )
 
         if not candidates:
@@ -365,6 +366,7 @@ def extract_binary_clips(
         min_event_duration_sec: float = 5.0,
         negative_margin_sec: float = 2.0,
         use_cross_video_negative: bool = False,
+        enable_random_intra_negative: bool = True,
         enable_quality_reports: bool = True,
         merge_quality_reports: bool = True,
         run_id: str | None = None,
@@ -537,7 +539,7 @@ def extract_binary_clips(
                 total_duration_sec=total_duration_sec,
                 clip_duration=clip_duration,
                 margin_sec=negative_margin_sec,
-                num_random_trials=20,
+                num_random_trials=20 if enable_random_intra_negative else 0,
             )
 
             if intra_candidates:
@@ -552,6 +554,7 @@ def extract_binary_clips(
                     split=split,
                     margin_sec=negative_margin_sec,
                     max_trials=30,
+                    enable_random_intra_negative=enable_random_intra_negative,
                 )
                 if cross_sample is not None:
                     other_video_path, start_sec = cross_sample
@@ -742,6 +745,7 @@ if __name__ == "__main__":
         min_event_duration_sec=5.0,
         negative_margin_sec=2.0,
         use_cross_video_negative=False,
+        enable_random_intra_negative=False,
         enable_quality_reports=True,
         merge_quality_reports=True,
         run_id=None,
