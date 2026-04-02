@@ -95,10 +95,11 @@ def filter_manifest_by_file_size(
 
 def main():
     set_seed(42)
+    dataset_tag = "06_wander"
 
     project_root = Path(__file__).resolve().parent.parent
-    manifest_path = project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv"
-    output_dir = project_root / "outputs" / "videomae_baseline"
+    manifest_path = project_root / "data" / "processed" / f"{dataset_tag}_manifest_clips_downsampled.csv"
+    output_dir = project_root / "outputs" / f"{dataset_tag}_videomae_baseline"
 
     checkpoint = "MCG-NJU/videomae-base-finetuned-kinetics"
 
@@ -107,7 +108,7 @@ def main():
     min_video_size_bytes = 1024
     gc_collect_interval = 20
     gc_every_n_steps = 20
-    early_stopping_patience = 8
+    early_stopping_patience = 10
     early_stopping_threshold = 2e-3
     dataloader_num_workers = 8
     dataloader_persistent_workers = dataloader_num_workers > 0
@@ -174,10 +175,11 @@ def main():
         greater_is_better=True,
         per_device_train_batch_size=2,
         per_device_eval_batch_size=2,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=4,
         num_train_epochs=1000,
-        learning_rate=5e-5,
+        learning_rate=1e-5,
         weight_decay=0.05,
+        max_grad_norm=1.0,
         warmup_steps=1000,
         fp16=torch.cuda.is_available(),
         dataloader_num_workers=dataloader_num_workers,
