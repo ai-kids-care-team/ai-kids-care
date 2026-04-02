@@ -268,13 +268,13 @@ def downsample_manifest_videos(
 
 
 if __name__ == "__main__":
-    # project_root = Path(__file__).resolve().parent.parent
-    project_root = Path("D:/ai-kids-care/ai")
+    data_root = Path("../data/processed").resolve()
+    dataset_tag = "06_wander"
 
     downsample_manifest_videos(
-        manifest_path=project_root / "data" / "processed" / "manifest_clips_all.csv",
-        output_dir=project_root / "data" / "processed" / "event_clips_downsampled",
-        output_manifest=project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv",
+        manifest_path=data_root / f"{dataset_tag}_manifest_clips.csv",
+        output_dir=data_root / f"{dataset_tag}_event_clips_downsampled",
+        output_manifest=data_root / f"{dataset_tag}_manifest_clips_downsampled.csv",
         shorter_side=540,
         crf=23,
         preset="fast",
