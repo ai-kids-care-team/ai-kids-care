@@ -13,7 +13,7 @@ public record CameraStreamVO(
         String streamType,
         String streamUrl,
         String streamUser,
-        String streamPasswordEncrypted,
+        Boolean hasPassword,
         String protocol,
         Integer fps,
         String resolution,

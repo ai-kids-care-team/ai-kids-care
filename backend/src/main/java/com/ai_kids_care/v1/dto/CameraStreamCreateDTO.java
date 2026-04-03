@@ -20,7 +20,7 @@ public class CameraStreamCreateDTO implements Serializable {
     private String streamType;
     private String streamUrl;
     private String streamUser;
-    private String streamPasswordEncrypted;
+    private String streamPassword;
     private String protocol;
     private Integer fps;
     private String resolution;
