@@ -319,6 +319,7 @@ def evaluate_test_split(
     failed_log_limit = 10
     y_true: list[str] = []
     y_pred: list[str] = []
+    evaluated_rows: list[dict[str, str | int]] = []
 
     with torch.inference_mode():
         for batch in tqdm(dataloader, total=len(dataloader), desc=f"Evaluating {model_dir.name}"):
@@ -336,11 +337,21 @@ def evaluate_test_split(
             outputs = model(pixel_values=pixel_values)
             pred_ids = torch.argmax(outputs.logits, dim=-1).detach().cpu().tolist()
 
-            for pred_id, true_label in zip(pred_ids, batch["label_name"]):
+            for pred_id, true_label, video_path in zip(
+                    pred_ids,
+                    batch["label_name"],
+                    batch["video_path"],
+            ):
                 pred_label = model.config.id2label[str(pred_id)] if str(pred_id) in model.config.id2label else \
                     model.config.id2label[pred_id]
                 y_true.append(true_label)
                 y_pred.append(pred_label)
+                evaluated_rows.append({
+                    "video_path": str(video_path),
+                    "true_label": str(true_label),
+                    "pred_label": str(pred_label),
+                    "is_correct": int(pred_label == true_label),
+                })
                 if pred_label == true_label:
                     correct += 1
 
@@ -398,14 +409,21 @@ def evaluate_test_split(
         cm_path = export_dir / "confusion_matrix.csv"
         cm_norm_path = export_dir / "confusion_matrix_normalized.csv"
         per_class_path = export_dir / "per_class_metrics.csv"
+        misclassified_path = export_dir / "misclassified_samples.csv"
         cm_df.to_csv(cm_path, encoding="utf-8")
         cm_norm_df.to_csv(cm_norm_path, encoding="utf-8")
         per_class_df.to_csv(per_class_path, index=False, encoding="utf-8")
+        misclassified_df = pd.DataFrame(
+            [row for row in evaluated_rows if row["is_correct"] == 0],
+            columns=["video_path", "true_label", "pred_label", "is_correct"],
+        )
+        misclassified_df.to_csv(misclassified_path, index=False, encoding="utf-8")
 
         print("\n===== Exported Metrics =====")
         print(f"confusion_matrix: {cm_path}")
         print(f"confusion_matrix_normalized: {cm_norm_path}")
         print(f"per_class_metrics: {per_class_path}")
+        print(f"misclassified_samples: {misclassified_path}")
 
     return {
         "model_dir": str(model_dir),
@@ -420,15 +438,16 @@ def evaluate_test_split(
 
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
+    dataset_tag = "01_assault"
 
-    best_model_dir = project_root / "outputs" / "videomae_baseline" / "best_model"
+    best_model_dir = project_root / "outputs" / f"{dataset_tag}_videomae_baseline" / "best_model"
     infer_batch_size = 8
     infer_num_workers = 6
     infer_prefetch_factor = 2
     infer_decode_thread_type = "AUTO"
-    metrics_export_dir = project_root / "outputs" / "predictions" / "best_model_test_metrics"
+    metrics_export_dir = project_root / "outputs" / "predictions" / f"{dataset_tag}_best_model_test_metrics"
     manifest_candidates = [
-        project_root / "data" / "processed" / "manifest_clips_all_downsampled.csv",
+        project_root / "data" / "processed" / f"{dataset_tag}_manifest_clips_downsampled.csv",
     ]
 
     manifest_path = None
