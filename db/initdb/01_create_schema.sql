@@ -349,12 +349,14 @@ CREATE TABLE "camera_streams" (
   "kindergarten_id" bigint NOT NULL,
   "camera_id" bigint NOT NULL,
   "stream_type" camera_stream_type_enum,
-  "stream_url" varchar,
+  "source_url" varchar,
   "stream_user" varchar,
   "stream_password_ciphertext" varchar,
   "stream_password_iv" varchar,
   "stream_password_key_version" varchar(32),
-  "protocol" protocol_enum,
+  "source_protocol" protocol_enum,
+  "playback_url" varchar,
+  "playback_protocol" protocol_enum,
   "fps" int,
   "resolution" varchar,
   "is_primary" boolean,
@@ -912,7 +914,7 @@ COMMENT ON COLUMN "camera_streams"."camera_id" IS '카메라 ID(CCTV_CAMERA.came
 
 COMMENT ON COLUMN "camera_streams"."stream_type" IS '스트림 타입(메인/서브 등)';
 
-COMMENT ON COLUMN "camera_streams"."stream_url" IS '스트림 URL(예: RTSP/HTTP 엔드포인트)';
+COMMENT ON COLUMN "camera_streams"."source_url" IS '원본 스트림 소스 URL(예: RTSP/ONVIF/HTTP 엔드포인트)';
 
 COMMENT ON COLUMN "camera_streams"."stream_user" IS '스트림 인증 사용자명';
 
@@ -922,7 +924,11 @@ COMMENT ON COLUMN "camera_streams"."stream_password_iv" IS '스트림 인증 비
 
 COMMENT ON COLUMN "camera_streams"."stream_password_key_version" IS '스트림 인증 비밀번호 암복호화 키 버전';
 
-COMMENT ON COLUMN "camera_streams"."protocol" IS '스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)';
+COMMENT ON COLUMN "camera_streams"."source_protocol" IS '원본 스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)';
+
+COMMENT ON COLUMN "camera_streams"."playback_url" IS '재생용 스트림 URL(예: HTTP-FLV/HLS 엔드포인트)';
+
+COMMENT ON COLUMN "camera_streams"."playback_protocol" IS '재생용 스트림 프로토콜(HTTP/HTTPS)';
 
 COMMENT ON COLUMN "camera_streams"."fps" IS '스트림 FPS(초당 프레임 수)';
 
