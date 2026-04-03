@@ -123,3 +123,41 @@ export async function getTeacher(id: number): Promise<TeacherVO> {
   const res = await apiClient.get<TeacherVO>(`/teachers/${id}`);
   return normalizeTeacherVO(res.data as TeacherApiRow);
 }
+
+/**
+ * `teachers.name` (예: `30_teachers_seed.sql`). 로그인 응답에 실명이 없을 때만 사용.
+ * 1) 시드 규칙으로 `teacher_id` 추론 후 GET `/teachers/{id}`
+ * 2) 실패 시 목록에서 `user_id` + `kindergarten_id` 매칭 (백엔드 목록 API는 kindergarten 쿼리를 받지 않음)
+ */
+export async function fetchTeacherDisplayNameForUser(
+  userId: number,
+  kindergartenId: number,
+): Promise<string | null> {
+  if (!Number.isFinite(userId) || userId <= 0 || !Number.isFinite(kindergartenId) || kindergartenId <= 0) {
+    return null;
+  }
+  const inferredTeacherId = inferTeacherIdFromUserAndKindergarten(userId, kindergartenId);
+  if (inferredTeacherId != null) {
+    try {
+      const t = await getTeacher(inferredTeacherId);
+      const n = t.name?.trim();
+      if (n) return n;
+    } catch {
+      /* 목록 폴백 */
+    }
+  }
+  try {
+    const page = await searchTeachers({
+      keyword: '',
+      page: 0,
+      size: 200,
+    });
+    const hit = page.content.find(
+      (row) => row.userId === userId && row.kindergartenId === kindergartenId,
+    );
+    const n = hit?.name?.trim();
+    return n || null;
+  } catch {
+    return null;
+  }
+}

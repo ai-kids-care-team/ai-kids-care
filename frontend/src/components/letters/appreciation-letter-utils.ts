@@ -1,5 +1,12 @@
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
 
+/** 프론트만으로 유치원 단위 열람 제한 시 사용하는 로그인 사용자 컨텍스트 */
+export type AppreciationLetterViewerContext = {
+  id: string;
+  kindergartenId?: number;
+  role?: string;
+} | null;
+
 function firstPositiveLong(...vals: unknown[]): number | null {
   for (const v of vals) {
     if (v === null || v === undefined || v === '') continue;
@@ -24,6 +31,21 @@ export function resolveAppreciationLetterId(
   );
 }
 
+/** 편지가 속한 유치원 ID (API camelCase / snake_case) */
+export function resolveLetterKindergartenId(
+  letter: Pick<AppreciationLetterVO, 'kindergartenId'> | Record<string, unknown>,
+): number | null {
+  const r = letter as Record<string, unknown>;
+  return firstPositiveLong(r.kindergartenId, r.kindergarten_id);
+}
+
+/** 전 유치원 열람 허용 역할 (프론트 스코프 우회) */
+export function bypassesAppreciationLetterKindergartenScope(
+  role: string | null | undefined,
+): boolean {
+  return role === 'SUPERADMIN' || role === 'PLATFORM_IT_ADMIN';
+}
+
 /** 로그인 사용자와 편지 작성자(`sender_user_id`) 동일 여부 — 문자열/숫자 혼용 대응 */
 export function isSameAppreciationLetterAuthor(
   userId: string | number | null | undefined,
@@ -46,15 +68,76 @@ export function isAppreciationLetterPublic(
   return true;
 }
 
-/** 비공개 글은 로그인한 작성자 본인만 볼 수 있음(프론트 필터) */
+/**
+ * 감사편지 열람 가능 여부 (프론트 전용).
+ * - 비공개: 작성자 본인만 (유치원 무관)
+ * - 공개: 로그인 + 세션의 `kindergartenId`와 편지의 유치원이 같을 때만 (또는 행정/플랫폼 관리자는 전체)
+ * - 비로그인: 열람 불가
+ */
 export function viewerMaySeeAppreciationLetter(
   letter: AppreciationLetterVO,
-  viewerUserId: string | undefined | null,
+  viewer: AppreciationLetterViewerContext,
   isAuthenticated: boolean,
 ): boolean {
-  if (isAppreciationLetterPublic(letter)) return true;
-  if (!isAuthenticated || !viewerUserId) return false;
-  return isSameAppreciationLetterAuthor(viewerUserId, letter.senderUserId);
+  const isPublic = isAppreciationLetterPublic(letter);
+  const authorOk =
+    isAuthenticated &&
+    viewer != null &&
+    isSameAppreciationLetterAuthor(viewer.id, letter.senderUserId);
+
+  // 작성자 본인은 공개 여부/유치원 스코프와 무관하게 항상 볼 수 있도록 한다.
+  // (목록 UI가 유치원 스코프를 강제해서, 작성 직후 편지가 잠깐이라도 누락되는 문제 방지)
+  if (authorOk) {
+    return true;
+  }
+
+  if (!isPublic) {
+    return authorOk;
+  }
+
+  if (viewer != null && bypassesAppreciationLetterKindergartenScope(viewer.role)) {
+    return true;
+  }
+
+  if (!isAuthenticated || viewer == null) {
+    return false;
+  }
+
+  const letterKg = resolveLetterKindergartenId(letter);
+  const viewerKg = viewer.kindergartenId;
+  if (letterKg == null) {
+    return false;
+  }
+  if (viewerKg != null && Number.isFinite(viewerKg) && viewerKg > 0) {
+    return letterKg === viewerKg;
+  }
+
+  return false;
+}
+
+/** 목록 행 등 최소 필드만 있을 때 `viewerMaySeeAppreciationLetter`에 넘길 프로브 */
+export function buildAppreciationLetterVisibilityProbe(p: {
+  isPublic?: boolean;
+  senderUserId: number;
+  kindergartenId?: number | null;
+}): AppreciationLetterVO {
+  const kg =
+    p.kindergartenId != null && Number.isFinite(p.kindergartenId) && p.kindergartenId > 0
+      ? Math.trunc(p.kindergartenId)
+      : 0;
+  return {
+    letterId: 0,
+    kindergartenId: kg,
+    senderUserId: p.senderUserId,
+    targetType: 'KINDERGARTEN',
+    targetId: 0,
+    title: '',
+    content: '',
+    isPublic: p.isPublic !== false,
+    status: 'ACTIVE',
+    createdAt: '',
+    updatedAt: '',
+  };
 }
 
 /** URL 쿼리 `id` → 숫자 (null/undefined 문자열 제외) */

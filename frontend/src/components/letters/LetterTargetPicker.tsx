@@ -41,6 +41,10 @@ type LetterTargetPickerProps = {
   onClearTarget?: () => void;
   /** 수정 폼: 교사 대상 글일 때 유치원 2단계를 미리 채움 */
   presetKindergartenForTeacherFlow?: { kindergartenId: number; name: string } | null;
+  /** 감사편지 작성/수정 시 소속 유치원만 선택 가능하도록 제한 */
+  lockedKindergartenId?: number | null;
+  /** 감사편지 작성 화면 등 — 레이아웃·타이포를 한 단계 축소 */
+  compact?: boolean;
 };
 
 export function LetterTargetPicker({
@@ -52,6 +56,8 @@ export function LetterTargetPicker({
   hasSelection,
   onClearTarget,
   presetKindergartenForTeacherFlow = null,
+  lockedKindergartenId = null,
+  compact = false,
 }: LetterTargetPickerProps) {
   const [inputQuery, setInputQuery] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
@@ -187,6 +193,15 @@ export function LetterTargetPicker({
   };
 
   const handleClickKindergartenRow = (row: KindergartenVO) => {
+    const locked =
+      lockedKindergartenId != null &&
+      Number.isFinite(lockedKindergartenId) &&
+      Math.trunc(lockedKindergartenId) > 0;
+    const clickedId = Number(row.kindergartenId);
+    if (locked && (!Number.isFinite(clickedId) || clickedId !== Math.trunc(lockedKindergartenId))) {
+      setError('소속 유치원에 해당하는 편지만 선택할 수 있습니다.');
+      return;
+    }
     if (isKgTarget) {
       onSelectKindergarten(row);
       return;
@@ -214,17 +229,26 @@ export function LetterTargetPicker({
     return `교사 이름으로 검색 · ${pickedKgForTeacher?.name ?? ''} 소속만`;
   })();
 
-  const segmentBtn =
-    'rounded-lg px-4 py-2 text-sm font-medium transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1';
+  const segmentBtn = compact
+    ? 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1'
+    : 'rounded-lg px-4 py-2 text-sm font-medium transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1';
 
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4">
-      <p className="text-sm font-medium text-slate-800">감사 대상 선택</p>
-      <p className="text-xs text-slate-500">
+    <div
+      className={
+        compact
+          ? 'space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3'
+          : 'space-y-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4'
+      }
+    >
+      <p className={compact ? 'text-xs font-medium text-slate-800' : 'text-sm font-medium text-slate-800'}>
+        감사 대상 선택
+      </p>
+      <p className={compact ? 'text-[11px] leading-snug text-slate-500' : 'text-xs text-slate-500'}>
         <strong>유치원</strong>은 목록에서 바로 고르고, <strong>유치원 교사</strong>는 먼저 유치원을 고른 뒤 그 원의 교사를 고릅니다.
       </p>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="감사 대상 유형">
+      <div className={compact ? 'flex flex-wrap gap-1.5' : 'flex flex-wrap gap-2'} role="group" aria-label="감사 대상 유형">
         <button
           type="button"
           className={`${segmentBtn} ${
@@ -252,13 +276,28 @@ export function LetterTargetPicker({
       </div>
 
       {teacherStepPickTeacher && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-emerald-100 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900">
+        <div
+          className={
+            compact
+              ? 'flex flex-wrap items-center gap-1.5 rounded-md border border-emerald-100 bg-emerald-50/90 px-2 py-1.5 text-xs text-emerald-900'
+              : 'flex flex-wrap items-center gap-2 rounded-md border border-emerald-100 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900'
+          }
+        >
           <span>
             선택한 유치원: <strong>{pickedKgForTeacher.name}</strong>
           </span>
           <button
             type="button"
-            className="rounded border border-emerald-300 bg-white px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50"
+            className={
+              compact
+                ? 'rounded border border-emerald-300 bg-white px-1.5 py-0.5 text-[11px] text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55'
+                : 'rounded border border-emerald-300 bg-white px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55'
+            }
+            disabled={
+              lockedKindergartenId != null &&
+              Number.isFinite(lockedKindergartenId) &&
+              Math.trunc(lockedKindergartenId) > 0
+            }
             onClick={() => {
               skipNextPresetRef.current = true;
               setPickedKgForTeacher(null);
@@ -270,7 +309,7 @@ export function LetterTargetPicker({
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className={compact ? 'flex gap-1.5' : 'flex gap-2'}>
         <input
           type="text"
           value={inputQuery}
@@ -282,35 +321,61 @@ export function LetterTargetPicker({
             }
           }}
           placeholder={searchPlaceholder}
-          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className={
+            compact
+              ? 'min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs'
+              : 'min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm'
+          }
         />
         <button
           type="button"
           onClick={applySearch}
           disabled={loading}
-          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#006b52] px-4 py-2 text-sm text-white hover:bg-[#005640] disabled:opacity-50"
+          className={
+            compact
+              ? 'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-[#006b52] px-2.5 py-1.5 text-xs text-white hover:bg-[#005640] disabled:opacity-50'
+              : 'inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#006b52] px-4 py-2 text-sm text-white hover:bg-[#005640] disabled:opacity-50'
+          }
         >
-          <Search className="h-4 w-4" />
+          <Search className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
           검색
         </button>
         <button
           type="button"
           onClick={resetSearchForUser}
-          className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-600 hover:bg-gray-50"
+          className={
+            compact
+              ? 'shrink-0 rounded-md border border-gray-300 px-2 py-1.5 text-xs text-slate-600 hover:bg-gray-50'
+              : 'shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm text-slate-600 hover:bg-gray-50'
+          }
         >
           초기화
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className={compact ? 'text-xs text-red-600' : 'text-sm text-red-600'}>{error}</p>
+      )}
 
       {hasSelection && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <div
+          className={
+            compact
+              ? 'rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs text-emerald-900'
+              : 'rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900'
+          }
+        >
           선택됨: <span className="font-medium">{selectedDisplayText}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+      <div
+        className={
+          compact
+            ? 'flex items-center justify-between gap-1.5 text-[11px] text-slate-600'
+            : 'flex items-center justify-between gap-2 text-xs text-slate-600'
+        }
+      >
         <span>
           {listTitle}
           {!loading && !error && (
@@ -329,11 +394,33 @@ export function LetterTargetPicker({
         )}
       </div>
 
-      <div className="max-h-80 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-sm">
+      <div
+        className={
+          compact
+            ? 'max-h-64 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-sm'
+            : 'max-h-80 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-sm'
+        }
+      >
         {loading ? (
-          <p className="p-6 text-center text-sm text-gray-500">목록을 불러오는 중입니다…</p>
+          <p
+            className={
+              compact
+                ? 'p-4 text-center text-xs text-gray-500'
+                : 'p-6 text-center text-sm text-gray-500'
+            }
+          >
+            목록을 불러오는 중입니다…
+          </p>
         ) : emptyAfterLoad ? (
-          <p className="p-6 text-center text-sm text-gray-500">{emptyHint}</p>
+          <p
+            className={
+              compact
+                ? 'p-4 text-center text-xs text-gray-500'
+                : 'p-6 text-center text-sm text-gray-500'
+            }
+          >
+            {emptyHint}
+          </p>
         ) : isKgTarget || teacherStepPickKg ? (
           <ul className="divide-y divide-gray-100">
             {kindergartenRows.map((row, i) => (
@@ -347,10 +434,20 @@ export function LetterTargetPicker({
                 <button
                   type="button"
                   onClick={() => handleClickKindergartenRow(row)}
-                  className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm transition-colors hover:bg-emerald-50"
+                  disabled={
+                    lockedKindergartenId != null &&
+                    Number.isFinite(lockedKindergartenId) &&
+                    Math.trunc(lockedKindergartenId) > 0 &&
+                    Number(row.kindergartenId) !== Math.trunc(lockedKindergartenId)
+                  }
+                  className={
+                    compact
+                      ? 'flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-xs transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55'
+                      : 'flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55'
+                  }
                 >
                   <span className="font-medium text-slate-900">{row.name}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className={compact ? 'text-[11px] text-gray-500' : 'text-xs text-gray-500'}>
                     유치원 ID {row.kindergartenId}
                     {row.address ? ` · ${row.address}` : ''}
                   </span>
@@ -380,10 +477,14 @@ export function LetterTargetPicker({
                       }),
                     )
                   }
-                  className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm transition-colors hover:bg-emerald-50"
+                  className={
+                    compact
+                      ? 'flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-xs transition-colors hover:bg-emerald-50'
+                      : 'flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left text-sm transition-colors hover:bg-emerald-50'
+                  }
                 >
                   <span className="font-medium text-slate-900">{row.name}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className={compact ? 'text-[11px] text-gray-500' : 'text-xs text-gray-500'}>
                     교사 ID {row.teacherId}
                     {row.level ? ` · 직급 ${row.level}` : ''}
                   </span>

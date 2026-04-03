@@ -47,7 +47,11 @@ export type AppreciationLetterWritePayload = {
   status: string;
 };
 
-export const APPRECIATION_LETTERS_PAGE_SIZE = 20;
+/** 프론트 UI에서 한 페이지에 보여줄 개수 */
+export const APPRECIATION_LETTERS_PAGE_SIZE = 6;
+
+/** 목록 조회 시 한 번에 가져올 최대 개수(프론트에서 다시 페이지 나눔) */
+export const APPRECIATION_LETTERS_FETCH_LIMIT = 200;
 
 export type GetAppreciationLettersParams = {
   keyword?: string;
@@ -60,7 +64,7 @@ export async function getAppreciationLetters(
   params?: GetAppreciationLettersParams,
 ): Promise<PageResponse<AppreciationLetterVO>> {
   const page = params?.page ?? 0;
-  const size = params?.size ?? APPRECIATION_LETTERS_PAGE_SIZE;
+  const size = params?.size ?? APPRECIATION_LETTERS_FETCH_LIMIT;
   const keyword = params?.keyword?.trim();
   const sort = params?.sort;
   const response = await apiClient.get<PageResponse<AppreciationLetterVO>>('/appreciation_letters', {

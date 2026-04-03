@@ -11,6 +11,13 @@ import { useLoginMutation } from '../../services/apis/auth.api';
 import type { UserRole } from '@/types/user-role';
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
+const inferKindergartenIdFromUserId = (userId: number): number | undefined => {
+  if (!Number.isFinite(userId) || userId <= 0) return undefined;
+  if (userId >= 700) return 3;
+  if (userId >= 400) return 2;
+  if (userId >= 100) return 1;
+  return undefined;
+};
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,16 +40,31 @@ export function LoginForm() {
       const response = await loginApi({ identifier: loginId, password }).unwrap();
 
       const responseLoginId = response?.loginId ?? loginId;
+      const responseIdRaw = response?.id;
+      const responseIdNum = Number(responseIdRaw);
+      const responseUserId =
+        Number.isFinite(responseIdNum) && responseIdNum > 0
+          ? Math.trunc(responseIdNum)
+          : undefined;
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
-      const displayName = response?.name ?? responseLoginId;
+      const apiName =
+        typeof response?.name === 'string' && response.name.trim() !== '' ? response.name.trim() : '';
+      const rawKindergartenId =
+        response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
+      const parsedKindergartenId = Number(rawKindergartenId);
+      const kindergartenId =
+        Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
+          ? parsedKindergartenId
+          : undefined;
 
       const user = {
-          id: responseLoginId,
+          id: String(responseUserId ?? responseLoginId),
           username: responseLoginId,
           loginId: responseLoginId,
-          name: displayName,
+          name: apiName,
           role: role as UserRole,
+          kindergartenId: kindergartenId ?? inferKindergartenIdFromUserId(responseUserId ?? 0),
       };
 
       // 1. Redux 스토어에 유저 정보와 토큰 저장

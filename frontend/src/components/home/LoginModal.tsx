@@ -23,6 +23,14 @@ const getForgotPasswordErrorMessage = (err: any) => {
   return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
 };
 
+const inferKindergartenIdFromUserId = (userId: number): number | undefined => {
+  if (!Number.isFinite(userId) || userId <= 0) return undefined;
+  if (userId >= 700) return 3;
+  if (userId >= 400) return 2;
+  if (userId >= 100) return 1;
+  return undefined;
+};
+
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const [loginApi, { isLoading }] = useLoginMutation();
@@ -76,19 +84,32 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const rawId = response?.id ?? formData.id;
       const responseId =
         rawId != null && rawId !== '' ? String(rawId) : '';
+      const numericUserId = Number(responseId);
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
       const nameRaw = response?.name;
       const nameFromApi =
         typeof nameRaw === 'string' && nameRaw.trim() !== '' ? nameRaw.trim() : '';
+      const rawKindergartenId =
+        response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
+      const parsedKindergartenId = Number(rawKindergartenId);
+      const kindergartenId =
+        Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
+          ? parsedKindergartenId
+          : undefined;
 
       const user = {
         id: responseId || responseLoginId,
         loginId: responseLoginId,
         username: responseLoginId,
-        /** 토큰 응답에 이름이 없으면 로그인 ID로만 채움. 보호자 실명은 감사편지 등에서 `/guardians/by-user/{userId}` 사용 */
-        name: nameFromApi || responseLoginId,
+        /** 실명은 API `name`만 저장. 없으면 빈 문자열(화면은 `loginId` 등과 구분) */
+        name: nameFromApi,
         role: role as UserRole,
+        kindergartenId:
+          kindergartenId ??
+          (Number.isFinite(numericUserId) && numericUserId > 0
+            ? inferKindergartenIdFromUserId(numericUserId)
+            : undefined),
       };
 
       dispatch(setCredentials({ user, token }));

@@ -21,7 +21,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const sessionUser = user;
     const hasSession = Boolean(sessionUser);
     const currentRole: UserRole = sessionUser?.role ?? 'GUARDIAN';
-    const username = sessionUser?.name ?? sessionUser?.username ?? '게스트';
+    /** 상단바 로그인·로그아웃 옆: 로그인 아이디 우선 (`name`이 빈 문자열이면 `??`만으로는 `username`으로 안 넘어가 비어 보임) */
+    const username =
+      sessionUser?.loginId?.trim() ||
+      sessionUser?.username?.trim() ||
+      sessionUser?.name?.trim() ||
+      '게스트';
     /** 로그인 세션이 없을 때만 ALL — `user`만 비고 localStorage에 유저가 있으면 역할 그대로 */
     const menuRoleType = hasSession ? sessionUser!.role : 'ANONYMOUS';
 
