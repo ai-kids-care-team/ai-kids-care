@@ -26,12 +26,13 @@ from transformers import (
     TrainingArguments,
 )
 
-from src.ai_app.datasets.loader import (
+from ai_app.datasets.loader import (
     VideoClipManifestDataset,
     build_label_mappings,
     videomae_collate_fn,
 )
-from src.ai_app.training.callbacks import MemoryCleanupCallback
+from ai_app.training.callbacks import MemoryCleanupCallback
+from ai_app.utils.pushover import send_pushover_notification
 
 
 def set_seed(seed: int = 42) -> None:
@@ -96,7 +97,7 @@ def filter_manifest_by_file_size(
 
 def main():
     set_seed(42)
-    dataset_tag = "06_wander"
+    dataset_tag = "01_assault"
 
     project_root = Path(__file__).resolve().parent.parent
     manifest_path = project_root / "data" / "processed" / f"{dataset_tag}_manifest_clips_downsampled.csv"
@@ -107,9 +108,9 @@ def main():
     num_frames = 16
     sampling_rate = 4
     min_video_size_bytes = 1024
-    gc_collect_interval = 20
-    gc_every_n_steps = 20
-    early_stopping_patience = 10
+    gc_collect_interval = 500
+    gc_every_n_steps = 500
+    early_stopping_patience = 6
     early_stopping_threshold = 2e-3
     per_device_train_batch_size = 2
     per_device_eval_batch_size = 2
@@ -184,7 +185,7 @@ def main():
         save_strategy="epoch",
         logging_strategy="steps",
         logging_steps=10,
-        save_total_limit=2,
+        save_total_limit=20,
         load_best_model_at_end=True,
         metric_for_best_model="eval_accuracy",
         greater_is_better=True,
@@ -236,3 +237,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Push Notification to myself
+    send_pushover_notification("Training finished!", "Wake Up!!!")
