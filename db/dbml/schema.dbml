@@ -433,12 +433,14 @@ Table camera_streams {
   camera_id bigint [not null, note: "카메라 ID(CCTV_CAMERA.camera_id)"]
 
   stream_type camera_stream_type_enum [note: "스트림 타입(메인/서브 등)"]
-  stream_url varchar [note: "스트림 URL(예: RTSP/HTTP 엔드포인트)"]
+  source_url varchar [note: "원본 스트림 소스 URL(예: RTSP/ONVIF/HTTP 엔드포인트)"]
   stream_user varchar [note: "스트림 인증 사용자명"]
   stream_password_ciphertext varchar [note: "스트림 인증 비밀번호 암호문"]
   stream_password_iv varchar [note: "스트림 인증 비밀번호 암복호화 IV"]
   stream_password_key_version varchar(32) [note: "스트림 인증 비밀번호 암복호화 키 버전"]
-  protocol protocol_enum [note: "스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)"]
+  source_protocol protocol_enum [note: "원본 스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)"]
+  playback_url varchar [note: "재생용 스트림 URL(예: HTTP-FLV/HLS 엔드포인트)"]
+  playback_protocol protocol_enum [note: "재생용 스트림 프로토콜(HTTP/HTTPS)"]
   fps int [note: "스트림 FPS(초당 프레임 수)"]
   resolution varchar [note: "해상도(예: 1920x1080)"]
 
