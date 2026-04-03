@@ -924,6 +924,7 @@ export function auth() {
       const responseLoginId = loginResponse?.loginId ?? form.loginId;
       const role = loginResponse?.role ?? 'GUARDIAN';
       const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
+      const refreshToken = loginResponse?.refreshToken ?? '';
       const name = loginResponse?.name;
       const user = {
         id: responseLoginId,
@@ -939,6 +940,9 @@ export function auth() {
         if (token) {
           localStorage.setItem('token', token);
           localStorage.setItem('accessToken', token);
+        }
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
         }
       } catch {
         // 저장 실패 시에도 Redux 세션은 유지
