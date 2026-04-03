@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.DeviceTokenUpdateDTO;
 import com.ai_kids_care.v1.vo.DeviceTokenVO;
 import com.ai_kids_care.v1.service.DeviceTokenService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class DeviceTokenController {
     }
 
     @PostMapping
-    public ResponseEntity<DeviceTokenVO> createDeviceToken(@RequestBody DeviceTokenCreateDTO createDTO) {
+    public ResponseEntity<DeviceTokenVO> createDeviceToken(@RequestBody @Valid DeviceTokenCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createDeviceToken(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DeviceTokenVO> updateDeviceToken(
             @PathVariable Long id,
-            @RequestBody DeviceTokenUpdateDTO updateDTO
+            @RequestBody @Valid DeviceTokenUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateDeviceToken(id, updateDTO));
     }

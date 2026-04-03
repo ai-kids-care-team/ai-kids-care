@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.DetectionEventUpdateDTO;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
 import com.ai_kids_care.v1.service.DetectionEventService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class DetectionEventController {
     }
 
     @PostMapping
-    public ResponseEntity<DetectionEventVO> createDetectionEvent(@RequestBody DetectionEventCreateDTO createDTO) {
+    public ResponseEntity<DetectionEventVO> createDetectionEvent(@RequestBody @Valid DetectionEventCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createDetectionEvent(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<DetectionEventVO> updateDetectionEvent(
             @PathVariable Long id,
-            @RequestBody DetectionEventUpdateDTO updateDTO
+            @RequestBody @Valid DetectionEventUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateDetectionEvent(id, updateDTO));
     }

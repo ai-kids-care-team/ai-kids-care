@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.NotificationUpdateDTO;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import com.ai_kids_care.v1.service.NotificationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class NotificationController {
     }
 
     @PostMapping
-    public ResponseEntity<NotificationVO> createNotification(@RequestBody NotificationCreateDTO createDTO) {
+    public ResponseEntity<NotificationVO> createNotification(@RequestBody @Valid NotificationCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createNotification(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<NotificationVO> updateNotification(
             @PathVariable Long id,
-            @RequestBody NotificationUpdateDTO updateDTO
+            @RequestBody @Valid NotificationUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateNotification(id, updateDTO));
     }

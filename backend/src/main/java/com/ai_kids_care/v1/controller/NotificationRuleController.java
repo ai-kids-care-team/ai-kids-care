@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO;
 import com.ai_kids_care.v1.vo.NotificationRuleVO;
 import com.ai_kids_care.v1.service.NotificationRuleService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class NotificationRuleController {
     }
 
     @PostMapping
-    public ResponseEntity<NotificationRuleVO> createNotificationRule(@RequestBody NotificationRuleCreateDTO createDTO) {
+    public ResponseEntity<NotificationRuleVO> createNotificationRule(@RequestBody @Valid NotificationRuleCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createNotificationRule(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<NotificationRuleVO> updateNotificationRule(
             @PathVariable Long id,
-            @RequestBody NotificationRuleUpdateDTO updateDTO
+            @RequestBody @Valid NotificationRuleUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateNotificationRule(id, updateDTO));
     }
