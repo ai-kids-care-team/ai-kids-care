@@ -70,7 +70,7 @@ export function HomePage() {
   return (
     <>
       <div className="min-h-screen bg-white">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <main className="mx-auto max-w-7xl px-4 pb-2 pt-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 flex flex-col">
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-4">
@@ -119,7 +119,6 @@ export function HomePage() {
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h3 className="text-sm mb-4">빠른 링크</h3>
                   <div className="space-y-2">
                     <Link
                       href="/signup"
@@ -146,11 +145,6 @@ export function HomePage() {
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     )}
-
-                    <button className="w-full flex items-center justify-between p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-                      <span className="text-sm">고객센터</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               </div>

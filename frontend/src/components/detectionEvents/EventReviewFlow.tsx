@@ -207,7 +207,7 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>처리 이력 정보를 불러오는 중입니다.</span>
@@ -218,7 +218,7 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
 
   if (error) {
     return (
-      <section className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+      <section className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
         {error}
       </section>
     );
@@ -226,7 +226,7 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
 
   if (!items.length) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-2 text-sm text-slate-600">
         현재까지 등록된 처리 이력이 없습니다.
       </section>
     );
@@ -234,24 +234,24 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
 
   return (
     <section>
-      <h3 className="mb-3 text-lg font-semibold text-slate-900">처리 프로세스 플로우</h3>
-      <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
+      <h3 className="mb-2.5 text-lg font-semibold text-slate-900">처리 프로세스 플로우</h3>
+      <div className="mb-2.5 flex items-center gap-2 text-xs text-slate-500">
         <Info className="h-3 w-3" />
         <span>AI 알림에 대해 담당자가 확인·검토·조치한 이력을 순서대로 보여줍니다.</span>
       </div>
-      <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap gap-2.5 rounded-2xl border border-slate-200 bg-white p-3">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           const style = getStatusStyle(item.status);
           const Icon = style.icon;
           return (
             // eslint-disable-next-line react/no-array-index-key
-            <div key={`${item.id}-${index}`} className="flex items-center gap-3">
+            <div key={`${item.id}-${index}`} className="flex items-center gap-2.5">
               <div className="group relative">
                 <div
-                  className={`flex h-20 min-w-[140px] flex-col items-center justify-center rounded-xl border px-4 py-2 text-center text-xs text-slate-800 shadow-sm transition-colors group-hover:border-sky-400 group-hover:bg-sky-50 ${style.cardClass}`}
+                  className={`flex h-[4.5rem] min-w-[140px] flex-col items-center justify-center rounded-xl border px-3 py-1.5 text-center text-xs text-slate-800 shadow-sm transition-colors group-hover:border-sky-400 group-hover:bg-sky-50 ${style.cardClass}`}
                 >
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="mb-1 flex items-center gap-1.5">
                     <span
                       className={`flex h-6 w-6 items-center justify-center rounded-full shadow-sm ${style.iconClass}`}
                     >
@@ -261,14 +261,14 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
                       {item.status}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-900">{item.label}</div>
+                  <div className="mt-0.5 text-sm font-semibold leading-tight text-slate-900">{item.label}</div>
                 </div>
                 {item.comment && (
-                  <div className="pointer-events-none absolute left-1/2 top-full z-10 mt-3 hidden w-64 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-700 shadow-lg group-hover:block">
+                  <div className="pointer-events-none absolute left-1/2 top-full z-10 mt-1.5 hidden w-64 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-1.5 text-xs text-slate-700 shadow-lg group-hover:block">
                     <div className="absolute -top-2 left-1/2 -translate-x-1/2">
                       <div className="h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white drop-shadow-sm" />
                     </div>
-                    <div className="mb-1 text-[11px] font-semibold text-slate-500">
+                    <div className="mb-0.5 text-[11px] font-semibold text-slate-500">
                       {item.teacherName ? `담당자: ${item.teacherName}` : '담당자 코멘트'}
                     </div>
                     <p className="whitespace-pre-wrap">{item.comment}</p>
@@ -276,8 +276,8 @@ export function EventReviewFlow({ eventId }: EventReviewFlowProps) {
                 )}
               </div>
               {!isLast && (
-                <div className="flex h-10 w-10 items-center justify-center text-sky-500">
-                  <ChevronRight className="h-6 w-6" strokeWidth={3} />
+                <div className="flex h-9 w-9 items-center justify-center text-sky-500">
+                  <ChevronRight className="h-5 w-5" strokeWidth={3} />
                 </div>
               )}
             </div>

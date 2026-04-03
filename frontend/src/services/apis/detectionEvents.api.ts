@@ -53,7 +53,8 @@ export type PageResponse<T> = {
   last: boolean;
 };
 
-export const DETECTION_EVENTS_LIST_PAGE_SIZE = 20;
+/** 목록 화면 한 페이지당 건수 */
+export const DETECTION_EVENTS_LIST_PAGE_SIZE = 4;
 
 export type GetDetectionEventsParams = {
   keyword?: string;

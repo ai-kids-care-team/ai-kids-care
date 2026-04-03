@@ -36,8 +36,8 @@ export type PageResponse<T> = {
   last: boolean;
 };
 
-/** 공지 목록 페이지 크기(백엔드 `PageableDefault`와 맞춤) */
-export const ANNOUNCEMENTS_LIST_PAGE_SIZE = 5;
+/** 공지 목록·홈 미리보기 등 한 번에 가져올 기본 건수 */
+export const ANNOUNCEMENTS_LIST_PAGE_SIZE = 6;
 
 export type GetAnnouncementsParams = {
   keyword?: string;

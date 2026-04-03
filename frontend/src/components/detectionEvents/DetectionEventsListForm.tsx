@@ -130,21 +130,18 @@ export function DetectionEventsListForm({
     sessionStorage.setItem('detectionEvents:list:scrollY', String(window.scrollY));
   };
 
-  const LIST_MIN_HEIGHT = 'min-h-[600px]';
-  const useInnerScroll = !loading && events.length > 4;
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <main className="mx-auto max-w-5xl" style={{ zoom: 0.85 }}>
+      <main className="mx-auto w-[30%] max-w-5xl">
         <div className="rounded-2xl bg-white p-8 shadow-lg">
-          <div className="mb-8 flex items-center justify-between border-b border-gray-200 pb-6">
+          <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-7 w-7 text-[#d97706]" />
-              <h2 className="text-3xl">이상 탐지</h2>
+              <AlertTriangle className="h-6 w-6 text-[#d97706]" aria-hidden />
+              <h2 className="text-2xl">이상 탐지</h2>
             </div>
           </div>
 
-          <div className="mb-6 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2">
             <input
               type="text"
               value={keyword}
@@ -167,15 +164,8 @@ export function DetectionEventsListForm({
 
           {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
-          <div
-            className={[
-              LIST_MIN_HEIGHT,
-              'space-y-3',
-              useInnerScroll ? 'max-h-[600px] overflow-y-auto pr-1' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
+          <div className="origin-top" style={{ zoom: 0.7 }}>
+            <div className="space-y-3">
             {loading ? (
               <p className="flex min-h-[520px] items-center justify-center text-center text-gray-500">
                 탐지 이벤트를 불러오는 중입니다.
@@ -268,10 +258,11 @@ export function DetectionEventsListForm({
                 </Link>
               ))
             )}
+            </div>
           </div>
 
           {!loading && totalPages > 1 && (
-            <div className="mt-8 flex min-h-[3.25rem] flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-6">
+            <div className="mt-4 flex min-h-[1.625rem] flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-3">
               <button
                 type="button"
                 disabled={page <= 0}

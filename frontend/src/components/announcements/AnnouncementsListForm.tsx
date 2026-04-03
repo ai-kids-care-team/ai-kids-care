@@ -59,9 +59,9 @@ export function AnnouncementsListForm({
   const rememberScroll = () => {
     sessionStorage.setItem('announcements:list:scrollY', String(window.scrollY));
   };
-  /** 페이지당 최대 5건 기준 카드 높이·간격에 맞춘 최소 영역 — 건수가 적어도 페이지바 위치 고정 */
-  const LIST_MIN_HEIGHT = 'min-h-[600px]';
-  const useInnerScroll = !loading && announcements.length > 4;
+  /** 페이지당 최대 6건 기준 카드 높이·간격에 맞춘 최소 영역 — 건수가 적어도 페이지바 위치 고정 */
+  const LIST_MIN_HEIGHT = 'min-h-[680px]';
+  const useInnerScroll = !loading && announcements.length > 5;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -110,7 +110,7 @@ export function AnnouncementsListForm({
             className={[
               LIST_MIN_HEIGHT,
               'space-y-3',
-              useInnerScroll ? 'max-h-[600px] overflow-y-auto pr-1' : '',
+              useInnerScroll ? 'max-h-[680px] overflow-y-auto pr-1' : '',
             ]
               .filter(Boolean)
               .join(' ')}
