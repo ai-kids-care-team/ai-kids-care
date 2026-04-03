@@ -437,33 +437,20 @@ def evaluate_test_split(
 
 
 if __name__ == "__main__":
-    project_root = Path(__file__).resolve().parent.parent
     dataset_tag = "01_assault"
-
+    project_root = Path(__file__).resolve().parent.parent
     best_model_dir = project_root / "outputs" / f"{dataset_tag}_videomae_baseline" / "best_model"
+    metrics_export_dir = project_root / "outputs" / "predictions" / f"{dataset_tag}_best_model_test_metrics"
+    manifest_path = project_root / "data" / "processed" / f"{dataset_tag}_manifest_clips_downsampled.csv"
+    if not best_model_dir.exists():
+        raise FileNotFoundError(f"Best model dir not found: {best_model_dir}")
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Manifest not found: {manifest_path}")
+
     infer_batch_size = 8
     infer_num_workers = 6
     infer_prefetch_factor = 2
     infer_decode_thread_type = "AUTO"
-    metrics_export_dir = project_root / "outputs" / "predictions" / f"{dataset_tag}_best_model_test_metrics"
-    manifest_candidates = [
-        project_root / "data" / "processed" / f"{dataset_tag}_manifest_clips_downsampled.csv",
-    ]
-
-    manifest_path = None
-    for candidate in manifest_candidates:
-        if candidate.exists():
-            manifest_path = candidate
-            break
-
-    if manifest_path is None:
-        raise FileNotFoundError(
-            "No manifest found. Checked: "
-            + ", ".join(str(p) for p in manifest_candidates)
-        )
-
-    if not best_model_dir.exists():
-        raise FileNotFoundError(f"Best model dir not found: {best_model_dir}")
 
     evaluate_test_split(
         model_dir=best_model_dir,
