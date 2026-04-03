@@ -36,8 +36,8 @@ public class CameraStream {
     @Column(name = "stream_type", columnDefinition = "camera_stream_type_enum")
     private CameraStreamTypeEnum streamType;
 
-    @Column(name = "stream_url", length = Integer.MAX_VALUE)
-    private String streamUrl;
+    @Column(name = "source_url", length = Integer.MAX_VALUE)
+    private String sourceUrl;
 
     @Column(name = "stream_user", length = Integer.MAX_VALUE)
     private String streamUser;
@@ -52,8 +52,15 @@ public class CameraStream {
     private String streamPasswordKeyVersion;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "protocol", columnDefinition = "protocol_enum")
-    private ProtocolEnum protocol;
+    @Column(name = "source_protocol", columnDefinition = "protocol_enum")
+    private ProtocolEnum sourceProtocol;
+
+    @Column(name = "playback_url", length = Integer.MAX_VALUE)
+    private String playbackUrl;
+
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "playback_protocol", columnDefinition = "protocol_enum")
+    private ProtocolEnum playbackProtocol;
 
     @Column(name = "fps")
     private Integer fps;
