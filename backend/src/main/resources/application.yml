@@ -15,6 +15,10 @@ spring:
 
 server:
   port: 8080
+  tomcat:
+    # Tomcat APR(네이티브 라이브러리) 미설치 환경에서
+    # AprLifecycleListener가 예외를 던져 서버가 바로 종료되는 문제 방지
+    use-apr: never
 
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}

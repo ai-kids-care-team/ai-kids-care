@@ -44,6 +44,14 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.yaml/**"
                         ).permitAll()
+                        // 일부 엔드포인트가 기본 패턴 매칭에서 누락되는 것으로 보이므로 명시적으로 허용
+                        .requestMatchers(
+                                "/api/v1/camera_streams",
+                                "/api/v1/camera_streams/**",
+                                "/api/v1/detection_events",
+                                "/api/v1/detection_events/**",
+                                "/api/v1/auth/refresh"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/**").permitAll()
                         .anyRequest().authenticated()
