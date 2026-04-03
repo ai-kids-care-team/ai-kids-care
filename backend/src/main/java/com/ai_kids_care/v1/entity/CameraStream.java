@@ -42,8 +42,14 @@ public class CameraStream {
     @Column(name = "stream_user", length = Integer.MAX_VALUE)
     private String streamUser;
 
-    @Column(name = "stream_password_encrypted", length = Integer.MAX_VALUE)
-    private String streamPasswordEncrypted;
+    @Column(name = "stream_password_ciphertext", length = Integer.MAX_VALUE)
+    private String streamPasswordCiphertext;
+
+    @Column(name = "stream_password_iv", length = Integer.MAX_VALUE)
+    private String streamPasswordIv;
+
+    @Column(name = "stream_password_key_version", length = 32)
+    private String streamPasswordKeyVersion;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "protocol", columnDefinition = "protocol_enum")
@@ -64,6 +70,9 @@ public class CameraStream {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
+
+    @Column(name = "credential_updated_at")
+    private OffsetDateTime credentialUpdatedAt;
 
     @CreationTimestamp
     @ColumnDefault("now()")
