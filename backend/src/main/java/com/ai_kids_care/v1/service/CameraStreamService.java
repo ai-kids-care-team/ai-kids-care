@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
@@ -29,11 +30,19 @@ public class CameraStreamService {
     @Value("${camera.streams.encryption.key-version:${CAMERA_STREAMS_ENC_KEY_VERSION:v1}}")
     private String streamEncryptionKeyVersion;
 
-    public Page<CameraStreamVO> listCameraStreams(String keyword, Pageable pageable) {
-        // TODO: filter CameraStream by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+    @Transactional(readOnly = true)
+    public Page<CameraStreamVO> listCameraStreams(
+            Long kindergartenId,
+            Long cameraId,
+            Boolean enabled,
+            Boolean isPrimary,
+            Pageable pageable
+    ) {
+        return repository.findAllByFilters(kindergartenId, cameraId, enabled, isPrimary, pageable)
+                .map(mapper::toVO);
     }
 
+    @Transactional(readOnly = true)
     public CameraStreamVO getCameraStream(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("CameraStream not found"));
