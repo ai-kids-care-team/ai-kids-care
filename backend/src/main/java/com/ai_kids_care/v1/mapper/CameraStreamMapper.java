@@ -9,13 +9,18 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface CameraStreamMapper {
 
-    @Mapping(target = "streamId", ignore = true)
+    @Mapping(source = "id", target = "streamId")
     @Mapping(source = "cctvCameras.kindergarten.id", target = "kindergartenId")
     @Mapping(source = "cctvCameras.id", target = "cameraId")
+    @Mapping(target = "hasPassword", expression = "java(entity.getStreamPasswordCiphertext() != null && !entity.getStreamPasswordCiphertext().isBlank())")
     CameraStreamVO toVO(CameraStream entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(source = "cameraId", target = "cctvCameras.id")
+    @Mapping(target = "streamPasswordCiphertext", ignore = true)
+    @Mapping(target = "streamPasswordIv", ignore = true)
+    @Mapping(target = "streamPasswordKeyVersion", ignore = true)
+    @Mapping(target = "credentialUpdatedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     CameraStream toEntity(CameraStreamCreateDTO dto);
@@ -23,6 +28,10 @@ public interface CameraStreamMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(source = "cameraId", target = "cctvCameras.id")
+    @Mapping(target = "streamPasswordCiphertext", ignore = true)
+    @Mapping(target = "streamPasswordIv", ignore = true)
+    @Mapping(target = "streamPasswordKeyVersion", ignore = true)
+    @Mapping(target = "credentialUpdatedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(CameraStreamUpdateDTO dto, @MappingTarget CameraStream entity);
