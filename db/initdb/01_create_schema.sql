@@ -351,13 +351,16 @@ CREATE TABLE "camera_streams" (
   "stream_type" camera_stream_type_enum,
   "stream_url" varchar,
   "stream_user" varchar,
-  "stream_password_encrypted" varchar,
+  "stream_password_ciphertext" varchar,
+  "stream_password_iv" varchar,
+  "stream_password_key_version" varchar(32),
   "protocol" protocol_enum,
   "fps" int,
   "resolution" varchar,
   "is_primary" boolean,
   "enabled" boolean,
   "status" status_enum,
+  "credential_updated_at" timestamptz DEFAULT 'now()',
   "created_at" timestamptz DEFAULT 'now()',
   "updated_at" timestamptz DEFAULT 'now()'
 );
@@ -913,7 +916,11 @@ COMMENT ON COLUMN "camera_streams"."stream_url" IS '스트림 URL(예: RTSP/HTTP
 
 COMMENT ON COLUMN "camera_streams"."stream_user" IS '스트림 인증 사용자명';
 
-COMMENT ON COLUMN "camera_streams"."stream_password_encrypted" IS '스트림 인증 비밀번호(암호화 저장)';
+COMMENT ON COLUMN "camera_streams"."stream_password_ciphertext" IS '스트림 인증 비밀번호 암호문';
+
+COMMENT ON COLUMN "camera_streams"."stream_password_iv" IS '스트림 인증 비밀번호 암복호화 IV';
+
+COMMENT ON COLUMN "camera_streams"."stream_password_key_version" IS '스트림 인증 비밀번호 암복호화 키 버전';
 
 COMMENT ON COLUMN "camera_streams"."protocol" IS '스트림 프로토콜(RTSP/ONVIF/HTTP/HTTPS)';
 
@@ -926,6 +933,8 @@ COMMENT ON COLUMN "camera_streams"."is_primary" IS '대표 스트림 여부(카�
 COMMENT ON COLUMN "camera_streams"."enabled" IS '스트림 사용 여부';
 
 COMMENT ON COLUMN "camera_streams"."status" IS '스트림 상태(운영/비활성 등)';
+
+COMMENT ON COLUMN "camera_streams"."credential_updated_at" IS '스트림 인증정보 수정 일시';
 
 COMMENT ON COLUMN "camera_streams"."created_at" IS '생성 일시';
 
