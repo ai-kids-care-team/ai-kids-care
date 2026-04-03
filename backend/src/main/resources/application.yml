@@ -4,6 +4,13 @@ spring:
     username: ${DB_USER:kids_user}
     password: ${DB_PASSWORD:kids_pass}
     driver-class-name: org.postgresql.Driver
+
+  neo4j:
+    uri: ${NEO4J_URI}
+    authentication:
+      username: ${NEO4J_USERNAME}
+      password: ${NEO4J_PASSWORD}
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,3 +34,5 @@ logging:
     javax.management.remote.rmi: INFO
     sun.rmi.transport.tcp: INFO
     sun.rmi.loader: INFO
+
+

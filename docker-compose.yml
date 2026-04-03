@@ -4,6 +4,20 @@ services:
       file: ./db/postgresSQL-docker-compose.yml
       service: postgres
 
+  neo4j:
+    image: neo4j:5.19
+    container_name: neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/math1106
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 1G
+      TZ: Asia/Seoul
+    ports:
+      - "7474:7474"   # Web UI
+      - "7687:7687"   # Bolt (Java Driver)
+    volumes:
+      - neo4j_data:/data
 
   backend:
     build:
@@ -17,6 +31,11 @@ services:
       DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
       DB_USER: ${POSTGRES_USER:-kids_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: math1106
+
       JWT_SECRET: mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
@@ -25,6 +44,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      neo4j:
+        condition: service_started
 
   frontend:
     build:
@@ -40,3 +61,4 @@ services:
 
 volumes:
   postgres_data:
+  neo4j_data:

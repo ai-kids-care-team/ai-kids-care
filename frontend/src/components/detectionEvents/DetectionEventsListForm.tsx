@@ -135,7 +135,7 @@ export function DetectionEventsListForm({
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <main className="mx-auto max-w-5xl">
+      <main className="mx-auto max-w-5xl" style={{ zoom: 0.85 }}>
         <div className="rounded-2xl bg-white p-8 shadow-lg">
           <div className="mb-8 flex items-center justify-between border-b border-gray-200 pb-6">
             <div className="flex items-center gap-3">

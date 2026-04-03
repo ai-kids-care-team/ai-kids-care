@@ -10,7 +10,7 @@ export type EventReview = {
 
 export type CreateEventReviewDTO = {
   event_id: number;
-  user_id: number;
+  user_id: string;
   from_status: string | null;
   result_status: 'ACKNOWLEDGED' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED';
   comment: string | null;
