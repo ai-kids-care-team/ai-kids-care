@@ -2,8 +2,8 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.CommonCodeCreateDTO;
 import com.ai_kids_care.v1.dto.CommonCodeUpdateDTO;
-import com.ai_kids_care.v1.vo.CommonCodeVO;
 import com.ai_kids_care.v1.service.CommonCodeService;
+import com.ai_kids_care.v1.vo.CommonCodeVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -14,8 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @Tag(name = "CommonCode")
 @RestController
 @RequestMapping("/api/v1/common_codes")
@@ -25,13 +23,14 @@ public class CommonCodeController {
     private final CommonCodeService service;
 
     @GetMapping
-    public ResponseEntity<Page<CommonCodeVO>> listCommonCode(@RequestParam(required = false) String keyword, @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(service.listActiveCodesByGroup(keyword, pageable));
-    }
-
-    @GetMapping("/code_group/{codeGroup}")
-    public ResponseEntity<List<CommonCodeVO>> listCodeGroupCommonCodes(@PathVariable String codeGroup){
-        return ResponseEntity.ok(service.listCodeGroupCommonCodes(codeGroup));
+    public ResponseEntity<Page<CommonCodeVO>> listCommonCodes(
+            @RequestParam(required = false) String codeGroup,
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String parentCode,
+            @RequestParam(required = false) Boolean isActive,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(service.listCommonCodes(codeGroup, code, parentCode, isActive, pageable));
     }
 
     @GetMapping("/{id}")
@@ -53,15 +52,5 @@ public class CommonCodeController {
     public ResponseEntity<Void> deleteCommonCode(@PathVariable Long id) {
         service.deleteCommonCode(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/code_group/{codeGroup}/code/{code}")
-    public ResponseEntity<List<CommonCodeVO>> listAllCommonCodes(@PathVariable String codeGroup, @PathVariable String code) {
-        return ResponseEntity.ok(service.listActiveCommonCodes(codeGroup, code));
-    }
-
-    @GetMapping("/code_group/{codeGroup}/parent_code/{parentCode}")
-    public ResponseEntity<List<CommonCodeVO>> listAllParentCommonCodes(@PathVariable String codeGroup, @PathVariable String parentCode) {
-        return ResponseEntity.ok(service.listAllParentCommonCodes(codeGroup, parentCode));
     }
 }
