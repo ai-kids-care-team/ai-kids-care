@@ -61,77 +61,80 @@ FROM (
         ('user_account', 'PENDING', '대기', 2),
         ('user_account', 'DISABLED', '중지', 3),
 
-        ('kindergarten', 'ACTIVE', '운영', 1),
-        ('kindergarten', 'PENDING', '승인대기', 2),
-        ('kindergarten', 'DISABLED', '폐업', 3),
+        ('kindergartens', 'ACTIVE', '운영', 1),
+        ('kindergartens', 'PENDING', '승인대기', 2),
+        ('kindergartens', 'DISABLED', '폐업', 3),
 
-        ('class_entity', 'ACTIVE', '운영', 1),
-        ('class_entity', 'PENDING', '정지', 2),
-        ('class_entity', 'DISABLED', '종료', 3),
+        ('classes', 'ACTIVE', '운영', 1),
+        ('classes', 'PENDING', '정지', 2),
+        ('classes', 'DISABLED', '종료', 3),
 
-        ('child', 'ACTIVE', '재원', 1),
-        ('child', 'PENDING', '휴학', 2),
-        ('child', 'DISABLED', '퇴원', 3),
+        ('children', 'ACTIVE', '재원', 1),
+        ('children', 'PENDING', '휴학', 2),
+        ('children', 'DISABLED', '퇴원', 3),
 
-        ('child_class_assignment', 'ACTIVE', '배정완료', 1),
-        ('child_class_assignment', 'PENDING', '배정정지', 2),
-        ('child_class_assignment', 'DISABLED', '배정해제', 3),
+        ('child_class_assignments', 'ACTIVE', '배정완료', 1),
+        ('child_class_assignments', 'PENDING', '배정정지', 2),
+        ('child_class_assignments', 'DISABLED', '배정해제', 3),
 
-        ('TEACHER', 'ACTIVE', '재직', 1),
-        ('TEACHER', 'PENDING', '휴직', 2),
-        ('TEACHER', 'DISABLED', '퇴사', 3),
+        ('teachers', 'ACTIVE', '재직', 1),
+        ('teachers', 'PENDING', '휴직', 2),
+        ('teachers', 'DISABLED', '퇴사', 3),
 
-        ('class_teacher_assignment', 'ACTIVE', '배정완료', 1),
-        ('class_teacher_assignment', 'PENDING', '배정정지', 2),
-        ('class_teacher_assignment', 'DISABLED', '배정해제', 3),
+        ('class_teacher_assignments', 'ACTIVE', '배정완료', 1),
+        ('class_teacher_assignments', 'PENDING', '배정정지', 2),
+        ('class_teacher_assignments', 'DISABLED', '배정해제', 3),
 
-        ('room', 'ACTIVE', '사용중', 1),
-        ('room', 'PENDING', '정지', 2),
-        ('room', 'DISABLED', '사용중지', 3),
+        ('rooms', 'ACTIVE', '사용중', 1),
+        ('rooms', 'PENDING', '정지', 2),
+        ('rooms', 'DISABLED', '사용중지', 3),
 
-        ('class_room_assignment', 'ACTIVE', '배정완료', 1),
-        ('class_room_assignment', 'PENDING', '배정정지', 2),
-        ('class_room_assignment', 'DISABLED', '배정해제', 3),
+        ('class_room_assignments', 'ACTIVE', '배정완료', 1),
+        ('class_room_assignments', 'PENDING', '배정정지', 2),
+        ('class_room_assignments', 'DISABLED', '배정해제', 3),
 
-        ('cctv_camera', 'ACTIVE', '작동', 1),
-        ('cctv_camera', 'PENDING', '정지', 2),
-        ('cctv_camera', 'DISABLED', '중지', 3),
+        ('cctv_cameras', 'ACTIVE', '작동', 1),
+        ('cctv_cameras', 'PENDING', '정지', 2),
+        ('cctv_cameras', 'DISABLED', '중지', 3),
 
         ('GUARDIAN', 'ACTIVE', '활성', 1),
         ('GUARDIAN', 'PENDING', '대기', 2),
         ('GUARDIAN', 'DISABLED', '중지', 3),
 
-        ('user_kindergarten_membership', 'ACTIVE', '활성', 1),
-        ('user_kindergarten_membership', 'PENDING', '대기', 2),
-        ('user_kindergarten_membership', 'DISABLED', '중지', 3),
+        ('user_kindergarten_memberships', 'ACTIVE', '활성', 1),
+        ('user_kindergarten_memberships', 'PENDING', '대기', 2),
+        ('user_kindergarten_memberships', 'DISABLED', '중지', 3),
 
         ('user_role_assignment', 'ACTIVE', '활성', 1),
         ('user_role_assignment', 'PENDING', '대기', 2),
         ('user_role_assignment', 'DISABLED', '중지', 3),
 
-        ('ai_model', 'ACTIVE', '운영', 1),
-        ('ai_model', 'PENDING', '대기', 2),
-        ('ai_model', 'DISABLED', '비활성', 3),
+        ('ai_models', 'ACTIVE', '운영', 1),
+        ('ai_models', 'PENDING', '대기', 2),
+        ('ai_models', 'DISABLED', '비활성', 3),
 
-        ('detection_session', 'ACTIVE', '진행중', 1),
-        ('detection_session', 'PENDING', '대기', 2),
-        ('detection_session', 'DISABLED', '종료', 3),
+        ('detection_sessions', 'ACTIVE', '진행중', 1),
+        ('detection_sessions', 'PENDING', '대기', 2),
+        ('detection_sessions', 'DISABLED', '종료', 3),
 
-        ('detection_event', 'ACTIVE', '발생', 1),
-        ('detection_event', 'PENDING', '대기', 2),
-        ('detection_event', 'DISABLED', '종료', 3),
+        ('detection_events', 'OPEN', '미확인', 10),
+        ('detection_events', 'ACKNOWLEDGED', '확인됨', 20),
+        ('detection_events', 'IN_REVIEW', '검토중', 30),
+        ('detection_events', 'RESOLVED', '조치완료', 40),
+        ('detection_events', 'DISMISSED', '오탐', 50),
+        ('detection_events', 'ESCALATED', '상위보고', 60),
 
-        ('event_review', 'ACTIVE', '검토중', 1),
-        ('event_review', 'PENDING', '검토대기', 2),
-        ('event_review', 'DISABLED', '검토종료', 3),
+        ('event_reviews', 'ACTIVE', '검토중', 1),
+        ('event_reviews', 'PENDING', '검토대기', 2),
+        ('event_reviews', 'DISABLED', '검토종료', 3),
 
-        ('device_token', 'ACTIVE', '활성', 1),
-        ('device_token', 'PENDING', '대기', 2),
-        ('device_token', 'DISABLED', '만료', 3),
+        ('device_tokens', 'ACTIVE', '활성', 1),
+        ('device_tokens', 'PENDING', '대기', 2),
+        ('device_tokens', 'DISABLED', '만료', 3),
 
-        ('notification', 'ACTIVE', '발송', 1),
-        ('notification', 'PENDING', '대기', 2),
-        ('notification', 'DISABLED', '취소', 3)
+        ('notifications', 'ACTIVE', '발송', 1),
+        ('notifications', 'PENDING', '대기', 2),
+        ('notifications', 'DISABLED', '취소', 3)
 ) AS v(code_group, code, code_name, sort_order)
 WHERE NOT EXISTS (
     SELECT 1
@@ -244,18 +247,20 @@ SELECT
     CURRENT_TIMESTAMP
 FROM (
          VALUES
-             ('detection_events', 'Assault', '폭행', 1),
-             ('detection_events', 'Fight', '싸움', 2),
-             ('detection_events', 'Burglary', '절도', 3),
-             ('detection_events', 'Vandalism', '기물파손', 4),
-             ('detection_events', 'Swoon', '실신', 5),
-             ('detection_events', 'Wander', '배회', 6),
-             ('detection_events', 'Trespass', '침입', 7),
-             ('detection_events', 'Dump', '투기', 8),
-             ('detection_events', 'Robbery', '강도', 9),
-             ('detection_events', 'Datefight', '데이트폭력 및 추행', 10),
-             ('detection_events', 'Kidnap', '납치', 11),
-             ('detection_events', 'Drunken', '주취행동', 12)
+             ('detection_events', 'ASSAULT', '폭행', 10),
+             ('detection_events', 'FIGHT', '싸움', 20),
+             ('detection_events', 'SWOON', '실신', 30),
+             ('detection_events', 'KIDNAP', '납치', 40),
+
+             ('detection_events', 'WANDER', '배회', 50),
+             ('detection_events', 'TRESPASS', '침입', 60),
+             ('detection_events', 'DATEFIGHT', '데이트폭력 및 추행', 70),
+             ('detection_events', 'BURGLARY', '절도', 80),
+             ('detection_events', 'VANDALISM', '기물파손', 90),
+             ('detection_events', 'DUMP', '투기', 100),
+             ('detection_events', 'ROBBERY', '강도', 110),
+             ('detection_events', 'DRUNKEN', '주취행동', 120),
+             ('detection_events', 'OTHER', '기타', 130)
      ) AS v(code_group, code, code_name, sort_order)
 WHERE NOT EXISTS (
     SELECT 1
