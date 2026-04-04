@@ -11,7 +11,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface CommonCodeMapper {
 
-    @Mapping(target = "codeId", ignore = true)
+    @Mapping(source = "id", target = "codeId")
     CommonCodeVO toVO(CommonCode entity);
 
     @Mapping(target = "id", ignore = true)
