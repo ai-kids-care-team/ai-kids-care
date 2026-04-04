@@ -59,4 +59,9 @@ public class CommonCodeController {
     public ResponseEntity<List<CommonCodeVO>> listAllCommonCodes(@PathVariable String codeGroup, @PathVariable String code) {
         return ResponseEntity.ok(service.listActiveCommonCodes(codeGroup, code));
     }
+
+    @GetMapping("/code_group/{codeGroup}/parent_code/{parentCode}")
+    public ResponseEntity<List<CommonCodeVO>> listAllParentCommonCodes(@PathVariable String codeGroup, @PathVariable String parentCode) {
+        return ResponseEntity.ok(service.listAllParentCommonCodes(codeGroup, parentCode));
+    }
 }
