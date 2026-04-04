@@ -408,6 +408,41 @@ def build_annotation_template_dataframe(
             on=group_cols,
             how="left",
         )
+
+        # Fallback: if same negative_source_type is missing, reuse any candidate in the same event group.
+        missing_candidate_mask = merged_df["candidate_video_path"].isna()
+        if missing_candidate_mask.any():
+            fallback_group_cols = ["split", "label", "clip_role", "_event_group_id"]
+            fallback_candidate_df = (
+                candidate_group_df[
+                    fallback_group_cols + [
+                        "candidate_video_path",
+                        "candidate_video_path_source_video",
+                        "candidate_video_path_clip_start_sec",
+                        "candidate_video_path_clip_duration",
+                        "candidate_group_size",
+                    ]
+                ]
+                .sort_values(by=fallback_group_cols + ["candidate_video_path"], ascending=True)
+                .drop_duplicates(subset=fallback_group_cols, keep="first")
+            )
+
+            missing_rows_df = merged_df.loc[missing_candidate_mask, fallback_group_cols].copy()
+            missing_rows_df["_row_id"] = missing_rows_df.index
+            fill_df = missing_rows_df.merge(
+                fallback_candidate_df,
+                on=fallback_group_cols,
+                how="left",
+            ).set_index("_row_id")
+
+            for col in [
+                "candidate_video_path",
+                "candidate_video_path_source_video",
+                "candidate_video_path_clip_start_sec",
+                "candidate_video_path_clip_duration",
+                "candidate_group_size",
+            ]:
+                merged_df.loc[fill_df.index, col] = fill_df[col]
     else:
         merged_df = main_group_df.copy()
         merged_df["candidate_video_path"] = ""
