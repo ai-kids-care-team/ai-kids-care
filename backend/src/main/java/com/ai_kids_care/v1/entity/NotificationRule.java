@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import com.ai_kids_care.v1.type.NotificationTargetType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -45,8 +46,9 @@ public class NotificationRule {
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_type", length = Integer.MAX_VALUE)
-    private String eventType;
+    private EventTypeEnum eventType;
 
     @NotNull
     @Column(name = "min_severity", nullable = false)

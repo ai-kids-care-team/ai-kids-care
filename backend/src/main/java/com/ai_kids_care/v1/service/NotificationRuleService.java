@@ -5,6 +5,8 @@ import com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO;
 import com.ai_kids_care.v1.entity.NotificationRule;
 import com.ai_kids_care.v1.mapper.NotificationRuleMapper;
 import com.ai_kids_care.v1.repository.NotificationRuleRepository;
+import com.ai_kids_care.v1.type.EventTypeEnum;
+import com.ai_kids_care.v1.type.NotificationTargetType;
 import com.ai_kids_care.v1.vo.NotificationRuleVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +21,24 @@ public class NotificationRuleService {
     private final NotificationRuleRepository repository;
     private final NotificationRuleMapper mapper;
 
-    public Page<NotificationRuleVO> listNotificationRules(String keyword, Pageable pageable) {
-        // TODO: filter NotificationRule by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+    public Page<NotificationRuleVO> listNotificationRules(
+            Long userId,
+            NotificationTargetType targetType,
+            Long targetId,
+            EventTypeEnum eventType,
+            Integer minSeverity,
+            Boolean enabled,
+            Pageable pageable
+    ) {
+        return repository.searchByFilters(
+                userId,
+                targetType,
+                targetId,
+                eventType,
+                minSeverity,
+                enabled,
+                pageable
+        ).map(mapper::toVO);
     }
 
     public NotificationRuleVO getNotificationRule(Long id) {

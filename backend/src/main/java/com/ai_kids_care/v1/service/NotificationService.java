@@ -9,10 +9,13 @@ import com.ai_kids_care.v1.type.NotificationChannelEnum;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import net.pushover.client.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @Service
 @RequiredArgsConstructor
@@ -20,11 +23,9 @@ public class NotificationService {
 
     private final NotificationRepository repository;
     private final NotificationMapper mapper;
-    private final PushoverService pushoverService;
 
     public Page<NotificationVO> listNotifications(String keyword, Pageable pageable) {
-        // TODO: filter Notification by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+        return repository.search(keyword, pageable).map(mapper::toVO);
     }
 
     public NotificationVO getNotification(Long id) {
@@ -33,22 +34,20 @@ public class NotificationService {
     }
 
     public NotificationVO createNotification(NotificationCreateDTO createDTO) {
-        NotificationChannelEnum channel = NotificationChannelEnum.from(createDTO.getChannel());
+        NotificationChannelEnum channel = createDTO.getChannel();
+        Notification entity = mapper.toEntity(createDTO);
+        entity.setChannel(channel);
 
-        if (channel == NotificationChannelEnum.PUSH) {
-            Status result = pushoverService.sendMessage(
-                    "",
-                    "",
-                    createDTO.getBody(),
-                    null,
-                    createDTO.getTitle(),
-                    "https://github.com/ai-kids-care-team/ai-kids-care",
-                    "ai-kids-care",
-                    "alien"
-            );
+        String dedupeKey = resolveDedupeKey(createDTO, channel);
+        entity.setDedupeKey(dedupeKey);
+        Long kindergartenId = entity.getKindergarten() != null ? entity.getKindergarten().getId() : null;
+        if (kindergartenId == null) {
+            throw new IllegalArgumentException("kindergartenId can not be null");
         }
 
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
+        return repository.findByKindergarten_IdAndDedupeKey(kindergartenId, dedupeKey)
+                .map(mapper::toVO)
+                .orElseGet(() -> mapper.toVO(repository.save(entity)));
     }
 
     public NotificationVO updateNotification(Long id, NotificationUpdateDTO updateDTO) {
@@ -62,5 +61,37 @@ public class NotificationService {
         Notification entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("Notification not found"));
         repository.delete(entity);
+    }
+
+    private String resolveDedupeKey(NotificationCreateDTO createDTO, NotificationChannelEnum channel) {
+        String dedupeKey = createDTO.getDedupeKey();
+        if (dedupeKey != null && !dedupeKey.trim().isEmpty()) {
+            return dedupeKey.trim();
+        }
+
+        String raw = String.join("|",
+                String.valueOf(createDTO.getKindergartenId()),
+                String.valueOf(createDTO.getEventId()),
+                String.valueOf(createDTO.getRecipientUserId()),
+                channel.name(),
+                createDTO.getTitle() == null ? "" : createDTO.getTitle().trim(),
+                createDTO.getBody() == null ? "" : createDTO.getBody().trim()
+        );
+
+        return sha256(raw);
+    }
+
+    private String sha256(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
     }
 }

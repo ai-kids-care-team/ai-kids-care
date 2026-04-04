@@ -83,5 +83,19 @@ public class Notification {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-
+    @PrePersist
+    private void applyDefaultsOnCreate() {
+        if (status == null) {
+            status = NotificationStatusEnum.QUEUED;
+        }
+        if (retryCount == null) {
+            retryCount = 0;
+        }
+        if (failReason == null) {
+            failReason = "";
+        }
+        if (sentAt == null) {
+            sentAt = OffsetDateTime.now();
+        }
+    }
 }

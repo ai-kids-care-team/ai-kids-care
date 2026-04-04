@@ -2,8 +2,10 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.NotificationRuleCreateDTO;
 import com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO;
-import com.ai_kids_care.v1.vo.NotificationRuleVO;
 import com.ai_kids_care.v1.service.NotificationRuleService;
+import com.ai_kids_care.v1.type.EventTypeEnum;
+import com.ai_kids_care.v1.type.NotificationTargetType;
+import com.ai_kids_care.v1.vo.NotificationRuleVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name="NotificationRule")
+@Tag(name = "NotificationRule")
 @RestController
 @RequestMapping("/api/v1/notification_rules")
 @RequiredArgsConstructor
@@ -25,10 +27,23 @@ public class NotificationRuleController {
 
     @GetMapping
     public ResponseEntity<Page<NotificationRuleVO>> listNotificationRule(
-            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) NotificationTargetType targetType,
+            @RequestParam(required = false) Long targetId,
+            @RequestParam(required = false) EventTypeEnum eventType,
+            @RequestParam(required = false) Integer minSeverity,
+            @RequestParam(required = false) Boolean enabled,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listNotificationRules(keyword, pageable));
+        return ResponseEntity.ok(service.listNotificationRules(
+                userId,
+                targetType,
+                targetId,
+                eventType,
+                minSeverity,
+                enabled,
+                pageable
+        ));
     }
 
     @GetMapping("/{id}")
