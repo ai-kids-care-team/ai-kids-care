@@ -35,6 +35,7 @@ export function LoginForm() {
       const responseLoginId = response?.loginId ?? loginId;
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
+      const refreshToken = response?.refreshToken ?? '';
       const displayName = response?.name ?? responseLoginId;
 
       const user = {
@@ -53,6 +54,9 @@ export function LoginForm() {
       if (token) {
         localStorage.setItem('token', token);
         localStorage.setItem('accessToken', token);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
       // -------------------------------------------------------------
 

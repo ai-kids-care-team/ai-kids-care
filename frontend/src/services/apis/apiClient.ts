@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 import { index as appStore } from '@/store/index';
+import { openLoginModal } from '@/utils/auth-modal';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -15,16 +16,10 @@ apiClient.interceptors.request.use(
     /* localStorage + Redux: 로그인 직후·하이드레이션 타이밍에 한쪽만 채워질 수 있음 */
     let token: string | null = null;
     if (typeof window !== 'undefined') {
-      const isAuthenticated = appStore.getState().user.isAuthenticated;
-      /* Redux(현재 세션) 우선 — 예전에 남은 만료 토큰이 localStorage에만 있으면 401이 반복되는 문제 방지 */
-      // 게스트(로그아웃) 상태에서는 Authorization 헤더를 아예 붙이지 않음.
-      // (localStorage에 남아있는 과거 토큰이 있으면, 백엔드가 허용해도 프론트 UX가 꼬일 수 있음)
-      token = isAuthenticated
-        ? appStore.getState().user.token ??
-          localStorage.getItem('accessToken') ??
-          localStorage.getItem('token') ??
-          null
-        : null;
+      token =
+        localStorage.getItem('accessToken') ??
+        localStorage.getItem('token') ??
+        appStore.getState().user.token;
     }
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착
@@ -45,18 +40,14 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // 무한 루프 방지용 플래그
 
-      if (!isBrowser) {
-        return Promise.reject(error);
-      }
-
-      const refreshToken = window.localStorage.getItem('refreshToken');
-      /* 리프레시 토큰이 없으면 갱신 시도 없이 그대로 실패 처리.
-       * (로그인 API가 refresh를 내려주지 않는 경우 401마다 로그인 창이 뜨는 문제 방지) */
-      if (!refreshToken) {
-        return Promise.reject(error);
-      }
-
       try {
+        if (!isBrowser) {
+          throw new Error('브라우저 환경이 아니어서 토큰 갱신을 수행할 수 없습니다.');
+        }
+
+        const refreshToken = window.localStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
+
         // 토큰 갱신 API 호출 (openapi 명세서 기준)
         const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken, // 백엔드 설계에 따라 Header나 Cookie로 보낼 수도 있음
@@ -72,10 +63,16 @@ apiClient.interceptors.response.use(
         // 실패했던 원래 요청의 헤더를 새 토큰으로 교체하고 다시 요청!
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return apiClient(originalRequest);
-      } catch {
-        /* 갱신 실패 시 자동 로그아웃·로그인 모달 호출은 하지 않음.
-         * 각 화면에서 401 메시지로 처리하고, 로그인은 사용자가 버튼으로 연다. */
-        return Promise.reject(error);
+
+      } catch (refreshError) {
+        // 리프레시 토큰마저 만료되었거나 에러가 났다면 강제 로그아웃
+        if (isBrowser) {
+          window.localStorage.removeItem('accessToken');
+          window.localStorage.removeItem('token');
+          window.localStorage.removeItem('refreshToken');
+          openLoginModal();
+        }
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error); // 401이 아닌 다른 에러는 그대로 반환
