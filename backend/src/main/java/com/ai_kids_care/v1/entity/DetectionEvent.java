@@ -32,6 +32,11 @@ public class DetectionEvent {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "kindergarten_id", nullable = false)
+    private Kindergarten kindergarten;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
@@ -76,12 +81,12 @@ public class DetectionEvent {
     private EventStatusEnum status;
 
     @CreationTimestamp
-    @ColumnDefault("now()")
+    @NotNull
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
     @UpdateTimestamp
-    @ColumnDefault("now()")
+    @NotNull
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 

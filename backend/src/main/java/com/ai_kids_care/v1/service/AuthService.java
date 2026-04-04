@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
 import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
+import com.ai_kids_care.v1.dto.AuthRefreshRequest;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
@@ -117,7 +118,7 @@ public class AuthService {
     public TokenVO login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
-        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid loginId/email/phone or password");
         }
 
@@ -134,6 +135,34 @@ public class AuthService {
                 .tokenType(TokenTypeEnum.BEARER)
                 .expiresIn(expireSecond)
                 .refreshToken(refreshToken)
+                .refreshExpiresIn(expireSecond)
+                .role(resolvedRole.name())
+                .id(user.getId())
+                .loginId(user.getLoginId())
+                .build();
+    }
+
+    public TokenVO refresh(AuthRefreshRequest request) {
+        String refreshToken = request.getRefreshToken();
+        String username = jwtUtil.extractIdentifier(refreshToken);
+        if (!jwtUtil.validateToken(refreshToken, username)) {
+            throw new RuntimeException("Invalid refresh token");
+        }
+        User user = userRepository.findByLoginIdOrEmailOrPhone(username, username, username);
+
+        String newAccessToken = jwtUtil.generateToken(username);
+        String newRefreshToken = jwtUtil.generateToken(username);
+
+        UserRoleEnum resolvedRole = userRoleAssignmentRepository
+                .findFirstByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE)
+                .map(UserRoleAssignment::getRole)
+                .orElse(UserRoleEnum.GUARDIAN);
+
+        return TokenVO.builder()
+                .accessToken(newAccessToken)
+                .tokenType(TokenTypeEnum.BEARER)
+                .expiresIn(expireSecond)
+                .refreshToken(newRefreshToken)
                 .refreshExpiresIn(expireSecond)
                 .role(resolvedRole.name())
                 .id(user.getId())
