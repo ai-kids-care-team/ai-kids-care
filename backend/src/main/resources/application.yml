@@ -4,6 +4,13 @@ spring:
     username: ${DB_USER:kids_user}
     password: ${DB_PASSWORD:kids_pass}
     driver-class-name: org.postgresql.Driver
+
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:rose100!}
+
   jpa:
     hibernate:
       ddl-auto: validate
