@@ -8,8 +8,8 @@ spring:
   neo4j:
     uri: ${NEO4J_URI}
     authentication:
-      username: ${NEO4J_USERNAME}
-      password: ${NEO4J_PASSWORD}
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:rose100!}
 
   jpa:
     hibernate:
@@ -24,7 +24,7 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong}
   expiration: 86400000
 
 logging:
