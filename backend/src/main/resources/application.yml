@@ -1,4 +1,7 @@
 spring:
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kids_postgres_db}
     username: ${DB_USER:kids_user}
