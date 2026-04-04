@@ -38,6 +38,7 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    implementation 'org.neo4j.driver:neo4j-java-driver:5.19.0'
 }
 
 tasks.named('test') {
