@@ -118,7 +118,7 @@ public class AuthService {
     public TokenVO login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid loginId/email/phone or password");
         }
 
