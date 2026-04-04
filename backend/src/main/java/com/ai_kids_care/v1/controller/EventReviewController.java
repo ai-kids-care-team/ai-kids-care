@@ -2,8 +2,9 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.EventReviewCreateDTO;
 import com.ai_kids_care.v1.dto.EventReviewUpdateDTO;
-import com.ai_kids_care.v1.vo.EventReviewVO;
 import com.ai_kids_care.v1.service.EventReviewService;
+import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.vo.EventReviewVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -12,12 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Tag(name="EventReview")
+@Tag(name = "EventReview")
 @RestController
 @RequestMapping("/api/v1/event_reviews")
 @RequiredArgsConstructor
@@ -27,10 +25,13 @@ public class EventReviewController {
 
     @GetMapping
     public ResponseEntity<Page<EventReviewVO>> listEventReview(
-            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long eventId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) EventStatusEnum fromStatus,
+            @RequestParam(required = false) EventStatusEnum resultStatus,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listEventReviews(keyword, pageable));
+        return ResponseEntity.ok(service.listEventReviews(eventId, userId, fromStatus, resultStatus, pageable));
     }
 
     @GetMapping("/{id}")
@@ -38,19 +39,11 @@ public class EventReviewController {
         return ResponseEntity.ok(service.getEventReview(id));
     }
 
-    @Transactional(readOnly = true)
-    @GetMapping("/{eventId}/reviews/latest")
-    public ResponseEntity<EventReviewVO> getLatestReview( @PathVariable Long eventId) {
+    @GetMapping("/{eventId}/latest")
+    public ResponseEntity<EventReviewVO> getLatestEventReview(@PathVariable Long eventId) {
         return ResponseEntity.ok(service.getLatestReview(eventId));
     }
 
-    @Transactional(readOnly = true)
-    @GetMapping("{eventId}/reviews")
-    public ResponseEntity<List<EventReviewVO>> listReviewsByEventId(@PathVariable Long eventId) {
-        return ResponseEntity.ok(service.listReviewsByEventId(eventId));
-    }
-
-    @Transactional
     @PostMapping
     public ResponseEntity<EventReviewVO> createEventReview(@RequestBody EventReviewCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createEventReview(createDTO));
