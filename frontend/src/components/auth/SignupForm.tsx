@@ -15,8 +15,8 @@ const MEMBER_TYPES = [
   { value: 'PLATFORM_IT_ADMIN', label: '플랫폼 관리자', description: '시스템 운영 및 모니터링', icon: '🛠️' },
 ] as const;
 const CHILD_SEARCH_EXAMPLES = [
-  { name: '정하윤', rrn: 'REDACTED-RRN' },
-  { name: '이지우', rrn: 'REDACTED-RRN' },
+  { name: '박수아', rrn: 'REDACTED-RRN' },
+  { name: '강시윤', rrn: 'REDACTED-RRN' },
 ] as const;
 
 export function SignupForm() {
