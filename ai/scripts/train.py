@@ -108,8 +108,8 @@ def main():
     num_frames = 16
     sampling_rate = 4
     min_video_size_bytes = 1024
-    gc_collect_interval = 500
-    gc_every_n_steps = 500
+    gc_collect_interval = 200
+    gc_every_n_steps = 200
     early_stopping_patience = 6
     early_stopping_threshold = 2e-3
     per_device_train_batch_size = 2
