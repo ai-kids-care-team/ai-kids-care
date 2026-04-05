@@ -563,13 +563,13 @@ export function DetectionEventsDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-5">
-            <main className="mx-auto max-w-5xl" style={{ zoom: 0.85 }}>
-                <div className="rounded-2xl bg-white p-6 shadow-lg">
+        <div className="min-h-screen bg-gray-50 px-6 py-8">
+            <main className="mx-auto w-full max-w-6xl" style={{ zoom: 1 }}>
+                <div className="rounded-2xl bg-white p-8 shadow-lg">
                     <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="h-7 w-7 text-[#d97706]" />
-                            <h2 className="text-2xl text-slate-900">이상 탐지 상세 정보</h2>
+                            <h2 className="text-3xl text-slate-900">이상 탐지 상세 정보</h2>
                         </div>
                         <Link
                             href="/detectionEvents"
@@ -587,7 +587,7 @@ export function DetectionEventsDetailPage() {
                     )}
 
                     {!error && detail && (
-                        <div className="space-y-5">
+                        <div className="space-y-6">
                             {/* 처리 프로세스 플로우 */}
                             <EventReviewFlow key={refreshKey} eventId={id} />
 
@@ -868,22 +868,23 @@ export function DetectionEventsDetailPage() {
                             role="dialog"
                             aria-modal="true"
                             aria-labelledby="child-search-modal-title"
-                            className="my-4 w-full max-h-[min(90vh,calc(100vh-2rem))] max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:my-8"
+                            className="my-4 w-full max-h-[min(90vh,calc(100vh-2rem))] max-w-5xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:my-8 sm:p-6"
+                            style={{ zoom: 1 }}
                         >
-                        <div className="mb-2 flex items-center justify-between">
+                        <div className="mb-3 flex items-center justify-between">
                             <h2 id="child-search-modal-title" className="text-lg font-semibold text-slate-900">
                                 아이 이름으로 찾기
                             </h2>
                             <button
                                 type="button"
                                 onClick={closeChildSearchModal}
-                                className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
                             >
                                 닫기
                             </button>
                         </div>
 
-                        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center">
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                             <input
                                 type="text"
                                 value={childNameKeyword}
@@ -894,14 +895,14 @@ export function DetectionEventsDetailPage() {
                                         void handleChildSearch();
                                     }
                                 }}
-                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-base text-slate-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                                 placeholder="아이 이름을 입력하세요"
                             />
                             <button
                                 type="button"
                                 onClick={() => void handleChildSearch()}
                                 disabled={isChildSearching}
-                                className="mt-0.5 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-1 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:ml-2"
+                                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-2 text-base font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60 sm:ml-2"
                             >
                                 {isChildSearching ? '검색 중...' : '검색'}
                             </button>
@@ -913,9 +914,9 @@ export function DetectionEventsDetailPage() {
                             </p>
                         )}
 
-                        <div className="max-h-72 overflow-auto rounded-lg border border-slate-200">
-                            <table className="min-w-full text-sm text-slate-700">
-                                <thead className="bg-slate-100 text-xs uppercase text-slate-600">
+                        <div className="max-h-80 min-h-[11rem] overflow-auto rounded-lg border border-slate-200">
+                            <table className="min-w-full text-base text-slate-700">
+                                <thead className="bg-slate-100 text-sm uppercase text-slate-600">
                                 <tr>
                                     <th className="px-3 py-1 text-left">ID</th>
                                     <th className="px-3 py-1 text-left">이름</th>
@@ -937,13 +938,20 @@ export function DetectionEventsDetailPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleSelectChild(child)}
-                                                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-500"
+                                                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
                                             >
                                                 선택
                                             </button>
                                         </td>
                                     </tr>
                                 ))}
+                                {childSearchResults.length === 0 && !isChildSearching && childSearchError && (
+                                    <tr>
+                                        <td className="h-28 px-3 py-6 align-middle text-center text-slate-500" colSpan={6}>
+                                            검색 결과가 없습니다.
+                                        </td>
+                                    </tr>
+                                )}
                                 {childSearchResults.length === 0 && !isChildSearching && !childSearchError && (
                                     <tr>
                                         <td className="px-3 py-3 text-center text-slate-500" colSpan={6}>

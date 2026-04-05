@@ -60,7 +60,7 @@ export function AnnouncementsListForm({
     sessionStorage.setItem('announcements:list:scrollY', String(window.scrollY));
   };
   /** 페이지당 최대 6건 기준 카드 높이·간격에 맞춘 최소 영역 — 건수가 적어도 페이지바 위치 고정 */
-  const LIST_MIN_HEIGHT = 'min-h-[680px]';
+  const LIST_MIN_HEIGHT = 'min-h-[800px]';
   const useInnerScroll = !loading && announcements.length > 5;
 
   return (
@@ -110,7 +110,7 @@ export function AnnouncementsListForm({
             className={[
               LIST_MIN_HEIGHT,
               'space-y-3',
-              useInnerScroll ? 'max-h-[680px] overflow-y-auto pr-1' : '',
+              useInnerScroll ? 'max-h-[800px] overflow-y-auto pr-1' : '',
             ]
               .filter(Boolean)
               .join(' ')}

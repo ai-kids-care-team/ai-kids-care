@@ -15,6 +15,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,29 @@ public class EventReviewService {
             EventStatusEnum resultStatus,
             Pageable pageable
     ) {
-        return repository.findAllByFilters(eventId, userId, fromStatus, resultStatus, pageable)
+        Specification<EventReview> specification = Specification.where(null);
+
+        if (eventId != null) {
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(root.get("detectionEvents").get("id"), eventId));
+        }
+
+        if (userId != null) {
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(root.get("user").get("id"), userId));
+        }
+
+        if (fromStatus != null) {
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(root.get("fromStatus"), fromStatus));
+        }
+
+        if (resultStatus != null) {
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(root.get("resultStatus"), resultStatus));
+        }
+
+        return repository.findAll(specification, pageable)
                 .map(mapper::toVO);
     }
 

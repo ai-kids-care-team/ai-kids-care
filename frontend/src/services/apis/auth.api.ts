@@ -6,6 +6,30 @@ export type RegisterFieldAvailability = {
   message: string | null;
 };
 
+type LoginRequest = {
+  identifier: string;
+  password: string;
+  id?: string;
+};
+
+type LoginResponse = {
+  id?: string;
+  loginId?: string;
+  role?: string;
+  accessToken?: string;
+  token?: string;
+  refreshToken?: string;
+  name?: string;
+  email?: string;
+};
+
+type RegisterRequest = Record<string, unknown>;
+
+type ResetPasswordRequest = {
+  token: string;
+  newPassword: string;
+};
+
 /** 회원가입: 로그인 ID / 이메일 / 연락처 중복 여부 (포커스 아웃 검사) */
 export async function fetchRegisterFieldAvailability(
   field: 'loginId' | 'email' | 'phone',
@@ -20,11 +44,15 @@ export async function fetchRegisterFieldAvailability(
 }
 
 export type CommonCodeItem = {
+  codeId?: number;
   codeGroup: string;
   parentCode?: string | null;
   code: string;
   codeName: string;
   sortOrder: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ChildLookupItem = {
@@ -38,16 +66,20 @@ export type ChildLookupItem = {
   gender: string | null;
 };
 
+type CommonCodePageResponse = {
+  content?: CommonCodeItem[];
+};
+
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    login: build.mutation<any, any>({
+    login: build.mutation<LoginResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
         body: credentials,
       }),
     }),
-    register: build.mutation<void, any>({
+    register: build.mutation<void, RegisterRequest>({
       query: (userData) => ({
         url: '/auth/register',
         method: 'POST',
@@ -75,7 +107,7 @@ export const authApi = baseApi.injectEndpoints({
         body: data,
       }),
     }),
-    resetPassword: build.mutation<void, any>({
+    resetPassword: build.mutation<void, ResetPasswordRequest>({
       query: (data) => ({
         url: '/auth/password/reset',
         method: 'POST',
@@ -83,7 +115,17 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
     getCommonCodes: build.query<CommonCodeItem[], string>({
-      query: (group) => `/auth/common-codes?group=${encodeURIComponent(group)}`,
+      query: (group) => ({
+        url: '/common_codes',
+        params: {
+          codeGroup: group,
+          isActive: true,
+          size: 100,
+          sort: 'sortOrder,asc',
+        },
+      }),
+      transformResponse: (response: CommonCodePageResponse | CommonCodeItem[]) =>
+        Array.isArray(response) ? response : (response.content ?? []),
     }),
     searchChildren: build.query<ChildLookupItem[], string>({
       // 백엔드 버전별 차이 대응: 기본 경로는 /v1/children
