@@ -49,7 +49,8 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<TokenVO> refresh(@RequestBody AuthRefreshRequest authRefreshRequest) {
-        throw new IllegalArgumentException("Not implemented");
+        TokenVO response = authService.refresh(authRefreshRequest);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register")

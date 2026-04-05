@@ -32,6 +32,11 @@ public class DetectionEvent {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "kindergarten_id", nullable = false)
+    private Kindergarten kindergarten;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "camera_id", nullable = false)
     private CctvCamera cctvCameras;
 
