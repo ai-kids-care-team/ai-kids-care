@@ -23,7 +23,6 @@ from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
 from transformers import VideoMAEForVideoClassification, VideoMAEImageProcessor
 
-
 _PROCESSOR_CACHE: dict[str, VideoMAEImageProcessor] = {}
 
 
@@ -205,6 +204,8 @@ class StreamingWindowDecodeDataset(IterableDataset):
             sampling_rate: int,
             max_short_side: int | None,
             decode_thread_type: str | None,
+            decode_backend: str = "pyav_cpu",
+            ffmpeg_path: str = "ffmpeg",
             max_eval_windows: int | None = None,
     ) -> None:
         self.video_path = video_path
@@ -217,6 +218,8 @@ class StreamingWindowDecodeDataset(IterableDataset):
         self.sampling_rate = int(sampling_rate)
         self.max_short_side = max_short_side
         self.decode_thread_type = decode_thread_type
+        self.decode_backend = str(decode_backend).strip().lower()
+        self.ffmpeg_path = str(ffmpeg_path)
 
         min_window_frames = max(1, int(round(self.window_sec * self.fps)))
         required_clip_len = max(1, self.num_frames * self.sampling_rate)
@@ -241,40 +244,56 @@ class StreamingWindowDecodeDataset(IterableDataset):
         end = min(len(self.eval_frame_indices), start + per_worker)
         return self.eval_frame_indices[start:end]
 
-    def __iter__(self):
-        local_eval_indices = self._local_eval_indices()
-        if not local_eval_indices:
-            return
+    @staticmethod
+    def _resolve_scaled_size(width: int, height: int, max_short_side: int | None) -> tuple[int, int]:
+        if not max_short_side or max_short_side <= 0:
+            return int(width), int(height)
 
-        processor = get_cached_processor(self.model_dir)
+        w = int(width)
+        h = int(height)
+        short_side = min(h, w)
+        if short_side <= max_short_side:
+            return w, h
 
-        local_start_frame = max(0, local_eval_indices[0] - self.window_frames + 1)
-        local_end_frame = local_eval_indices[-1]
+        scale = max_short_side / float(short_side)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        return new_w, new_h
 
+    @staticmethod
+    def _cuvid_decoder_name(codec_name: str) -> str | None:
+        mapping = {
+            "h264": "h264_cuvid",
+            "hevc": "hevc_cuvid",
+            "mpeg4": "mpeg4_cuvid",
+            "mpeg2video": "mpeg2_cuvid",
+            "mpeg1video": "mpeg1_cuvid",
+            "vc1": "vc1_cuvid",
+            "vp8": "vp8_cuvid",
+            "vp9": "vp9_cuvid",
+            "mjpeg": "mjpeg_cuvid",
+            "av1": "av1_cuvid",
+        }
+        return mapping.get(str(codec_name).lower())
+
+    def _decode_with_pyav(
+            self,
+            local_start_frame: int,
+            local_end_frame: int,
+    ):
         container = av.open(str(self.video_path))
         try:
             if not container.streams.video:
-                for eval_frame_idx in local_eval_indices:
-                    yield {
-                        "eval_frame_idx": int(eval_frame_idx),
-                        "ts_sec": float(eval_frame_idx / self.fps),
-                        "pixel_values": None,
-                        "error": "No video stream",
-                    }
-                return
+                raise ValueError("No video stream")
 
             stream = container.streams.video[0]
             if self.decode_thread_type:
                 stream.thread_type = self.decode_thread_type
 
-            # Slightly seek earlier than local_start to avoid keyframe boundary misses.
             seek_start_sec = max(0.0, (local_start_frame / self.fps) - 2.0)
             safe_seek_to_sec(container, stream, seek_start_sec)
 
-            frame_buffer: deque[np.ndarray] = deque(maxlen=self.window_frames)
-            next_eval_ptr = 0
             prev_abs_frame_idx = -1
-
             for frame in container.decode(video=0):
                 ts_sec = frame_time_sec(frame)
                 if ts_sec is None:
@@ -286,12 +305,157 @@ class StreamingWindowDecodeDataset(IterableDataset):
 
                 if abs_frame_idx < local_start_frame:
                     continue
-
-                if abs_frame_idx > local_end_frame and next_eval_ptr >= len(local_eval_indices):
+                if abs_frame_idx > local_end_frame:
                     break
 
                 frame = maybe_downscale_frame(frame, max_short_side=self.max_short_side)
-                frame_buffer.append(frame.to_ndarray(format="rgb24"))
+                yield abs_frame_idx, frame.to_ndarray(format="rgb24")
+        finally:
+            container.close()
+
+    def _decode_with_ffmpeg_gpu(
+            self,
+            local_start_frame: int,
+            local_end_frame: int,
+    ):
+        import subprocess
+
+        probe = av.open(str(self.video_path))
+        try:
+            if not probe.streams.video:
+                raise ValueError("No video stream")
+            stream = probe.streams.video[0]
+            codec_name = str(stream.codec_context.name)
+            in_w = int(stream.codec_context.width)
+            in_h = int(stream.codec_context.height)
+        finally:
+            probe.close()
+
+        decoder_name = self._cuvid_decoder_name(codec_name)
+        if decoder_name is None:
+            raise ValueError(f"Unsupported GPU decoder mapping for codec='{codec_name}'")
+
+        out_w, out_h = self._resolve_scaled_size(in_w, in_h, self.max_short_side)
+
+        seek_start_sec = max(0.0, (local_start_frame / self.fps) - 2.0)
+        seek_start_frame = max(0, int(round(seek_start_sec * self.fps)))
+        frame_cap = max(1, local_end_frame - seek_start_frame + 1)
+
+        vf_expr = f"scale_cuda=w={out_w}:h={out_h},hwdownload,format=nv12,format=rgb24"
+
+        cmd = [
+            self.ffmpeg_path,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-hwaccel",
+            "cuda",
+            "-hwaccel_output_format",
+            "cuda",
+            "-c:v",
+            decoder_name,
+            "-ss",
+            f"{seek_start_sec:.6f}",
+            "-i",
+            str(self.video_path),
+            "-an",
+            "-sn",
+            "-dn",
+            "-vsync",
+            "0",
+            "-vf",
+            vf_expr,
+            "-frames:v",
+            str(frame_cap),
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "pipe:1",
+        ]
+
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=10 ** 8,
+        )
+
+        if proc.stdout is None:
+            proc.kill()
+            raise RuntimeError("Failed to open ffmpeg stdout pipe")
+
+        frame_size = out_w * out_h * 3
+        frame_idx = 0
+        try:
+            while True:
+                raw = proc.stdout.read(frame_size)
+                if len(raw) < frame_size:
+                    break
+
+                abs_frame_idx = seek_start_frame + frame_idx
+                frame_idx += 1
+
+                if abs_frame_idx < local_start_frame:
+                    continue
+                if abs_frame_idx > local_end_frame:
+                    break
+
+                arr = np.frombuffer(raw, dtype=np.uint8).reshape((out_h, out_w, 3)).copy()
+                yield abs_frame_idx, arr
+        finally:
+            try:
+                proc.stdout.close()
+            except Exception:
+                pass
+            proc.wait(timeout=10)
+
+        if proc.returncode not in (0, None):
+            raise RuntimeError(f"ffmpeg gpu decode failed, returncode={proc.returncode}")
+
+    def __iter__(self):
+        local_eval_indices = self._local_eval_indices()
+        if not local_eval_indices:
+            return
+
+        processor = get_cached_processor(self.model_dir)
+
+        local_start_frame = max(0, local_eval_indices[0] - self.window_frames + 1)
+        local_end_frame = local_eval_indices[-1]
+
+        frame_buffer: deque[np.ndarray] = deque(maxlen=self.window_frames)
+        next_eval_ptr = 0
+
+        try:
+            backend = self.decode_backend
+            if backend == "ffmpeg_gpu":
+                def frame_iter_with_fallback():
+                    decoded_any = False
+                    try:
+                        for item in self._decode_with_ffmpeg_gpu(local_start_frame, local_end_frame):
+                            decoded_any = True
+                            yield item
+                    except Exception as e:
+                        if decoded_any:
+                            raise
+                        print(
+                            "[WARN] ffmpeg_gpu decode failed before first frame, fallback to pyav_cpu. "
+                            f"detail={safe_log_text(type(e).__name__ + ': ' + str(e))}"
+                        )
+                        for item in self._decode_with_pyav(local_start_frame, local_end_frame):
+                            yield item
+
+                frame_iter = frame_iter_with_fallback()
+            else:
+                frame_iter = self._decode_with_pyav(local_start_frame, local_end_frame)
+
+            for abs_frame_idx, rgb_frame in frame_iter:
+                if abs_frame_idx < local_start_frame:
+                    continue
+                if abs_frame_idx > local_end_frame and next_eval_ptr >= len(local_eval_indices):
+                    break
+
+                frame_buffer.append(rgb_frame)
 
                 while next_eval_ptr < len(local_eval_indices) and abs_frame_idx >= local_eval_indices[next_eval_ptr]:
                     eval_frame_idx = local_eval_indices[next_eval_ptr]
@@ -332,17 +496,26 @@ class StreamingWindowDecodeDataset(IterableDataset):
 
                 if next_eval_ptr >= len(local_eval_indices) and abs_frame_idx >= local_end_frame:
                     break
-
+        except Exception as e:
+            err = f"{type(e).__name__}: {e}"
             for i in range(next_eval_ptr, len(local_eval_indices)):
                 eval_frame_idx = local_eval_indices[i]
                 yield {
                     "eval_frame_idx": int(eval_frame_idx),
                     "ts_sec": float(eval_frame_idx / self.fps),
                     "pixel_values": None,
-                    "error": "Reached decode end before this window was produced",
+                    "error": err,
                 }
-        finally:
-            container.close()
+            return
+
+        for i in range(next_eval_ptr, len(local_eval_indices)):
+            eval_frame_idx = local_eval_indices[i]
+            yield {
+                "eval_frame_idx": int(eval_frame_idx),
+                "ts_sec": float(eval_frame_idx / self.fps),
+                "pixel_values": None,
+                "error": "Reached decode end before this window was produced",
+            }
 
 
 def stream_collate_fn(batch: list[dict]) -> dict:
@@ -444,42 +617,57 @@ def apply_persistence(
     return timeline_df, segments
 
 
-def run_demo(
+def collect_video_files_from_manifest(
+        manifest_path: Path,
+        split: str = "test",
+        source_video_col: str = "source_video",
+) -> list[Path]:
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"manifest_path not found: {manifest_path}")
+
+    df = pd.read_csv(manifest_path)
+    if source_video_col not in df.columns:
+        raise ValueError(f"Column '{source_video_col}' not found in manifest: {manifest_path}")
+    if "split" not in df.columns:
+        raise ValueError(f"Column 'split' not found in manifest: {manifest_path}")
+
+    filtered = df[df["split"].astype(str) == str(split)].copy()
+    if len(filtered) == 0:
+        raise ValueError(f"No rows found for split='{split}' in manifest: {manifest_path}")
+
+    files: list[Path] = []
+    seen: set[str] = set()
+    for raw_path in filtered[source_video_col].astype(str).tolist():
+        path = Path(raw_path)
+        key = str(path.resolve()) if path.exists() else str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        files.append(path)
+
+    return files
+
+
+def infer_window_predictions(
         video_path: Path,
+        model: VideoMAEForVideoClassification,
         model_dir: Path,
-        output_dir: Path,
-        target_label: str = "wander",
-        window_sec: float = 5.0,
-        step_sec: float = 2.0,
-        num_frames: int = 16,
-        sampling_rate: int = 4,
-        max_short_side: int | None = 360,
-        decode_thread_type: str | None = "AUTO",
-        clip_positive_threshold: float = 0.60,
-        persistence_window_sec: float = 120.0,
-        persistence_hit_ratio: float = 0.60,
-        clear_hit_ratio: float = 0.40,
-        min_history_sec: float = 110.0,
-        min_hits: int = 34,
-        decode_workers: int = 4,
-        infer_batch_size: int = 8,
-        infer_prefetch_factor: int = 2,
-        max_eval_windows: int | None = None,
-) -> None:
-    if not video_path.exists():
-        raise FileNotFoundError(f"video_path not found: {video_path}")
-    if not model_dir.exists():
-        raise FileNotFoundError(f"model_dir not found: {model_dir}")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+        target_id: int,
+        device: str,
+        window_sec: float,
+        step_sec: float,
+        num_frames: int,
+        sampling_rate: int,
+        max_short_side: int | None,
+        decode_thread_type: str | None,
+        decode_workers: int,
+        infer_batch_size: int,
+        infer_prefetch_factor: int,
+        max_eval_windows: int | None,
+        decode_backend: str = "pyav_cpu",
+        ffmpeg_path: str = "ffmpeg",
+) -> tuple[pd.DataFrame, dict]:
     use_cuda = device == "cuda"
-    if use_cuda:
-        torch.backends.cudnn.benchmark = True
-
-    model = VideoMAEForVideoClassification.from_pretrained(model_dir)
-    model.to(device)
-    model.eval()
-    target_id = label_to_id(model, target_label)
 
     fps, total_frames = estimate_total_frames(video_path, decode_thread_type=decode_thread_type)
 
@@ -494,6 +682,8 @@ def run_demo(
         sampling_rate=sampling_rate,
         max_short_side=max_short_side,
         decode_thread_type=decode_thread_type,
+        decode_backend=decode_backend,
+        ffmpeg_path=ffmpeg_path,
         max_eval_windows=max_eval_windows,
     )
 
@@ -586,6 +776,78 @@ def run_demo(
     pred_df = pd.DataFrame(prediction_rows).sort_values("eval_frame_idx").reset_index(drop=True)
     pred_df["eval_index"] = np.arange(1, len(pred_df) + 1)
 
+    infer_stats = {
+        "fps": float(fps),
+        "total_frames": int(total_frames),
+        "total_expected": int(total_expected),
+        "failed_count": int(failed_count),
+        "active_decode_workers": int(active_decode_workers),
+        "decode_workers_requested": int(decode_workers),
+        "infer_batch_size": int(infer_batch_size),
+        "infer_prefetch_factor": int(infer_prefetch_factor),
+        "decode_backend": str(decode_backend),
+    }
+    return pred_df, infer_stats
+
+
+def run_demo(
+        video_path: Path,
+        model_dir: Path,
+        output_dir: Path,
+        target_label: str = "wander",
+        window_sec: float = 5.0,
+        step_sec: float = 2.0,
+        num_frames: int = 16,
+        sampling_rate: int = 4,
+        max_short_side: int | None = 360,
+        decode_thread_type: str | None = "AUTO",
+        decode_backend: str = "ffmpeg_gpu",
+        ffmpeg_path: str = "ffmpeg",
+        clip_positive_threshold: float = 0.60,
+        persistence_window_sec: float = 120.0,
+        persistence_hit_ratio: float = 0.60,
+        clear_hit_ratio: float = 0.40,
+        min_history_sec: float = 110.0,
+        min_hits: int = 34,
+        decode_workers: int = 4,
+        infer_batch_size: int = 8,
+        infer_prefetch_factor: int = 2,
+        max_eval_windows: int | None = None,
+) -> dict:
+    if not video_path.exists():
+        raise FileNotFoundError(f"video_path not found: {video_path}")
+    if not model_dir.exists():
+        raise FileNotFoundError(f"model_dir not found: {model_dir}")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cuda":
+        torch.backends.cudnn.benchmark = True
+
+    model = VideoMAEForVideoClassification.from_pretrained(model_dir)
+    model.to(device)
+    model.eval()
+    target_id = label_to_id(model, target_label)
+
+    pred_df, infer_stats = infer_window_predictions(
+        video_path=video_path,
+        model=model,
+        model_dir=model_dir,
+        target_id=target_id,
+        device=device,
+        window_sec=window_sec,
+        step_sec=step_sec,
+        num_frames=num_frames,
+        sampling_rate=sampling_rate,
+        max_short_side=max_short_side,
+        decode_thread_type=decode_thread_type,
+        decode_backend=decode_backend,
+        ffmpeg_path=ffmpeg_path,
+        decode_workers=decode_workers,
+        infer_batch_size=infer_batch_size,
+        infer_prefetch_factor=infer_prefetch_factor,
+        max_eval_windows=max_eval_windows,
+    )
+
     timeline_df, segments = apply_persistence(
         prediction_df=pred_df,
         target_label=target_label,
@@ -623,15 +885,22 @@ def run_demo(
     print(f"model_dir: {safe_log_text(model_dir)}")
     print(f"device: {device}")
     print(f"target_label: {target_label}")
-    print(f"fps: {fps:.4f}")
-    print(f"estimated_total_frames: {total_frames}")
-    print(f"expected_windows: {total_expected}")
+    print(f"fps: {infer_stats['fps']:.4f}")
+    print(f"estimated_total_frames: {infer_stats['total_frames']}")
+    print(f"expected_windows: {infer_stats['total_expected']}")
     print(f"evaluated_windows: {len(timeline_df)}")
-    print(f"failed_windows: {failed_count}")
-    print(f"decode_workers: {active_decode_workers} (requested: {decode_workers})")
-    print(f"infer_batch_size: {infer_batch_size}")
-    print(f"infer_prefetch_factor: {infer_prefetch_factor if decode_workers > 0 else 'N/A'}")
+    print(f"failed_windows: {infer_stats['failed_count']}")
+    print(
+        f"decode_workers: {infer_stats['active_decode_workers']} "
+        f"(requested: {infer_stats['decode_workers_requested']})"
+    )
+    print(f"infer_batch_size: {infer_stats['infer_batch_size']}")
+    if infer_stats["decode_workers_requested"] > 0:
+        print(f"infer_prefetch_factor: {infer_stats['infer_prefetch_factor']}")
+    else:
+        print("infer_prefetch_factor: N/A")
     print(f"decode_thread_type: {decode_thread_type}")
+    print(f"decode_backend: {infer_stats['decode_backend']}")
     print(f"max_short_side: {max_short_side}")
     print(f"clip_positive_threshold: {clip_positive_threshold}")
     print(f"persistence_window_sec: {persistence_window_sec}")
@@ -654,23 +923,423 @@ def run_demo(
                 f"end={segment.end_sec:.2f}s, duration={segment.duration_sec:.2f}s"
             )
 
+    summary = {
+        "video_path": str(video_path),
+        "model_dir": str(model_dir),
+        "target_label": target_label,
+        "evaluated_windows": int(len(timeline_df)),
+        "failed_windows": int(infer_stats["failed_count"]),
+        "clip_hit_rate": float(clip_hit_rate),
+        "avg_target_prob": float(avg_target_prob),
+        "max_target_prob": float(max_target_prob),
+        "alarm_segments": int(len(segments)),
+        "alarm_total_duration_sec": float(sum(s.duration_sec for s in segments)),
+        "first_alarm_sec": float(segments[0].start_sec) if segments else np.nan,
+        "clip_positive_threshold": float(clip_positive_threshold),
+        "persistence_hit_ratio": float(persistence_hit_ratio),
+        "clear_hit_ratio": float(clear_hit_ratio),
+        "min_history_sec": float(min_history_sec),
+        "min_hits": int(min_hits),
+        "decode_workers_actual": int(infer_stats["active_decode_workers"]),
+    }
+    return summary
+
+
+def run_batch_positive_threshold_sweep(
+        manifest_path: Path,
+        manifest_split: str,
+        model_dir: Path,
+        output_dir: Path,
+        target_label: str,
+        window_sec: float,
+        step_sec: float,
+        num_frames: int,
+        sampling_rate: int,
+        max_short_side: int | None,
+        decode_thread_type: str | None,
+        persistence_window_sec: float,
+        clear_hit_ratio: float,
+        min_history_sec: float,
+        min_hits: int,
+        decode_workers: int,
+        infer_batch_size: int,
+        infer_prefetch_factor: int,
+        max_eval_windows: int | None,
+        clip_positive_threshold_candidates: list[float],
+        persistence_hit_ratio_candidates: list[float],
+        target_detection_rate: float = 0.95,
+        decode_backend: str = "ffmpeg_gpu",
+        ffmpeg_path: str = "ffmpeg",
+        reuse_window_prediction_cache: bool = True,
+        save_window_prediction_cache: bool = True,
+) -> None:
+    import json
+
+    if not model_dir.exists():
+        raise FileNotFoundError(f"model_dir not found: {model_dir}")
+
+    video_files = collect_video_files_from_manifest(
+        manifest_path=manifest_path,
+        split=manifest_split,
+        source_video_col="source_video",
+    )
+    if not video_files:
+        raise FileNotFoundError(
+            f"No video files found from manifest split='{manifest_split}': {manifest_path}"
+        )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    infer_path = output_dir / "batch_positive_inference_stats.csv"
+    window_cache_path = output_dir / "batch_positive_window_predictions.csv"
+    window_cache_meta_path = output_dir / "batch_positive_window_predictions_meta.json"
+
+    current_cache_meta = {
+        "manifest_path": str(Path(manifest_path).resolve()),
+        "manifest_split": str(manifest_split),
+        "model_dir": str(Path(model_dir).resolve()),
+        "target_label": str(target_label),
+        "window_sec": float(window_sec),
+        "step_sec": float(step_sec),
+        "num_frames": int(num_frames),
+        "sampling_rate": int(sampling_rate),
+        "max_short_side": None if max_short_side is None else int(max_short_side),
+        "decode_thread_type": None if decode_thread_type is None else str(decode_thread_type),
+        "decode_backend": str(decode_backend),
+        "max_eval_windows": None if max_eval_windows is None else int(max_eval_windows),
+    }
+
+    cached_pred_by_video: dict[str, pd.DataFrame] = {}
+    cache_loaded = False
+    if reuse_window_prediction_cache and window_cache_path.exists() and window_cache_meta_path.exists():
+        try:
+            cached_meta = json.loads(window_cache_meta_path.read_text(encoding="utf-8"))
+            if cached_meta == current_cache_meta:
+                cache_df = pd.read_csv(window_cache_path)
+                required_cols = {
+                    "video_path",
+                    "eval_index",
+                    "eval_frame_idx",
+                    "ts_sec",
+                    "pred_label",
+                    "pred_conf",
+                    "target_prob",
+                }
+                missing_cols = required_cols - set(cache_df.columns)
+                if missing_cols:
+                    print(
+                        f"[WARN] Ignore cache due to missing columns: {sorted(missing_cols)} "
+                        f"({safe_log_text(window_cache_path)})"
+                    )
+                else:
+                    cache_df = cache_df[[
+                        "video_path",
+                        "eval_index",
+                        "eval_frame_idx",
+                        "ts_sec",
+                        "pred_label",
+                        "pred_conf",
+                        "target_prob",
+                    ]]
+                    for video_key, part in cache_df.groupby("video_path", sort=False):
+                        part_df = part[[
+                            "eval_index",
+                            "eval_frame_idx",
+                            "ts_sec",
+                            "pred_label",
+                            "pred_conf",
+                            "target_prob",
+                        ]].copy()
+                        part_df = part_df.sort_values("eval_frame_idx").reset_index(drop=True)
+                        part_df["eval_index"] = np.arange(1, len(part_df) + 1)
+                        cached_pred_by_video[str(video_key)] = part_df
+                    cache_loaded = True
+            else:
+                print(
+                    "[INFO] Skip cached window predictions because cache meta changed. "
+                    f"cache={safe_log_text(window_cache_meta_path)}"
+                )
+        except Exception as e:
+            print(
+                "[WARN] Failed to read cached window predictions, will infer again. "
+                f"detail={safe_log_text(type(e).__name__ + ': ' + str(e))}"
+            )
+
+    infer_stats_cached: dict[str, dict] = {}
+    if infer_path.exists():
+        try:
+            old_infer_df = pd.read_csv(infer_path)
+            if "video_path" in old_infer_df.columns:
+                for row in old_infer_df.to_dict("records"):
+                    infer_stats_cached[str(row.get("video_path"))] = row
+        except Exception:
+            infer_stats_cached = {}
+
+    videos_to_infer = [vp for vp in video_files if str(vp) not in cached_pred_by_video]
+    reused_video_count = len(video_files) - len(videos_to_infer)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cuda":
+        torch.backends.cudnn.benchmark = True
+
+    model = None
+    target_id = None
+    if len(videos_to_infer) > 0:
+        model = VideoMAEForVideoClassification.from_pretrained(model_dir)
+        model.to(device)
+        model.eval()
+        target_id = label_to_id(model, target_label)
+    else:
+        print("[INFO] All videos loaded from cached window predictions. No model inference needed.")
+
+    combo_list: list[tuple[float, float]] = []
+    for clip_th in clip_positive_threshold_candidates:
+        for hit_ratio in persistence_hit_ratio_candidates:
+            combo_list.append((float(clip_th), float(hit_ratio)))
+    combo_list.sort(key=lambda x: (x[0], x[1]))
+
+    per_video_rows: list[dict] = []
+    infer_rows: list[dict] = []
+    window_parts: list[pd.DataFrame] = []
+
+    for video_path in tqdm(video_files, desc="Batch positive sweep", unit="video"):
+        video_key = str(video_path)
+
+        if video_key in cached_pred_by_video:
+            pred_df = cached_pred_by_video[video_key].copy()
+            cached_stat = infer_stats_cached.get(video_key, {})
+
+            avg_target_prob = float(pred_df["target_prob"].mean()) if len(pred_df) > 0 else 0.0
+            max_target_prob = float(pred_df["target_prob"].max()) if len(pred_df) > 0 else 0.0
+            eval_windows = int(len(pred_df))
+
+            infer_rows.append({
+                "video_path": video_key,
+                "evaluated_windows": eval_windows,
+                "failed_windows": int(cached_stat.get("failed_windows", 0) or 0),
+                "avg_target_prob": float(avg_target_prob),
+                "max_target_prob": float(max_target_prob),
+                "fps": float(cached_stat.get("fps", np.nan)),
+                "estimated_total_frames": float(cached_stat.get("estimated_total_frames", np.nan)),
+                "expected_windows": float(cached_stat.get("expected_windows", eval_windows)),
+            })
+            failed_windows = int(cached_stat.get("failed_windows", 0) or 0)
+        else:
+            if model is None or target_id is None:
+                raise RuntimeError("Internal error: model was not initialized for uncached inference.")
+
+            pred_df, infer_stats = infer_window_predictions(
+                video_path=video_path,
+                model=model,
+                model_dir=model_dir,
+                target_id=target_id,
+                device=device,
+                window_sec=window_sec,
+                step_sec=step_sec,
+                num_frames=num_frames,
+                sampling_rate=sampling_rate,
+                max_short_side=max_short_side,
+                decode_thread_type=decode_thread_type,
+                decode_backend=decode_backend,
+                ffmpeg_path=ffmpeg_path,
+                decode_workers=decode_workers,
+                infer_batch_size=infer_batch_size,
+                infer_prefetch_factor=infer_prefetch_factor,
+                max_eval_windows=max_eval_windows,
+            )
+
+            avg_target_prob = float(pred_df["target_prob"].mean()) if len(pred_df) > 0 else 0.0
+            max_target_prob = float(pred_df["target_prob"].max()) if len(pred_df) > 0 else 0.0
+
+            infer_rows.append({
+                "video_path": video_key,
+                "evaluated_windows": int(len(pred_df)),
+                "failed_windows": int(infer_stats["failed_count"]),
+                "avg_target_prob": float(avg_target_prob),
+                "max_target_prob": float(max_target_prob),
+                "fps": float(infer_stats["fps"]),
+                "estimated_total_frames": int(infer_stats["total_frames"]),
+                "expected_windows": int(infer_stats["total_expected"]),
+            })
+            failed_windows = int(infer_stats["failed_count"])
+
+        pred_df = pred_df.sort_values("eval_frame_idx").reset_index(drop=True)
+        pred_df["eval_index"] = np.arange(1, len(pred_df) + 1)
+
+        window_parts.append(
+            pred_df.assign(video_path=video_key)[[
+                "video_path",
+                "eval_index",
+                "eval_frame_idx",
+                "ts_sec",
+                "pred_label",
+                "pred_conf",
+                "target_prob",
+            ]].copy()
+        )
+
+        for clip_th, hit_ratio in combo_list:
+            timeline_df, segments = apply_persistence(
+                prediction_df=pred_df,
+                target_label=target_label,
+                clip_positive_threshold=clip_th,
+                persistence_window_sec=persistence_window_sec,
+                persistence_hit_ratio=hit_ratio,
+                clear_hit_ratio=clear_hit_ratio,
+                min_history_sec=min_history_sec,
+                min_hits=min_hits,
+            )
+
+            detected = int(len(segments) > 0)
+            first_alarm_sec = float(segments[0].start_sec) if segments else np.nan
+            total_alarm_sec = float(sum(seg.duration_sec for seg in segments))
+            max_alarm_sec = float(max((seg.duration_sec for seg in segments), default=0.0))
+            clip_hit_rate = float(timeline_df["clip_hit"].mean()) if len(timeline_df) > 0 else 0.0
+
+            per_video_rows.append({
+                "video_path": video_key,
+                "clip_positive_threshold": float(clip_th),
+                "persistence_hit_ratio": float(hit_ratio),
+                "detected": detected,
+                "alarm_segments": int(len(segments)),
+                "first_alarm_sec": first_alarm_sec,
+                "alarm_total_duration_sec": total_alarm_sec,
+                "alarm_max_duration_sec": max_alarm_sec,
+                "clip_hit_rate": clip_hit_rate,
+                "avg_target_prob": float(avg_target_prob),
+                "max_target_prob": float(max_target_prob),
+                "evaluated_windows": int(len(timeline_df)),
+                "failed_windows": failed_windows,
+            })
+
+    infer_df = pd.DataFrame(infer_rows)
+    per_video_df = pd.DataFrame(per_video_rows)
+
+    summary_df = (
+        per_video_df
+        .groupby(["clip_positive_threshold", "persistence_hit_ratio"], as_index=False)
+        .agg(
+            total_videos=("video_path", "count"),
+            detected_videos=("detected", "sum"),
+            detection_rate=("detected", "mean"),
+            avg_first_alarm_sec=("first_alarm_sec", "mean"),
+            median_first_alarm_sec=("first_alarm_sec", "median"),
+            avg_alarm_total_duration_sec=("alarm_total_duration_sec", "mean"),
+            avg_alarm_max_duration_sec=("alarm_max_duration_sec", "mean"),
+            avg_clip_hit_rate=("clip_hit_rate", "mean"),
+            avg_target_prob=("avg_target_prob", "mean"),
+        )
+    )
+
+    summary_df = summary_df.sort_values(
+        by=["detection_rate", "clip_positive_threshold", "persistence_hit_ratio"],
+        ascending=[False, False, False],
+    ).reset_index(drop=True)
+
+    eligible_df = summary_df[summary_df["detection_rate"] >= float(target_detection_rate)]
+    if len(eligible_df) > 0:
+        recommended_df = eligible_df.sort_values(
+            by=["clip_positive_threshold", "persistence_hit_ratio", "avg_first_alarm_sec"],
+            ascending=[False, False, True],
+        ).head(1).copy()
+        recommendation_rule = (
+            f"strictest threshold meeting detection_rate >= {float(target_detection_rate):.3f}"
+        )
+    else:
+        recommended_df = summary_df.sort_values(
+            by=["detection_rate", "avg_first_alarm_sec", "clip_positive_threshold", "persistence_hit_ratio"],
+            ascending=[False, True, False, False],
+        ).head(1).copy()
+        recommendation_rule = "best detection_rate fallback (target_detection_rate not reached)"
+
+    recommended_df.insert(0, "recommendation_rule", recommendation_rule)
+
+    best_clip_th = float(recommended_df.iloc[0]["clip_positive_threshold"])
+    best_hit_ratio = float(recommended_df.iloc[0]["persistence_hit_ratio"])
+    missed_df = per_video_df[
+        (per_video_df["clip_positive_threshold"] == best_clip_th)
+        & (per_video_df["persistence_hit_ratio"] == best_hit_ratio)
+        & (per_video_df["detected"] == 0)
+        ].copy()
+
+    per_video_path = output_dir / "batch_positive_per_video_per_threshold.csv"
+    summary_path = output_dir / "batch_positive_threshold_summary.csv"
+    recommended_path = output_dir / "batch_positive_recommended_threshold.csv"
+    missed_path = output_dir / "batch_positive_missed_videos_at_recommended_threshold.csv"
+
+    infer_df.to_csv(infer_path, index=False, encoding="utf-8")
+    per_video_df.to_csv(per_video_path, index=False, encoding="utf-8")
+    summary_df.to_csv(summary_path, index=False, encoding="utf-8")
+    recommended_df.to_csv(recommended_path, index=False, encoding="utf-8")
+    missed_df.to_csv(missed_path, index=False, encoding="utf-8")
+
+    if save_window_prediction_cache:
+        if window_parts:
+            window_cache_df = pd.concat(window_parts, ignore_index=True)
+        else:
+            window_cache_df = pd.DataFrame(columns=[
+                "video_path",
+                "eval_index",
+                "eval_frame_idx",
+                "ts_sec",
+                "pred_label",
+                "pred_conf",
+                "target_prob",
+            ])
+        window_cache_df.to_csv(window_cache_path, index=False, encoding="utf-8")
+        window_cache_meta_path.write_text(
+            json.dumps(current_cache_meta, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    print("\n===== Batch Positive Sweep Summary =====")
+    print(f"manifest_path: {safe_log_text(manifest_path)}")
+    print(f"manifest_split: {manifest_split}")
+    print(f"model_dir: {safe_log_text(model_dir)}")
+    print(f"target_label: {target_label}")
+    print(f"device: {device}")
+    print(f"decode_backend: {decode_backend}")
+    print(f"video_count: {len(video_files)}")
+    print(f"cache_loaded: {cache_loaded}")
+    print(f"cache_reused_videos: {reused_video_count}")
+    print(f"newly_inferred_videos: {len(videos_to_infer)}")
+    print(f"threshold_combinations: {len(combo_list)}")
+    print(f"target_detection_rate: {float(target_detection_rate):.3f}")
+    print(f"recommended_clip_positive_threshold: {best_clip_th:.3f}")
+    print(f"recommended_persistence_hit_ratio: {best_hit_ratio:.3f}")
+    print(f"recommended_detection_rate: {float(recommended_df.iloc[0]['detection_rate']):.6f}")
+    print(f"recommendation_rule: {recommendation_rule}")
+    print(f"inference_stats_csv: {safe_log_text(infer_path)}")
+    print(f"window_prediction_cache_csv: {safe_log_text(window_cache_path)}")
+    print(f"window_prediction_cache_meta: {safe_log_text(window_cache_meta_path)}")
+    print(f"per_video_per_threshold_csv: {safe_log_text(per_video_path)}")
+    print(f"threshold_summary_csv: {safe_log_text(summary_path)}")
+    print(f"recommended_threshold_csv: {safe_log_text(recommended_path)}")
+    print(f"missed_videos_csv: {safe_log_text(missed_path)}")
+
 
 if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
 
+    run_mode = "batch_positive_sweep"  # "single_video" or "batch_positive_sweep"
+
     # Input / Output
-    video_path = Path(r"D:\ai-kids-care\ai\data\raw\이상행동 CCTV 영상\06.배회(wander)\inside_croki_01\144-5\144-5_cam01_wander03_place01_night_spring.mp4")
-    model_dir = project_root / "outputs" / "06_wander_videomae_baseline" / "best_model"
+    video_path = Path("../data/raw/sample.mp4")
+    batch_manifest_path = project_root / "data" / "processed" / "01_assault_manifest_clips_downsampled.csv"
+    batch_manifest_split = "test"
+    model_dir = project_root / "outputs" / "01_assault_all_01_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / "streaming_demo"
 
     # Sliding inference setup
-    target_label = "wander"
+    target_label = "assault"
     window_sec = 5.0
     step_sec = 2.0
     num_frames = 16
     sampling_rate = 4
     max_short_side = 360
     decode_thread_type = "AUTO"
+    decode_backend = "ffmpeg_gpu"  # "ffmpeg_gpu" or "pyav_cpu"
+    ffmpeg_path = "ffmpeg"
 
     # Persistence decision setup (Balanced)
     clip_positive_threshold = 0.50
@@ -681,35 +1350,78 @@ if __name__ == "__main__":
     min_hits = 30
 
     # Throughput setup
-    decode_workers = 6
+    decode_workers = 0
     infer_batch_size = 12
     infer_prefetch_factor = 2
     max_eval_windows = None  # set e.g. 80 for quick profiling
 
-    if not video_path.exists():
-        raise FileNotFoundError(
-            f"Please set an existing long video path in __main__: {video_path}"
-        )
+    # Batch positive-threshold sweep setup
+    clip_positive_threshold_candidates = [0.35, 0.40, 0.45, 0.50, 0.55, 0.60]
+    persistence_hit_ratio_candidates = [0.30, 0.35, 0.40, 0.45, 0.50]
+    target_detection_rate = 0.95
+    reuse_window_prediction_cache = True
+    save_window_prediction_cache = True
 
-    run_demo(
-        video_path=video_path.resolve(),
-        model_dir=model_dir.resolve(),
-        output_dir=output_dir.resolve(),
-        target_label=target_label,
-        window_sec=window_sec,
-        step_sec=step_sec,
-        num_frames=num_frames,
-        sampling_rate=sampling_rate,
-        max_short_side=max_short_side,
-        decode_thread_type=decode_thread_type,
-        clip_positive_threshold=clip_positive_threshold,
-        persistence_window_sec=persistence_window_sec,
-        persistence_hit_ratio=persistence_hit_ratio,
-        clear_hit_ratio=clear_hit_ratio,
-        min_history_sec=min_history_sec,
-        min_hits=min_hits,
-        decode_workers=decode_workers,
-        infer_batch_size=infer_batch_size,
-        infer_prefetch_factor=infer_prefetch_factor,
-        max_eval_windows=max_eval_windows,
-    )
+    if run_mode == "single_video":
+        if not video_path.exists():
+            raise FileNotFoundError(
+                f"Please set an existing long video path in __main__: {video_path}"
+            )
+
+        run_demo(
+            video_path=video_path.resolve(),
+            model_dir=model_dir.resolve(),
+            output_dir=output_dir.resolve(),
+            target_label=target_label,
+            window_sec=window_sec,
+            step_sec=step_sec,
+            num_frames=num_frames,
+            sampling_rate=sampling_rate,
+            max_short_side=max_short_side,
+            decode_thread_type=decode_thread_type,
+            decode_backend=decode_backend,
+            ffmpeg_path=ffmpeg_path,
+            clip_positive_threshold=clip_positive_threshold,
+            persistence_window_sec=persistence_window_sec,
+            persistence_hit_ratio=persistence_hit_ratio,
+            clear_hit_ratio=clear_hit_ratio,
+            min_history_sec=min_history_sec,
+            min_hits=min_hits,
+            decode_workers=decode_workers,
+            infer_batch_size=infer_batch_size,
+            infer_prefetch_factor=infer_prefetch_factor,
+            max_eval_windows=max_eval_windows,
+        )
+    elif run_mode == "batch_positive_sweep":
+        run_batch_positive_threshold_sweep(
+            manifest_path=batch_manifest_path.resolve(),
+            manifest_split=batch_manifest_split,
+            model_dir=model_dir.resolve(),
+            output_dir=(output_dir / "batch_positive_sweep").resolve(),
+            target_label=target_label,
+            window_sec=window_sec,
+            step_sec=step_sec,
+            num_frames=num_frames,
+            sampling_rate=sampling_rate,
+            max_short_side=max_short_side,
+            decode_thread_type=decode_thread_type,
+            decode_backend=decode_backend,
+            ffmpeg_path=ffmpeg_path,
+            persistence_window_sec=persistence_window_sec,
+            clear_hit_ratio=clear_hit_ratio,
+            min_history_sec=min_history_sec,
+            min_hits=min_hits,
+            decode_workers=decode_workers,
+            infer_batch_size=infer_batch_size,
+            infer_prefetch_factor=infer_prefetch_factor,
+            max_eval_windows=max_eval_windows,
+            clip_positive_threshold_candidates=clip_positive_threshold_candidates,
+            persistence_hit_ratio_candidates=persistence_hit_ratio_candidates,
+            target_detection_rate=target_detection_rate,
+            reuse_window_prediction_cache=reuse_window_prediction_cache,
+            save_window_prediction_cache=save_window_prediction_cache,
+        )
+    else:
+        raise ValueError(
+            f"Unsupported run_mode: {run_mode}. Expected 'single_video' or 'batch_positive_sweep'."
+        )
