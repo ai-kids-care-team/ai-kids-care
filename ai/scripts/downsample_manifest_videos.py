@@ -269,7 +269,7 @@ def downsample_manifest_videos(
 
 if __name__ == "__main__":
     data_root = Path("../data/processed").resolve()
-    dataset_tag = "06_wander"
+    dataset_tag = "01_assault"
 
     downsample_manifest_videos(
         manifest_path=data_root / f"{dataset_tag}_manifest_clips.csv",
@@ -280,7 +280,7 @@ if __name__ == "__main__":
         preset="fast",
         use_gpu=True,
         use_hwaccel=False,
-        workers=2,
+        workers=4,
         overwrite=False,
         limit=0,
     )
