@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ANNOUNCEMENTS_LIST_PAGE_SIZE, getAnnouncements } from '@/services/apis/announcements.api';
+import {
+  ANNOUNCEMENTS_DEFAULT_SORT,
+  ANNOUNCEMENTS_LIST_PAGE_SIZE,
+  getAnnouncements,
+} from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
 import { canManageAnnouncements } from '@/types/user-role';
 import { getAnnouncementBaseDate, isAnnouncementNew, sortAnnouncementsByNewPriority } from './announcement-sort';
 
 import {AnnouncementItem} from '@/types/announcement';
+
+const ANNOUNCEMENTS_FETCH_BATCH_SIZE = 100;
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -14,6 +20,32 @@ function formatDate(value: string) {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}.${mm}.${dd}`;
+}
+
+async function getAllAnnouncements(keyword?: string) {
+  const firstPage = await getAnnouncements({
+    keyword,
+    page: 0,
+    size: ANNOUNCEMENTS_FETCH_BATCH_SIZE,
+    sort: [...ANNOUNCEMENTS_DEFAULT_SORT],
+  });
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.content;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      getAnnouncements({
+        keyword,
+        page: index + 1,
+        size: ANNOUNCEMENTS_FETCH_BATCH_SIZE,
+        sort: [...ANNOUNCEMENTS_DEFAULT_SORT],
+      }),
+    ),
+  );
+
+  return [firstPage, ...remainingPages].flatMap((pageData) => pageData.content);
 }
 
 export function useAnnouncements() {
@@ -37,17 +69,18 @@ export function useAnnouncements() {
       setLoading(true);
       setError('');
       try {
-        const pageData = await getAnnouncements({
-          keyword: appliedKeyword || undefined,
-          page,
-          size: ANNOUNCEMENTS_LIST_PAGE_SIZE,
-          sort: ['status,asc', 'isPinned,desc', 'publishedAt,desc'],
-        });
+        const allContent = await getAllAnnouncements(appliedKeyword || undefined);
         const now = Date.now();
-        const sortedContent = sortAnnouncementsByNewPriority(pageData.content, now);
-        setTotalPages(pageData.totalPages);
+        const sortedContent = sortAnnouncementsByNewPriority(allContent, now);
+        const totalPageCount = Math.ceil(sortedContent.length / ANNOUNCEMENTS_LIST_PAGE_SIZE);
+        const pagedContent = sortedContent.slice(
+          page * ANNOUNCEMENTS_LIST_PAGE_SIZE,
+          (page + 1) * ANNOUNCEMENTS_LIST_PAGE_SIZE,
+        );
+
+        setTotalPages(totalPageCount);
         setAnnouncements(
-          sortedContent.map((item) => {
+          pagedContent.map((item) => {
             const baseDate = getAnnouncementBaseDate(item);
             if (!baseDate) {
               return {

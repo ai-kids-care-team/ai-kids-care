@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { auth, FIELD_ERROR_FOCUS_ORDER } from '@/types/auth';
+import { FIELD_ERROR_FOCUS_ORDER, useSignupForm } from '@/components/auth/hooks/useSignupForm';
 import { GuardianForm } from './(signup)/GuardianForm';
 import { KindergartenForm } from './(signup)/KindergartenForm';
 import { SuperadminForm } from './(signup)/SuperadminForm';
@@ -22,8 +22,6 @@ const CHILD_SEARCH_EXAMPLES = [
 export function SignupForm() {
   const {
     form, onChange, memberType, handleMemberTypeChange,
-    verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
-    handleSendVerificationCode, handleVerifyCode,
     selectedChild, isChildPopupOpen, setIsChildPopupOpen,
     childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
     searchChildren, openChildPopup, selectChild,
@@ -45,9 +43,9 @@ export function SignupForm() {
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, handleSubmit,
     handleAccountFieldBlur,
-  } = auth();
+  } = useSignupForm();
   const [showChildSearchBack7, setShowChildSearchBack7] = useState(false);
 
   useEffect(() => {

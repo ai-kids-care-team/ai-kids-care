@@ -131,17 +131,17 @@ export function DetectionEventsListForm({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <main className="mx-auto w-[30%] max-w-5xl">
-        <div className="rounded-2xl bg-white p-8 shadow-lg">
-          <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
+    <div className="min-h-screen bg-gray-50 px-6 py-8">
+      <main className="mx-auto w-full max-w-[52rem]">
+        <div className="rounded-2xl bg-white p-10 shadow-lg">
+          <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-6 w-6 text-[#d97706]" aria-hidden />
-              <h2 className="text-2xl">이상 탐지</h2>
+              <h2 className="text-3xl">이상 탐지</h2>
             </div>
           </div>
 
-          <div className="mb-3 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2">
             <input
               type="text"
               value={keyword}
@@ -164,7 +164,7 @@ export function DetectionEventsListForm({
 
           {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
-          <div className="origin-top" style={{ zoom: 0.7 }}>
+          <div className="origin-top" style={{ zoom: 1 }}>
             <div className="space-y-3">
             {loading ? (
               <p className="flex min-h-[520px] items-center justify-center text-center text-gray-500">
@@ -180,7 +180,7 @@ export function DetectionEventsListForm({
                   key={event.id}
                   href={event.href}
                   onClick={rememberScroll}
-                  className="block rounded-lg border border-gray-200 p-5 transition-all hover:border-emerald-300 hover:bg-emerald-50"
+                  className="block rounded-lg border border-gray-200 p-6 transition-all hover:border-emerald-300 hover:bg-emerald-50"
                 >
                   {(() => {
                     const confidence = event.confidence;
@@ -262,7 +262,7 @@ export function DetectionEventsListForm({
           </div>
 
           {!loading && totalPages > 1 && (
-            <div className="mt-4 flex min-h-[1.625rem] flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-3">
+            <div className="mt-6 flex min-h-[1.625rem] flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-4">
               <button
                 type="button"
                 disabled={page <= 0}

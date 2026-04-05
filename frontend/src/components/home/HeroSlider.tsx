@@ -2,13 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Noto_Sans_KR } from 'next/font/google';
 
-const heroTitleFont = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['600', '700'],
-  display: 'swap',
-});
+const heroTitleStyle = {
+  fontFamily: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif',
+} satisfies React.CSSProperties;
 
 const slides = [
   {
@@ -77,8 +74,8 @@ export function HeroSlider() {
   };
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-2xl group h-full">
-      <div className="relative h-full min-h-[400px]">
+    <div className="group relative h-full overflow-hidden rounded-[clamp(1.25rem,1.8vw,1.75rem)] shadow-2xl">
+      <div className="relative h-full min-h-[clamp(28rem,54vh,50rem)]">
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -90,7 +87,8 @@ export function HeroSlider() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
             <div
-              className={`absolute inset-0 flex flex-col items-center justify-center text-center px-4 ${heroTitleFont.className}`}
+              className="absolute inset-0 flex flex-col items-center justify-center text-center px-4"
+              style={heroTitleStyle}
             >
               <h2
                 className="mb-3 max-w-[min(100%,42rem)] text-3xl font-bold leading-[1.2] tracking-tight text-white antialiased animate-in fade-in slide-in-from-bottom-4 duration-700 md:mb-4 md:text-5xl lg:text-6xl [text-shadow:0_1px_2px_rgb(0_0_0_/_0.65),0_8px_32px_rgb(0_0_0_/_0.45)]"

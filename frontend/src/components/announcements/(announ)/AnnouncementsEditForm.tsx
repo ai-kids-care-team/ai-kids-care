@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Bell } from 'lucide-react';
 import { useAnnouncementsEdit } from '@/components/announcements/functions/useAnnouncementsEdit';
 import { describeAnnouncementEditorRolesKorean } from '@/types/user-role';
 
@@ -40,7 +41,10 @@ export function AnnouncementsEditForm() {
       <main className="mx-auto max-w-5xl">
         <div className="rounded-2xl bg-white p-8 shadow-lg">
           <div className="mb-8 border-b border-gray-200 pb-6">
-            <h2 className="text-3xl">공지사항 수정</h2>
+            <div className="flex items-center gap-3">
+              <Bell className="h-7 w-7 text-[#006b52]" />
+              <h2 className="text-3xl">공지사항 수정</h2>
+            </div>
             <p className="mt-2 text-sm text-gray-500">공지사항 내용을 수정한 뒤 저장해주세요.</p>
           </div>
 
@@ -50,7 +54,7 @@ export function AnnouncementsEditForm() {
             {!loading && !canWrite && (
               <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 공지 수정은 <span className="font-medium">{describeAnnouncementEditorRolesKorean()}</span> 계정에서만
-                할 수 있어요. 해당 권한이 있는 계정으로 로그인했는지 확인해 주세요.
+                가능합니다. 해당 권한이 있는 계정으로 로그인했는지 확인해 주세요.
               </p>
             )}
 
@@ -105,7 +109,7 @@ export function AnnouncementsEditForm() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">공시일(중요공지 종료일)</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">공지 중 중요공지 종료일</label>
                 <input
                   type="datetime-local"
                   value={pinnedUntil}

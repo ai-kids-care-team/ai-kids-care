@@ -69,35 +69,35 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
   return (
     <>
       <div className="relative z-10 shadow-md">
-        <div className="bg-[#006b52] text-white px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight hover:text-green-200 transition-colors">
+        <div className="flex items-center justify-between bg-[#006b52] px-8 py-[1.15rem] text-white">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="text-[1.7rem] font-semibold tracking-tight transition-colors hover:text-green-200">
               AI Kids Care
             </Link>
             {!isGuest && (
-              <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/40 font-normal">
+              <Badge className="border-white/40 bg-white/20 px-3 py-1 text-sm font-normal text-white hover:bg-white/30">
                 {roleLabels[currentRole]}
               </Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {!isGuest && (
-              <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-white rounded-md">
-                <UserCircle className="w-5 h-5" />
+              <div className="flex items-center gap-3 rounded-md px-4 py-2 text-base text-white">
+                <UserCircle className="h-7 w-7" />
                 <span className="font-medium">{username}</span>
               </div>
             )}
 
-            <div className="flex items-center gap-1 ml-1 pl-3 border-l border-white/20">
+            <div className="ml-2 flex items-center gap-2 border-l border-white/20 pl-4">
               <Button
                   variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-red-500/80 hover:text-white gap-1.5 px-3 rounded-md transition-colors"
+                  size="lg"
+                  className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
                   onClick={isGuest ? () => setIsLoginModalOpen(true) : handleLogout}
               >
-                {isGuest ? <LogIn className="w-4 h-4" /> : <LogOut className="w-4 h-4" />}
-                <span className="text-sm font-medium hidden sm:inline-block">
+                {isGuest ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
+                <span className="hidden text-base font-medium sm:inline-block">
                   {isGuest ? '로그인' : '로그아웃'}
                 </span>
               </Button>
@@ -106,15 +106,15 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         </div>
 
         <div
-          className="bg-[#005640] text-white px-6 py-2 border-t border-white/20"
+          className="border-t border-white/20 bg-[#005640] px-8 py-3 text-white"
           suppressHydrationWarning
         >
-          <div className="flex items-center justify-start text-sm">
-            <div className="flex items-center gap-6">
+          <div className="flex items-center justify-start text-base">
+            <div className="flex items-center gap-8">
               {renderedMenus.map((menu) => {
                 if (!menu.path) return null;
                 return (
-                  <Link key={menu.menuId} href={menu.path} className="hover:text-green-300 transition-colors">
+                  <Link key={menu.menuId} href={menu.path} className="font-medium transition-colors hover:text-green-300">
                     {menu.menuName}
                   </Link>
                 );

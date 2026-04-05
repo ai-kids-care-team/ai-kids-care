@@ -19,8 +19,22 @@ public class TeacherService {
     private final TeacherRepository repository;
     private final TeacherMapper mapper;
 
-    public Page<TeacherVO> listTeachers(String keyword, Pageable pageable) {
-        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
+    public Page<TeacherVO> listTeachers(String keyword, Long userId, Pageable pageable) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+
+        if (hasKeyword && userId != null) {
+            return repository.findByNameContainsAndUserId(keyword, userId, pageable).map(mapper::toVO);
+        }
+
+        if (hasKeyword) {
+            return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
+        }
+
+        if (userId != null) {
+            return repository.findByUserId(userId, pageable).map(mapper::toVO);
+        }
+
+        return repository.findAll(pageable).map(mapper::toVO);
     }
 
     public TeacherVO getTeacher(Long id) {

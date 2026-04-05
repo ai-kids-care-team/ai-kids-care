@@ -37,7 +37,8 @@ export type PageResponse<T> = {
 };
 
 /** 공지 목록·홈 미리보기 등 한 번에 가져올 기본 건수 */
-export const ANNOUNCEMENTS_LIST_PAGE_SIZE = 6;
+export const ANNOUNCEMENTS_LIST_PAGE_SIZE = 7;
+export const ANNOUNCEMENTS_DEFAULT_SORT = ['status,asc', 'isPinned,desc', 'publishedAt,desc'] as const;
 
 export type GetAnnouncementsParams = {
   keyword?: string;

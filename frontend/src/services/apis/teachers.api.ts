@@ -7,7 +7,6 @@ export type Teacher = {
   name: string;
 };
 
-/** 백엔드 `TeacherVO` (레거시/버그 응답은 `id`만 오는 경우 있음) */
 export type TeacherVO = {
   teacherId: number;
   kindergartenId: number;
@@ -34,32 +33,32 @@ export type TeacherApiRow = TeacherVO & {
   teacher_id?: number;
 };
 
-/**
- * GET /teachers/by-user/{userId}
- * 백엔드에서 추가한 getTeacherNameByUserId 엔드포인트 사용
- */
 export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
   if (!Number.isFinite(userId) || userId <= 0) return null;
 
-  const response = await apiClient.get<Teacher | { data?: Teacher }>(`/teachers/by-user/${userId}`);
+  const response = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
+    params: {
+      userId,
+      page: 0,
+      size: 1,
+    },
+  });
 
-  const payload: any = response.data;
-  if (!payload) return null;
+  const candidate = response.data.content?.[0];
+  if (!candidate) return null;
 
-  const candidate = payload.data ?? payload;
-
-  if (typeof candidate.userId === 'number' && typeof candidate.name === 'string') {
-    return {
-      teacherId: candidate.teacherId ?? null,
-      userId: candidate.userId,
-      name: candidate.name,
-    };
+  const normalized = normalizeTeacherVO(candidate as TeacherApiRow);
+  if (typeof normalized.userId !== 'number' || typeof normalized.name !== 'string') {
+    return null;
   }
-  return null;
+
+  return {
+    teacherId: normalized.teacherId ?? null,
+    userId: normalized.userId,
+    name: normalized.name,
+  };
 }
 
-
-/** null/빈값은 건너뜀 — `Number(null)`이 0이 되어 전 행이 교사 ID 0으로 보이는 버그 방지 */
 function firstPositiveLong(...vals: unknown[]): number | undefined {
   for (const v of vals) {
     if (v === null || v === undefined || v === '') continue;
@@ -70,10 +69,6 @@ function firstPositiveLong(...vals: unknown[]): number | undefined {
   return undefined;
 }
 
-/**
- * 백엔드 `TeacherMapper`가 `teacherId`를 채우지 않는 경우(항상 null) 대비.
- * 시드 기준: 원1 교사 user 101–120 → teacher_id 1–20, 원2 401–420 → 21–40, 원3 701–720 → 41–60.
- */
 function inferTeacherIdFromUserAndKindergarten(
   userId: number,
   kindergartenId: number,
@@ -87,7 +82,6 @@ function inferTeacherIdFromUserAndKindergarten(
 
 export type NormalizeTeacherOptions = { fallbackKindergartenId?: number };
 
-/** 목록·상세 공통: camelCase / snake_case / 레거시 `id` 보정 + teacherId 누락 시 추론 */
 export function normalizeTeacherVO(
   raw: TeacherApiRow,
   options?: NormalizeTeacherOptions,
@@ -126,7 +120,7 @@ function normalizeTeacherPage(p: PageResponse<TeacherVO>): PageResponse<TeacherV
 
 export async function searchTeachers(params: {
   keyword?: string;
-  /** 지정 시 해당 유치원 소속 교사만 */
+  userId?: number;
   kindergartenId?: number;
   page?: number;
   size?: number;
@@ -134,19 +128,22 @@ export async function searchTeachers(params: {
 }): Promise<PageResponse<TeacherVO>> {
   const page = params.page ?? 0;
   const size = params.size ?? 20;
-  /* 백엔드 `findByNameContains`는 keyword=null 일 때 목록이 비는 경우가 있어 항상 전송 */
   const keyword = params.keyword?.trim() ?? '';
+  const userId = params.userId;
   const sort = params.sort;
   const kgId = params.kindergartenId;
+
   const res = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
     params: {
       page,
       size,
       keyword,
+      ...(userId != null && Number.isFinite(userId) ? { userId } : {}),
       ...(kgId != null && Number.isFinite(kgId) ? { kindergartenId: kgId } : {}),
       ...(sort ? { sort } : {}),
     },
   });
+
   return normalizeTeacherPage(res.data);
 }
 

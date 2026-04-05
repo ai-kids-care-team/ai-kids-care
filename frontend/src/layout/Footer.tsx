@@ -1,7 +1,7 @@
 export function Footer() {
   return (
-    <footer className="bg-[#006b52] text-gray-100 mt-2">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <footer className="bg-[#006b52] text-gray-100">
+      <div className="mx-auto w-[min(94vw,120rem)] px-[clamp(1rem,1.8vw,2rem)] py-4">
         <div className="flex items-center justify-center gap-3 text-center">
           <h3 className="text-white text-lg">AI Kids Care</h3>
           <span className="text-white/60">|</span>

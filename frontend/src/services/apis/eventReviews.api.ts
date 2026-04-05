@@ -16,42 +16,95 @@ export type CreateEventReviewDTO = {
   comment: string | null;
 };
 
-function normalizeEventReview(raw: any): EventReview | null {
-  if (!raw) return null;
+type EventReviewApiRow = {
+  id?: unknown;
+  review_id?: unknown;
+  reviewId?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  result_status?: unknown;
+  resultStatus?: unknown;
+  status?: unknown;
+  result_status_code?: unknown;
+  comment?: unknown;
+  review_comment?: unknown;
+  reviewComment?: unknown;
+  created_at?: unknown;
+  createdAt?: unknown;
+};
 
-  const id = raw.id ?? raw.review_id ?? raw.reviewId;
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function normalizeEventReview(raw: unknown): EventReview | null {
+  const record = asRecord(raw);
+  if (!record) return null;
+
+  const row = record as EventReviewApiRow;
+  const id = Number(row.id ?? row.review_id ?? row.reviewId ?? NaN);
   if (!Number.isFinite(id)) return null;
 
-  const userId = raw.user_id ?? raw.userId ?? null;
-  const resultStatus: string =
-    raw.result_status ?? raw.resultStatus ?? raw.status ?? raw.result_status_code ?? '';
-  const comment: string | null = raw.comment ?? raw.review_comment ?? raw.reviewComment ?? null;
-  const createdAt: string | undefined = raw.created_at ?? raw.createdAt ?? undefined;
+  const userIdValue = row.user_id ?? row.userId;
+  const userId =
+    userIdValue == null
+      ? null
+      : Number.isFinite(Number(userIdValue))
+        ? Number(userIdValue)
+        : null;
+
+  const resultStatusValue =
+    row.result_status ?? row.resultStatus ?? row.status ?? row.result_status_code ?? '';
+  const commentValue = row.comment ?? row.review_comment ?? row.reviewComment ?? null;
+  const createdAtValue = row.created_at ?? row.createdAt;
 
   return {
     id,
     user_id: userId,
-    result_status: String(resultStatus),
-    comment,
-    created_at: createdAt,
+    result_status: String(resultStatusValue),
+    comment: commentValue == null ? null : String(commentValue),
+    created_at: createdAtValue == null ? undefined : String(createdAtValue),
   };
+}
+
+function extractListPayload(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const record = asRecord(payload);
+  if (!record) {
+    return [];
+  }
+
+  if (Array.isArray(record.content)) {
+    return record.content;
+  }
+
+  if (Array.isArray(record.data)) {
+    return record.data;
+  }
+
+  return [];
+}
+
+function extractSinglePayload(payload: unknown): unknown {
+  const record = asRecord(payload);
+  return record && 'data' in record ? record.data : payload;
 }
 
 export async function getEventReviews(eventId: number): Promise<EventReview[]> {
   if (!Number.isFinite(eventId) || eventId <= 0) return [];
 
-  const response = await apiClient.get<EventReview[] | { content?: EventReview[]; data?: EventReview[] }>(
-    `/event_reviews/${eventId}/reviews`,
-  );
-
-  const payload = response.data;
-  const list: any[] = Array.isArray(payload)
-    ? payload
-    : Array.isArray((payload as any)?.content)
-      ? (payload as any).content
-      : Array.isArray((payload as any)?.data)
-        ? (payload as any).data
-        : [];
+  const response = await apiClient.get<unknown>('/event_reviews', {
+    params: {
+      eventId,
+      page: 0,
+      size: 100,
+      sort: 'createdAt,asc',
+    },
+  });
+  const list = extractListPayload(response.data);
 
   return list
     .map((item) => normalizeEventReview(item))
@@ -61,22 +114,15 @@ export async function getEventReviews(eventId: number): Promise<EventReview[]> {
 export async function getLatestEventReview(eventId: number): Promise<EventReview | null> {
   if (!Number.isFinite(eventId) || eventId <= 0) return null;
 
-  const response = await apiClient.get<EventReview | { data?: EventReview }>(
-    `/event_reviews/${eventId}/reviews/latest`,
-  );
-
-  const payload: any = response.data;
-  if (!payload) return null;
-
-  const candidate = payload.data ?? payload;
-  const normalized = normalizeEventReview(candidate);
+  const response = await apiClient.get<unknown>(`/event_reviews/${eventId}/latest`);
+  const normalized = normalizeEventReview(extractSinglePayload(response.data));
   return normalized ?? null;
 }
 
 export async function createEventReview(dto: CreateEventReviewDTO): Promise<EventReview> {
   const { event_id } = dto;
   if (!Number.isFinite(event_id) || event_id <= 0) {
-    throw new Error('유효하지 않은 event_id 입니다.');
+      throw new Error('유효하지 않은 event_id 입니다.');
   }
 
   const payload = {
@@ -87,14 +133,10 @@ export async function createEventReview(dto: CreateEventReviewDTO): Promise<Even
     comment: dto.comment,
   };
 
-  const response = await apiClient.post<EventReview | { data?: EventReview }>(`/event_reviews`, payload);
-
-  const body: any = response.data;
-  const candidate = body?.data ?? body;
-  const normalized = normalizeEventReview(candidate);
+  const response = await apiClient.post<unknown>(`/event_reviews`, payload);
+  const normalized = normalizeEventReview(extractSinglePayload(response.data));
   if (!normalized) {
-    throw new Error('이벤트 리뷰 생성 응답을 해석할 수 없습니다.');
+      throw new Error('이벤트 리뷰 생성 응답을 해석할 수 없습니다.');
   }
   return normalized;
 }
-

@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
-import { Pencil, Trash2, List } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Bell, List, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAnnouncement, getAnnouncementDetail, type AnnouncementDetail } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
@@ -41,7 +40,6 @@ export function AnnouncementsDetailPage() {
       }
     };
 
-    // 렌더 직후/다음 프레임 모두 보정해 레이아웃 스크롤 컨테이너까지 확실히 상단으로 맞춘다.
     resetToTop();
     const frame = window.requestAnimationFrame(resetToTop);
     return () => window.cancelAnimationFrame(frame);
@@ -82,6 +80,7 @@ export function AnnouncementsDetailPage() {
       setError('유효하지 않은 공지사항 ID입니다.');
       return;
     }
+
     const confirmed = window.confirm('정말 이 공지사항을 삭제하시겠습니까?');
     if (!confirmed) return;
 
@@ -121,10 +120,20 @@ export function AnnouncementsDetailPage() {
           {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>}
           {!error && announcement && (
             <>
-              <h2 className="text-2xl leading-tight text-slate-900">{announcement.title}</h2>
-              <p className="mt-6 text-sm text-slate-600">
-                작성일: {formatDate(announcement.publishedAt ?? announcement.createdAt)} 조회수: {announcement.viewCount}
-              </p>
+              <div className="mb-8 border-b border-gray-200 pb-6">
+                <div className="flex items-center gap-3">
+                  <Bell className="h-7 w-7 text-[#006b52]" />
+                  <h2 className="text-3xl text-slate-900">공지사항</h2>
+                </div>
+                <p className="mt-2 text-sm text-slate-500">공지사항 상세 내용을 확인하세요.</p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 px-6 py-5">
+                <h3 className="text-3xl leading-tight text-slate-900">{announcement.title}</h3>
+                <p className="mt-4 text-sm text-slate-600">
+                  작성일 {formatDate(announcement.publishedAt ?? announcement.createdAt)} 조회수 {announcement.viewCount}
+                </p>
+              </div>
 
               <hr className="my-8 border-slate-200" />
 

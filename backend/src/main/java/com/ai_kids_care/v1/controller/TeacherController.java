@@ -22,13 +22,14 @@ public class TeacherController {
 
     private final TeacherService service;
 
-    //url: api/v1/teachers/keyword=?Jerry&page=1&size=20?sort=created_at
+    // Example: /api/v1/teachers?keyword=Jerry&page=0&size=20 or /api/v1/teachers?userId=101&page=0&size=1
     @GetMapping
     public ResponseEntity<Page<TeacherVO>> listTeacher(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long userId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listTeachers(keyword, pageable));
+        return ResponseEntity.ok(service.listTeachers(keyword, userId, pageable));
     }
 
     @GetMapping("/{id}")
