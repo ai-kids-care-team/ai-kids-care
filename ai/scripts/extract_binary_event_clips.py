@@ -126,7 +126,6 @@ def build_positive_clip_starts(
         min_positive_overlap_sec: float,
         max_trials: int = 64,
 ) -> list[float]:
-    event_center_sec = event_start_sec + event_duration_sec / 2.0
     max_start = max(0.0, total_duration_sec - clip_duration)
     starts: list[float] = []
 
@@ -140,15 +139,15 @@ def build_positive_clip_starts(
         overlap_ratio = overlap_sec / clip_duration if clip_duration > 0 else 0.0
         return overlap_sec >= min_positive_overlap_sec and overlap_ratio >= min_positive_overlap_ratio
 
-    center_start = min(max(0.0, event_center_sec - clip_duration / 2.0), max_start)
-    if is_valid(center_start):
-        starts.append(center_start)
+    anchor_start = min(max(0.0, event_start_sec), max_start)
+    if is_valid(anchor_start):
+        starts.append(anchor_start)
 
     trials = 0
     while len(starts) < positive_clips_per_event and trials < max_trials:
         trials += 1
         jitter = random.uniform(-positive_jitter_sec, positive_jitter_sec)
-        candidate = center_start + jitter
+        candidate = anchor_start + jitter
         candidate = min(max(0.0, candidate), max_start)
         if not is_valid(candidate):
             continue
@@ -173,7 +172,7 @@ def build_candidate_positive_clip_starts(
         min_positive_overlap_ratio: float,
         min_positive_overlap_sec: float,
         main_starts: list[float],
-        min_gap_from_main_sec: float = 2.5,
+        min_gap_from_main_sec: float = 2.0,
         min_gap_between_candidates_sec: float = 1.0,
         max_trials: int = 256,
 ) -> list[float]:
@@ -181,8 +180,10 @@ def build_candidate_positive_clip_starts(
         return []
 
     max_start = max(0.0, total_duration_sec - clip_duration)
-    pool: list[float] = []
-    seen_pool = set()
+    starts: list[float] = []
+    seen = set()
+    gap_from_main = max(0.0, float(min_gap_from_main_sec))
+    gap_between_candidates = max(0.0, float(min_gap_between_candidates_sec))
 
     def is_valid(start_sec: float) -> bool:
         overlap_sec = interval_overlap_sec(
@@ -194,52 +195,36 @@ def build_candidate_positive_clip_starts(
         overlap_ratio = overlap_sec / clip_duration if clip_duration > 0 else 0.0
         return overlap_sec >= min_positive_overlap_sec and overlap_ratio >= min_positive_overlap_ratio
 
-    def add_pool(start_sec: float) -> None:
+    anchor_start = min(max(0.0, event_start_sec), max_start)
+    main_reference = float(main_starts[0]) if main_starts else anchor_start
+
+    def add_start(start_sec: float) -> None:
         candidate = min(max(0.0, start_sec), max_start)
         if not is_valid(candidate):
             return
-        key = round(candidate, 2)
-        if key in seen_pool:
+        if abs(candidate - main_reference) < gap_from_main:
             return
-        seen_pool.add(key)
-        pool.append(candidate)
+        key = round(candidate, 2)
+        if key in seen:
+            return
+        if any(abs(existing - candidate) < gap_between_candidates for existing in starts):
+            return
+        seen.add(key)
+        starts.append(candidate)
 
-    main_ref = [float(x) for x in main_starts]
-    main_center = float(sum(main_ref) / len(main_ref)) if main_ref else (
-        event_start_sec + event_duration_sec / 2.0 - clip_duration / 2.0
-    )
+    for sign in (1.0, -1.0):
+        offset = gap_from_main
+        add_start(anchor_start + sign * offset)
+        add_start(anchor_start + sign * (offset + max(0.5, positive_jitter_sec)))
 
-    # Build candidate centers first, then choose ONE alternative center.
-    anchor_ratios = [0.1, 0.2, 0.3, 0.7, 0.8, 0.9]
-    for ratio in anchor_ratios:
-        center_sec = event_start_sec + event_duration_sec * ratio
-        add_pool(center_sec - clip_duration / 2.0)
-
-    trials = 0
-    while len(pool) < 24 and trials < max_trials:
-        trials += 1
-        ratio = random.uniform(0.05, 0.95)
-        center_sec = event_start_sec + event_duration_sec * ratio
-        add_pool(center_sec - clip_duration / 2.0)
-
-    if not pool:
-        return []
-
-    far_pool = [one_start for one_start in pool if abs(one_start - main_center) >= max(0.0, min_gap_from_main_sec)]
-    center_pool = far_pool if far_pool else pool
-    chosen_center_start = max(center_pool, key=lambda x: abs(x - main_center))
-
-    starts: list[float] = [chosen_center_start]
     trials = 0
     while len(starts) < candidate_clips_per_event and trials < max_trials:
         trials += 1
-        candidate = chosen_center_start + random.uniform(-positive_jitter_sec, positive_jitter_sec)
-        candidate = min(max(0.0, candidate), max_start)
-        if not is_valid(candidate):
-            continue
-        if any(abs(existing - candidate) < max(0.0, min_gap_between_candidates_sec) for existing in starts):
-            continue
-        starts.append(candidate)
+        sign = random.choice([-1.0, 1.0])
+        offset = random.uniform(gap_from_main, gap_from_main + max(0.5, positive_jitter_sec))
+        jitter = random.uniform(-positive_jitter_sec, positive_jitter_sec)
+        candidate = anchor_start + sign * offset + jitter
+        add_start(candidate)
 
     if len(starts) < candidate_clips_per_event and starts:
         starts.extend([starts[-1]] * (candidate_clips_per_event - len(starts)))
@@ -272,8 +257,20 @@ def build_group_negative_templates(
             ]
             if filtered:
                 chosen_candidates = filtered
-        source_type, start_sec = random.choice(chosen_candidates)
-        templates.append((source_type, str(source_video), start_sec))
+        before_candidates = [one for one in chosen_candidates if one[0] == "before"]
+        after_candidates = [one for one in chosen_candidates if one[0] == "after"]
+
+        if before_candidates:
+            # Priority 1: use before-event negative first.
+            source_type, start_sec = max(before_candidates, key=lambda x: x[1])
+        elif after_candidates:
+            # Priority 2: when using after-event negative, keep it farther from event end.
+            source_type, start_sec = max(after_candidates, key=lambda x: x[1])
+        else:
+            source_type, start_sec = None, None
+
+        if source_type is not None and start_sec is not None:
+            templates.append((source_type, str(source_video), start_sec))
 
     if use_cross_video_negative and len(templates) < max_negative_per_positive:
         cross_sample = sample_cross_video_negative(
@@ -511,6 +508,7 @@ def export_annotation_template_excel_from_manifest(
         output_excel_path: str | Path | None = None,
         main_label_column: str = "main_error_labeled",
         candidate_label_column: str = "candidate_error_labeled",
+        overwrite_output_excel: bool = False,
 ) -> Path:
     main_manifest_path = Path(main_manifest_path).resolve()
     if not main_manifest_path.exists():
@@ -519,6 +517,13 @@ def export_annotation_template_excel_from_manifest(
     if output_excel_path is None:
         output_excel_path = main_manifest_path.with_name(main_manifest_path.stem + "_annotation.xlsx")
     output_excel_path = Path(output_excel_path).resolve()
+
+    if not overwrite_output_excel:
+        print(f"overwrite_annotation_excel=False, keep existing annotation if present: {output_excel_path}")
+
+    if output_excel_path.exists() and not overwrite_output_excel:
+        print(f"Annotation excel exists, skip overwrite: {output_excel_path}")
+        return output_excel_path
 
     main_df = pd.read_csv(main_manifest_path)
     candidate_df = None
@@ -639,6 +644,9 @@ def collect_intra_video_negative_starts(
         clip_duration: float,
         margin_sec: float = 1.0,
         num_random_trials: int = 20,
+        min_before_candidate_gap_sec: float = 2.0,
+        before_candidate_count: int = 3,
+        min_after_event_gap_sec: float = 5.0,
 ) -> list[tuple[str, float]]:
     """
     Return candidate negative clip starts from the SAME source video.
@@ -654,16 +662,30 @@ def collect_intra_video_negative_starts(
     candidates: list[tuple[str, float]] = []
 
     event_end_sec = event_start_sec + event_duration_sec
+    before_margin_sec = max(2.0, float(margin_sec))
+    after_margin_sec = max(float(min_after_event_gap_sec), float(margin_sec))
+    before_gap_sec = max(0.1, float(min_before_candidate_gap_sec))
+    before_count = max(1, int(before_candidate_count))
 
     # 1) before-event clip
-    before_start = event_start_sec - margin_sec - clip_duration
+    before_start = event_start_sec - before_margin_sec - clip_duration
     if before_start >= 0:
         candidates.append(("before", before_start))
+        for i in range(1, before_count):
+            earlier_start = before_start - i * before_gap_sec
+            if earlier_start < 0:
+                break
+            candidates.append(("before", earlier_start))
 
     # 2) after-event clip
-    after_start = event_end_sec + margin_sec
+    after_start = event_end_sec + after_margin_sec
     if after_start + clip_duration <= total_duration_sec:
         candidates.append(("after", after_start))
+
+    # 2-2) far-after clip (same "after" type), to allow selecting one farther from event end.
+    far_after_start = max(0.0, total_duration_sec - clip_duration)
+    if far_after_start + clip_duration <= total_duration_sec and far_after_start >= event_end_sec + after_margin_sec:
+        candidates.append(("after", far_after_start))
 
     # 3) random intra-video negative
     if total_duration_sec > clip_duration:
@@ -674,7 +696,7 @@ def collect_intra_video_negative_starts(
                     clip_duration=clip_duration,
                     event_start=event_start_sec,
                     event_duration=event_duration_sec,
-                    margin_sec=margin_sec,
+                    margin_sec=before_margin_sec,
             ):
                 candidates.append(("random_intra", start))
 
@@ -736,7 +758,16 @@ def sample_cross_video_negative(
         if not candidates:
             continue
 
-        _, start_sec = random.choice(candidates)
+        before_candidates = [one for one in candidates if one[0] == "before"]
+        after_candidates = [one for one in candidates if one[0] == "after"]
+
+        if before_candidates:
+            _, start_sec = max(before_candidates, key=lambda x: x[1])
+        elif after_candidates:
+            _, start_sec = max(after_candidates, key=lambda x: x[1])
+        else:
+            continue
+
         return other_video, start_sec
 
     return None
@@ -748,6 +779,7 @@ def extract_binary_clips(
         output_manifest: str | Path,
         candidate_output_dir: str | Path | None = None,
         candidate_manifest_path: str | Path | None = None,
+        enable_candidate_groups: bool = False,
         negative_label: str = "normal",
         clip_duration: float = 5.0,
         use_gpu: bool = True,
@@ -757,7 +789,7 @@ def extract_binary_clips(
         candidate_max_negative_per_positive: int | None = None,
         positive_clips_per_event: int = 3,
         candidate_positive_clips_per_event: int = 0,
-        candidate_min_gap_from_main_sec: float = 2.5,
+        candidate_min_gap_from_main_sec: float = 2.0,
         positive_jitter_sec: float = 1.0,
         min_positive_overlap_ratio: float = 0.7,
         min_positive_overlap_sec: float = 2.0,
@@ -771,6 +803,7 @@ def extract_binary_clips(
         annotation_excel_path: str | Path | None = None,
         annotation_main_label_column: str = "main_error_labeled",
         annotation_candidate_label_column: str = "candidate_error_labeled",
+        overwrite_annotation_excel: bool = False,
         run_id: str | None = None,
         extract_workers: int = 1,
         random_seed: int = 42,
@@ -781,6 +814,9 @@ def extract_binary_clips(
     manifest_path = Path(manifest_path).resolve()
     output_dir = Path(output_dir).resolve()
     output_manifest = Path(output_manifest).resolve()
+    if not enable_candidate_groups:
+        candidate_positive_clips_per_event = 0
+        candidate_max_negative_per_positive = 0
     if candidate_output_dir is None:
         candidate_output_dir = output_dir.with_name(f"{output_dir.name}_candidates")
     candidate_output_dir = Path(candidate_output_dir).resolve()
@@ -949,7 +985,7 @@ def extract_binary_clips(
             margin_sec=negative_margin_sec,
             enable_random_intra_negative=enable_random_intra_negative,
             prefer_far_from_start_sec=main_negative_ref_start,
-            min_gap_from_preferred_sec=max(1.0, clip_duration / 2.0),
+            min_gap_from_preferred_sec=max(0.0, candidate_min_gap_from_main_sec),
         )
 
         for pos_idx, pos_clip_start_sec in enumerate(pos_clip_starts_sec):
@@ -1169,6 +1205,7 @@ def extract_binary_clips(
     decode_backend = "cuda (use_hwaccel=True)" if use_hwaccel else "cpu (use_hwaccel=False)"
     encode_backend = "h264_nvenc (use_gpu=True)" if use_gpu else "libx264 (use_gpu=False)"
     print(f"Using extract_workers={extract_workers}")
+    print(f"Candidate groups enabled: {enable_candidate_groups}")
     print(f"Using ffmpeg decode backend: {decode_backend}")
     print(f"Using ffmpeg encode backend: {encode_backend}")
 
@@ -1240,6 +1277,7 @@ def extract_binary_clips(
             output_excel_path=annotation_excel_path,
             main_label_column=annotation_main_label_column,
             candidate_label_column=annotation_candidate_label_column,
+            overwrite_output_excel=overwrite_annotation_excel,
         )
 
     if skipped_short_events > 0:
@@ -1296,6 +1334,7 @@ if __name__ == "__main__":
         output_manifest=data_root / f"{dataset_tag}_manifest_clips.csv",
         candidate_output_dir=data_root / f"{dataset_tag}_event_clips_candidates",
         candidate_manifest_path=data_root / f"{dataset_tag}_manifest_clips_candidates.csv",
+        enable_candidate_groups=False,
         negative_label="normal",
         clip_duration=5.0,
         use_gpu=True,
@@ -1305,12 +1344,12 @@ if __name__ == "__main__":
         candidate_max_negative_per_positive=1,
         positive_clips_per_event=3,
         candidate_positive_clips_per_event=3,
-        candidate_min_gap_from_main_sec=2.5,
+        candidate_min_gap_from_main_sec=2.0,
         positive_jitter_sec=1.0,
         min_positive_overlap_ratio=0.7,
         min_positive_overlap_sec=2.0,
         min_event_duration_sec=5.0,
-        negative_margin_sec=2.0,
+        negative_margin_sec=10.0,
         use_cross_video_negative=False,
         enable_random_intra_negative=False,
         enable_quality_reports=True,
@@ -1319,6 +1358,7 @@ if __name__ == "__main__":
         annotation_excel_path=data_root / f"{dataset_tag}_manifest_clips_annotation.xlsx",
         annotation_main_label_column="main_error_labeled",
         annotation_candidate_label_column="candidate_error_labeled",
+        overwrite_annotation_excel=False,
         run_id=None,
         extract_workers=4,
         random_seed=42,
