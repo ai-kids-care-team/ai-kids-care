@@ -1,0 +1,4 @@
+kindergarten_id,name,address,region_code,code,business_registration_no,contact_name,contact_phone,contact_email,status,created_at,updated_at
+1,하늘유치원,서울특별시 강남구 51길 38,,D8902,5999166110,정서연,010-9186-2613,ehayselden0@google.fr,ACTIVE,2026-02-24 18:02:17.000000 +00:00,2026-03-14 15:14:10.000000 +00:00
+2,바다유치원,경기도 성남시 분당구 38길 76,11000,C0341,5696335677,최도윤,010-7820-8604,lerrichiello1@stanford.edu,ACTIVE,2025-01-10 14:48:04.000000 +00:00,2025-07-23 08:10:16.000000 +00:00
+3,튼튼유치원,인천광역시 연수구 65길 91,,,7073810151,이시우,010-4416-0213,gkingerby2@hp.com,ACTIVE,2026-01-22 15:50:59.000000 +00:00,2026-03-08 20:17:48.000000 +00:00
