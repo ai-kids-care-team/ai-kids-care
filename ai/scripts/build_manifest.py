@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Build manifest from videos + same-name XML annotations.
@@ -114,6 +114,63 @@ def parse_xml_annotation(xml_path: Path) -> dict:
     }
 
 
+def infer_scene_group(video_path: Path, root_dir: Path) -> str:
+    """
+    Infer scene group from relative path:
+    root/<event_category>/<scene_group>/...
+    """
+    try:
+        rel_parts = video_path.relative_to(root_dir).parts
+    except ValueError:
+        return "unknown"
+
+    if len(rel_parts) >= 2:
+        return rel_parts[1]
+    return "unknown"
+
+
+def compute_split_counts(
+        n: int,
+        train_ratio: float,
+        val_ratio: float,
+        test_ratio: float,
+) -> tuple[int, int, int]:
+    if n <= 0:
+        return 0, 0, 0
+
+    # For very small strata, keep deterministic and simple.
+    if n == 1:
+        return 1, 0, 0
+    if n == 2:
+        if test_ratio >= val_ratio:
+            return 1, 0, 1
+        return 1, 1, 0
+
+    # n >= 3
+    n_val = max(1, int(n * val_ratio))
+    n_test = max(1, int(n * test_ratio))
+    n_train = n - n_val - n_test
+
+    if n_train < 1:
+        deficit = 1 - n_train
+        while deficit > 0 and n_val > 1:
+            n_val -= 1
+            deficit -= 1
+        while deficit > 0 and n_test > 1:
+            n_test -= 1
+            deficit -= 1
+        n_train = n - n_val - n_test
+
+    if n_train < 1:
+        n_train = 1
+        if n_val > n_test and n_val > 1:
+            n_val -= 1
+        elif n_test > 1:
+            n_test -= 1
+
+    return n_train, n_val, n_test
+
+
 def build_manifest_with_split(
         root_dir: str,
         out_csv: str,
@@ -133,6 +190,7 @@ def build_manifest_with_split(
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     samples_by_label = defaultdict(list)
+    samples_by_stratum = defaultdict(list)
     missing_xml = []
     bad_xml = []
     skipped_no_label = []
@@ -165,10 +223,13 @@ def build_manifest_with_split(
             skipped_no_label.append(str(xml_path))
             continue
 
+        scene_group = infer_scene_group(video_path=video_path, root_dir=root)
+
         sample = {
             "video_path": str(video_path),
             "xml_path": str(xml_path),
             "label": label,
+            "scene_group": scene_group,
             "event_start_time": meta["event_start_time"],
             "event_duration": meta["event_duration"],
             "event_start_sec": meta["event_start_sec"],
@@ -180,19 +241,24 @@ def build_manifest_with_split(
         }
 
         samples_by_label[label].append(sample)
+        stratum_key = f"{label}__{scene_group}"
+        samples_by_stratum[stratum_key].append(sample)
 
-    # 2. Stratified split by label
+    # 2. Stratified split by (label + scene_group)
     rows = []
-    per_label_stats = {}
+    per_stratum_stats = {}
 
-    for label in sorted(samples_by_label):
-        samples = sorted(samples_by_label[label], key=lambda x: x["video_path"])
+    for stratum_key in sorted(samples_by_stratum):
+        samples = sorted(samples_by_stratum[stratum_key], key=lambda x: x["video_path"])
         rng.shuffle(samples)
 
         n = len(samples)
-        n_train = int(n * train_ratio)
-        n_val = int(n * val_ratio)
-        n_test = n - n_train - n_val
+        n_train, n_val, n_test = compute_split_counts(
+            n=n,
+            train_ratio=train_ratio,
+            val_ratio=val_ratio,
+            test_ratio=test_ratio,
+        )
 
         train_samples = samples[:n_train]
         val_samples = samples[n_train:n_train + n_val]
@@ -210,7 +276,7 @@ def build_manifest_with_split(
             sample["split"] = "test"
             rows.append(sample)
 
-        per_label_stats[label] = {
+        per_stratum_stats[stratum_key] = {
             "total": n,
             "train": len(train_samples),
             "val": len(val_samples),
@@ -225,6 +291,7 @@ def build_manifest_with_split(
         "video_path",
         "xml_path",
         "label",
+        "scene_group",
         "split",
         "event_start_time",
         "event_duration",
@@ -243,15 +310,38 @@ def build_manifest_with_split(
 
     # 5. Print summary
     split_counter = Counter(row["split"] for row in rows)
+    split_label_counter = Counter((row["split"], row["label"]) for row in rows)
+    split_scene_counter = Counter((row["split"], row["scene_group"]) for row in rows)
 
     print(f"Saved {len(rows)} samples to {out_path}")
     print(f"Split stats: {dict(split_counter)}")
     print(f"Num labels: {len(samples_by_label)}")
 
-    if per_label_stats:
+    if samples_by_label:
         print("\nPer-label stats:")
-        for label in sorted(per_label_stats):
-            print(label, per_label_stats[label])
+        for label in sorted(samples_by_label):
+            total = len([row for row in rows if row["label"] == label])
+            train_n = len([row for row in rows if row["label"] == label and row["split"] == "train"])
+            val_n = len([row for row in rows if row["label"] == label and row["split"] == "val"])
+            test_n = len([row for row in rows if row["label"] == label and row["split"] == "test"])
+            print(label, {"total": total, "train": train_n, "val": val_n, "test": test_n})
+
+    if split_label_counter:
+        print("\nSplit x Label stats:")
+        for key in sorted(split_label_counter):
+            split, label = key
+            print(f"{split:>5} | {label:<20} -> {split_label_counter[key]}")
+
+    if split_scene_counter:
+        print("\nSplit x SceneGroup stats:")
+        for key in sorted(split_scene_counter):
+            split, scene_group = key
+            print(f"{split:>5} | {scene_group:<20} -> {split_scene_counter[key]}")
+
+    if per_stratum_stats:
+        print("\nPer-stratum stats (label__scene_group):")
+        for stratum_key in sorted(per_stratum_stats):
+            print(stratum_key, per_stratum_stats[stratum_key])
 
     if missing_xml:
         print(f"\n[WARNING] Missing XML for {len(missing_xml)} videos")
@@ -276,12 +366,15 @@ def build_manifest_with_split(
 
 
 if __name__ == "__main__":
-    base_dir = Path(__file__).resolve().parent
-    data_dir = (base_dir / "../data").resolve()
+    dataset_tag = "01_assault"
+    data_root = Path("../data").resolve()
+    raw_root = data_root / "raw"
+    processed_root = data_root / "processed"
+    raw_dataset_dir = raw_root / "이상행동 CCTV 영상"
 
     build_manifest_with_split(
-        root_dir=str(data_dir / "raw/이상행동 CCTV 영상/01.폭행(assult)"),
-        out_csv=str(data_dir / "processed/01_manifest.csv"),
+        root_dir=str(raw_dataset_dir),
+        out_csv=str(processed_root / f"{dataset_tag}_manifest.csv"),
         train_ratio=0.8,
         val_ratio=0.1,
         test_ratio=0.1,
