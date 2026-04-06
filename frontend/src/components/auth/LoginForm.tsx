@@ -57,6 +57,8 @@ export function LoginForm() {
         Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
           ? parsedKindergartenId
           : undefined;
+      const refreshToken = response?.refreshToken ?? '';
+      const displayName = response?.name ?? responseLoginId;
 
       const user = {
           id: String(responseUserId ?? responseLoginId),
@@ -75,6 +77,9 @@ export function LoginForm() {
       if (token) {
         localStorage.setItem('token', token);
         localStorage.setItem('accessToken', token);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
       // -------------------------------------------------------------
 

@@ -31,10 +31,12 @@ public class {{entity_name}}Service {
                 .orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
     }
 
+    @Transactional
     public {{entity_name}}VO create{{entity_name}}({{entity_name}}CreateDTO createDTO) {
         return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
+    @Transactional
     public {{entity_name}}VO update{{entity_name}}(Long id, {{entity_name}}UpdateDTO updateDTO) {
         {{entity_name}} entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));
@@ -42,6 +44,7 @@ public class {{entity_name}}Service {
         return mapper.toVO(repository.save(entity));
     }
 
+    @Transactional
     public void delete{{entity_name}}(Long id) {
         {{entity_name}} entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("{{entity_name}} not found"));

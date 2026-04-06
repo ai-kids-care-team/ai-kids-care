@@ -18,10 +18,12 @@ public class CameraStreamUpdateDTO implements Serializable {
     private Long kindergartenId;
     private Long cameraId;
     private String streamType;
-    private String streamUrl;
+    private String sourceUrl;
     private String streamUser;
-    private String streamPasswordEncrypted;
-    private String protocol;
+    private String streamPassword;
+    private String sourceProtocol;
+    private String playbackUrl;
+    private String playbackProtocol;
     private Integer fps;
     private String resolution;
     private Boolean isPrimary;
