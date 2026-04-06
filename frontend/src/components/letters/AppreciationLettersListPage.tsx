@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { APPRECIATION_LETTERS_PAGE_SIZE, getAppreciationLetters } from '@/services/apis/appreciationLetters.api';
-import type { User } from '@/store/slices/userSlice';
 import {
+  buildAppreciationLetterViewerContext,
   buildAppreciationLetterVisibilityProbe,
   formatLetterDate,
   isAppreciationLetterPublic,
@@ -12,6 +12,7 @@ import {
   resolveAppreciationLetterId,
   resolveLetterKindergartenId,
   viewerMaySeeAppreciationLetter,
+  type AppreciationLetterViewerContext,
 } from './appreciation-letter-utils';
 import { AppreciationLettersListForm, type AppreciationLetterListItem } from './AppreciationLettersListForm';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
@@ -76,17 +77,11 @@ function mapRowsToListItems(
   });
 }
 
-function viewerContextFromUser(user: User | null) {
-  if (!user) return null;
-  return { id: user.id, kindergartenId: user.kindergartenId, role: user.role };
-}
-
 function filterListForViewer(
   list: AppreciationLetterListItem[],
-  viewer: User | null,
+  viewerCtx: AppreciationLetterViewerContext,
   isAuthenticated: boolean,
 ): AppreciationLetterListItem[] {
-  const ctx = viewerContextFromUser(viewer);
   return list.filter((it) =>
     viewerMaySeeAppreciationLetter(
       buildAppreciationLetterVisibilityProbe({
@@ -94,7 +89,7 @@ function filterListForViewer(
         senderUserId: it.senderUserId ?? 0,
         kindergartenId: it.kindergartenId,
       }),
-      ctx,
+      viewerCtx,
       isAuthenticated,
     ),
   );
@@ -119,9 +114,14 @@ export function AppreciationLettersListPage() {
     [isAuthenticated, user, token],
   );
 
+  const viewerCtx = useMemo(
+    () => buildAppreciationLetterViewerContext(user, token),
+    [user, token],
+  );
+
   const allVisibleItems = useMemo(
-    () => filterListForViewer(items, user, isAuthenticated),
-    [items, user, isAuthenticated],
+    () => filterListForViewer(items, viewerCtx, isAuthenticated),
+    [items, viewerCtx, isAuthenticated],
   );
 
   const totalPages = useMemo(
