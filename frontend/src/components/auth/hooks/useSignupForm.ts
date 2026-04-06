@@ -5,7 +5,7 @@ import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/api
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import type { UserRole } from '@/types/user-role';
-import { API_BASE_URL, LEGACY_API_BASE_URL } from '@/config/api';
+import { API_BASE_URL } from '@/config/api';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
 type FieldErrorKey =
@@ -79,11 +79,6 @@ const FALLBACK_GENDER_OPTIONS: CommonCodeItem[] = [
 const FALLBACK_RELATIONSHIP_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'FEMALE', code: 'MOTHER', codeName: '엄마', sortOrder: 1 },
   { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'MALE', code: 'FATHER', codeName: '아빠', sortOrder: 2 },
-  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'FEMALE', code: 'MATERNAL_GRANDMOTHER', codeName: '외할머니', sortOrder: 3 },
-  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'MALE', code: 'MATERNAL_GRANDFATHER', codeName: '외할아버지', sortOrder: 4 },
-  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'FEMALE', code: 'PATERNAL_GRANDMOTHER', codeName: '친할머니', sortOrder: 5 },
-  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'MALE', code: 'PATERNAL_GRANDFATHER', codeName: '친할아버지', sortOrder: 6 },
-  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: null, code: 'OTHER', codeName: '기타', sortOrder: 99 },
 ];
 
 /** DB `level_enum` 및 백엔드 `LevelEnum`과 동일한 코드 */
@@ -306,7 +301,7 @@ async function fetchAccountFieldDuplicatesOnSubmit(
 const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
   levelCode === 'DIRECTOR' || levelCode === 'PRINCIPAL' ? 'KINDERGARTEN_ADMIN' : 'TEACHER';
 
-export function auth() {
+export function useSignupForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [loginApi] = useLoginMutation();
@@ -456,6 +451,7 @@ export function auth() {
     memberType,
     rrnFirst6,
     rrnBack7,
+    gender,
     relationship,
     customRelationship,
     selectedChild,
@@ -587,9 +583,16 @@ export function auth() {
 
   useEffect(() => {
     const fetchCommonCodes = async (group: string): Promise<CommonCodeItem[]> => {
-      const response = await fetch(`${API_BASE_URL}/common_codes/code_group/${encodeURIComponent(group)}`);
+      const params = new URLSearchParams({
+        codeGroup: group,
+        isActive: 'true',
+        size: '100',
+        sort: 'sortOrder,asc',
+      });
+      const response = await fetch(`${API_BASE_URL}/common_codes?${params.toString()}`);
       if (!response.ok) throw new Error(`공통코드 조회 실패: ${group}`);
-      return response.json();
+      const data = (await response.json()) as { content?: CommonCodeItem[] } | CommonCodeItem[];
+      return Array.isArray(data) ? data : (data.content ?? []);
     };
 
     const loadCommonCodes = async () => {
@@ -643,7 +646,6 @@ export function auth() {
       ];
 
       let data: ChildLookupItem[] | null = null;
-      let lastStatus: number | null = null;
 
       for (const url of candidateUrls) {
         const response = await fetch(url, {
@@ -652,7 +654,6 @@ export function auth() {
         });
 
         if (!response.ok) {
-          lastStatus = response.status;
           if (response.status === 401) {
             throw new Error('아이 조회 권한이 없습니다. 로그인 상태 또는 백엔드 권한 설정을 확인해주세요.');
           }

@@ -10,8 +10,10 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +30,32 @@ public class CommonCodeService {
             Boolean isActive,
             Pageable pageable
     ) {
-        return repository.findAllByFilters(codeGroup, code, parentCode, isActive, pageable)
+        Specification<CommonCode> specification = Specification.where(null);
+
+        if (StringUtils.hasText(codeGroup)) {
+            String normalizedCodeGroup = codeGroup.trim().toLowerCase();
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(cb.lower(root.get("codeGroup")), normalizedCodeGroup));
+        }
+
+        if (StringUtils.hasText(code)) {
+            String normalizedCode = code.trim().toLowerCase();
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(cb.lower(root.get("code")), normalizedCode));
+        }
+
+        if (StringUtils.hasText(parentCode)) {
+            String normalizedParentCode = parentCode.trim().toLowerCase();
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(cb.lower(root.get("parentCode")), normalizedParentCode));
+        }
+
+        if (isActive != null) {
+            specification = specification.and((root, query, cb) ->
+                    cb.equal(root.get("isActive"), isActive));
+        }
+
+        return repository.findAll(specification, pageable)
                 .map(mapper::toVO);
     }
 

@@ -54,18 +54,15 @@ INSERT INTO public.menu (
     updated_at
 )
 VALUES
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'ANONYMOUS', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'PLATFORM_IT_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'TEACHER', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '홈', 'HOME', '/', 'page', 'home', 'GUARDIAN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'ANONYMOUS', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'PLATFORM_IT_ADMIN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'SUPERADMIN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'KINDERGARTEN_ADMIN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'TEACHER', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '홈', 'HOME', '/', 'page', 'home', 'GUARDIAN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
-    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'KINDERGARTEN_ADMIN', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'TEACHER', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-
-    (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'KINDERGARTEN_ADMIN', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (NULL, '아동안전관리(그래프)', 'CHILD_MANAGE', '/children', 'ChildManagePage', 'child', 'TEACHER', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'KINDERGARTEN_ADMIN', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (NULL, '대시보드', 'CCTV_CAMERAS', '/cctvCameras', 'CctvCamerasPage', 'cctvCameras', 'TEACHER', 10, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
     (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'SUPERADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     (NULL, '이상 탐지', 'DETECTION_EVENT', '/detectionEvents', 'DetectionEventPage', 'detectionEvents', 'KINDERGARTEN_ADMIN', 15, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
