@@ -9,15 +9,9 @@ import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
 import type { UserRole } from '@/types/user-role';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
-const inferKindergartenIdFromUserId = (userId: number): number | undefined => {
-  if (!Number.isFinite(userId) || userId <= 0) return undefined;
-  if (userId >= 700) return 3;
-  if (userId >= 400) return 2;
-  if (userId >= 100) return 1;
-  return undefined;
-};
 
 export function LoginForm() {
   const router = useRouter();
@@ -51,14 +45,21 @@ export function LoginForm() {
       const apiName =
         typeof response?.name === 'string' && response.name.trim() !== '' ? response.name.trim() : '';
       const refreshToken = response?.refreshToken ?? '';
-      const displayName = response?.name ?? responseLoginId;
-
+      const userBase = {
+        id: String(responseUserId ?? responseLoginId),
+        username: responseLoginId,
+        loginId: responseLoginId,
+        name: apiName,
+        role: role as UserRole,
+        kindergartenId:
+          typeof response?.kindergartenId === 'number' && Number.isFinite(response.kindergartenId)
+            ? response.kindergartenId
+            : undefined,
+      };
+      const kg = resolveViewerSessionKindergartenId(userBase, token);
       const user = {
-          id: String(responseUserId ?? responseLoginId),
-          username: responseLoginId,
-          loginId: responseLoginId,
-          name: apiName,
-          role: role as UserRole,
+        ...userBase,
+        ...(kg != null ? { kindergartenId: kg } : {}),
       };
 
       // 1. Redux 스토어에 유저 정보와 토큰 저장

@@ -21,12 +21,14 @@ import {
   parseClientLetterSeqParam,
 } from './appreciation-letter-client-cache';
 import {
+  buildAppreciationLetterViewerContext,
   formatLetterDateTime,
   isAppreciationLetterPublic,
   isSameAppreciationLetterAuthor,
   letterStatusLabel,
   parseLetterIdQueryParam,
   resolveAppreciationLetterId,
+  resolveLetterKindergartenId,
   targetTypeLabel,
   viewerMaySeeAppreciationLetter,
 } from './appreciation-letter-utils';
@@ -164,10 +166,15 @@ export function AppreciationLettersDetailPage() {
       const tt = String(letter.targetType ?? '').toUpperCase();
       let summary = '';
       try {
+        const letterKg =
+          resolveLetterKindergartenId(letter as unknown as Record<string, unknown>) ??
+          (Number.isFinite(Number(letter.kindergartenId)) && Number(letter.kindergartenId) > 0
+            ? Math.trunc(Number(letter.kindergartenId))
+            : null);
         if (tt === 'TEACHER') {
           const [trow, krow] = await Promise.all([
             getTeacher(letter.targetId),
-            getKindergarten(letter.kindergartenId),
+            getKindergarten(letterKg ?? letter.kindergartenId),
           ]);
           // 공개 범위: 교사 ID는 숨김
           summary = `${trow.name} · ${krow.name}`;
@@ -220,7 +227,7 @@ export function AppreciationLettersDetailPage() {
         if (
           !viewerMaySeeAppreciationLetter(
             cached,
-            user ? { id: user.id, kindergartenId: user.kindergartenId, role: user.role } : null,
+            buildAppreciationLetterViewerContext(user, token),
             isAuthenticated,
           )
         ) {
@@ -298,7 +305,7 @@ export function AppreciationLettersDetailPage() {
           if (
             !viewerMaySeeAppreciationLetter(
               found.vo,
-              user ? { id: user.id, kindergartenId: user.kindergartenId, role: user.role } : null,
+              buildAppreciationLetterViewerContext(user, token),
               isAuthenticated,
             )
           ) {
@@ -343,7 +350,7 @@ export function AppreciationLettersDetailPage() {
           if (
             !viewerMaySeeAppreciationLetter(
               detail,
-              user ? { id: user.id, kindergartenId: user.kindergartenId, role: user.role } : null,
+              buildAppreciationLetterViewerContext(user, token),
               isAuthenticated,
             )
           ) {
@@ -383,7 +390,7 @@ export function AppreciationLettersDetailPage() {
         if (
           !viewerMaySeeAppreciationLetter(
             detail,
-            user ? { id: user.id, kindergartenId: user.kindergartenId, role: user.role } : null,
+            buildAppreciationLetterViewerContext(user, token),
             isAuthenticated,
           )
         ) {
@@ -415,8 +422,8 @@ export function AppreciationLettersDetailPage() {
     sig,
     isSigView,
     user?.id,
-    user?.kindergartenId,
     user?.role,
+    token,
     isAuthenticated,
   ]);
 
