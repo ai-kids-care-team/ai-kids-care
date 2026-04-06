@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 스크립트 복사
 COPY *.py .
+COPY data ./data
 
 # 실행 스크립트
 COPY run_all.sh .
