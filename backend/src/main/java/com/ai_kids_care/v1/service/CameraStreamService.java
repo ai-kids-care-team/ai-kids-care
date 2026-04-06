@@ -10,7 +10,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,13 +19,11 @@ public class CameraStreamService {
     private final CameraStreamRepository repository;
     private final CameraStreamMapper mapper;
 
-    @Transactional(readOnly = true)
     public Page<CameraStreamVO> listCameraStreams(String keyword, Pageable pageable) {
         // TODO: filter CameraStream by keyword
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
-    @Transactional(readOnly = true)
     public CameraStreamVO getCameraStream(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("CameraStream not found"));
