@@ -10,6 +10,7 @@ export interface User {
   username: string; // 로그인 ID
   role: UserRole;
   email?: string;
+  kindergartenId?: number;
 }
 
 export interface UserState {

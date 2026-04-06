@@ -18,7 +18,7 @@ import {
   type TeacherVO,
 } from '@/services/apis/teachers.api';
 import type { KindergartenVO } from '@/services/apis/kindergartens.api';
-import type { AppreciationTargetType } from '@/types/appreciationLetter';
+import type { AppreciationLetterVO, AppreciationTargetType } from '@/types/appreciationLetter';
 import { useAppSelector } from '@/store/hook';
 import { index as appStore } from '@/store/index';
 import { openLoginModal } from '@/utils/auth-modal';
@@ -30,7 +30,12 @@ import {
   parseClientLetterSeqParam,
   updateClientCachedLetter,
 } from './appreciation-letter-client-cache';
-import { isSameAppreciationLetterAuthor, parseLetterIdQueryParam } from './appreciation-letter-utils';
+import {
+  isSameAppreciationLetterAuthor,
+  parseLetterIdQueryParam,
+  resolveAppreciationLetterId,
+  viewerMaySeeAppreciationLetter,
+} from './appreciation-letter-utils';
 import { canWriteAppreciationLetters } from '@/types/user-role';
 
 export function AppreciationLettersEditPage() {
@@ -57,6 +62,8 @@ export function AppreciationLettersEditPage() {
     kindergartenId: number;
     name: string;
   } | null>(null);
+  /** 상세 API 응답의 `letterId`(없으면 URL `id`) — PUT 경로에 사용 */
+  const [serverLetterId, setServerLetterId] = useState<number | null>(null);
 
   const canEdit = useMemo(
     () => Boolean(isAuthenticated && user && token && Number.isFinite(senderNum)),
@@ -98,9 +105,18 @@ export function AppreciationLettersEditPage() {
     /* Redux·localStorage 복원 전에 effect가 먼저 돌면 user가 비어 권한 오류가 난다 → user.id가 있을 때만 검증·폼 채움 */
     const currentUser = user;
     if (!currentUser?.id) {
+      setStoredSenderUserId(null);
+      setServerLetterId(null);
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem('user');
+        const tok =
+          window.localStorage.getItem('accessToken') ?? window.localStorage.getItem('token');
+        if (stored && tok) {
+          return;
+        }
+      }
       setLoading(false);
       setLoadError('');
-      setStoredSenderUserId(null);
       return;
     }
 
@@ -108,6 +124,7 @@ export function AppreciationLettersEditPage() {
       setLoading(false);
       setLoadError('감사 편지는 보호자(학부모) 계정만 수정할 수 있습니다.');
       setStoredSenderUserId(null);
+      setServerLetterId(null);
       return;
     }
 
@@ -116,9 +133,21 @@ export function AppreciationLettersEditPage() {
       const loadClient = async () => {
         setLoading(true);
         setLoadError('');
+        setServerLetterId(null);
         const row = getClientCachedLetterBySeq(clientSeq);
         if (!row) {
           setLoadError('감사 편지를 찾을 수 없습니다. 목록에서 다시 열어 주세요.');
+          setStoredSenderUserId(null);
+          setLoading(false);
+          return;
+        }
+        const viewerCtx = {
+          id: currentUser.id,
+          kindergartenId: currentUser.kindergartenId,
+          role: currentUser.role,
+        };
+        if (!viewerMaySeeAppreciationLetter(row as AppreciationLetterVO, viewerCtx, isAuthenticated)) {
+          setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
           setStoredSenderUserId(null);
           setLoading(false);
           return;
@@ -184,15 +213,26 @@ export function AppreciationLettersEditPage() {
       setLoadError('유효하지 않은 ID입니다.');
       setLoading(false);
       setStoredSenderUserId(null);
+      setServerLetterId(null);
       return;
     }
 
     const load = async () => {
       setLoading(true);
       setLoadError('');
+      setServerLetterId(null);
       try {
         const row = await getAppreciationLetterDetail(id);
         const me = appStore.getState().user.user;
+        const meAuthed = appStore.getState().user.isAuthenticated;
+        const meCtx = me
+          ? { id: me.id, kindergartenId: me.kindergartenId, role: me.role }
+          : null;
+        if (!viewerMaySeeAppreciationLetter(row, meCtx, meAuthed)) {
+          setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
+          setStoredSenderUserId(null);
+          return;
+        }
         if (!isSameAppreciationLetterAuthor(me?.id, row.senderUserId)) {
           console.warn(
             '[감사편지 수정] 작성자 불일치',
@@ -213,6 +253,10 @@ export function AppreciationLettersEditPage() {
         setTitle(row.title);
         setContent(row.content);
         setIsPublic(row.isPublic !== false);
+
+        const pk = resolveAppreciationLetterId(row as unknown as Record<string, unknown>);
+        const resolved = pk != null && pk > 0 ? pk : id;
+        setServerLetterId(Number.isFinite(resolved) && resolved > 0 ? Math.trunc(resolved) : null);
 
         try {
           if (tt === 'TEACHER') {
@@ -255,7 +299,7 @@ export function AppreciationLettersEditPage() {
     };
 
     void load();
-  }, [id, clientSeq, user?.id, user?.role]);
+  }, [id, clientSeq, user?.id, user?.role, user?.kindergartenId, isAuthenticated]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -298,7 +342,15 @@ export function AppreciationLettersEditPage() {
         return;
       }
 
-      await updateAppreciationLetter(id, {
+      const putId =
+        serverLetterId != null && Number.isFinite(serverLetterId) && serverLetterId > 0
+          ? serverLetterId
+          : id;
+      if (!Number.isFinite(putId) || putId <= 0) {
+        toast.error('저장할 편지 ID를 찾을 수 없습니다. 목록에서 다시 열어 주세요.');
+        return;
+      }
+      await updateAppreciationLetter(putId, {
         kindergartenId,
         senderUserId: senderForApi,
         targetType,
@@ -309,7 +361,7 @@ export function AppreciationLettersEditPage() {
         status: 'ACTIVE',
       });
       toast.success('수정되었습니다.');
-      router.push(`/letters/read?id=${id}`);
+      router.push(`/letters/read?id=${putId}`);
     } catch (err) {
       console.warn('감사 편지 수정 실패:', err);
       toast.error(getApiErrorMessage(err, '수정에 실패했습니다.'));
@@ -320,9 +372,9 @@ export function AppreciationLettersEditPage() {
 
   if (!canEdit && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <main className="mx-auto max-w-3xl">
-          <div className="rounded-2xl bg-white p-8 shadow-lg text-center">
+      <div className="min-h-screen bg-gray-50 px-4 py-4 sm:px-5 sm:py-5">
+        <main className="mx-auto max-w-[38.4rem]">
+          <div className="rounded-2xl bg-white p-6 shadow-lg text-center">
             <p className="mb-4 text-sm text-slate-600">로그인이 필요합니다.</p>
             <button
               type="button"
@@ -343,8 +395,8 @@ export function AppreciationLettersEditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <main className="mx-auto max-w-3xl">
+    <div className="min-h-screen bg-gray-50 px-4 py-4 sm:px-5 sm:py-5">
+      <main className="mx-auto max-w-[38.4rem]">
         <div className="mb-4">
           <Link
             href={
@@ -361,13 +413,13 @@ export function AppreciationLettersEditPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl bg-white p-8 shadow-lg">
-          <div className="mb-8 flex items-center gap-3 border-b border-gray-200 pb-6">
-            <Heart className="h-7 w-7 text-[#006b52]" />
-            <h2 className="text-2xl font-semibold">감사 편지 수정</h2>
+        <div className="rounded-2xl bg-white p-6 shadow-lg">
+          <div className="mb-6 flex items-center gap-2.5 border-b border-gray-200 pb-5">
+            <Heart className="h-6 w-6 text-[#006b52]" />
+            <h2 className="text-xl font-semibold tracking-tight">감사 편지 수정</h2>
           </div>
 
-          {loading && <p className="py-12 text-center text-gray-500">불러오는 중입니다.</p>}
+          {loading && <p className="py-10 text-center text-sm text-gray-500">불러오는 중입니다.</p>}
 
           {!loading && loadError && (
             <p className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{loadError}</p>
@@ -386,6 +438,7 @@ export function AppreciationLettersEditPage() {
                 hasSelection={hasTarget}
                 onClearTarget={handleClearLetterTarget}
                 presetKindergartenForTeacherFlow={presetKgForTeacherPicker}
+                lockedKindergartenId={user.kindergartenId ?? null}
               />
 
               <p className="text-xs text-gray-500">저장 시 상태는 항상 <strong className="text-slate-700">게시(ACTIVE)</strong>로 맞춰집니다.</p>
@@ -406,7 +459,7 @@ export function AppreciationLettersEditPage() {
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  rows={10}
+                  rows={8}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   required
                 />
@@ -424,21 +477,21 @@ export function AppreciationLettersEditPage() {
                 체크하면 목록·상세에서 로그인한 작성자 본인에게만 보입니다.
               </p>
 
-              <div className="flex justify-end gap-2 border-t border-gray-100 pt-6">
+              <div className="flex justify-end gap-2 border-t border-gray-100 pt-5">
                 <Link
                   href={
                     clientSeq != null
                       ? `/letters/read?cid=${clientSeq}`
                       : `/letters/read?id=${id}`
                   }
-                  className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm text-slate-700 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
                 >
                   취소
                 </Link>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-lg bg-[#006b52] px-5 py-2.5 text-sm text-white hover:bg-[#005640] disabled:opacity-50"
+                  className="rounded-lg bg-[#006b52] px-4 py-2 text-sm text-white hover:bg-[#005640] disabled:opacity-50"
                 >
                   {submitting ? '저장 중…' : '저장'}
                 </button>

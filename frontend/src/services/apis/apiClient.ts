@@ -16,12 +16,17 @@ apiClient.interceptors.request.use(
     /* localStorage + Redux: 로그인 직후·하이드레이션 타이밍에 한쪽만 채워질 수 있음 */
     let token: string | null = null;
     if (typeof window !== 'undefined') {
+      // 일부 엔드포인트(`/api/v1/camera_streams`, `/api/v1/detection_events`)가
+      // 무인증 호출에 401을 주는 상황이라, Redux 상태가 즉시 복구되지 않아도
+      // localStorage에 있는 토큰은 헤더로 붙여서 스트림/이벤트 로딩이 가능하게 한다.
       token =
+        appStore.getState().user.token ??
         localStorage.getItem('accessToken') ??
         localStorage.getItem('token') ??
-        appStore.getState().user.token;
+        null;
     }
-    if (token && config.headers) {
+    if (token) {
+      config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`; // 헤더에 토큰 부착
     }
     return config;
@@ -36,7 +41,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     const isBrowser = typeof window !== 'undefined';
 
-    // 401 Unauthorized 에러(토큰 만료)이고, 아직 재시도한 적이 없는 요청이라면
+    // 401 Unauthorized 에러이고, 아직 재시도한 적이 없는 요청이라면
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // 무한 루프 방지용 플래그
 

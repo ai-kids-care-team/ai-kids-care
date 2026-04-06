@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { APPRECIATION_LETTERS_PAGE_SIZE, getAppreciationLetters } from '@/services/apis/appreciationLetters.api';
+import type { User } from '@/store/slices/userSlice';
 import {
-  APPRECIATION_LETTERS_PAGE_SIZE,
-  getAppreciationLetters,
-} from '@/services/apis/appreciationLetters.api';
-import {
+  buildAppreciationLetterVisibilityProbe,
   formatLetterDate,
   isAppreciationLetterPublic,
-  isSameAppreciationLetterAuthor,
   letterStatusLabel,
   resolveAppreciationLetterId,
+  resolveLetterKindergartenId,
+  viewerMaySeeAppreciationLetter,
 } from './appreciation-letter-utils';
 import { AppreciationLettersListForm, type AppreciationLetterListItem } from './AppreciationLettersListForm';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
@@ -57,6 +58,8 @@ function mapRowsToListItems(
           ? `api-cache-${cachedSeq}-r${rowIndex}`
           : `api-sig-${Number(row.senderUserId)}-${String(row.targetType ?? '').toUpperCase()}-${Number(row.targetId)}-${row.createdAt}-r${rowIndex}`;
 
+    const kg = resolveLetterKindergartenId(row as unknown as Record<string, unknown>);
+
     return [
       {
         key,
@@ -66,34 +69,45 @@ function mapRowsToListItems(
         href,
         isPublic: isAppreciationLetterPublic(row as AppreciationLetterVO & Record<string, unknown>),
         senderUserId: rowSenderUserIdNum(row),
+        kindergartenId: kg ?? undefined,
+        dedupeSignature: signature,
       },
     ];
   });
 }
 
+function viewerContextFromUser(user: User | null) {
+  if (!user) return null;
+  return { id: user.id, kindergartenId: user.kindergartenId, role: user.role };
+}
+
 function filterListForViewer(
   list: AppreciationLetterListItem[],
-  viewer: { id: string } | null,
+  viewer: User | null,
   isAuthenticated: boolean,
 ): AppreciationLetterListItem[] {
-  return list.filter((it) => {
-    if (it.isPublic !== false) return true;
-    if (!isAuthenticated || !viewer) return false;
-    return (
-      it.senderUserId != null &&
-      it.senderUserId > 0 &&
-      isSameAppreciationLetterAuthor(viewer.id, it.senderUserId)
-    );
-  });
+  const ctx = viewerContextFromUser(viewer);
+  return list.filter((it) =>
+    viewerMaySeeAppreciationLetter(
+      buildAppreciationLetterVisibilityProbe({
+        isPublic: it.isPublic,
+        senderUserId: it.senderUserId ?? 0,
+        kindergartenId: it.kindergartenId,
+      }),
+      ctx,
+      isAuthenticated,
+    ),
+  );
 }
 
 export function AppreciationLettersListPage() {
   const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const searchParams = useSearchParams();
+  const reloadToken = searchParams.get('reload');
   const [items, setItems] = useState<AppreciationLetterListItem[]>([]);
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -105,10 +119,35 @@ export function AppreciationLettersListPage() {
     [isAuthenticated, user, token],
   );
 
-  const visibleItems = useMemo(
+  const allVisibleItems = useMemo(
     () => filterListForViewer(items, user, isAuthenticated),
     [items, user, isAuthenticated],
   );
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(allVisibleItems.length / APPRECIATION_LETTERS_PAGE_SIZE)),
+    [allVisibleItems.length],
+  );
+
+  const safePage = useMemo(
+    () => Math.min(page, totalPages > 0 ? totalPages - 1 : 0),
+    [page, totalPages],
+  );
+
+  const visibleItems = useMemo(
+    () => {
+      if (allVisibleItems.length === 0) return [];
+      const start = safePage * APPRECIATION_LETTERS_PAGE_SIZE;
+      const end = start + APPRECIATION_LETTERS_PAGE_SIZE;
+      return allVisibleItems.slice(start, end);
+    },
+    [allVisibleItems, safePage],
+  );
+
+  // 목록 진입 시 항상 최신(1페이지)부터 보여주기
+  useEffect(() => {
+    setPage(0);
+  }, [reloadToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,60 +158,61 @@ export function AppreciationLettersListPage() {
       try {
         const pageData = await getAppreciationLetters({
           keyword: appliedKeyword || undefined,
-          page,
-          size: APPRECIATION_LETTERS_PAGE_SIZE,
+          page: 0,
+          size: undefined,
           sort: 'createdAt,desc',
         });
         if (cancelled) return;
 
-        const cachedItems: AppreciationLetterListItem[] =
-          page === 0
-            ? listClientCachedLetters().map(({ seq, vo }) => ({
-                key: `cache-${seq}`,
-                title: vo.title,
-                date: formatLetterDate(vo.createdAt),
-                statusLabel: letterStatusLabel(vo.status),
-                href: `/letters/read?cid=${seq}`,
-                isPublic: vo.isPublic,
-                senderUserId: vo.senderUserId,
-              }))
-            : [];
+        const cachedItems: AppreciationLetterListItem[] = listClientCachedLetters().map(({ seq, vo }) => {
+          const signature = `${vo.title}|${Number(vo.senderUserId)}|${String(vo.targetType ?? '').toUpperCase()}|${Number(vo.targetId)}`;
+          return {
+            key: `cache-${seq}`,
+            title: vo.title,
+            date: formatLetterDate(vo.createdAt),
+            statusLabel: letterStatusLabel(vo.status),
+            href: `/letters/read?cid=${seq}`,
+            isPublic: vo.isPublic,
+            senderUserId: vo.senderUserId,
+            kindergartenId: resolveLetterKindergartenId(vo as unknown as Record<string, unknown>) ?? undefined,
+            dedupeSignature: signature,
+          };
+        });
 
-        const cacheSeqBySignature =
-          page === 0
-            ? new Map(
-                listClientCachedLetters().map(({ seq, vo }) => [
-                  `${vo.title}|${vo.senderUserId}|${String(vo.targetType ?? '').toUpperCase()}|${vo.targetId}`,
-                  seq,
-                ]),
-              )
-            : undefined;
+        const cacheSeqBySignature = new Map(
+          listClientCachedLetters().map(({ seq, vo }) => [
+            `${vo.title}|${vo.senderUserId}|${String(vo.targetType ?? '').toUpperCase()}|${vo.targetId}`,
+            seq,
+          ]),
+        );
 
-        const totalEl = pageData.totalElements ?? 0;
         const rows = pageData.content ?? [];
-        setTotalPages(Math.max(pageData.totalPages ?? (totalEl > 0 ? 1 : 1), 1));
         const apiItems = mapRowsToListItems(rows, { cacheSeqBySignature });
-        const apiItemsDeduped =
-          page === 0
-            ? apiItems.filter((it) => !(it.href?.startsWith('/letters/read?cid=')))
-            : apiItems;
-        setItems(page === 0 ? [...cachedItems, ...apiItemsDeduped] : [...cachedItems, ...apiItems]);
+        const cachedSigs = new Set(
+          cachedItems.map((it) => it.dedupeSignature).filter((s): s is string => Boolean(s)),
+        );
+        const apiItemsDeduped = apiItems.filter((it) => {
+          const sig = it.dedupeSignature;
+          return !sig || !cachedSigs.has(sig);
+        });
+        setItems([...cachedItems, ...apiItemsDeduped]);
       } catch (e) {
         if (cancelled) return;
         console.warn('감사 편지 목록 조회 실패:', e);
-        const cachedItems: AppreciationLetterListItem[] =
-          page === 0
-            ? listClientCachedLetters().map(({ seq, vo }) => ({
-                key: `cache-${seq}`,
-                title: vo.title,
-                date: formatLetterDate(vo.createdAt),
-                statusLabel: letterStatusLabel(vo.status),
-                href: `/letters/read?cid=${seq}`,
-                isPublic: vo.isPublic,
-                senderUserId: vo.senderUserId,
-              }))
-            : [];
-        setTotalPages(1);
+        const cachedItems: AppreciationLetterListItem[] = listClientCachedLetters().map(({ seq, vo }) => {
+          const signature = `${vo.title}|${Number(vo.senderUserId)}|${String(vo.targetType ?? '').toUpperCase()}|${Number(vo.targetId)}`;
+          return {
+            key: `cache-${seq}`,
+            title: vo.title,
+            date: formatLetterDate(vo.createdAt),
+            statusLabel: letterStatusLabel(vo.status),
+            href: `/letters/read?cid=${seq}`,
+            isPublic: vo.isPublic,
+            senderUserId: vo.senderUserId,
+            kindergartenId: resolveLetterKindergartenId(vo as unknown as Record<string, unknown>) ?? undefined,
+            dedupeSignature: signature,
+          };
+        });
         setItems(cachedItems);
         setError(getApiErrorMessage(e, '목록을 불러오지 못했습니다.'));
       } finally {
@@ -184,7 +224,7 @@ export function AppreciationLettersListPage() {
     return () => {
       cancelled = true;
     };
-  }, [appliedKeyword, page]);
+  }, [appliedKeyword, reloadToken]);
 
   const handleSearch = () => {
     setPage(0);
@@ -200,7 +240,7 @@ export function AppreciationLettersListPage() {
       canWrite={canWrite}
       loading={loading}
       error={error}
-      page={page}
+      page={safePage}
       totalPages={totalPages}
       onPageChange={setPage}
     />

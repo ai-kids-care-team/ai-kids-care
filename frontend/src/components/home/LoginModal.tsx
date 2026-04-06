@@ -23,6 +23,14 @@ const getForgotPasswordErrorMessage = (err: any) => {
   return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
 };
 
+const inferKindergartenIdFromUserId = (userId: number): number | undefined => {
+  if (!Number.isFinite(userId) || userId <= 0) return undefined;
+  if (userId >= 700) return 3;
+  if (userId >= 400) return 2;
+  if (userId >= 100) return 1;
+  return undefined;
+};
+
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const [loginApi, { isLoading }] = useLoginMutation();
@@ -78,6 +86,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const token = response?.accessToken ?? response?.token ?? '';
       const refreshToken = response?.refreshToken ?? '';
       const name = response?.name;
+      const rawKindergartenId =
+        response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
+      const parsedKindergartenId = Number(rawKindergartenId);
+      const kindergartenId =
+        Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
+          ? parsedKindergartenId
+          : undefined;
 
       const user = {
         id: responseId,
@@ -85,6 +100,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         username: responseLoginId,
         name: name || responseLoginId,
         role: role as UserRole,
+        kindergartenId:
+          kindergartenId ??
+          (Number.isFinite(numericUserId) && numericUserId > 0
+            ? inferKindergartenIdFromUserId(numericUserId)
+            : undefined),
       };
 
       dispatch(setCredentials({ user, token }));
