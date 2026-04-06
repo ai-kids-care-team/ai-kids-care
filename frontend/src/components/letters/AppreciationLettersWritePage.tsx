@@ -12,6 +12,7 @@ import { normalizeTeacherVO, type TeacherApiRow, type TeacherVO } from '@/servic
 import type { AppreciationTargetType } from '@/types/appreciationLetter';
 import { useAppSelector } from '@/store/hook';
 import { canWriteAppreciationLetters } from '@/types/user-role';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 import { openLoginModal } from '@/utils/auth-modal';
 import { GuardianAuthorCard } from './GuardianAuthorCard';
 import { LetterTargetPicker } from './LetterTargetPicker';
@@ -48,6 +49,11 @@ export function AppreciationLettersWritePage() {
       ),
     [isAuthenticated, user, token, senderNum],
   );
+
+  const guardianLockKg = useMemo(() => {
+    if (!user || !canWriteAppreciationLetters(user.role)) return null;
+    return resolveViewerSessionKindergartenId(user, token);
+  }, [user, token]);
 
   const hasTarget = kindergartenId != null && targetId != null && targetLabel !== '';
 
@@ -198,7 +204,7 @@ export function AppreciationLettersWritePage() {
                 selectedDisplayText={targetLabel}
                 hasSelection={hasTarget}
                 onClearTarget={handleClearLetterTarget}
-                lockedKindergartenId={user.kindergartenId ?? null}
+                lockedKindergartenId={guardianLockKg}
               />
 
               <p className="text-[11px] text-gray-500 sm:text-xs">

@@ -31,12 +31,14 @@ import {
   updateClientCachedLetter,
 } from './appreciation-letter-client-cache';
 import {
+  buildAppreciationLetterViewerContext,
   isSameAppreciationLetterAuthor,
   parseLetterIdQueryParam,
   resolveAppreciationLetterId,
   viewerMaySeeAppreciationLetter,
 } from './appreciation-letter-utils';
 import { canWriteAppreciationLetters } from '@/types/user-role';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 export function AppreciationLettersEditPage() {
   const router = useRouter();
@@ -69,6 +71,11 @@ export function AppreciationLettersEditPage() {
     () => Boolean(isAuthenticated && user && token && Number.isFinite(senderNum)),
     [isAuthenticated, user, token, senderNum],
   );
+
+  const guardianLockKg = useMemo(() => {
+    if (!user || !canWriteAppreciationLetters(user.role)) return null;
+    return resolveViewerSessionKindergartenId(user, token);
+  }, [user, token]);
 
   const hasTarget = kindergartenId != null && targetId != null && targetLabel !== '';
 
@@ -141,11 +148,7 @@ export function AppreciationLettersEditPage() {
           setLoading(false);
           return;
         }
-        const viewerCtx = {
-          id: currentUser.id,
-          kindergartenId: currentUser.kindergartenId,
-          role: currentUser.role,
-        };
+        const viewerCtx = buildAppreciationLetterViewerContext(currentUser, token);
         if (!viewerMaySeeAppreciationLetter(row as AppreciationLetterVO, viewerCtx, isAuthenticated)) {
           setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
           setStoredSenderUserId(null);
@@ -223,11 +226,10 @@ export function AppreciationLettersEditPage() {
       setServerLetterId(null);
       try {
         const row = await getAppreciationLetterDetail(id);
-        const me = appStore.getState().user.user;
-        const meAuthed = appStore.getState().user.isAuthenticated;
-        const meCtx = me
-          ? { id: me.id, kindergartenId: me.kindergartenId, role: me.role }
-          : null;
+        const meSlice = appStore.getState().user;
+        const me = meSlice.user;
+        const meAuthed = meSlice.isAuthenticated;
+        const meCtx = buildAppreciationLetterViewerContext(me, meSlice.token);
         if (!viewerMaySeeAppreciationLetter(row, meCtx, meAuthed)) {
           setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
           setStoredSenderUserId(null);
@@ -299,7 +301,7 @@ export function AppreciationLettersEditPage() {
     };
 
     void load();
-  }, [id, clientSeq, user?.id, user?.role, user?.kindergartenId, isAuthenticated]);
+  }, [id, clientSeq, user?.id, user?.role, token, isAuthenticated]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -438,7 +440,7 @@ export function AppreciationLettersEditPage() {
                 hasSelection={hasTarget}
                 onClearTarget={handleClearLetterTarget}
                 presetKindergartenForTeacherFlow={presetKgForTeacherPicker}
-                lockedKindergartenId={user.kindergartenId ?? null}
+                lockedKindergartenId={guardianLockKg}
               />
 
               <p className="text-xs text-gray-500">저장 시 상태는 항상 <strong className="text-slate-700">게시(ACTIVE)</strong>로 맞춰집니다.</p>

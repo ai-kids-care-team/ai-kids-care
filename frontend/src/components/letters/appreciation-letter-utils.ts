@@ -1,4 +1,5 @@
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 /** 프론트만으로 유치원 단위 열람 제한 시 사용하는 로그인 사용자 컨텍스트 */
 export type AppreciationLetterViewerContext = {
@@ -36,7 +37,27 @@ export function resolveLetterKindergartenId(
   letter: Pick<AppreciationLetterVO, 'kindergartenId'> | Record<string, unknown>,
 ): number | null {
   const r = letter as Record<string, unknown>;
-  return firstPositiveLong(r.kindergartenId, r.kindergarten_id);
+  const direct = firstPositiveLong(r.kindergartenId, r.kindergarten_id);
+  if (direct != null) return direct;
+  const tt = String(r.targetType ?? r.target_type ?? '').toUpperCase();
+  if (tt === 'KINDERGARTEN') {
+    return firstPositiveLong(r.targetId, r.target_id);
+  }
+  return null;
+}
+
+/** 목록·상세·수정 화면용 시청자 컨텍스트 (토큰에서 유치원 ID 보강) */
+export function buildAppreciationLetterViewerContext(
+  user: { id: string; role?: string; kindergartenId?: number } | null,
+  token: string | null | undefined,
+): AppreciationLetterViewerContext {
+  if (!user) return null;
+  const kg = resolveViewerSessionKindergartenId(user, token);
+  return {
+    id: user.id,
+    kindergartenId: kg ?? undefined,
+    role: user.role,
+  };
 }
 
 /** 전 유치원 열람 허용 역할 (프론트 스코프 우회) */
