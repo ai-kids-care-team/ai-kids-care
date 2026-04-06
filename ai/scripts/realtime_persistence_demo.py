@@ -967,7 +967,7 @@ def run_batch_positive_threshold_sweep(
         max_eval_windows: int | None,
         clip_positive_threshold_candidates: list[float],
         persistence_hit_ratio_candidates: list[float],
-        target_detection_rate: float = 0.95,
+        target_detection_rate_candidates: list[float],
         decode_backend: str = "ffmpeg_gpu",
         ffmpeg_path: str = "ffmpeg",
         reuse_window_prediction_cache: bool = True,
@@ -1101,6 +1101,8 @@ def run_batch_positive_threshold_sweep(
     per_video_rows: list[dict] = []
     infer_rows: list[dict] = []
     window_parts: list[pd.DataFrame] = []
+    effective_step_sec = max(1e-6, float(step_sec))
+    history_window_count = math.floor(float(min_history_sec) / effective_step_sec) + 1
 
     for video_path in tqdm(video_files, desc="Batch positive sweep", unit="video"):
         video_key = str(video_path)
@@ -1179,6 +1181,7 @@ def run_batch_positive_threshold_sweep(
         )
 
         for clip_th, hit_ratio in combo_list:
+            combo_min_hits = max(1, int(math.ceil(history_window_count * float(hit_ratio))))
             timeline_df, segments = apply_persistence(
                 prediction_df=pred_df,
                 target_label=target_label,
@@ -1187,7 +1190,7 @@ def run_batch_positive_threshold_sweep(
                 persistence_hit_ratio=hit_ratio,
                 clear_hit_ratio=clear_hit_ratio,
                 min_history_sec=min_history_sec,
-                min_hits=min_hits,
+                min_hits=combo_min_hits,
             )
 
             detected = int(len(segments) > 0)
@@ -1200,6 +1203,7 @@ def run_batch_positive_threshold_sweep(
                 "video_path": video_key,
                 "clip_positive_threshold": float(clip_th),
                 "persistence_hit_ratio": float(hit_ratio),
+                "min_hits_used": int(combo_min_hits),
                 "detected": detected,
                 "alarm_segments": int(len(segments)),
                 "first_alarm_sec": first_alarm_sec,
@@ -1219,6 +1223,7 @@ def run_batch_positive_threshold_sweep(
         per_video_df
         .groupby(["clip_positive_threshold", "persistence_hit_ratio"], as_index=False)
         .agg(
+            min_hits_used=("min_hits_used", "first"),
             total_videos=("video_path", "count"),
             detected_videos=("detected", "sum"),
             detection_rate=("detected", "mean"),
@@ -1236,31 +1241,55 @@ def run_batch_positive_threshold_sweep(
         ascending=[False, False, False],
     ).reset_index(drop=True)
 
-    eligible_df = summary_df[summary_df["detection_rate"] >= float(target_detection_rate)]
-    if len(eligible_df) > 0:
-        recommended_df = eligible_df.sort_values(
-            by=["clip_positive_threshold", "persistence_hit_ratio", "avg_first_alarm_sec"],
-            ascending=[False, False, True],
-        ).head(1).copy()
-        recommendation_rule = (
-            f"strictest threshold meeting detection_rate >= {float(target_detection_rate):.3f}"
-        )
-    else:
-        recommended_df = summary_df.sort_values(
-            by=["detection_rate", "avg_first_alarm_sec", "clip_positive_threshold", "persistence_hit_ratio"],
-            ascending=[False, True, False, False],
-        ).head(1).copy()
-        recommendation_rule = "best detection_rate fallback (target_detection_rate not reached)"
+    if len(target_detection_rate_candidates) == 0:
+        raise ValueError("target_detection_rate_candidates must contain at least one value.")
 
-    recommended_df.insert(0, "recommendation_rule", recommendation_rule)
+    detection_targets = []
+    seen_targets: set[float] = set()
+    for one_target in target_detection_rate_candidates:
+        target = float(one_target)
+        if target in seen_targets:
+            continue
+        seen_targets.add(target)
+        detection_targets.append(target)
 
-    best_clip_th = float(recommended_df.iloc[0]["clip_positive_threshold"])
-    best_hit_ratio = float(recommended_df.iloc[0]["persistence_hit_ratio"])
-    missed_df = per_video_df[
-        (per_video_df["clip_positive_threshold"] == best_clip_th)
-        & (per_video_df["persistence_hit_ratio"] == best_hit_ratio)
-        & (per_video_df["detected"] == 0)
-        ].copy()
+    recommended_rows: list[pd.DataFrame] = []
+    missed_rows: list[pd.DataFrame] = []
+
+    for target in detection_targets:
+        eligible_df = summary_df[summary_df["detection_rate"] >= float(target)]
+        if len(eligible_df) > 0:
+            one_recommended_df = eligible_df.sort_values(
+                by=["clip_positive_threshold", "persistence_hit_ratio", "avg_first_alarm_sec"],
+                ascending=[False, False, True],
+            ).head(1).copy()
+            recommendation_rule = (
+                f"strictest threshold meeting detection_rate >= {float(target):.3f}"
+            )
+        else:
+            one_recommended_df = summary_df.sort_values(
+                by=["detection_rate", "avg_first_alarm_sec", "clip_positive_threshold", "persistence_hit_ratio"],
+                ascending=[False, True, False, False],
+            ).head(1).copy()
+            recommendation_rule = "best detection_rate fallback (target_detection_rate not reached)"
+
+        one_recommended_df.insert(0, "recommendation_rule", recommendation_rule)
+        one_recommended_df.insert(0, "target_detection_rate", float(target))
+        recommended_rows.append(one_recommended_df)
+
+        best_clip_th = float(one_recommended_df.iloc[0]["clip_positive_threshold"])
+        best_hit_ratio = float(one_recommended_df.iloc[0]["persistence_hit_ratio"])
+        one_missed_df = per_video_df[
+            (per_video_df["clip_positive_threshold"] == best_clip_th)
+            & (per_video_df["persistence_hit_ratio"] == best_hit_ratio)
+            & (per_video_df["detected"] == 0)
+            ].copy()
+        one_missed_df.insert(0, "recommendation_rule", recommendation_rule)
+        one_missed_df.insert(0, "target_detection_rate", float(target))
+        missed_rows.append(one_missed_df)
+
+    recommended_df = pd.concat(recommended_rows, ignore_index=True)
+    missed_df = pd.concat(missed_rows, ignore_index=True) if missed_rows else pd.DataFrame()
 
     per_video_path = output_dir / "batch_positive_per_video_per_threshold.csv"
     summary_path = output_dir / "batch_positive_threshold_summary.csv"
@@ -1304,11 +1333,17 @@ def run_batch_positive_threshold_sweep(
     print(f"cache_reused_videos: {reused_video_count}")
     print(f"newly_inferred_videos: {len(videos_to_infer)}")
     print(f"threshold_combinations: {len(combo_list)}")
-    print(f"target_detection_rate: {float(target_detection_rate):.3f}")
-    print(f"recommended_clip_positive_threshold: {best_clip_th:.3f}")
-    print(f"recommended_persistence_hit_ratio: {best_hit_ratio:.3f}")
-    print(f"recommended_detection_rate: {float(recommended_df.iloc[0]['detection_rate']):.6f}")
-    print(f"recommendation_rule: {recommendation_rule}")
+    print(f"target_detection_rate_candidates: {detection_targets}")
+    print(f"dynamic_min_hits_formula: ceil({history_window_count} * persistence_hit_ratio)")
+    for _, row in recommended_df.iterrows():
+        print(
+            "recommended: "
+            f"target={float(row['target_detection_rate']):.3f}, "
+            f"clip_positive_threshold={float(row['clip_positive_threshold']):.3f}, "
+            f"persistence_hit_ratio={float(row['persistence_hit_ratio']):.3f}, "
+            f"detection_rate={float(row['detection_rate']):.6f}, "
+            f"rule={row['recommendation_rule']}"
+        )
     print(f"inference_stats_csv: {safe_log_text(infer_path)}")
     print(f"window_prediction_cache_csv: {safe_log_text(window_cache_path)}")
     print(f"window_prediction_cache_meta: {safe_log_text(window_cache_meta_path)}")
@@ -1341,13 +1376,14 @@ if __name__ == "__main__":
     decode_backend = "ffmpeg_gpu"  # "ffmpeg_gpu" or "pyav_cpu"
     ffmpeg_path = "ffmpeg"
 
-    # Persistence decision setup (Balanced)
+    # Persistence decision setup (Balanced) - only batch
     clip_positive_threshold = 0.50
-    persistence_window_sec = 120.0
-    persistence_hit_ratio = 0.4
+    persistence_hit_ratio = 0.50
+    # Persistence decision setup (Balanced) - common
+    persistence_window_sec = 60.0
     clear_hit_ratio = 0.40
-    min_history_sec = 110.0
-    min_hits = 30
+    min_history_sec = 30.0
+    min_hits = math.ceil((math.floor(min_history_sec / step_sec) + 1) * persistence_hit_ratio)
 
     # Throughput setup
     decode_workers = 0
@@ -1358,7 +1394,7 @@ if __name__ == "__main__":
     # Batch positive-threshold sweep setup
     clip_positive_threshold_candidates = [0.35, 0.40, 0.45, 0.50, 0.55, 0.60]
     persistence_hit_ratio_candidates = [0.30, 0.35, 0.40, 0.45, 0.50]
-    target_detection_rate = 0.95
+    target_detection_rate_candidates = [0.85, 0.90, 0.95]
     reuse_window_prediction_cache = True
     save_window_prediction_cache = True
 
@@ -1417,7 +1453,7 @@ if __name__ == "__main__":
             max_eval_windows=max_eval_windows,
             clip_positive_threshold_candidates=clip_positive_threshold_candidates,
             persistence_hit_ratio_candidates=persistence_hit_ratio_candidates,
-            target_detection_rate=target_detection_rate,
+            target_detection_rate_candidates=target_detection_rate_candidates,
             reuse_window_prediction_cache=reuse_window_prediction_cache,
             save_window_prediction_cache=save_window_prediction_cache,
         )
