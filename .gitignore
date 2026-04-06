@@ -53,9 +53,6 @@ log/
 *.iws
 out/
 
-# MapStruct 등 — IDE가 src/main/generated 에 두는 경우(Gradle 기본 산출은 build/ 아래)
-backend/src/main/generated/
-
 # VS Code
 .vscode/
 !.vscode/extensions.json
