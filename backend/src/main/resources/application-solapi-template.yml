@@ -1,0 +1,19 @@
+# Copy needed values into your runtime config or environment variables.
+
+solapi:
+  enabled: true
+  api-key: "YOUR_SOLAPI_API_KEY"
+  api-secret: "YOUR_SOLAPI_API_SECRET"
+  sender-number: "01012345678"
+  base-url: "https://api.solapi.com"
+  connect-timeout-ms: 3000
+  read-timeout-ms: 5000
+
+notification:
+  sms:
+    scheduler-enabled: true
+    initial-delay-ms: 10000
+    schedule-delay-ms: 30000
+    batch-size: 50
+    max-retries: 3
+    dry-run: false

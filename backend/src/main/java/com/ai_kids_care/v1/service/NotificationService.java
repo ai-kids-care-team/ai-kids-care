@@ -23,6 +23,7 @@ public class NotificationService {
 
     private final NotificationRepository repository;
     private final NotificationMapper mapper;
+    private final NotificationSmsDispatchService notificationSmsDispatchService;
 
     public Page<NotificationVO> listNotifications(String keyword, Pageable pageable) {
         return repository.search(keyword, pageable).map(mapper::toVO);
@@ -61,6 +62,10 @@ public class NotificationService {
         Notification entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("Notification not found"));
         repository.delete(entity);
+    }
+
+    public int dispatchPendingSmsNotifications() {
+        return notificationSmsDispatchService.dispatchPendingSmsNotifications();
     }
 
     private String resolveDedupeKey(NotificationCreateDTO createDTO, NotificationChannelEnum channel) {

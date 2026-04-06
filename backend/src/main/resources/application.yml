@@ -30,3 +30,21 @@ logging:
     javax.management.remote.rmi: INFO
     sun.rmi.transport.tcp: INFO
     sun.rmi.loader: INFO
+
+solapi:
+  enabled: ${SOLAPI_ENABLED:false}
+  api-key: ${SOLAPI_API_KEY:}
+  api-secret: ${SOLAPI_API_SECRET:}
+  sender-number: ${SOLAPI_SENDER_NUMBER:}
+  base-url: ${SOLAPI_BASE_URL:https://api.solapi.com}
+  connect-timeout-ms: ${SOLAPI_CONNECT_TIMEOUT_MS:3000}
+  read-timeout-ms: ${SOLAPI_READ_TIMEOUT_MS:5000}
+
+notification:
+  sms:
+    scheduler-enabled: ${NOTIFICATION_SMS_SCHEDULER_ENABLED:true}
+    initial-delay-ms: ${NOTIFICATION_SMS_INITIAL_DELAY_MS:10000}
+    schedule-delay-ms: ${NOTIFICATION_SMS_SCHEDULE_DELAY_MS:30000}
+    batch-size: ${NOTIFICATION_SMS_BATCH_SIZE:50}
+    max-retries: ${NOTIFICATION_SMS_MAX_RETRIES:3}
+    dry-run: ${NOTIFICATION_SMS_DRY_RUN:true}

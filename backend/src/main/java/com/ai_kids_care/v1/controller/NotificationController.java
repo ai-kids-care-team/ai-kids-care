@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Tag(name="Notification")
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -53,5 +55,11 @@ public class NotificationController {
     public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
         service.deleteNotification(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/sms/dispatch")
+    public ResponseEntity<Map<String, Integer>> dispatchPendingSmsNotifications() {
+        int processed = service.dispatchPendingSmsNotifications();
+        return ResponseEntity.ok(Map.of("processed", processed));
     }
 }
