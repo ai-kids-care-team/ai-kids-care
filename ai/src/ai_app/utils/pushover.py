@@ -20,13 +20,13 @@ PUSHOVER_USER_KEY = os.getenv("PUSHOVER_USER_KEY")  # 替换为你的 User Key
 
 
 # 发送通知的函数
-def send_pushover_notification(title, message):
+def send_pushover_notification(title, message, sound="cashregister"):
     data = {
         "token": PUSHOVER_API_TOKEN,
         "user": PUSHOVER_USER_KEY,
         "title": title,
         "message": message,
-        "sound": "cashregister",  # 声效
+        "sound": sound,  # 声效
         "priority": 2,
         "retry": 30,  # priority=2时的重试间隔秒数（至少为30）
         "expire": 10800,  # priority=2时的过期秒数
