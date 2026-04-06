@@ -12,9 +12,9 @@ public class Neo4jConfig {
 
     @Bean
     public Driver neo4jDriver(
-            @Value("${NEO4J_URI}") String uri,
-            @Value("${NEO4J_USERNAME}") String username,
-            @Value("${NEO4J_PASSWORD}") String password
+            @Value("${spring.neo4j.uri}") String uri,
+            @Value("${spring.neo4j.authentication.username}") String username,
+            @Value("${spring.neo4j.authentication.password}") String password
     ) {
         return GraphDatabase.driver(uri, AuthTokens.basic(username, password));
     }

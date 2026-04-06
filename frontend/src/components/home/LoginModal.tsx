@@ -82,6 +82,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
       const responseLoginId = response?.loginId ?? formData.loginId;
       const responseId = response?.id ?? formData.id;
+      const numericUserId = Number(responseId);
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
       const refreshToken = response?.refreshToken ?? '';

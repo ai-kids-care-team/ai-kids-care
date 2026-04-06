@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface EventReviewMapper {
 
-    @Mapping(source ="id", target = "reviewId")
+    @Mapping(source = "id", target = "reviewId")
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "detectionEvents.cctvCameras.kindergarten.id", target = "kindergartenId")
@@ -17,6 +17,7 @@ public interface EventReviewMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(source = "eventId", target = "detectionEvents.id")
+    @Mapping(source = "kindergartenId", target = "kindergarten.id")
     @Mapping(source = "userId", target = "user.id")
     @Mapping(target = "createdAt", ignore = true)
     EventReview toEntity(EventReviewCreateDTO dto);
@@ -24,6 +25,7 @@ public interface EventReviewMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(source = "eventId", target = "detectionEvents.id")
+    @Mapping(source = "kindergartenId", target = "kindergarten.id")
     @Mapping(source = "userId", target = "user.id")
     @Mapping(target = "createdAt", ignore = true)
     void updateEntity(EventReviewUpdateDTO dto, @MappingTarget EventReview entity);
