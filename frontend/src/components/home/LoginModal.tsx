@@ -87,25 +87,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const token = response?.accessToken ?? response?.token ?? '';
       const refreshToken = response?.refreshToken ?? '';
       const name = response?.name;
-      const rawKindergartenId =
-        response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
-      const parsedKindergartenId = Number(rawKindergartenId);
-      const kindergartenId =
-        Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
-          ? parsedKindergartenId
-          : undefined;
-
       const user = {
         id: responseId,
         loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
-        role: role as UserRole,
-        kindergartenId:
-          kindergartenId ??
-          (Number.isFinite(numericUserId) && numericUserId > 0
-            ? inferKindergartenIdFromUserId(numericUserId)
-            : undefined),
+        role: role as UserRole
       };
 
       dispatch(setCredentials({ user, token }));

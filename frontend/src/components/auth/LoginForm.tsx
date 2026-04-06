@@ -50,13 +50,6 @@ export function LoginForm() {
       const token = response?.accessToken ?? response?.token ?? '';
       const apiName =
         typeof response?.name === 'string' && response.name.trim() !== '' ? response.name.trim() : '';
-      const rawKindergartenId =
-        response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
-      const parsedKindergartenId = Number(rawKindergartenId);
-      const kindergartenId =
-        Number.isFinite(parsedKindergartenId) && parsedKindergartenId > 0
-          ? parsedKindergartenId
-          : undefined;
       const refreshToken = response?.refreshToken ?? '';
       const displayName = response?.name ?? responseLoginId;
 
@@ -66,7 +59,6 @@ export function LoginForm() {
           loginId: responseLoginId,
           name: apiName,
           role: role as UserRole,
-          kindergartenId: kindergartenId ?? inferKindergartenIdFromUserId(responseUserId ?? 0),
       };
 
       // 1. Redux 스토어에 유저 정보와 토큰 저장
