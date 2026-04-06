@@ -12,13 +12,13 @@ import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
-import { useGetMenusQuery, type MenuItem } from '@/services/apis/menu.api';
+import { useGetMenusQuery } from '@/services/apis/menu.api';
 import { LoginModal } from '@/components/home/LoginModal';
 
 interface TopBarProps {
   currentRole: UserRole;
   username: string;
-  /** `/menus?roleType=` — 세션 없으면 `ANONYMOUS` (`02_menu.sql`) */
+  /** `/menus?roleType=` — 세션 없으면 ALL */
   menuRoleType: string;
   hasSession: boolean;
 }
@@ -38,11 +38,7 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
     { menuId: -1, menuName: '홈', path: '/' },
     { menuId: -2, menuName: '공지사항', path: '/announcements' },
   ];
-  /** `02_menu.sql` + `/menus` — API 실패·빈 응답 시에만 홈·공지 폴백(ANONYMOUS 시드와 동일 구성). */
-  const renderedMenus: MenuItem[] =
-    menuItems.length > 0
-      ? menuItems
-      : (fallbackMenus as MenuItem[]);
+  const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
 
   useEffect(() => {
     const handler = () => setIsLoginModalOpen(true);

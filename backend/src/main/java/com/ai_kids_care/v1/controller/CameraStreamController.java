@@ -24,10 +24,13 @@ public class CameraStreamController {
 
     @GetMapping
     public ResponseEntity<Page<CameraStreamVO>> listCameraStream(
-            @RequestParam(required = false) String keyword,
+            @RequestParam Long kindergartenId,
+            @RequestParam(required = false) Long cameraId,
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) Boolean isPrimary,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listCameraStreams(keyword, pageable));
+        return ResponseEntity.ok(service.listCameraStreams(kindergartenId, cameraId, enabled, isPrimary, pageable));
     }
 
     @GetMapping("/{id}")

@@ -81,15 +81,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
 
       const responseLoginId = response?.loginId ?? formData.loginId;
-      const rawId = response?.id ?? formData.id;
-      const responseId =
-        rawId != null && rawId !== '' ? String(rawId) : '';
-      const numericUserId = Number(responseId);
+      const responseId = response?.id ?? formData.id;
       const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
-      const nameRaw = response?.name;
-      const nameFromApi =
-        typeof nameRaw === 'string' && nameRaw.trim() !== '' ? nameRaw.trim() : '';
+      const refreshToken = response?.refreshToken ?? '';
+      const name = response?.name;
       const rawKindergartenId =
         response?.kindergartenId ?? response?.kindergarten_id ?? response?.kindergarten?.id;
       const parsedKindergartenId = Number(rawKindergartenId);
@@ -99,11 +95,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           : undefined;
 
       const user = {
-        id: responseId || responseLoginId,
+        id: responseId,
         loginId: responseLoginId,
         username: responseLoginId,
-        /** 실명은 API `name`만 저장. 없으면 빈 문자열(화면은 `loginId` 등과 구분) */
-        name: nameFromApi,
+        name: name || responseLoginId,
         role: role as UserRole,
         kindergartenId:
           kindergartenId ??
@@ -118,9 +113,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         localStorage.setItem('token', token);
         localStorage.setItem('accessToken', token);
       }
-      const refresh = response?.refreshToken;
-      if (refresh) {
-        localStorage.setItem('refreshToken', refresh);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
       handleModalClose();
     } catch (err: any) {

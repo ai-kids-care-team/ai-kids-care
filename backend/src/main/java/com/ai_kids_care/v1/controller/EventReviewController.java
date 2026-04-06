@@ -2,8 +2,9 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.EventReviewCreateDTO;
 import com.ai_kids_care.v1.dto.EventReviewUpdateDTO;
-import com.ai_kids_care.v1.vo.EventReviewVO;
 import com.ai_kids_care.v1.service.EventReviewService;
+import com.ai_kids_care.v1.type.EventStatusEnum;
+import com.ai_kids_care.v1.vo.EventReviewVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -14,7 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name="EventReview")
+@Tag(name = "EventReview")
 @RestController
 @RequestMapping("/api/v1/event_reviews")
 @RequiredArgsConstructor
@@ -24,15 +25,23 @@ public class EventReviewController {
 
     @GetMapping
     public ResponseEntity<Page<EventReviewVO>> listEventReview(
-            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long eventId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) EventStatusEnum fromStatus,
+            @RequestParam(required = false) EventStatusEnum resultStatus,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(service.listEventReviews(keyword, pageable));
+        return ResponseEntity.ok(service.listEventReviews(eventId, userId, fromStatus, resultStatus, pageable));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EventReviewVO> getEventReview(@PathVariable Long id) {
         return ResponseEntity.ok(service.getEventReview(id));
+    }
+
+    @GetMapping("/{eventId}/latest")
+    public ResponseEntity<EventReviewVO> getLatestEventReview(@PathVariable Long eventId) {
+        return ResponseEntity.ok(service.getLatestReview(eventId));
     }
 
     @PostMapping

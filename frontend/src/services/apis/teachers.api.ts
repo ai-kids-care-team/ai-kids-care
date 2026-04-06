@@ -1,6 +1,12 @@
 import { apiClient } from './apiClient';
 import type { PageResponse } from './appreciationLetters.api';
 
+export type Teacher = {
+  teacherId: number | null;
+  userId: number;
+  name: string;
+};
+
 /** 백엔드 `TeacherVO` (레거시/버그 응답은 `id`만 오는 경우 있음) */
 export type TeacherVO = {
   teacherId: number;
@@ -27,6 +33,31 @@ export type TeacherApiRow = TeacherVO & {
   user_id?: number;
   teacher_id?: number;
 };
+
+/**
+ * GET /teachers/by-user/{userId}
+ * 백엔드에서 추가한 getTeacherNameByUserId 엔드포인트 사용
+ */
+export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
+  if (!Number.isFinite(userId) || userId <= 0) return null;
+
+  const response = await apiClient.get<Teacher | { data?: Teacher }>(`/teachers/by-user/${userId}`);
+
+  const payload: any = response.data;
+  if (!payload) return null;
+
+  const candidate = payload.data ?? payload;
+
+  if (typeof candidate.userId === 'number' && typeof candidate.name === 'string') {
+    return {
+      teacherId: candidate.teacherId ?? null,
+      userId: candidate.userId,
+      name: candidate.name,
+    };
+  }
+  return null;
+}
+
 
 /** null/빈값은 건너뜀 — `Number(null)`이 0이 되어 전 행이 교사 ID 0으로 보이는 버그 방지 */
 function firstPositiveLong(...vals: unknown[]): number | undefined {

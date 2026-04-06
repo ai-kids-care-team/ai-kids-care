@@ -9,8 +9,11 @@ import java.time.OffsetDateTime;
 public record DetectionEventVO(
         Long eventId,
         Long kindergartenId,
+        String kindergartenName,
         Long cameraId,
+        String cameraName,
         Long roomId,
+        String roomName,
         Long sessionId,
         String eventType,
         Integer severity,

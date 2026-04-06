@@ -28,5 +28,11 @@ pip install -r requirements.txt
 
 # install ffmpeg from https://ffmpeg.org/download.html
 # add ffmpeg to PATH
+
+# fix local import root
+$env:PYTHONPATH="src"
+
+# start inference service
+python scripts/serve.py
 ```
 

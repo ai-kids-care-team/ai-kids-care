@@ -31,10 +31,6 @@ function toLocalDatetimeInputNow() {
 export function useAnnouncementsWrite() {
   const router = useRouter();
   const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
-
-
-    console.log(user , token, isAuthenticated);
-
   const authorIdHiddenValue = user?.id ?? '';
   const authorId = useMemo(() => {
     const parsed = Number(user?.id);
