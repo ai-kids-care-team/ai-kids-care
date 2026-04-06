@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import { searchKindergartens, type KindergartenVO } from '@/services/apis/kindergartens.api';
+import { getKindergarten, searchKindergartens, type KindergartenVO } from '@/services/apis/kindergartens.api';
 import {
   normalizeTeacherVO,
   searchTeachers,
@@ -120,6 +120,36 @@ export function LetterTargetPicker({
       setError('');
       try {
         const q = appliedQuery.trim();
+        const lockedKg =
+          lockedKindergartenId != null &&
+          Number.isFinite(lockedKindergartenId) &&
+          Math.trunc(lockedKindergartenId) > 0
+            ? Math.trunc(lockedKindergartenId)
+            : null;
+
+        if ((isKgTarget || teacherStepPickKg) && lockedKg != null) {
+          try {
+            const single = await getKindergarten(lockedKg);
+            if (cancelled) return;
+            const rows =
+              !q ||
+              (single.name || '').toLowerCase().includes(q.toLowerCase()) ||
+              String(single.kindergartenId).includes(q)
+                ? [single]
+                : [];
+            setKindergartenRows(rows);
+            setTeacherRows([]);
+            setTotalCount(rows.length);
+          } catch {
+            if (cancelled) return;
+            setError('소속 유치원 정보를 불러오지 못했습니다.');
+            setKindergartenRows([]);
+            setTeacherRows([]);
+            setTotalCount(0);
+          }
+          return;
+        }
+
         if (isKgTarget || teacherStepPickKg) {
           const page = await searchKindergartens({
             keyword: q,
@@ -175,7 +205,13 @@ export function LetterTargetPicker({
     return () => {
       cancelled = true;
     };
-  }, [targetType, appliedQuery, pickedKgForTeacher?.kindergartenId, reloadNonce]);
+  }, [
+    targetType,
+    appliedQuery,
+    pickedKgForTeacher?.kindergartenId,
+    reloadNonce,
+    lockedKindergartenId,
+  ]);
 
   const applySearch = () => {
     setAppliedQuery(inputQuery.trim());

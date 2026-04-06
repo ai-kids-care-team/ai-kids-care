@@ -21,6 +21,7 @@ type LoginResponse = {
   refreshToken?: string;
   name?: string;
   email?: string;
+  kindergartenId?: number;
 };
 
 type RegisterRequest = Record<string, unknown>;

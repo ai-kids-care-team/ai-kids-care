@@ -7,6 +7,7 @@ import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useForgotPasswordMutation, useLoginMutation } from '@/services/apis/auth.api';
 import type { UserRole } from '@/types/user-role';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -21,14 +22,6 @@ const getForgotPasswordErrorMessage = (err: any) => {
   }
 
   return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
-};
-
-const inferKindergartenIdFromUserId = (userId: number): number | undefined => {
-  if (!Number.isFinite(userId) || userId <= 0) return undefined;
-  if (userId >= 700) return 3;
-  if (userId >= 400) return 2;
-  if (userId >= 100) return 1;
-  return undefined;
 };
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
@@ -87,12 +80,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const token = response?.accessToken ?? response?.token ?? '';
       const refreshToken = response?.refreshToken ?? '';
       const name = response?.name;
-      const user = {
-        id: responseId,
+      const apiKg = Number(response?.kindergartenId);
+      const userBase = {
+        id: String(responseId ?? responseLoginId),
         loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
-        role: role as UserRole
+        role: role as UserRole,
+        kindergartenId: Number.isFinite(apiKg) && apiKg > 0 ? Math.trunc(apiKg) : undefined,
+      };
+      const kg = resolveViewerSessionKindergartenId(userBase, token);
+      const user = {
+        ...userBase,
+        ...(kg != null ? { kindergartenId: kg } : {}),
       };
 
       dispatch(setCredentials({ user, token }));

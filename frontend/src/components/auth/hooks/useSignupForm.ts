@@ -6,6 +6,7 @@ import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import type { UserRole } from '@/types/user-role';
 import { API_BASE_URL } from '@/config/api';
+import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
 type FieldErrorKey =
@@ -927,12 +928,31 @@ export function useSignupForm() {
       const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
       const refreshToken = loginResponse?.refreshToken ?? '';
       const name = loginResponse?.name;
-      const user = {
-        id: responseLoginId,
+      const signupKindergartenId =
+        memberType === 'GUARDIAN' && selectedChild && selectedChild.kindergartenId > 0
+          ? selectedChild.kindergartenId
+          : memberType === 'KINDERGARTEN' && selectedKindergarten && selectedKindergarten.kindergartenId > 0
+            ? selectedKindergarten.kindergartenId
+            : undefined;
+      const responseIdRaw = loginResponse?.id;
+      const responseIdNum = Number(responseIdRaw);
+      const numericUserId =
+        Number.isFinite(responseIdNum) && responseIdNum > 0 ? Math.trunc(responseIdNum) : undefined;
+      const apiKg = Number(loginResponse?.kindergartenId);
+      const userBase = {
+        id: String(numericUserId ?? responseLoginId),
         loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
         role: role as UserRole,
+        kindergartenId:
+          signupKindergartenId ??
+          (Number.isFinite(apiKg) && apiKg > 0 ? Math.trunc(apiKg) : undefined),
+      };
+      const kg = resolveViewerSessionKindergartenId(userBase, token);
+      const user = {
+        ...userBase,
+        ...(kg != null ? { kindergartenId: kg } : {}),
       };
 
       dispatch(setCredentials({ user, token }));
