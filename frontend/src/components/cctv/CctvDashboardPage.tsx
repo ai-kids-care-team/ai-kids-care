@@ -59,7 +59,7 @@ const CCTV_CAMERA_TILE_DUMMY_ENABLED = false;
 // DB의 `camera_streams`에서 camera_id=1 MAIN의 http(s) UTIC url을 못 찾는 경우에 대비한 fallback.
 // seed `39_camera_streams_seed.sql`의 MAIN https URL을 그대로 사용.
 const UTIC_CAMERA1_MAIN_HTTPS_FALLBACK_URL =
-  'https://www.utic.go.kr/jsp/map/cctvStream.jsp?cctvid=L010304&cctvname=%25EC%25B2%25AD%25EB%259F%2589%25EB%25A6%25AC&kind=Seoul&cctvip=undefined&cctvch=52&id=162&cctvpasswd=undefined&cctvport=undefined&minX=126.93079910304851&minY=37.494909361483266&maxX=127.22067449610955&maxY=37.61544432249674';
+  'http://www.ai-kids-care.asia:8082/live/livestream.flv';
 
 const TRAFFIC_DEMO_STREAMS = [
   'https://www.utic.go.kr/jsp/map/cctvStream.jsp?cctvid=E970150&cctvname=%25EC%259B%2590%25ED%259A%25A8%25EB%258C%2580%25EA%25B5%2590%25EB%25B6%2581%25EB%258B%25A8&kind=EC&cctvip=undefined&cctvch=53&id=424&cctvpasswd=undefined&cctvport=undefined&minX=126.83673788313612&minY=37.4649974459518&maxX=127.12636287326224&maxY=37.585756195539204',
