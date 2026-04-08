@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import math
+import os
 import sys
 import time
 from collections import deque
@@ -27,7 +28,8 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from ai_app.utils.pushover import send_pushover_notification
+from ai_app.utils.pushover import send_pushover_notification, send_pushover_notifications
+from ai_app.utils.sms import build_message_service, parse_recipients, send_sms_batch
 from realtime_persistence_demo import (
     frame_time_sec,
     label_for_id,
@@ -176,6 +178,11 @@ def run_stream_service(
         black_std_threshold: float = 8.0,
         notification_title: str = "AI Alert",
         notification_cooldown_sec: float = 120.0,
+        enable_sms_batch_notification: bool = False,
+        sms_api_key: str = "",
+        sms_api_secret: str = "",
+        sms_sender: str = "",
+        sms_recipients: list[str] | None = None,
         reconnect_wait_sec: float = 3.0,
         max_runtime_sec: float | None = None,
         max_eval_windows: int | None = None,
@@ -258,8 +265,25 @@ def run_stream_service(
     print(f"black_luma_threshold: {black_luma_threshold}")
     print(f"black_std_threshold: {black_std_threshold}")
     print(f"notification_cooldown_sec: {notification_cooldown_sec}")
+    print(f"enable_sms_batch_notification: {enable_sms_batch_notification}")
+    print(f"sms_recipient_count: {len(sms_recipients or [])}")
     print(f"timeline_csv: {safe_log_text(timeline_path)}")
     print(f"event_csv: {safe_log_text(events_path)}")
+
+    sms_service = None
+    effective_sms_recipients: list[str] = []
+    if enable_sms_batch_notification:
+        effective_sms_recipients = [str(x).strip() for x in (sms_recipients or []) if str(x).strip()]
+        if not sms_api_key or not sms_api_secret or not sms_sender or not effective_sms_recipients:
+            print("[WARN] SMS batch notification is enabled but config is incomplete. SMS will be skipped.")
+        else:
+            try:
+                sms_service = build_message_service(api_key=sms_api_key, api_secret=sms_api_secret)
+            except Exception as sms_init_error:
+                print(
+                    "[WARN] Failed to initialize SMS service. SMS will be skipped. "
+                    f"detail={safe_log_text(type(sms_init_error).__name__ + ': ' + str(sms_init_error))}"
+                )
 
     service_start_wall = time.monotonic()
     service_eval_index = 0
@@ -445,24 +469,51 @@ def run_stream_service(
                         if event_type == "alarm_on":
                             now_wall = time.monotonic()
                             if (now_wall - last_notification_wall) >= float(notification_cooldown_sec):
+                                alert_message = (
+                                    f"[{target_label}] alarm_on at {eval_ts_sec:.2f}s\n"
+                                    f"prob={target_prob:.4f}, "
+                                    f"hit_ratio={float(persistence['rolling_hit_ratio']):.4f}, "
+                                    f"hits={int(persistence['rolling_hit_count'])}/"
+                                    f"{int(persistence['rolling_count'])}"
+                                )
                                 try:
-                                    send_pushover_notification(
+                                    # send_pushover_notification(
+                                    #     notification_title,
+                                    #     alert_message,
+                                    #     sound="alien"
+                                    # )
+                                    send_pushover_notifications(
                                         notification_title,
-                                        (
-                                            f"[{target_label}] alarm_on at {eval_ts_sec:.2f}s\n"
-                                            f"prob={target_prob:.4f}, "
-                                            f"hit_ratio={float(persistence['rolling_hit_ratio']):.4f}, "
-                                            f"hits={int(persistence['rolling_hit_count'])}/"
-                                            f"{int(persistence['rolling_count'])}"
-                                        ),
-                                        sound="alien"
+                                        alert_message,
+                                        sound="alien",
+                                        user_keys=["uqrthzq6a6ha3dpnp383ceoj46i9kq", "ubijdryhdmyxk2z89n982hz5yj6utg"]
+
                                     )
-                                    last_notification_wall = now_wall
-                                except Exception as notify_error:
+                                except Exception as push_error:
                                     print(
                                         "[WARN] send_pushover_notification failed: "
-                                        f"{safe_log_text(type(notify_error).__name__ + ': ' + str(notify_error))}"
+                                        f"{safe_log_text(type(push_error).__name__ + ': ' + str(push_error))}"
                                     )
+
+                                if sms_service is not None:
+                                    try:
+                                        sms_results = send_sms_batch(
+                                            message_service=sms_service,
+                                            sender=sms_sender,
+                                            recipients=effective_sms_recipients,
+                                            text=alert_message.replace("\n", " | "),
+                                        )
+                                        sms_success = int(sum(1 for x in sms_results if x.get("ok")))
+                                        print(
+                                            f"[INFO] SMS batch send done: success={sms_success}/{len(sms_results)}"
+                                        )
+                                    except Exception as sms_error:
+                                        print(
+                                            "[WARN] send_sms_batch failed: "
+                                            f"{safe_log_text(type(sms_error).__name__ + ': ' + str(sms_error))}"
+                                        )
+
+                                last_notification_wall = now_wall
                             else:
                                 print("[INFO] Notification cooldown active. Skip push.")
 
@@ -535,6 +586,11 @@ if __name__ == "__main__":
     # Service behavior
     notification_title = "AI Kids Care Alert"
     notification_cooldown_sec = 120.0
+    enable_sms_batch_notification = True
+    sms_api_key = os.getenv("SOLAPI_API_KEY", "")
+    sms_api_secret = os.getenv("SOLAPI_API_SECRET", "")
+    sms_sender = os.getenv("SMS_DEFAULT_SENDER", "")
+    sms_recipients = parse_recipients(os.getenv("SMS_DEFAULT_RECIPIENTS", ""))
     reconnect_wait_sec = 3.0
     max_runtime_sec = None  # set seconds for local dry run, e.g. 600
     max_eval_windows = None  # set for quick test, e.g. 100
@@ -562,6 +618,11 @@ if __name__ == "__main__":
         black_std_threshold=black_std_threshold,
         notification_title=notification_title,
         notification_cooldown_sec=notification_cooldown_sec,
+        enable_sms_batch_notification=enable_sms_batch_notification,
+        sms_api_key=sms_api_key,
+        sms_api_secret=sms_api_secret,
+        sms_sender=sms_sender,
+        sms_recipients=sms_recipients,
         reconnect_wait_sec=reconnect_wait_sec,
         max_runtime_sec=max_runtime_sec,
         max_eval_windows=max_eval_windows,
