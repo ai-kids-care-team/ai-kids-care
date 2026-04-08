@@ -63,7 +63,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
-    restart: on-failure
+    restart: always
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -89,6 +89,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend
+    restart: always
     environment:
       TZ: Asia/Seoul
     ports:
