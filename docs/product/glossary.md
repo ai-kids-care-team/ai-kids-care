@@ -4,6 +4,8 @@
 
 ✅ 来源：`db/initdb/01_create_schema.sql` 列注释、枚举定义、实体类名。
 
+> **受控词表（Controlled Vocabulary）** — 依 [ADR-0008](../decisions/adr/ADR-0008-language-governance.md)，本表是全库与产品 i18n 的**术语权威**。任何翻译、UI 文案、Agent 产出涉及领域术语时**必须命中本表**；缺词者**先在此补三语条目再使用**，禁止即兴造词。术语的语言中立锚优先用 `代码载体`（标识符）；无代码载体的纯概念用稳定 ID `TERM-<n>`。
+
 ## 核心实体
 
 | 中文 | English | 한국어 | 代码载体 |
