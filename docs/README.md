@@ -80,4 +80,9 @@ AI Kids Care 是面向**幼儿园安全管理**的 AI 平台：通过 CCTV 视�
 
 ## 语言说明
 
-知识库正文以**简体中文**为主，技术术语保留英文（如 `Controller`、`JWT`），数据库表名、枚举值、API 路径等标识符保留代码中的原始形式。领域术语的中／韩／英对照见 [product/glossary.md](product/glossary.md)。
+语言治理由 [ADR-0008: Language Governance](decisions/adr/ADR-0008-language-governance.md) 规定。要点：
+
+- 知识库**单一真相为简体中文（中英混合）**：中文母句 + 英文技术术语（如 `Controller`、`JWT`）；数据库表名、枚举值、API 路径等标识符保留代码原形（骨架层，永不翻译）。
+- 其它语言版本按需即时生成，**不入库、不被引用、用完即弃**。
+- 领域术语的中／韩／英对照与受控词表见 [product/glossary.md](product/glossary.md)。
+- **产品终端 UI 是独立的 i18n 轨道**（韩语必出货，日后多语），不适用上述「派生即可弃」规则。

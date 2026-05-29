@@ -24,5 +24,6 @@
 | [ADR-0005](ADR-0005-frontend-static-export.md) | 前端静态导出 + Nginx | Accepted (Retrospective) | Next.js `output: export` |
 | [ADR-0006](ADR-0006-decoupled-ai-videomae.md) | 解耦的 VideoMAE AI 服务 | Accepted (Retrospective) | AI 独立子系统 |
 | [ADR-0007](ADR-0007-jwt-stateless-auth.md) | JWT 无状态鉴权 | Accepted (Retrospective)，⚠️ 当前停用 | 见安全文档 |
+| [ADR-0008](ADR-0008-language-governance.md) | Language Governance（语言治理） | Accepted | 单一 SoT + 受控词表 + i18n 轨道 + 多 Agent |
 
 > 这些回溯性 ADR 是对现状的**逆向描述**，其中无法从代码证明的理由均已标注。任何要**改变**这些决策的提案，应新增更高编号的 ADR。

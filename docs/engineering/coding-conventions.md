@@ -6,7 +6,7 @@
 
 - ✅ 全栈时区 Asia/Seoul；时间一律 `timestamptz`（DB）/ `OffsetDateTime`（Java）。
 - ✅ 标识符跨层一致：DB `snake_case`，Java `camelCase`，API 路径 `snake_case`（如 `/api/v1/cctv_cameras`、`/detection_events`）。
-- 🔶 注释与领域措辞多为韩文（项目源自韩国幼儿园场景）。
+- 🔶 既有注释与领域措辞多为韩文（项目源自韩国幼儿园场景）；✅ 新增注释**尽量使用英文**（见 [ADR-0008](../../decisions/adr/ADR-0008-language-governance.md)）。
 
 ## 后端（Java / Spring）
 
@@ -52,5 +52,6 @@
 
 - ✅ `CODEOWNERS` 按目录分团队；改动 `docs/` 与根需 leads 评审。
 - 🔶 提交信息历史为传统协作风格；2026-05-11 起引入 Vibe Coding / AI Agents（见 [product/overview](../product/overview.md#项目阶段与协作背景)）。
+- ✅ Commit message **尽量使用英文**（见 [ADR-0008](../../decisions/adr/ADR-0008-language-governance.md)）。
 
 > 这些是**观察到的**约定。若要确立为强制规范，应通过 ADR 或在此文档明确并评审。

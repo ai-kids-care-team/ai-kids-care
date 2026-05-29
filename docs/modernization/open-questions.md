@@ -2,7 +2,7 @@
 
 > 本登记册汇总**仅凭代码无法判定、需要团队（尤其原作者）确认**的事项。每项给出：证据、为何重要、当前观察。**这里不给答案、不给方案**——只把问题摆清楚（Discovery 模式）。
 
-约定：编号 `OQ-<域>-<序号>`，被全库文档交叉引用。域：SEC（安全）、OPS（运维）、AI（AI/集成）、DATA（数据）、PROD（产品）、ARCH（架构）、TEST（测试）。
+约定：编号 `OQ-<域>-<序号>`，被全库文档交叉引用。域：SEC（安全）、OPS（运维）、AI（AI/集成）、DATA（数据）、PROD（产品）、ARCH（架构）、TEST（测试）、LANG（语言治理）。
 
 ---
 
@@ -144,6 +144,17 @@
 - **证据** ✅：后端/前端/AI 均无自动化测试。
 - **为何重要**：无回归保护，改动风险高（见 [testing](../engineering/testing.md)）。
 - **观察**：是否有仓库外测试？目标测试策略为何？
+
+---
+
+## 语言治理（LANG）
+
+> OQ-LANG-1..5 为设计阶段问题，已由负责人解答并固化于 [ADR-0008](../decisions/adr/ADR-0008-language-governance.md)（见其附录）。以下为仍开放项。
+
+### OQ-LANG-6 ｜产品 UI 的 i18n 机制选型
+- **证据** ✅：[ADR-0008](../decisions/adr/ADR-0008-language-governance.md) 固定了 i18n 的**语言角色**（消息键中立、`ko` 必出货、`zh` 作者参考、多语增量、locale 为发布资产），但**机制未定**。
+- **为何重要**：前端为 Next.js 静态导出（见 [ADR-0005](../decisions/adr/ADR-0005-frontend-static-export.md)），i18n 库/文件格式/构建集成方式影响可维护性与发布门禁（`ko` 完整性校验）的落地。
+- **观察**：选型（如 next-intl / react-i18next / 自研 JSON 资源）待定，建议另立 ADR。
 
 ---
 

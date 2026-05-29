@@ -70,6 +70,13 @@ Separate facts, inferences, assumptions, and recommendations. Raise an **Open Qu
 
 ## Language Policy
 
-- Use the user's language as the primary communication language.
-- Maintain language consistency throughout the session.
+Governed by [ADR-0008: Language Governance](docs/decisions/adr/ADR-0008-language-governance.md). Summary:
+
+- 沟通语言跟随用户（当前中文）；产出/编辑文件时，语言 = 该文件的 SoT（frontmatter `lang_sot`，缺省 `zh`）或其 i18n locale。
+- 知识库（`docs/`）单一真相 = 中文（中英混合）；非中文版本按需即时生成，不入库、不被引用、用完即弃。
+- 骨架永不翻译：代码标识符、DB 表/列/枚举、API 路径、文件路径/命令、ID（`ADR-XXXX`/`OQ-XXX`/i18n 消息键）、frontmatter 键、专有技术名 → 英文/代码原形。
+- 领域术语绑定 [`docs/product/glossary.md`](docs/product/glossary.md)（中/韩/英受控词表），缺词先补再用。
+- 产品 UI 是独立 i18n 轨道：消息键语言中立，`ko` 为必出货语言，locale 文件是发布资产（不适用「派生即可弃」）。
+- 多 Agent：本文件为单一规范指令源，其他 Agent 配置（`AGENTS.md`/`.cursorrules` 等）为派生指针；规则带英文 ID。
+- 代码注释尽量使用英文；commit message 尽量使用英文。
 - Use English technical terminology when it improves precision and clarity.
