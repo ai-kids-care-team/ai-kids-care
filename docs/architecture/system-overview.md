@@ -10,7 +10,8 @@ ai-kids-care/
 ├── backend/               # Spring Boot 3.2.5 / Java 21（REST API）
 ├── ai/                    # FastAPI + PyTorch VideoMAE（推理与实时告警）
 ├── db/                    # PostgreSQL 16 + Neo4j 5.19（schema/种子/加载器）
-├── scripts/codegen/       # PG schema 内省 → Mustache → Java CRUD 代码生成器
+├── pg-spring-crud-codegen/# PG schema 内省 → Mustache → Java CRUD 代码生成器（2026-05-29 由 scripts/codegen/ 迁入，见 ADR-0011）
+├── scripts/codegen/       # ⚠️ 仅留 README 软指针 → pg-spring-crud-codegen/
 ├── jenkins/               # Jenkins 镜像与 compose
 ├── docs/                  # 本知识库 + ERD
 ├── docker-compose.yml     # 整栈编排（db/neo4j/data-loader/backend/frontend）
@@ -89,5 +90,5 @@ ai-kids-care/
 
 ✅ 详见 [data-architecture](data-architecture.md)：
 
-- **PostgreSQL** — 唯一可信源（system of record）：27 张业务表，多租户（`kindergarten_id`），强约束（复合外键、唯一索引）。
+- **PostgreSQL** — 唯一可信源（system of record）：**30 张业务表**（核心域 28 张来自 `01_create_schema.sql` + 平台字典 `menu`/`common_codes` 2 张来自 02/03 脚本），多租户（`kindergarten_id`），强约束（复合外键、唯一索引）。
 - **Neo4j** — 派生只读视图：从 PG 加载，专用于"以儿童为中心"的关系图查询与前端可视化。

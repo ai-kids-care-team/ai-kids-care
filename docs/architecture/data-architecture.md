@@ -1,6 +1,6 @@
 # 数据架构（Data Architecture）
 
-✅ 主要来源：`db/initdb/01_create_schema.sql`（27 张表、~21 个枚举）、`db/dbml/schema.dbml`、`db/ne4j_kindergartens/`、`docker-compose.yml`、后端 `entity/`。
+✅ 主要来源：`db/initdb/01_create_schema.sql`（**28 张表、18 个枚举**）、`db/dbml/schema.dbml`、`db/ne4j_kindergartens/`、`docker-compose.yml`、后端 `entity/`。另有 `02_menu.sql`/`03_CommonCode.sql` 各建 1 张平台字典表（`menu` / `common_codes`），故业务表总数为 **30**（详见 §5）。
 
 ## 1. 双存储策略
 
@@ -23,7 +23,7 @@ db/initdb/01_create_schema.sql   （生成的建表 SQL）
    │  PostgreSQL 容器启动时自动执行 initdb/*.sql
    ▼
 PostgreSQL 实际表结构
-   │  scripts/codegen 内省                后端 JPA 实体（ddl-auto=validate 校验匹配）
+   │  pg-spring-crud-codegen 内省         后端 JPA 实体（ddl-auto=validate 校验匹配）
    ▼                                        ▲
 后端 Java 实体/CRUD 代码  ──────────────────┘
 ```
@@ -40,8 +40,8 @@ PostgreSQL 实际表结构
 | --- | --- | --- |
 | 00 | `00_init.sql` | 初始化 |
 | 01 | `01_create_schema.sql` | 建表（DDL，来自 DBML） |
-| 02 | `02_menu.sql` | 菜单数据 |
-| 03 | `03_CommonCode.sql` | 公共代码字典 |
+| 02 | `02_menu.sql` | **建表 `menu`** + 菜单数据 |
+| 03 | `03_CommonCode.sql` | **建表 `common_codes`** + 公共代码字典 |
 | 21–46 | `2x/3x/4x_*_seed.sql` | 各业务表种子数据（users→…→detection_events→notifications→appreciation_letters） |
 | 88 | `88_announcements_seed.sql` | 公告种子 |
 | 99 | `99_sync_sequences.sql` | 同步自增序列（种子插入后重置 identity 序列，避免主键冲突） |
@@ -59,7 +59,7 @@ PostgreSQL 实际表结构
 
 > ❓ 但应用层**当前未强制租户过滤**（后端鉴权关闭，且未见 service 层统一注入 `kindergarten_id` 过滤）。schema 提供了隔离的**结构基础**，运行时的隔离强制是否到位需核对各 service（见 [open-questions](../modernization/open-questions.md)）。
 
-## 5. 实体域划分（27 表）
+## 5. 实体域划分（核心域 28 表 + 平台字典 2 表 = 30）
 
 ✅ 按域归类：
 
@@ -68,7 +68,11 @@ PostgreSQL 实际表结构
 - **关系/排期**（带时间有效区间）：`child_class_assignments`、`class_teacher_assignments`、`class_room_assignments`、`room_camera_assignments`、`child_guardian_relationships`
 - **CCTV 与 AI**：`cctv_cameras`、`camera_streams`、`ai_models`、`detection_sessions`、`detection_events`、`event_reviews`、`event_evidence_files`
 - **通知与沟通**：`notification_rules`、`notifications`、`device_tokens`、`announcements`、`appreciation_letters`
-- **平台**：`audit_logs`（+ `menu`、`common_code` 由 02/03 脚本创建）
+- **平台**：`audit_logs`
+
+> ✅ **业务表总数 = 30**：上列 **28 张**由 `01_create_schema.sql`（DBML 派生，原作者设计）建立；另有 **2 张平台字典表**由独立脚本建立——`menu`（`02_menu.sql`，单数命名）与 `common_codes`（`03_CommonCode.sql`，复数命名）。
+>
+> ❓ **需复审（非原作者设计）**：`menu` 与 `common_codes` **不属于原作者的领域建模**，其结构、逻辑乃至命名风格与核心 28 表不一致：`menu` 用单数、`common_codes` 用复数（且文档此前一直误写为 `common_code` 单数）；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**，`common_codes` 则有 `CommonCode` 实体。是否需要重新设计/改名待评估，见 [open-questions](../modernization/open-questions.md) OQ-DATA-4。
 
 完整 ERD 图见 [db/ERD/README.md](../db/ERD/README.md)（含 Mermaid `.mmd` 与渲染 PNG：全量 ERD、幼儿园域 ERD、AI 检测与事件流程 ERD）。
 
@@ -82,7 +86,7 @@ PostgreSQL 实际表结构
 | 外键约束 | `DEFERRABLE INITIALLY IMMEDIATE`（可在事务末延迟校验） | 全部 FK |
 | 软删除 | `announcements` 有 `deleted_at`；其余多用 `status` 表达停用 | schema |
 | 枚举 | 用 PG `CREATE TYPE ... AS ENUM`，后端 `type/` 包一一对应 | schema + `type/` |
-| 敏感数据 | RRN 拆分存储；流凭证 AES-GCM 加密；密码 BCrypt | 见 [security-architecture](security-architecture.md) |
+| 敏感数据 | RRN：`rrn_first6` 明文 + 后位 **单向哈希、不可逆**（列名 `rrn_encrypted` 为历史命名错误，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）；流凭证 AES-GCM 加密；密码 BCrypt | 见 [security-architecture](security-architecture.md) |
 
 ## 7. Neo4j 加载器
 

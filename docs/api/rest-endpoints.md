@@ -53,17 +53,17 @@
 | 方法 | 路径 | 说明 | 状态 |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/auth/login` | 登录，返回 access/refresh + role | ✅ |
-| `POST` | `/api/v1/auth/logout` | 登出 | ✅（🔶 无状态下的语义待确认） |
+| `POST` | `/api/v1/auth/logout` | 登出 | ❓ **待开发占位**（`throw "Not implemented"`） |
 | `POST` | `/api/v1/auth/register` | 注册（按角色建档） | ✅ |
 | `GET` | `/api/v1/auth/register/availability` | 字段查重（loginId/email/phone） | ✅ |
 | `POST` | `/api/v1/auth/refresh` | 刷新令牌 | ✅ |
-| `PATCH` | `/api/v1/auth/password` | 修改密码 | 🔶 |
-| `POST` | `/api/v1/auth/password-resets` | 申请密码重置 | ❓ **未实现**（抛 `Not implemented`，OQ-PROD-3） |
-| `PATCH` | `/api/v1/auth/password-resets/{resetToken}` | 用令牌重置密码 | 🔶 |
-| `POST` | `/api/v1/auth/verification-codes` | 发送验证码 | 🔶 |
-| `POST` | `/api/v1/auth/verification-codes/{challengeId}/verifications` | 校验验证码 | 🔶 |
+| `PATCH` | `/api/v1/auth/password` | 修改密码 | ❓ **待开发占位**（`throw "Not implemented"`） |
+| `POST` | `/api/v1/auth/password-resets` | 申请密码重置 | ❓ **待开发占位**（抛 `Not implemented`，OQ-PROD-3） |
+| `PATCH` | `/api/v1/auth/password-resets/{resetToken}` | 用令牌重置密码 | ❓ **待开发占位**（`throw "Not implemented"`） |
+| `POST` | `/api/v1/auth/verification-codes` | 发送验证码 | ❓ **待开发占位**（`throw "Not implemented"`） |
+| `POST` | `/api/v1/auth/verification-codes/{challengeId}/verifications` | 校验验证码 | ❓ **待开发占位**（`throw "Not implemented"`） |
 
-> 标 🔶 者：端点存在，但具体实现完成度需核对对应 service（部分认证流程可能为占位）。
+> ✅ 已逐一核对 `AuthController`（2026-05-29）：上列标「待开发占位」的端点方法体当前均为 `throw new IllegalArgumentException("Not implemented")`，属**计划开发中的占位**（团队确认）。真正实现并连通 service 的仅 `login` / `refresh` / `register` / `register/availability`。
 
 ## 特别说明
 
