@@ -10,7 +10,7 @@
 
 | 维度 | 状态 | 说明 |
 | --- | --- | --- |
-| 领域模型 | 🟢 较成熟 | 27 表、强约束、多租户、DBML 为源 |
+| 领域模型 | 🟢 较成熟 | 核心 28 表（+ `menu`/`common_codes` 字典 2 表，共 30）、强约束、多租户、DBML 为源 |
 | 后端 API | 🟢 较完整 | 25 控制器，统一分层，OpenAPI |
 | 前端 | 🟡 部分 | 覆盖核心场景，< 后端全集；静态导出 |
 | AI 能力 | 🟡 实验性 | 训练/推理/实时告警齐备，但未与业务闭环 |
@@ -25,14 +25,14 @@
 - ✅ **数据库优先 + 代码生成**：DBML→SQL→codegen 链路一致、可重复。
 - ✅ **强数据约束**：复合外键、唯一索引、`timestamptz`、统一状态枚举，schema 质量高。
 - ✅ **多租户结构基础**：`kindergarten_id` 复合键从结构上防止跨租户串联。
-- ✅ **合规意识**：证据文件保留期/法务保全/哈希、RRN 拆分存储、流凭证 AES-GCM、审计表。
+- ✅ **合规意识**：证据文件保留期/法务保全/哈希、RRN 拆分存储（后位**单向哈希、不可逆**，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、流凭证 AES-GCM、审计表。
 - ✅ **AI 工程化细节**：实时告警的持续性规则（去抖）、黑屏门控、冷却、断线重连，体现实战考量。
 
 ## 技术债与缺口（事实陈述）
 
 > 以下为**客观记录**，对应编号见 [open-questions.md](open-questions.md)。
 
-1. **安全未强制** ✅：鉴权关闭（OQ-SEC-1）、access/refresh 无别（OQ-SEC-2）、默认密钥（OQ-SEC-3/5）、RRN 加密/哈希矛盾（OQ-SEC-4）、DEBUG 日志（OQ-SEC-6）、审计落地存疑（OQ-SEC-7）、运行时租户隔离存疑（OQ-SEC-8）。
+1. **安全未强制** ✅：鉴权关闭（OQ-SEC-1，已决 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)）、access/refresh 无别（OQ-SEC-2）、默认密钥（OQ-SEC-3/5）、RRN 命名/注释误导（OQ-SEC-4，已决：单向哈希，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、DEBUG 日志（OQ-SEC-6）、审计落地存疑（OQ-SEC-7）、运行时租户隔离存疑（OQ-SEC-8）。
 2. **AI 与业务断链** ✅：检测不落库，闭环未通（OQ-AI-1）；训练配置/数据集未文档化（OQ-AI-2）。
 3. **无测试基线** ✅：三端均无自动化测试（OQ-TEST-1）——任何改动缺回归保护。
 4. **运维不成熟** ✅：CI 删卷（OQ-OPS-1）、无 TLS（OQ-OPS-3）、可观测性弱、无系统告警。

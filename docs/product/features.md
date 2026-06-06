@@ -2,14 +2,14 @@
 
 本清单把产品能力映射到**后端 API 控制器**与**数据表**，便于从功能快速定位实现。
 
-✅ 来源：`backend/.../controller/`（25 个控制器）、`db/initdb/01_create_schema.sql`（27 张表）、前端 `frontend/src/app/` 路由。完整端点见 [api/rest-endpoints.md](../api/rest-endpoints.md)。
+✅ 来源：`backend/.../controller/`（25 个控制器）、`db/initdb/01_create_schema.sql`（28 张表）+ `02_menu.sql`/`03_CommonCode.sql`（`menu`/`common_codes` 字典 2 表）= 共 30 张、前端 `frontend/src/app/` 路由。完整端点见 [api/rest-endpoints.md](../api/rest-endpoints.md)。
 
 ## 1. 认证与账户
 
 | 能力 | API 控制器 | 主要数据表 | 状态 |
 | --- | --- | --- | --- |
 | 注册（分角色建档） | `AuthController` `/auth/register` | `users`,`user_role_assignments`,`guardians`/`teachers`/`superadmins` | ✅ |
-| 登录 / 刷新 / 登出 | `AuthController` `/auth/login` `/refresh` `/logout` | `users`,`user_role_assignments` | ✅ 登录/刷新；登出🔶 |
+| 登录 / 刷新 / 登出 | `AuthController` `/auth/login` `/refresh` `/logout` | `users`,`user_role_assignments` | ✅ 登录/刷新；**登出=待开发占位**（`throw "Not implemented"`） |
 | 注册字段查重（loginId/email/phone） | `AuthController` | `users` | ✅ |
 | 密码重置 | `AuthController` `/auth/password-resets` | — | ❓ **未实现**（抛 `Not implemented`） |
 
@@ -72,11 +72,13 @@
 
 | 能力 | 控制器 | 数据表 |
 | --- | --- | --- |
-| 公共代码（字典） | `CommonCodeController` | `common_code`（🔶 由 `03_CommonCode.sql` 初始化） |
-| 菜单（按角色） | `MenuController` | `menu`（🔶 由 `02_menu.sql` 初始化） |
+| 公共代码（字典） | `CommonCodeController` | `common_codes`（🔶 由 `03_CommonCode.sql` 建表+初始化） |
+| 菜单（按角色） | `MenuController` | `menu`（🔶 由 `02_menu.sql` 建表+初始化；后端**无 `Menu` 实体**） |
 | 审计日志 | `AuditLogController` | `audit_logs` |
 
-🔶 **推断**：`menu` + `common_code` 支撑前端的**角色化菜单**与下拉字典。`audit_logs` 记录操作审计（action/resource/ip/user_agent），但是否在各写操作中被实际写入需核对各 Service（❓）。
+🔶 **推断**：`menu` + `common_codes` 支撑前端的**角色化菜单**与下拉字典。`audit_logs` 记录操作审计（action/resource/ip/user_agent），但是否在各写操作中被实际写入需核对各 Service（❓）。
+
+> ❓ **需复审（非原作者设计）**：`menu`、`common_codes` 不属于原作者的领域建模，命名/结构与核心表不一致（`menu` 单数、`common_codes` 复数；`menu` 无后端实体），是否改名/重设计待评估，见 [open-questions](../modernization/open-questions.md) OQ-DATA-4。
 
 ## 前端页面（✅ 来自 `frontend/src/app/`）
 

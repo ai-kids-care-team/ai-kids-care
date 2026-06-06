@@ -71,13 +71,13 @@ Accepted
 
 **§6 多 Agent 规则（B）**
 
-- **单一规范 Agent 指令源**为本仓库 `CLAUDE.md`（中文）；`AGENTS.md` / `.cursorrules` / `GEMINI.md` 等若引入，须为**精简派生或指针**，禁各自扩写以防内容分叉；语言规则带英文 ID（`RULE-LANG-01`…）。
+- **单一规范 Agent 指令源**为本仓库 `.agents/AGENTS.md`（中文）；根目录 `CLAUDE.md` 通过 `@.agents/AGENTS.md` import 指令引用该文件（Claude Code harness 展开），`AGENTS.md` 为含 import 指令的最小指针文件；两者均为真实文件而非软链，任何平台 clone 后开箱即用；`.cursorrules` / `GEMINI.md` 等若引入，须为**精简派生或指针**，禁各自扩写以防内容分叉；语言规则带英文 ID（`RULE-LANG-01`…）。
 - Agent **产出 / 编辑**语言 = 目标文件 `lang_sot` 或 locale；**对话 / 回复**语言跟随人类用户（当前中文）。
 - Agent **不得**：翻译骨架集、绕过 glossary 造词、把新决策写成非中文塞入 KB、把 i18n 之外的可弃派生当作真相引用或手改。
 
 **§7 执行与变更**
 
-- 以 `CLAUDE.md` 的 Agent 规则为主要约束手段（适配单人 + Agents 现实），CI 从轻。
+- 以 `.agents/AGENTS.md` 的 Agent 规则为主要约束手段（适配单人 + Agents 现实），CI 从轻。
 - **唯一硬门禁**：发布前 `ko` locale 对所有消息键**完整且经负责人校对定稿**（缺键或未校对阻断发布）。
 - 本策略重大变更须经新 ADR，不得悄改。
 
@@ -106,7 +106,7 @@ Accepted
 
 ## 关联（References）
 
-- [CLAUDE.md](../../../CLAUDE.md) — Language Policy 段（本 ADR 的摘要与入口）
+- [.agents/AGENTS.md](../../../.agents/AGENTS.md) — Language Policy 段（本 ADR 的摘要与入口）；根目录 `CLAUDE.md` 与 `AGENTS.md` 均为指向此文件的软链
 - [docs/README.md](../../README.md) — 语言说明
 - [docs/product/glossary.md](../../product/glossary.md) — 中/韩/英受控词表
 - [modernization/open-questions.md](../../modernization/open-questions.md) — OQ-LANG-6（i18n 机制选型）

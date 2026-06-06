@@ -1,6 +1,6 @@
 # 后端开发指南（Backend Guide）
 
-✅ 来源：`backend/`、`scripts/codegen/`。架构总览见 [architecture/backend-architecture.md](../architecture/backend-architecture.md)。
+✅ 来源：`backend/`、`pg-spring-crud-codegen/`（原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)）。架构总览见 [architecture/backend-architecture.md](../architecture/backend-architecture.md)。
 
 ## 包结构速查
 
@@ -31,11 +31,11 @@ com.ai_kids_care.v1
 
 ## 代码生成器：从一张表生成 CRUD 骨架
 
-✅ `scripts/codegen/`（Python + psycopg + pystache）。流程见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)。
+✅ `pg-spring-crud-codegen/`（Python + psycopg + pystache）。流程见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md) 与 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
 
 它内省 PostgreSQL，按 `templates/*.mustache` 为每张表生成 6 类文件：`CreateDTO`、`UpdateDTO`、`Mapper`、`VO`、`Controller`、`Service`。
 
-✅ 通过环境变量配置（`scripts/codegen/main.py`）：
+✅ 通过环境变量配置（`pg-spring-crud-codegen/main.py`）：
 
 | 变量 | 含义 | 示例 |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ com.ai_kids_care.v1
 运行（🔶 推断的典型用法）：
 
 ```bash
-cd scripts/codegen
+cd pg-spring-crud-codegen
 cp .env.example .env      # 填入上述变量
 pip install -r requirements.txt
 python main.py            # 生成到 OUT_JAVA

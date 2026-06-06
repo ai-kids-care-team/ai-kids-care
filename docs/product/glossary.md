@@ -66,7 +66,7 @@
 
 | 中文 | English | 代码载体 / 说明 |
 | --- | --- | --- |
-| 主民登录号（身份证号） | Resident Registration Number (RRN) | 韩国 주민등록번호。存储拆分为 `rrn_first6`（前6位=出生日期，明文，用于检索）+ `rrn_encrypted`（后位，加密/哈希存储） |
+| 主民登录号（身份证号） | Resident Registration Number (RRN) | 韩国 주민등록번호。存储拆分为 `rrn_first6`（前6位=出生日期，明文，用于检索）+ `rrn_encrypted`（后位，**单向哈希、不可逆**；列名 `rrn_encrypted` 为历史命名错误，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)） |
 | 多租户隔离键 | Tenant key | `kindergarten_id`（几乎所有业务表都带此列，并进入复合唯一键/外键） |
 | 流凭证加密 | Stream credential encryption | `camera_streams.stream_password_ciphertext` + `_iv` + `_key_version`（AES-GCM，见 `AesGcmCryptoUtil`） |
 | 审计日志 | Audit log | `audit_logs` |

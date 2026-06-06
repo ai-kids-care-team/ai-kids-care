@@ -39,6 +39,8 @@
 ✅ 该状态与前端实现**不一致**：前端 `apiClient.ts` 完整实现了 Bearer 注入、401 刷新、强制登录，且注释记录"部分端点对无认证调用返回 401"。这强烈暗示**鉴权曾经是开启的**，当前为开发/演示而临时放开（🔶 推断），而非设计终态。
 
 > 处置与意图判定见 [open-questions](../modernization/open-questions.md)（OQ-SEC-1）。
+>
+> ✅ **结论（2026-05-29，团队确认）**：当前 `permitAll` + 过滤器注释为**临时演示态**，计划在**第一轮重构完成后恢复**鉴权强制。
 
 ## 3. JWT 设计细节（已确认）
 
@@ -56,11 +58,13 @@
 | 数据 | 处理方式 | 证据 |
 | --- | --- | --- |
 | 用户密码 | BCrypt 单向哈希 | `AuthService.register` |
-| 主民登录号 RRN | 拆分：`rrn_first6`（前6位/出生日期，**明文**，用于检索）+ `rrn_encrypted`（后位） | schema 列注释 |
-| RRN 后位的"加密" | ✅ `AuthService` 中实际用 **`passwordEncoder.encode()`（BCrypt 单向哈希）** 写入 `rrn_encrypted` | `registerGuardian`/`registerTeacher` |
+| 主民登录号 RRN | 拆分：`rrn_first6`（前6位/出生日期，**明文**，用于检索）+ `rrn_encrypted`（后位，**实为单向哈希；列名为历史命名错误**，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)） | schema 列注释（误导性，见下） |
+| RRN 后位的保护 | ✅ `AuthService` 中用 **`passwordEncoder.encode()`（BCrypt 单向哈希，不可逆）** 写入 `rrn_encrypted`——**不可解密** | `registerGuardian`/`registerTeacher` |
 | 摄像头流密码 | AES-256-GCM 可逆加密，密文+IV+key_version 分列存储 | `AesGcmCryptoUtil` + `camera_streams` 列 |
 
-> ❓ **不一致点**（OQ-SEC-4）：schema 注释称 RRN 为"암호문(암호화 저장)"（密文/加密存储，暗示可逆），但代码用 BCrypt（**不可逆**）。同时仓库提供了可逆的 `AesGcmCryptoUtil`。RRN 究竟应**可逆加密**（以便展示/核验）还是**单向哈希**（仅校验），当前实现与注释/工具能力矛盾，需确认权威方案。
+> ✅ **已决（2026-05-29，OQ-SEC-4，[ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）**：RRN **采用单向哈希、不可逆**；**不**使用任何形式的可逆加密。
+>
+> 即：列名 `rrn_encrypted` + schema 注释"암호문(암호화 저장)" + 派生到本知识库的多处"加密"措辞**均为错误/误导性表述**，不反映系统设计意图。代码现状（BCrypt）方向正确。哈希算法的子选项（BCrypt 现状 vs HMAC-SHA-256+pepper）与列改名（`rrn_encrypted` → `rrn_hash`）留待 Implementation，详见 ADR-0010 勘误清单。
 
 ## 5. 传输与网络
 
@@ -82,4 +86,4 @@
 
 ## 安全相关待确认项索引
 
-详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭）、OQ-SEC-2（access/refresh 无别）、OQ-SEC-3（JWT secret 默认值/单位）、OQ-SEC-4（RRN 加密 vs 哈希）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（DEBUG 日志）、OQ-SEC-7（审计落地）。
+详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭，已决 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)）、OQ-SEC-2（access/refresh 无别）、OQ-SEC-3（JWT secret 默认值/单位）、OQ-SEC-4（RRN 哈希策略 / 命名勘误，已决 → [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（DEBUG 日志）、OQ-SEC-7（审计落地）。

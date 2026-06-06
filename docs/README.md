@@ -63,7 +63,7 @@ AI Kids Care 是面向**幼儿园安全管理**的 AI 平台：通过 CCTV 视�
 - **backend** — Spring Boot 3.2.5 / Java 21，REST API
 - **ai** — FastAPI + PyTorch（VideoMAE）视频分类与实时告警
 - **db** — PostgreSQL 16（关系型）+ Neo4j 5.19（关系图）
-- 配套：`scripts/codegen`（代码生成器）、`jenkins`（CI）、`docker-compose`（整栈编排）
+- 配套：`pg-spring-crud-codegen`（代码生成器，原 `scripts/codegen`，2026-05-29 迁址，见 ADR-0011）、`jenkins`（CI）、`docker-compose`（整栈编排）
 
 详见 [architecture/system-overview.md](architecture/system-overview.md)。
 

@@ -17,7 +17,7 @@ Accepted (Retrospective)
 ## 背景
 
 ✅ 后端各业务模块结构高度同构：`controller → service → repository → entity`，配合 `dto`（入）/`vo`（出）/`mapper`（MapStruct）。
-✅ 仓库内含 `scripts/codegen/`——一个 Python 工具，内省 PostgreSQL schema（表/列/主键/外键/注释）后用 Mustache 模板生成 6 类 Java 文件（CreateDTO/UpdateDTO/Mapper/VO/Controller/Service）。
+✅ 仓库内含 `pg-spring-crud-codegen/`（**原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](ADR-0011-extract-codegen-subproject.md)**）——一个 Python 工具，内省 PostgreSQL schema（表/列/主键/外键/注释）后用 Mustache 模板生成 6 类 Java 文件（CreateDTO/UpdateDTO/Mapper/VO/Controller/Service）。
 ✅ 后端 `ddl-auto=validate`：Hibernate 不建表，仅校验实体与既有表匹配。
 
 ## 决策
@@ -30,7 +30,7 @@ Accepted (Retrospective)
 - **代价 / 风险**：
   - 🔶 codegen 是**一次性脚手架**，与生成后代码无双向绑定；schema 变更需手工同步实体（否则 `validate` 启动失败）。
   - 同构样板代码量大。
-- **影响范围**：`backend/`、`scripts/codegen/`、`db/`。
+- **影响范围**：`backend/`、`pg-spring-crud-codegen/`（原 `scripts/codegen/`）、`db/`。
 
 ## 考虑过的备选
 

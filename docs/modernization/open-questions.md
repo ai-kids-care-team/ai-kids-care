@@ -12,6 +12,7 @@
 - **证据** ✅：`SecurityConfig.java` 中 `/api/v1/**` 为 `permitAll()`，且 `addFilterBefore(jwtAuthFilter, ...)` 被注释。
 - **为何重要**：全部业务 API 对无凭证请求开放；角色/多租户模型未被强制执行。
 - **观察**：前端实现了完整 JWT/refresh 且注释提到遇到过 401 → 🔶 推断鉴权曾开启、当前为开发/演示临时放开。需确认目标态与开启时机。
+- **结论（2026-05-29，团队确认）** ✅：`permitAll` + 过滤器注释为**临时演示态**；计划在**第一轮重构完成后恢复**鉴权强制。→ 属安全态/架构决策，已 **Accept** [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)（2026-05-29 签署；落地待 Implementation）。
 
 ### OQ-SEC-2 ｜access 与 refresh 令牌为何无区分？
 - **证据** ✅：`AuthService.login()` 用同一 `generateToken(identifier)` 生成两者，无类型 claim、无独立过期。
@@ -27,6 +28,7 @@
 - **证据** ✅：schema 注释称 `rrn_encrypted` 为"암호문/암호화 저장"（密文，暗示可逆）；但 `AuthService` 用 `passwordEncoder.encode()`（BCrypt 单向）。仓库另有可逆的 `AesGcmCryptoUtil`。
 - **为何重要**：若业务需展示/核验 RRN，则需可逆加密；BCrypt 无法解密。实现与注释/工具能力矛盾。
 - **观察**：RRN 的权威保护方案待定。
+- **结论（2026-05-29，团队确认）** ✅：RRN **采用单向哈希（不可逆）**，**不使用可逆加密**。即当前 `passwordEncoder.encode()`（BCrypt）方向正确；但列名 `rrn_encrypted` 与注释"암호문(암호화 저장)"属**误导性命名/注释**，应在后续修订（列改名/注释更正属 schema 变更，留待 Implementation）。已 **Accept** [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)（2026-05-29 签署；**哈希算法选定 HMAC-SHA-256 + pepper**；落地待 Implementation）。**进一步澄清（2026-05-29）**：现存所有把 RRN 描述为"可逆加密"或"암호문"的文字均为错误，须按 ADR-0010 勘误清单一并修正。
 
 ### OQ-SEC-5 ｜`.env` 内容与默认凭据
 - **证据** ✅：根目录有 `.env`（89B）；compose/yml 含明文默认 `kids_pass`/`rose100!`/JWT secret。
@@ -56,6 +58,7 @@
 - **证据** ✅：`ai/` 全目录无 DB/后端调用；实时告警仅 Pushover/SMS + CSV。`detection_events` 等靠种子。
 - **为何重要**：这是产品完整性的核心——"检测→落库→复核→展示→通知"闭环未连通。根 README 称实时链路为"实验"。
 - **观察**：闭环是计划中的下一步，还是有意保持解耦？集成契约（谁写库、用何协议）待定。
+- **结论（2026-05-29，团队确认）** ✅：闭环（检测→落库→复核→展示→通知）是**计划中的下一步，但当前尚未打通/连接**。集成契约（谁写库、用何协议）仍待 Design 阶段确定。
 
 ### OQ-AI-2 ｜训练配置与数据集来源
 - **证据** ✅：`configs/{train,eval,infer}.yaml` 为空；训练超参在脚本内；数据集来源/标签体系未文档化。
@@ -75,6 +78,7 @@
 - **证据** ✅：`Jenkinsfile` 执行 `docker compose down --volumes`，清空 `postgres_data`/`neo4j_data`。
 - **为何重要**：演示环境=每次重置（合理）；生产=数据丢失（严重）。
 - **观察**：目标部署环境是哪种？
+- **结论（2026-05-29，团队确认）** ✅：当前面向**演示重置**（每次清库重建），符合预期。**生产环境将一并去除「删卷」与「插入 seed」两步流程**（届时需独立的生产部署流水线）。已 **Accept** [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)（2026-05-29 签署；推荐 Flyway/Liquibase 作 schema 迁移；落地待 Implementation）。
 
 ### OQ-OPS-2 ｜Redis 的角色
 - **证据** ✅：`db/redis-docker-compose.yml` 存在，且 `db/README.md` 开头提到"redis 으로 user 테이블…"；但根 compose 与后端依赖中**未见 Redis**。
@@ -107,6 +111,12 @@
 - **证据** ✅：`sent_at`、`fail_reason`、`retry_count` 等为 `NOT NULL`，但语义上新建通知时可能尚无值。
 - **观察**：是否应放宽为可空？（事实记录，不下结论）
 
+### OQ-DATA-4 ｜`menu` / `common_codes` 两张平台字典表的设计复审
+- **证据** ✅：`02_menu.sql` 建 `menu`（单数）、`03_CommonCode.sql` 建 `common_codes`（复数）；二者命名风格与核心 28 表不一致；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**；本知识库此前误写为 `common_code`（单数）。
+- **背景（2026-05-29，团队确认）**：这两张表**非原作者设计**，其结构/逻辑/命名可能存在潜在问题。
+- **观察**：是否需要重新设计、统一命名规范、补齐缺失实体？「是否有更改设计的必要性」待评估——提案见 [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md)。
+- **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md)（2026-05-29 签署）。`menu` → **C 静态方案**（移至前端配置 / 移除 DB 表+Controller+seed / 文案改 i18n 键）；`common_codes` → **β 后端枚举元数据端点 + 前端 i18n**（新增极小 `GET /api/v1/enums/{name}` 反射 Java enum / 移除 `common_codes` 表 + 全部 CRUD 栈 / 前端用 labelKey 解 i18n / 加 CI 校验"PG enum = Java enum"）；落地待 Implementation。
+
 ---
 
 ## 产品（PROD）
@@ -120,9 +130,10 @@
 - **证据** ✅：班级/教室/保护者等完整 CRUD 在前端无对应页面。
 - **观察**：是按场景裁剪，还是前端未完成？
 
-### OQ-PROD-3 ｜密码重置未实现
-- **证据** ✅：`AuthService.passwordResets` 抛 `Not implemented`。
+### OQ-PROD-3 ｜密码重置未实现（及其余 `Not implemented` 占位端点）
+- **证据** ✅：`AuthService.passwordResets` 抛 `Not implemented`；`AuthController` 中 `logout`、`changePassword`、`password-resets/{token}`、两个 `verification-codes` 端点同样 `throw "Not implemented"`。
 - **观察**：是否为待开发功能？
+- **结论（2026-05-29，团队确认）** ✅：上述全部 `Not implemented` 端点均为**「待开发」占位**（非废弃）。已连通 service 的认证端点仅 `login`/`refresh`/`register`/`register/availability`。
 
 ### OQ-PROD-4 ｜角色档案复用（KINDERGARTEN_ADMIN↔TEACHER、PLATFORM_IT_ADMIN↔SUPERADMIN）
 - **证据** ✅：注册逻辑复用同一档案，代码注释 `// 관리자는 없어서 같이 공유함`。
@@ -139,6 +150,12 @@
 ### OQ-ARCH-2 ｜统一错误处理与响应格式
 - **证据** 🔶：未见 `@ControllerAdvice`；service 抛通用异常。
 - **观察**：错误响应契约是否需统一（影响前端处理）？
+
+### OQ-ARCH-3 ｜`pg-spring-crud-codegen` 拆分为独立工程的意图
+- **证据** ✅：代码生成器位于 `pg-spring-crud-codegen/`（**2026-05-29 由 `scripts/codegen/` 迁入**，旧路径仅留 README 软指针）。Python + psycopg + pystache，见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md) 与 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
+- **背景（2026-05-29，团队确认）**：`pg-spring-crud-codegen` 原意是把「通过数据库逆向工程自动生成 Java 代码」的能力**分离为独立子工程**，以便后期从本仓库拆出。
+- **观察**：拆分时机/边界/产物归属待定；属 module-boundary 变更，提案见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
+- **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)（`pg-spring-crud-codegen` = `scripts/codegen` 同一 Python 工具的预留迁址位置，非重写；执行方案 A 仓内迁址 + 软指针，日后 `git filter-repo` 带史拆出）。**实施记录（2026-05-29）**：迁址完成；docker-compose 相对路径已修正；两处 README 就位；CODEOWNERS 已补条目；13 处内部引用已切换。
 
 ### OQ-TEST-1 ｜测试策略
 - **证据** ✅：后端/前端/AI 均无自动化测试。

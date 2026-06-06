@@ -59,9 +59,9 @@ HTTP 请求
 
 ## 3. 代码生成器（关键架构事实）
 
-✅ **后端 CRUD 各层的高度同构，源于一个代码生成器**：`scripts/codegen/`（Python）。
+✅ **后端 CRUD 各层的高度同构，源于一个代码生成器**：`pg-spring-crud-codegen/`（Python；原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)）。
 
-`scripts/codegen/main.py` 的流程：
+`pg-spring-crud-codegen/main.py` 的流程：
 
 ```text
 PostgreSQL schema
