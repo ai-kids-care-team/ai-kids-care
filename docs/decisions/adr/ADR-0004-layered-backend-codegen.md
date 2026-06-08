@@ -34,8 +34,8 @@ Accepted (Retrospective)
 
 ## 考虑过的备选
 
-- ❓ 运行时由 Hibernate 建表（`ddl-auto=update`）——未采用，选择了 SQL 优先 + validate（更可控、可审计）。
-- ❓ 手写每个 CRUD——被 codegen 取代以提效。
+- ✅ **运行时由 Hibernate 建表（`ddl-auto=update`）——未采用（理由已确认 2026-06-07，维护者）**：刻意采用 **DB-first**——先 Plan/设计 schema 再实现的工程化工作方式，而非小项目"想到哪写到哪"的 ORM 即兴建表；故 schema 由 DBML→SQL 掌控、Hibernate 仅 `validate` 校验。
+- ✅ **手写每个 CRUD——未采用（理由已确认 2026-06-07，维护者）**：出于**效率**与**代码风格统一性**，改用 code generator 先生成 CRUD 骨架（脚手架），再由人工在其上增删——即"codegen 脚手架 + 人工补全"，而非全手写。
 
 ## 关联
 
