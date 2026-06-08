@@ -2,7 +2,7 @@
 
 > 对系统当前状态的**客观、事实性**评估。区分优点、技术债、风险。**不提供修复方案**（Discovery 模式）；处置由团队在 Design 模式下决定。
 >
-> 基线时间：**2026-05-29**。
+> 基线时间：**2026-05-29**；另附 **2026-06-07 独立复核记录**（见文末「独立复核记录」一节）。
 
 ## 成熟度概览
 
@@ -38,6 +38,7 @@
 4. **运维不成熟** ✅：CI 删卷（OQ-OPS-1）、无 TLS（OQ-OPS-3）、可观测性弱、无系统告警。
 5. **一致性/完整性小问题**：`relationship_enum` 取值不足（OQ-DATA-2）、`notifications` NOT NULL 过严（OQ-DATA-3）、无统一异常处理（OQ-ARCH-2）、密码重置未实现（OQ-PROD-3）、角色档案复用（OQ-PROD-4）。
 6. **派生数据新鲜度** ✅：Neo4j 一次性加载，无增量同步（OQ-DATA-1）。
+7. **列表 `keyword` 过滤多为空操作** ✅（2026-06-07 复核）：17 个列表端点暴露 `keyword` 参数，其中 **14 个静默忽略**（service 直接 `repository.findAll(pageable)` + 统一注释 `// TODO: filter X by keyword`），仅 3 个真正实现（Kindergarten/Announcement/Teacher）。属「伪实现」——Swagger 宣称可搜索但实际不过滤、返回 HTTP 200 无报错（OQ-ARCH-4）。
 
 ## 风险摘要
 
@@ -54,3 +55,25 @@
 系统定位为"长期生产系统"。当前状态在**可维护性**（分层、codegen、强 schema）上基础良好，但在**业务正确性的端到端保障**（安全强制、AI 闭环、测试）上存在明显缺口。本评估旨在"改善理解"，为后续在 Design 模式下、以 ADR 形式推进改进提供事实依据。
 
 > 下一步的工作**登记**（非方案）见 [roadmap.md](roadmap.md)。
+
+## 独立复核记录（2026-06-07）
+
+> 由接手人以「资深架构师」视角对本评估做**独立的代码级复核**（逐条拉到源码/配置核对，而非复述文档）。仍遵循 Discovery 模式：只记录事实，不在此给方案。
+
+**方法**：将 2026-05-29 评估与各 ADR 的关键论断逐条对照源码——鉴权、默认密钥、CI 删卷、AI 解耦、表数量、全局异常处理、测试缺失、占位端点等。
+
+**总体结论** ✅：**文档与代码漂移极低，知识库可信**。下列论断均经直接验证成立：
+
+- 鉴权关闭：`SecurityConfig.java:48` `/api/v1/**` 为 `permitAll()` + `:51` JWT 过滤器注释。
+- 默认密钥：`application.yml:27` JWT secret 默认值；compose 中 `kids_pass` / `rose100!`。
+- DEBUG 日志：`application.yml:32` `root: DEBUG`。
+- CI 删卷：`Jenkinsfile` `docker compose down --remove-orphans --volumes --rmi local`。
+- AI 解耦：整个 `ai/` 目录唯一的 `requests` 引用在 `utils/pushover.py`（调外部告警 API），无任何 DB / 后端 HTTP 调用——「检测→落库」物理上不存在（佐证 [OQ-AI-1](open-questions.md)）。
+- 表数量：`01_create_schema.sql` 精确 **28 张业务表**（+ `menu`/`common_codes` = 30）。
+- 无全局异常处理：后端**零** `@ControllerAdvice`/`@ExceptionHandler`，service 抛 `IllegalArgumentException`/`EntityNotFoundException`（佐证 [OQ-ARCH-2](open-questions.md)）。
+- 测试缺失：`backend/src/test/` 为空目录（佐证 [OQ-TEST-1](open-questions.md)）。
+
+**本次新增的两项事实**（此前知识库未单列）：
+
+1. **列表 `keyword` 过滤多为静默空操作** → 已登记 [OQ-ARCH-4](open-questions.md)（含 17/14/3 精确分布与影响分析）。
+2. **注释级文档漂移（低）**：`frontend/src/config/api.ts:3` 注释称「백엔드 디버그 포트(8081)」，但同文件默认值为 `http://localhost:8080/api/v1`（端口 8080）。属无害但易误导的注释陈旧，建议 Implementation 时顺手勘误；无需团队决策，故不单列 OQ。

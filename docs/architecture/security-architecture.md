@@ -15,6 +15,8 @@
 | CORS | `SecurityConfig` 允许 localhost(:80/:3000)、127.0.0.1、`frontend` 源，允许凭证 |
 | 会话 | `SessionCreationPolicy.STATELESS`（无服务端会话） |
 
+> ⚠️ **前瞻（2026-06-07）**：上表描述**当前代码**（JWT + 无状态）。会话机制已决定**改为服务端 session**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 取代 [ADR-0007](../decisions/adr/ADR-0007-jwt-stateless-auth.md)）：Spring Session + Redis + `httpOnly`/`Secure`/`SameSite` cookie，弃用 `JwtUtil`/`JwtAuthenticationFilter`。落地见 ADR-0016（排在 ADR-0009 前）。
+
 ## 2. 当前鉴权态势（关键事实）
 
 > ❓ **重要：API 当前未受鉴权保护。**
@@ -52,6 +54,8 @@
 - ✅ JWT secret 有硬编码默认值 `mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong`（`application.yml` / compose fallback）。
 
 > ❓ 见 OQ-SEC-2（access/refresh 无区分）、OQ-SEC-3（secret 默认值与单位混淆）。
+>
+> ⚠️ **前瞻（2026-06-07）**：会话机制改为服务端 session（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）后，本节 JWT 专属细节（access/refresh、claim、`expireSecond` 单位、JWT secret）**作废**，OQ-SEC-2/3 随之消解；改由 session 超时 + Redis + cookie 安全属性 + CSRF 承担。
 
 ## 4. 敏感数据保护（已确认）
 
@@ -70,6 +74,8 @@
 
 - ✅ 生产经 Nginx：浏览器→`:80`→`/api/`反代→`backend:8080`（HTTP）。仓库内**未见 TLS/HTTPS 配置**（🔶 推断由外层基础设施终结 TLS，或仅用于内网/演示）。
 - ✅ CORS 显式允许 `allowCredentials=true` 且来源限定 localhost/frontend，与"前端 JS 携带 token"模式一致。
+
+> ⚠️ **前瞻（2026-06-07）**：[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 的 `Secure` 会话 cookie 使 **HTTPS 成为生产硬要求**（`Secure` cookie 在 HTTP 下不发送）——TLS 由"待确认"升级为硬前置，已立 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)（边缘反代终结 + HTTP→HTTPS + HSTS，决断 OQ-OPS-3）。
 
 ## 6. 凭据管理
 

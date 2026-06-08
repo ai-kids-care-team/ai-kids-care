@@ -3,27 +3,41 @@
 > 本文档跟踪**已 Accept 的 ADR 的实施进度**，并把每篇 ADR 的「落地范围」展开为可勾选清单。每篇 ADR 落地遵循 [`CLAUDE.md`](../../CLAUDE.md) 的会话规则——**单一目标、改动小、可独立评审、仓库始终可工作**。
 >
 > 基线：2026-05-29（5 篇前瞻 ADR Accept 当日）。本文从 placeholder 升级为实际路线图。
+>
+> **修订（2026-06-07，接手复核后）**：新增 [ADR-0014 测试基线](../decisions/adr/ADR-0014-test-baseline.md) 与 [ADR-0015 AI 检测闭环](../decisions/adr/ADR-0015-ai-detection-closed-loop.md)，**均于 2026-06-07 Accept、实现委派独立 session**（0015 = V1：AI 直写 PG + 后端 LISTEN/NOTIFY，通知复核后发家长，并勘误 ADR-0002/0006 中"后端唯一写入者/AI 不连库"的误记）；并把"全局异常处理（OQ-ARCH-2）""keyword 空操作（OQ-ARCH-4）"两项低成本高杠杆改动排入次序。另：**ADR-0016 服务端会话鉴权**（Spring Session + Redis，取代 ADR-0007）亦于 2026-06-07 Accept、**排在 ADR-0009 之前**、实现委派独立 session。**ADR-0017（TLS/HTTPS，由 0016 硬触发）与 ADR-0018（通知子系统）** 亦于 2026-06-07 Accept、实现委派独立 session。状态列已标明。
 
 ## 状态总览
 
 | 顺序 | ADR | 决策摘要 | 状态 | 复杂度 |
 | --- | --- | --- | --- | --- |
 | 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** | 小 |
-| 2 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | 📋 **Backlog（next）** | 中 |
-| 3 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
-| 4 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
-| 5 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（含 access/refresh 区分、role claim、secret 外部化） | 📋 Backlog | 高 |
+| 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Accepted (2026-06-07)，next（实现委派独立 session）** | 中 |
+| 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | 📋 Backlog | 中 |
+| 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
+| 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
+| 6 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
+| 7 | [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制（ADR-0016 `Secure` cookie 硬前置） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
+| 8 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（机制改为 **session**，见 ADR-0016） | 📋 Backlog | 高 |
+| 9 | [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) | 通知子系统（后端发、**家长复核后**通知） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
+| 10 | [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) | AI 检测闭环集成契约（终态；V1 AI 直写 PG + 后端 LISTEN/NOTIFY） | ✅ **Accepted (2026-06-07)，终态（实现委派独立 session）** | 高 |
 
-## 实施次序（已确认 2026-05-29）
+## 实施次序（2026-06-07 修订）
 
-**0011 → 0012 → 0013 → 0010 → 0009**（按风险递增 + 依赖关系排序）
+**0011 ✅ → 0014 → 0012 → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
+
+> 原次序（2026-05-29 已确认）：`0011 → 0012 → 0013 → 0010 → 0009`。本次修订**前插 0014（测试基线）；在 0009 前插入 0016（会话机制）+ 0017（TLS）；在 0015 前插入 0018（通知子系统）；后接 0015（AI 闭环）**，未改动中间四篇的相对顺序。
 
 | 依赖说明 | 影响顺序 |
 | --- | --- |
+| 0011 是纯结构调整（零行为风险） | 排第一，作为 Implementation 工作流的安全起点 |
+| **0014 测试基线是横切前置** | 改为**第二**：0012/0013/0010/0009 均为高 blast-radius 变更，须在有回归保护下进行（[ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) 背景） |
 | 0013 / 0010 涉及 schema 变更 | 必须排在 0012（迁移基础设施）之后 |
 | 0010 引入 pepper 密钥管理范式 | 0009 复用同一路径，故 0010 在前 |
-| 0009 翻转鉴权（最高风险，需测试基础设施配套） | 排最后，前面 ADR 落地时已具备测试基线 |
-| 0011 是纯结构调整（零行为风险） | 排第一作为 Implementation 工作流的安全起点 |
+| **0016 会话机制（session）先于 0009** | 0009 直接按 session 落地，避免"先恢复 JWT 再返工"；0016 引入 Redis（已有 compose）、不改 schema、不依赖 0012 |
+| **0017 TLS（由 0016 触发）** | `Secure` cookie 需 HTTPS → 生产部署前置；与 0012 生产部署、0016 耦合，排 0016 后 |
+| 0009 翻转鉴权（最高风险） | 紧随 0016/0017；其测试前置已由 0014 提前满足 |
+| **0018 通知子系统（后端发、复核后）** | 闭环"通知"步依赖它，排 0015 前/同期；放宽 `notifications` NOT NULL 走 0012 迁移 |
+| **0015 AI 闭环（V1：AI 直写 PG）** | 排**最末**为终态；V1 用 DB 凭据直连、**不依赖 0009 后端鉴权**；通知由 0018 子系统发；实现待加固轨完成（OQ-AI 前置已解） |
 
 ---
 
@@ -42,7 +56,20 @@
 
 ---
 
-### 📋 ADR-0012 演示重置 vs 生产数据生命周期 — Next
+### ✅ ADR-0014 测试基线 — Next（Accepted 2026-06-07；实现委派独立 session）
+
+> 详见 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)。范围刻意收窄为"薄而可工作的基线"。**本清单由独立 Implementation session 执行**（设计 session 不落地代码）。
+
+- [ ] backend 加 Testcontainers（PostgreSQL）依赖；确认 CI 节点可用 Docker（Jenkins agent socket/DinD）
+- [ ] 建集成测试基类：一次性 Postgres 容器 + 真实 `db/initdb/*.sql` 建库 → 顺带守护 `ddl-auto=validate`
+- [ ] 首批 characterization 测试：4 个真实认证端点（`/auth/login` `/refresh` `/register`、`GET /auth/register/availability`）+ 2~3 个代表性 CRUD 读路径
+- [ ] `Jenkinsfile` 在部署 stage **之前**加 `./gradlew test` 门禁
+- [ ] 文档同步：`engineering/testing.md`、[ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 解除其测试前置依赖
+- [ ] **显式不做**：全量覆盖、前端/AI 测试栈、E2E（后续）
+
+---
+
+### 📋 ADR-0012 演示重置 vs 生产数据生命周期 — After 0014
 
 - [ ] backend `build.gradle` 加 Flyway（或 Liquibase）插件 + 依赖
 - [ ] 创建 `backend/src/main/resources/db/migration/V1__initial_baseline.sql`（内容 = 当前 `01_create_schema.sql`，作为基线）
@@ -89,12 +116,39 @@
 - [ ] DBML 同步更新；ERD `.mmd` 由 schema 重新派生（**不手工编辑**）
 - [ ] `AuthService.registerGuardian` / `registerTeacher`：用 `RrnHashUtil` 替换 `passwordEncoder.encode()` 写入 `rrn_hash`
 - [ ] `ChildrenService.getChildEntityByRRN`：改为 `WHERE rrn_hash = ?` 单次等值查询（取代 candidate set + BCrypt 逐条匹配）
-- [ ] **数据迁移**（生产）：既有 BCrypt 数据无法直接转 HMAC——过渡期**双读单写**：先按 HMAC 命中，未命中回退候选集 + BCrypt 匹配；用户/儿童下次提供完整 RRN 时把 HMAC 列回填。具体步骤建议立 **ADR-0014 子 ADR** 固化
+- [ ] **数据迁移**（生产）：既有 BCrypt 数据无法直接转 HMAC——过渡期**双读单写**：先按 HMAC 命中，未命中回退候选集 + BCrypt 匹配；用户/儿童下次提供完整 RRN 时把 HMAC 列回填。具体步骤建议另立**子 ADR（编号顺延，如 ADR-0019；注：0014/0015/0016/0017/0018 已分别用于测试基线 / AI 闭环 / 会话鉴权 / TLS / 通知子系统）**固化
 - [ ] 文档同步：`security-architecture.md §4`、`data-architecture.md §6`、`product/glossary.md`
 
 ---
 
-### 📋 ADR-0009 鉴权恢复 — Last
+### ✅ ADR-0016 会话机制（服务端 session）— 先于 0009（Accepted 2026-06-07，实现委派独立 session）
+
+> 详见 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)。取代 ADR-0007（JWT）；产品未上线，greenfield 零迁移。
+
+- [ ] backend 加 `spring-session-data-redis`；Redis 并入主 `docker-compose.yml`（复用 `db/redis-docker-compose.yml`）
+- [ ] `SecurityConfig` 改 session 鉴权（弃用 `JwtAuthenticationFilter`/`JwtUtil`）；`AuthService` 登录建会话、登出 invalidate
+- [ ] cookie 安全属性 `httpOnly`+`Secure`+`SameSite`（生产同源 Lax）；启用 Spring Security **CSRF token**（写操作）
+- [ ] 前端 `apiClient.ts` 去 token 化（删 token 存储/refresh/401 重放），改 `withCredentials: true` + CSRF 头
+- [ ] 落地补 characterization 测试（[ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)）
+- [ ] 文档同步：`security-architecture.md`、`operations/*`、ADR-0007 状态注（已加 Superseded 指针）
+
+---
+
+### ✅ ADR-0017 TLS/HTTPS 终结 — 由 0016 触发（Accepted 2026-06-07，实现委派独立 session）
+
+> 详见 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)。`Secure` 会话 cookie 的硬前置 + 儿童 PII 传输加密；生产部署前置。
+
+- [ ] 选定边缘 TLS 终结：自动证书反代（Caddy/Traefik，ACME 自动签发）或扩展现有 frontend Nginx（443 + 证书）
+- [ ] HTTP→HTTPS 强制重定向 + HSTS
+- [ ] 生产 cookie `Secure`、同源 `SameSite=Lax`（配合 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）；dev 放宽
+- [ ] `docker-compose.yml` / 反代配置 + 证书续期
+- [ ] 文档同步：`security-architecture.md §5`、`operations/{deployment,configuration}.md`、关闭 OQ-OPS-3
+
+---
+
+### 📋 ADR-0009 鉴权恢复 — After 0016（机制 = session）
+
+> ⚠️ **机制更新（2026-06-07）**：鉴权"恢复"决策不变，但**机制由 JWT 改为 session**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）。下列 **JWT 专属项作废**（access/refresh 区分、role claim、JWT secret 外部化、`expireSecond` 改名），由 ADR-0016 session 等价项替代；本节保留的是"翻转 `permitAll`→`authenticated` + 公开端点白名单 + 授权集成测试"。
 
 > **必要前置**：本 ADR 必须配套**测试基础设施**（[OQ-TEST-1](open-questions.md) 当前 `backend/src/test/` 为空）；翻转鉴权前应有 characterization 测试覆盖既有行为。
 
@@ -113,6 +167,54 @@
 
 ---
 
+### ✅ ADR-0018 通知子系统 — 先于/同期 0015（Accepted 2026-06-07，实现委派独立 session）
+
+> 详见 [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md)。后端拥有；家长复核后通知；移除 AI 演示告警。
+
+- [ ] 后端通知子系统：`LISTEN` 检测 → `notification_rules` → `device_tokens`（Pushover）解析 → 投递 + 失败重试
+- [ ] 门控：家长通知须 `event_reviews` 复核确认后发；园方高置信即时预警（阈值细化）
+- [ ] **移除** AI 侧 `utils/{pushover,sms}.py` 演示告警（收件人写死、不查 DB）
+- [ ] schema：放宽 `notifications` 的 `sent_at`/`fail_reason`/`retry_count` NOT NULL（走 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) 迁移，关闭 OQ-DATA-3）
+- [ ] 幂等：复用 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) 的 `dedup_key` 防重复通知
+- [ ] 文档同步：`features.md`、`api/rest-endpoints.md`、`data-architecture.md`
+
+---
+
+### ✅ ADR-0015 AI 检测闭环 — 终态（Accepted 2026-06-07；V1；实现委派独立 session）
+
+> 详见 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md)。**集成媒介 = PostgreSQL 直连；concretization = V1（AI 直写核心表）**（维护者定 2026-06-07）；实现排加固轨之后、委派独立 session。
+
+**前置澄清状态**：
+
+- [x] ✅ OQ-AI-2 模型/数据集来源（base=`videomae-base-finetuned-kinetics`；数据=AI Hub 이상행동 CCTV, dataSetSn=171；见 [ai-architecture §1.1](../architecture/ai-architecture.md)）
+- [x] ✅ OQ-AI-3 标签→`event_type_enum` 映射（12 类近 1:1 + `OTHER`；仅剩确认模型 `id2label` 字符串）
+- [x] ✅ concretization 已定 = **V1（AI 直写核心表）**；V2 列为 Phase 2 运维后升级
+- [x] ✅ 证据视频存储：**已定向 = 本地→对象存储、可升级抽象**（`event_evidence_files` 存 `evidence_uri`+hash，URI scheme 可升级；视频不入 PG）
+- [ ] AI 获 DB 写入凭据的管理（最小权限账号，与 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 密钥范式同路径；V1 不依赖后端鉴权）
+- [x] ✅ 通知**已定**：**归属 = 后端**从 DB 发（推理端不发，AI 现有 Pushover/SMS 系临时演示码、落地移除）；**时机 = 面向家长的通知须人工复核确认后发出**；园方高置信即时预警（落地细化）
+
+**实现清单（V1）**：
+
+- [ ] AI 侧新增 DB 写入（首次"AI→DB"）：封装在**单一 detection-sink 模块**后；带 `dedup_key` 幂等；enum 映射/租户解析**各集中一处**（为 Phase 2 受控搬迁预留）
+- [ ] 直写 `detection_sessions`/`detection_events`/`event_evidence_files`；如需增列走 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) 迁移
+- [ ] 后端 `LISTEN/NOTIFY` 监听核心表 + SSE/WebSocket 推前端；启动扫"未读"行兜底
+- [x] ✅ **勘误 [ADR-0002](../decisions/adr/ADR-0002-dual-datastore-postgres-neo4j.md) + [ADR-0006](../decisions/adr/ADR-0006-decoupled-ai-videomae.md)**（2026-06-07：澄清"唯一写入者/AI 不连库"为误记的临时现状，非决策）；落地时再终态更新
+- [ ] 落地补 characterization 测试（[ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)）
+- [ ] 前端接通 `frontend/src/app/detectionEvents/` 到真实数据
+- [ ] 文档同步：`api/ai-service-api.md`、`architecture/{ai-architecture,data-architecture,integration-and-dataflow}.md`
+- [ ] **Phase 2（运维后）**：升级到 V2（落地表 + 后端晋升）→ 再演进到 broker（方案 C；Redis Stream 备选，OQ-OPS-2）
+
+---
+
+### 📋 顺带项（低成本高杠杆，2026-06-07 新增）
+
+> 非独立 ADR 级别，但应在加固轨中择机插入。
+
+- [ ] **全局异常处理（OQ-ARCH-2）**：加 `@RestControllerAdvice` + 统一错误信封，收敛当前 service 直抛 `IllegalArgumentException`/`EntityNotFoundException` 导致的 500 泄栈。**建议排在 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 之前**——鉴权强制后需统一 401/403 响应格式；若达 API 契约变更门槛，另立轻量 ADR。
+- [ ] **keyword 空操作（OQ-ARCH-4）**：17 个列表端点暴露 `keyword`，14 个静默忽略。团队先决"实现 vs 移除参数"，**决策应落在 codegen 模板层**（避免 3 已实现 vs 14 未实现的持续漂移）。建议作为 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) 落地后**首个带测试的真实改动**。
+
+---
+
 ## 关联但未决的开放问题（参考）
 
 下列问题与上述实施有交集但**未被任一已 Accept 的 ADR 直接覆盖**，落地过程中会触达，建议在相应时机立单独 ADR 或在落地 ADR 内记录后续 Design 议题：
@@ -120,13 +222,14 @@
 | 开放问题 | 关联实施点 |
 | --- | --- |
 | [OQ-SEC-8](open-questions.md) 运行时多租户隔离强制 | ADR-0009 落地后浮现 |
-| [OQ-AI-1](open-questions.md) AI 检测闭环落库 | 产品完整性核心，独立 Design 议题 |
-| [OQ-AI-2](open-questions.md) 训练配置/数据集来源未文档化 | 与 AI 闭环关联 |
-| [OQ-AI-3](open-questions.md) 模型标签集 vs `event_type_enum` 映射 | 与 AI 闭环关联 |
+| [OQ-AI-1](open-questions.md) AI 检测闭环落库 | ✅ 已立 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md)（终态，待 Accept） |
+| [OQ-AI-2](open-questions.md) 训练配置/数据集来源未文档化 | ADR-0015 **阻断性前置** |
+| [OQ-AI-3](open-questions.md) 模型标签集 vs `event_type_enum` 映射 | ADR-0015 **阻断性前置** |
 | [OQ-DATA-1](open-questions.md) PG → Neo4j 增量同步 | ADR-0012 落地时配套设计 |
 | [OQ-OPS-3](open-questions.md) TLS/HTTPS 终结位置 | 独立运维 ADR |
 | [OQ-OPS-4](open-questions.md) 回滚 / 发布策略 | ADR-0012 落地时配套 |
-| [OQ-ARCH-2](open-questions.md) 统一错误处理与响应格式 | 独立后端 ADR |
+| [OQ-ARCH-2](open-questions.md) 统一错误处理与响应格式 | 已排入"顺带项"，建议 0009 之前落地 |
+| [OQ-ARCH-4](open-questions.md) 列表 keyword 静默空操作 | 已排入"顺带项"，决策落 codegen 模板层 |
 | [OQ-PROD-1](open-questions.md) PRD 缺失 | 独立产品议题 |
 
 ## 流程提醒
