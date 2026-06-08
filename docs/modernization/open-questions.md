@@ -50,6 +50,12 @@
 - **为何重要**：缺少运行时强制时，越权访问他园数据成为可能（叠加 OQ-SEC-1 风险更高）。
 - **观察**：租户过滤策略待确认。
 
+### OQ-SEC-9 ｜会话机制取舍：无状态 JWT vs 服务端会话（前瞻 Design）
+- **背景** ✅：当前用无状态 JWT（[ADR-0007](../decisions/adr/ADR-0007-jwt-stateless-auth.md)）；项目早期曾考虑 Redis 服务端 session 后改 JWT，**改用原因未记录、现维护者不掌握**（OQ-OPS-2）。维护者 2026-06-07 提出重新评估"对本业务何者更合适、迁移成本/收益、主流方案"。
+- **为何重要**：本系统是**第一方 Web 应用 + 敏感儿童 PII + 多租户 + 需即时吊销权限**（如解雇教师须立即断访问）——纯无状态 JWT 无法在过期前吊销。会话机制直接影响安全态、前端复杂度与 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 的落地范围。
+- **观察（接手人，2026-06-07）**：宜在 **ADR-0009（鉴权恢复）落地之前**决断（此刻"恢复后"的代码尚未依赖 JWT，是切换成本最低的窗口）。两条候选均需 Redis：①**JWT-done-right**（httpOnly cookie + 短期 access + Redis 可吊销 refresh）；②**服务端 session**（Spring Session + Redis + httpOnly cookie，吊销天然、前端更简）。**待立 ADR**（若改变 ADR-0007 方向）。
+- **结论（2026-06-07，维护者 Accept）** ✅：选定**服务端会话**（Spring Session + Redis + httpOnly cookie）——因客户端恒为浏览器（响应式 Web、不上原生 App）+ 需即时吊销 + 产品未上线零迁移成本。已立 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)（**取代 ADR-0007**），排在 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 之前落地。
+
 ---
 
 ## AI 与集成（AI）
@@ -64,11 +70,13 @@
 - **证据** ✅：`configs/{train,eval,infer}.yaml` 为空；训练超参在脚本内；数据集来源/标签体系未文档化。
 - **为何重要**：模型可复现性与可维护性。
 - **观察**：训练数据、标签映射、最佳模型如何产出与分发（`outputs/best_model` 不在仓库）？
+- **结论（2026-06-07，维护者提供）** ✅：**基础检查点** = `MCG-NJU/videomae-base-finetuned-kinetics`（HuggingFace；VideoMAE base，Kinetics-400 微调），在其上**再微调**到异常行为分类；**微调数据与标签** = AI Hub「이상행동 CCTV 영상」(Abnormal Behavior CCTV Video)，dataSetSn=171，717h / 8,436 clips / 12 类。详见 [ai-architecture.md §1.1 模型与数据来源](../architecture/ai-architecture.md)。**剩余待办**（不阻断本项关闭）：训练超参应从脚本固化回 `configs/train.yaml`；`best_model` 分发方式属运维问题（OQ-OPS 关联）。
 
 ### OQ-AI-3 ｜事件类型枚举与模型标签的对应关系
 - **证据** ✅：DB `event_type_enum` 有 13 类（ASSAULT/FIGHT/…）；实时脚本 `target_label` 默认仅 `"assault"`。
 - **为何重要**：模型实际能识别哪些类别、与业务枚举如何映射，决定检测覆盖面。
 - **观察**：模型标签集与 `event_type_enum` 的完整对应未记录。
+- **结论（2026-06-07，复核 + 维护者提供）** ✅：AI Hub 12 类与 `event_type_enum`（13 值）**几乎 1:1**——枚举显然照该数据集分类体系设计：폭행→`ASSAULT`、싸움→`FIGHT`、절도→`BURGLARY`、기물파손→`VANDALISM`、실신→`SWOON`、배회→`WANDER`、침입→`TRESPASS`、투기→`DUMP`、강도→`ROBBERY`、데이트폭력/추행→`DATEFIGHT`、납치→`KIDNAP`、주취행동→`DRUNKEN`；第 13 值 `OTHER` 为 catch-all。本项**实质解决**；**仅剩实现细节**：确认微调模型 `id2label` 实际输出的 label 字符串，据此写"模型 label → event_type_enum"查表（属 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) 实现项）。映射表见 [ai-architecture.md §1.1](../architecture/ai-architecture.md)。
 
 ---
 
@@ -84,11 +92,13 @@
 - **证据** ✅：`db/redis-docker-compose.yml` 存在，且 `db/README.md` 开头提到"redis 으로 user 테이블…"；但根 compose 与后端依赖中**未见 Redis**。
 - **为何重要**：Redis 是历史遗留、计划中、还是某子流程在用？
 - **观察**：当前主链路似乎不依赖 Redis。
+- **结论（2026-06-07，维护者口述）** 🔶：Redis **原拟用于服务端 session 存储**（与 `db/README.md` 开头"redis 으로 user 테이블…"一致）；项目早期考虑过 Redis session，后改为无状态 JWT（[ADR-0007](../decisions/adr/ADR-0007-jwt-stateless-auth.md)），Redis 随之弃用——`redis-docker-compose.yml` 即该弃案遗留。**更新（2026-06-07，已定案）** ✅：会话机制定为**服务端 session**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)，取代 ADR-0007）——**Redis 弃案复活、复用为 session store**，将并入主 `docker-compose.yml`。本项关闭。
 
 ### OQ-OPS-3 ｜TLS/HTTPS 终结位置
 - **证据** ✅：仓库内 Nginx/compose 无 TLS 配置，前后端走 HTTP。
 - **为何重要**：生产需加密传输（尤其涉及儿童 PII）。
 - **观察**：由外层基础设施终结，还是尚未配置？
+- **结论（2026-06-07）** ✅：因 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 的 `Secure` 会话 cookie，HTTPS 从"待确认"升级为**生产硬要求**；已立 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)（Proposed）：边缘反代终结 TLS + HTTP→HTTPS + HSTS。本项归 ADR-0017 跟踪。
 
 ### OQ-OPS-4 ｜回滚与发布策略
 - **证据** 🔶：CI 为全量重建，无显式回滚。
@@ -110,6 +120,7 @@
 ### OQ-DATA-3 ｜`notifications` 多个 NOT NULL 字段的合理性
 - **证据** ✅：`sent_at`、`fail_reason`、`retry_count` 等为 `NOT NULL`，但语义上新建通知时可能尚无值。
 - **观察**：是否应放宽为可空？（事实记录，不下结论）
+- **结论（2026-06-07）** ✅：纳入 [ADR-0018 通知子系统](../decisions/adr/ADR-0018-notification-subsystem.md)（Proposed）——"待发"态应允许 `sent_at`/`fail_reason`/`retry_count` 为空/默认；放宽 NOT NULL 的 schema 变更走 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) 迁移。本项归 ADR-0018 跟踪。
 
 ### OQ-DATA-4 ｜`menu` / `common_codes` 两张平台字典表的设计复审
 - **证据** ✅：`02_menu.sql` 建 `menu`（单数）、`03_CommonCode.sql` 建 `common_codes`（复数）；二者命名风格与核心 28 表不一致；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**；本知识库此前误写为 `common_code`（单数）。
@@ -156,6 +167,11 @@
 - **背景（2026-05-29，团队确认）**：`pg-spring-crud-codegen` 原意是把「通过数据库逆向工程自动生成 Java 代码」的能力**分离为独立子工程**，以便后期从本仓库拆出。
 - **观察**：拆分时机/边界/产物归属待定；属 module-boundary 变更，提案见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
 - **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)（`pg-spring-crud-codegen` = `scripts/codegen` 同一 Python 工具的预留迁址位置，非重写；执行方案 A 仓内迁址 + 软指针，日后 `git filter-repo` 带史拆出）。**实施记录（2026-05-29）**：迁址完成；docker-compose 相对路径已修正；两处 README 就位；CODEOWNERS 已补条目；13 处内部引用已切换。
+
+### OQ-ARCH-4 ｜列表端点 `keyword` 过滤：14/17 为「静默空操作」
+- **证据** ✅（2026-06-07 复核）：17 个列表 Controller 暴露 `@RequestParam(required = false) String keyword`（出现在 Swagger 中），但其中 **14 个对应 Service 直接 `repository.findAll(pageable)` 忽略该参数**（统一注释 `// TODO: filter X by keyword`：`AiModel`/`AppreciationLetter`/`AuditLog`/`Class`/`DetectionEvent`/`DetectionSession`/`DeviceToken`/`EventEvidenceFile`/`Guardian`/`Notification`/`NotificationRule`/`Room`/`Superadmin`/`User`）；仅 **3 个真正实现过滤**：`KindergartenService`（`findByNameContains`）、`AnnouncementService`（`listActiveAnnouncements`）、`TeacherService`（`findByNameContains*`）。
+- **为何重要**：API 契约对外宣称支持 `keyword` 搜索（Swagger 可见、调用方返回 HTTP 200），但 14 个端点**静默返回未过滤结果且无任何报错**——属「伪实现」，比 `Not implemented`（会显式抛错）更隐蔽，最易在演示中被误判为已完成。根因为 codegen 模板统一生成参数后未回填实现（关联 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）。
+- **观察**：这 14 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 14 未实现的持续漂移。
 
 ### OQ-TEST-1 ｜测试策略
 - **证据** ✅：后端/前端/AI 均无自动化测试。

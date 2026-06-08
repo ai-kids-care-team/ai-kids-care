@@ -10,9 +10,11 @@ deciders: 维护者（2026-05-29 Accept；落地时机：第一轮重构完成�
 
 > **前瞻提案**（非回溯）。方向已由维护者于 2026-05-29 确认（OQ-SEC-1）：当前 `permitAll` 为临时演示态，计划在**第一轮重构完成后**恢复鉴权。本 ADR 形式化该决策并界定"恢复时必须一并修正"的范围。
 
+> ⚠️ **机制更新（2026-06-07）**：鉴权**"恢复"的决策不变**，但**令牌机制由 JWT 改为服务端 session**（[ADR-0016](ADR-0016-server-side-session-auth.md) 取代 [ADR-0007](ADR-0007-jwt-stateless-auth.md)）。本 ADR 中 **JWT 专属条目**（access/refresh 区分、role claim、JWT secret 外部化、`expireSecond` 改名）**作废**，替换为 session 等价项（Redis 会话、会话超时、CSRF token、cookie `Secure`/`SameSite`）。**ADR-0016 排在本 ADR 之前落地。**
+
 ## 状态（Status）
 
-Accepted（2026-05-29 签署；落地时机：第一轮重构完成后）
+Accepted（2026-05-29 签署；落地时机：第一轮重构完成后；**会话机制见 [ADR-0016](ADR-0016-server-side-session-auth.md)**）
 
 ## 背景（Context）
 
