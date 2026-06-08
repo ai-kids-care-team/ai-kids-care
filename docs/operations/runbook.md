@@ -70,11 +70,41 @@ docker exec -it ai-kids-postgres psql -U kids_user -d kids_postgres_db
 
 ✅ 图由 data-loader 一次性从 PG 加载。PG 改动后需重跑 loader（`db/ne4j_kindergartens/run_all.sh`，或重建 data-loader 服务）。
 
-## 数据重置到干净种子
+## Flyway 迁移管理
+
+### 查看迁移历史
+
+```bash
+# 连接到 PostgreSQL 后查询
+docker exec -it ai-kids-postgres psql -U kids_user -d kids_postgres_db \
+  -c "SELECT version, description, type, success, installed_on FROM flyway_schema_history ORDER BY installed_rank;"
+```
+
+### 添加新迁移
+
+在 `backend/src/main/resources/db/migration/` 下新建文件，命名格式：`V{N}__{描述}.sql`（N 为递增整数，如 `V2__relax_notifications_not_null.sql`）。后端重启时 Flyway 自动执行。
+
+> ⚠️ 迁移文件一旦执行**不可修改**（Flyway 校验 checksum）。修订请新建修复迁移文件。
+
+### 后端启动失败：Flyway checksum 不匹配
+
+```
+FlywayException: Validate failed: Migration checksum mismatch for migration version 1
+```
+
+原因：已执行的迁移文件被修改。处理方式：
+1. 恢复原始文件内容（git checkout），或
+2. 在 `flyway_schema_history` 中手动更新 checksum（仅限非生产紧急修复，需记录）。
+
+### 后端启动失败：Found non-empty schema(s) without schema history
+
+若出现 `Found non-empty schema(s) ... and not configured to baseline on migrate`，说明目标库有表但 `baseline-on-migrate` 未生效（配置未传入）。确认 `spring.flyway.baseline-on-migrate=true` 生效。
+
+## 数据重置到干净种子（演示/CI 专用）
 
 ```bash
 docker compose down -v
 docker compose up -d --build   # 重新执行 initdb 全部种子
 ```
 
-> ⚠️ 这与 Jenkins CI 每次部署的行为一致（见 [deployment](deployment.md)）。
+> ⚠️ 这与 Jenkins CI 每次部署的行为一致（见 [deployment](deployment.md)）。**生产绝不能用**。

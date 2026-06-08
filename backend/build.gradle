@@ -28,6 +28,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
     implementation 'org.postgresql:postgresql:42.7.3'
+    implementation 'org.flywaydb:flyway-core'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
@@ -46,4 +47,35 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// ── database migration helpers (ADR-0012) ──────────────────────────────────────
+// Generates a Flyway migration draft by diffing the current schema (Flyway V*.sql
+// files) against the desired schema (db/dbml/schema.dbml).
+//
+// Prerequisites (one-time):
+//   npm install -g @dbml/cli
+//   pip install -r db/scripts/requirements-migra.txt
+//   Docker daemon running
+//
+// Usage:
+//   ./gradlew generateMigration -Pdesc=add_rrn_hash_to_children
+tasks.register('generateMigration') {
+    group = 'database'
+    description = 'Generate a Flyway migration draft from DBML schema changes. ' +
+                  'Requires: Docker, python3+migra, @dbml/cli. ' +
+                  'Usage: ./gradlew generateMigration -Pdesc=<description>'
+    doLast {
+        def desc = (project.findProperty('desc') ?: '').toString().trim()
+        if (desc.isEmpty()) {
+            throw new GradleException(
+                "Provide a migration description:\n" +
+                "  ./gradlew generateMigration -Pdesc=add_rrn_hash_to_children"
+            )
+        }
+        exec {
+            workingDir projectDir.parentFile   // repo root (parent of backend/)
+            commandLine 'python3', 'db/scripts/generate_migration.py', desc
+        }
+    }
 }

@@ -1,0 +1,20 @@
+# Production compose override (ADR-0012).
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Key differences from the base docker-compose.yml:
+#   - db: uses Dockerfile.prod (vanilla postgres, NO initdb seed scripts)
+#     Schema is created by Flyway migration (backend spring.flyway) on first startup.
+#   - Do NOT run `docker compose down --volumes` before deploying.
+#     Preserving the data volume is the whole point of this track.
+#
+# Demo / CI reset (default docker-compose.yml + Jenkinsfile):
+#   docker compose down --remove-orphans --volumes --rmi local
+#   docker compose up -d --build
+# That path deliberately wipes and re-seeds from initdb — acceptable for demos, NOT for prod.
+
+services:
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile.prod

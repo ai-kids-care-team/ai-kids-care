@@ -22,6 +22,20 @@
 | `NEO4J_USERNAME` | 用户 | `neo4j` | backend、neo4j、data-loader |
 | `NEO4J_PASSWORD` | 密码 | `rose100!` ⚠️ | 同上 |
 
+### Flyway（Schema 迁移）
+
+| 配置项 | 值 | 说明 |
+| --- | --- | --- |
+| `spring.flyway.enabled` | `true` | Flyway 在后端启动时自动运行迁移 |
+| `spring.flyway.baseline-on-migrate` | `true` | 检测到有表但无历史表（initdb 场景）时，自动基线化到 V1 并跳过 V1 脚本 |
+| `spring.flyway.baseline-version` | `1` | 基线版本号；V1 对应 `V1__initial_baseline.sql` |
+| 迁移脚本路径 | `classpath:db/migration/` | Spring Boot 默认路径，V2+ 迁移文件均放此处 |
+
+> **迁移行为矩阵**：
+> - 空库（生产首次部署）：`baseline-on-migrate` 不触发，V1 正常执行，建全量 schema。
+> - 有表无历史（initdb/demo 场景）：触发基线化，V1 跳过，执行 V2+ 增量迁移。
+> - 有表有历史（生产后续部署）：V1 已记录，执行 V2+ 增量迁移。
+
 ### 后端（安全 / 运行）
 
 | 变量 | 用途 | 默认值 | 消费方 |

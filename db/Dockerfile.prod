@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+# Production image: no initdb scripts.
+# Schema is created by Flyway V1 migration on the backend at first startup.
+# Subsequent schema changes are applied as V2, V3, ... migrations.

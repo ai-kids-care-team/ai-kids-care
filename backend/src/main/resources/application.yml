@@ -11,6 +11,15 @@ spring:
       username: ${NEO4J_USERNAME:neo4j}
       password: ${NEO4J_PASSWORD:rose100!}
 
+  flyway:
+    enabled: true
+    # baseline-on-migrate: when schema exists but has no flyway_schema_history (demo/initdb path),
+    # Flyway creates the history table and records V1 as the baseline — no re-run of V1.
+    # On a fresh empty database (production first deploy), baseline is NOT triggered;
+    # V1 runs normally and creates the full schema.
+    baseline-on-migrate: true
+    baseline-version: 1
+
   jpa:
     hibernate:
       ddl-auto: validate

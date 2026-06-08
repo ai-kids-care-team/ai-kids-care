@@ -30,7 +30,13 @@ pipeline {
       }
     }
 
-    stage('Docker Compose Up') {
+    // Demo / CI reset (ADR-0012): wipes data volumes and rebuilds from initdb seeds.
+    // This is intentional for demo environments where a clean state is required each time.
+    // For production deployments, use docker-compose.prod.yml (no --volumes, no seed wipe).
+    //
+    // Production deploy command (run manually on prod host, DO NOT add to this CI stage):
+    //   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+    stage('Demo Deploy (CI Reset)') {
       steps {
         sh '''
         docker compose down --remove-orphans --volumes --rmi local || true

@@ -2,16 +2,128 @@
 
 ✅ 来源：`db/`、`db/dbml/`、`db/initdb/`、`db/ne4j_kindergartens/`。数据模型总览见 [architecture/data-architecture.md](../architecture/data-architecture.md)。
 
-## Schema 修改工作流（DBML 优先）
+---
 
-✅ 权威 schema 定义是 **`db/dbml/schema.dbml`**，由它生成建表 SQL：
+## Schema 变更工作流（完整，ADR-0012）
+
+> **核心原则**：Schema 唯一权威 = `db/dbml/schema.dbml`（DB-first，见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）。生产 schema 演进路径 = Flyway 迁移文件（见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。ERD 由 schema 重新派生，**不手工编辑**。
+
+### 端到端流程
+
+```
+db/dbml/schema.dbml          ← 唯一权威，在此修改表结构
+       │  dbml2sql (自动)
+       ▼
+db/initdb/01_create_schema.sql   ← 演示/initdb 路径（保持与 DBML 同步）
+       │
+       │  generate_migration.py  ← 工具：diff 当前迁移状态 vs 新 DBML
+       ▼
+backend/src/main/resources/db/migration/V{N}__description.sql  ← 草稿
+       │  人工评审
+       ▼
+Flyway 迁移（生产部署时自动执行）
+       │  ddl-auto=validate
+       ▼
+JPA 实体同步（否则启动失败）
+       │
+       ▼
+ERD 重新派生（db/ERD/*.mmd 由 schema 生成，不手工编辑）
+```
+
+### 第一步：修改 DBML
+
+在 `db/dbml/schema.dbml` 中做结构变更（新增表/列/索引/枚举值等）。
+
+### 第二步：更新 initdb 快照
 
 ```bash
-npm install -g @dbml/cli
+# 重新生成 01_create_schema.sql（需全局安装 @dbml/cli）
+npm install -g @dbml/cli       # 仅首次
 dbml2sql db/dbml/schema.dbml -o db/initdb/01_create_schema.sql
 ```
 
-> 因此**改表结构应从 `schema.dbml` 起**，生成 `01_create_schema.sql`，再同步更新后端 JPA 实体（否则 `ddl-auto=validate` 启动失败）。不要只改 SQL 或只改实体。
+这保持演示/initdb 路径与 DBML 同步。
+
+### 第三步：一次性安装 migra（仅首次）
+
+```bash
+pip install -r db/scripts/requirements-migra.txt
+```
+
+migra（[github.com/djrobstep/migra](https://github.com/djrobstep/migra)）是 PostgreSQL 专用 schema diff 工具，比对两个 PG 库的结构差异并生成 SQL。
+
+### 第四步：生成迁移草稿
+
+```bash
+# 方法 A：直接运行脚本
+python3 db/scripts/generate_migration.py <description>
+
+# 方法 B：Gradle 任务（在 backend/ 目录执行）
+./gradlew generateMigration -Pdesc=<description>
+
+# 示例
+python3 db/scripts/generate_migration.py add_rrn_hash_to_children
+./gradlew generateMigration -Pdesc=relax_notifications_not_null
+```
+
+脚本做的事：
+1. `dbml2sql` 导出当前 `schema.dbml` → 临时 SQL
+2. 启动一个临时 `postgres:16-alpine` 容器
+3. 在容器里建两个库：
+   - `schema_from`：依次应用 `V1__.sql`, `V2__.sql`, ... 得到当前迁移后状态
+   - `schema_to`：应用新 DBML 导出的 SQL 得到目标状态
+4. 运行 `migra --unsafe schema_from schema_to` 生成 diff
+5. 将带有警告注释的草稿写到 `backend/src/main/resources/db/migration/V{N}__description.sql`
+6. 删除临时容器
+
+### 第五步：人工评审草稿
+
+草稿顶部有 `⚠️ HUMAN REVIEW REQUIRED` 注释。务必检查：
+
+| 检查项 | 说明 |
+| --- | --- |
+| `DROP` 语句 | 确认是否真的要删除该对象，还是 migra 误判 |
+| `NOT NULL` 新增 | 是否需要先 `UPDATE ... SET col = default` 回填现有行 |
+| FK 约束 | 是否需要加 `DEFERRABLE INITIALLY IMMEDIATE` |
+| ENUM 新增值 | 确认顺序与 Java enum 一致（`ddl-auto=validate` 校验） |
+| 命名规范 | 索引/约束命名保持与 `01_create_schema.sql` 一致 |
+
+> ⚠️ 迁移文件一旦被 Flyway 执行就**不可修改**（checksum 校验）。修订请新建 `VN+1__revert_...` 或 `VN+1__fix_...`。
+
+### 第六步：同步 JPA 实体
+
+`ddl-auto=validate` 在启动时对比 JPA 实体与实际表结构。Schema 变更后必须同步 `backend/src/main/java/com/ai_kids_care/v1/entity/` 中对应的 Entity 类（列名、类型、枚举等），否则应用无法启动。
+
+### 第七步：运行测试（Testcontainers 验证）
+
+```bash
+cd backend
+./gradlew test
+```
+
+测试覆盖两个场景（[ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)）：
+
+| 测试类 | 场景 | 验证内容 |
+| --- | --- | --- |
+| `BaseIntegrationTest` + 子类 | initdb 初始化后 Flyway baseline | schema 与 JPA 实体对齐（`ddl-auto=validate`） |
+| `FlywayMigrationTest` | 空库（无 initdb） | V1..VN 迁移依次执行 + validate 通过 |
+
+若测试通过，说明迁移文件正确且 JPA 实体已同步。
+
+### 第八步：更新 ERD
+
+ERD 由 schema 派生，不要手工编辑 `.mmd` 文件（见 [db/ERD/README.md](../../db/ERD/README.md)）。
+
+### 第九步：提交
+
+将以下文件一起提交到同一个 commit：
+- `db/dbml/schema.dbml`（修改后）
+- `db/initdb/01_create_schema.sql`（重新生成）
+- `backend/src/main/resources/db/migration/V{N}__description.sql`（草稿评审后）
+- 对应的 JPA 实体变更
+- 相关 ERD 更新
+
+---
 
 ## initdb 脚本约定
 
