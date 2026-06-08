@@ -21,20 +21,34 @@ docker compose up -d --build
 | ai | `python:3.12-slim` + ffmpeg/libgl；安装 PyTorch(cu130)；`outputs` 只读挂载 | `ai/Dockerfile`、`ai/docker-compose.yml` |
 | db | 基于 PostgreSQL，启动执行 `initdb/*.sql` | `db/Dockerfile` |
 
-## CI 流水线（Jenkins）
+## 两条部署生命周期（ADR-0012）
 
-✅ `Jenkinsfile`（声明式）：
+✅ **演示重置（Demo CI）** 与 **生产部署（Production）** 是两条独立路径，见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)。
+
+### 演示 / CI 重置
+
+`Jenkinsfile` 执行（每次 CI 部署均清空数据卷并从 initdb 种子重建）：
 
 ```text
-Checkout Code  →  List Files  →  Docker Compose Up
-                                   ├─ docker compose down --remove-orphans --volumes --rmi local || true
-                                   └─ docker compose up -d --build
+Checkout Code → Test (./gradlew test, Testcontainers 门禁) → Demo Deploy (CI Reset)
+                                                               ├─ docker compose down --remove-orphans --volumes --rmi local
+                                                               └─ docker compose up -d --build
 ```
 
-> ⚠️ **重要风险（已确认）**：CI 的部署步骤执行 `docker compose down --volumes`，即**每次部署都删除数据卷**（`postgres_data`、`neo4j_data`）。这会在每次 CI 部署时**清空数据库并重新从 initdb 种子初始化**。
-> - 这对**演示环境**（每次重置到干净种子）说得通；
-> - 对**保留数据的生产环境**会造成数据丢失。
-> - 意图待确认，见 [open-questions](../modernization/open-questions.md)（OQ-OPS-1）。
+这对**演示环境**（每次重置到干净种子状态）是刻意设计，不适用于生产。
+
+### 生产部署
+
+**⚠️ 生产环境绝对不能使用 `--volumes`。** 使用 `docker-compose.prod.yml` override：
+
+```bash
+# 首次或后续生产部署（不删卷，Flyway 迁移管理 schema 变更）
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+- `docker-compose.prod.yml` 覆盖 `db` 服务：使用 `db/Dockerfile.prod`（不含 initdb 脚本的纯 postgres 镜像）。
+- 后端启动时 Flyway 自动运行迁移：空库 → 执行 `V1__initial_baseline.sql` 建 schema；有库 → 执行 `>=V2` 的增量迁移。
+- 迁移历史在 `flyway_schema_history` 表中可审计。
 
 ✅ `jenkins/`（`Dockerfile` + `docker-compose.yml`）用于自建 Jenkins 环境（🔶 推断为本地/自托管 CI）。
 
@@ -51,4 +65,9 @@ Checkout Code  →  List Files  →  Docker Compose Up
 
 ## 回滚
 
-🔶 未见显式回滚机制。当前 CI 为"全量重建"，回滚 = 部署上一版镜像/代码并重跑 compose。❓ 正式回滚策略未记录。
+**演示/CI**：重跑 `docker compose down --volumes && docker compose up -d --build` 即可（数据卷本来就会清空）。
+
+**生产**：Flyway 不支持自动回滚已执行的迁移。回滚选项：
+1. 回退到上一版镜像（`docker compose up` 指定旧 tag）——若 schema 变更前向兼容则可行。
+2. 编写修复迁移（`VN__revert_*.sql`）而非反向执行。
+3. 从备份恢复——备份/恢复策略待定（OQ-OPS-4，未决，见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。

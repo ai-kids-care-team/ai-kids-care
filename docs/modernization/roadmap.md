@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** | 小 |
 | 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Implemented (2026-06-08)** | 中 |
-| 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | 📋 Backlog | 中 |
+| 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | ✅ **Implemented (2026-06-08)** | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
 | 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
 | 6 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
@@ -23,7 +23,7 @@
 
 ## 实施次序（2026-06-07 修订）
 
-**0011 ✅ → 0014 → 0012 → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
+**0011 ✅ → 0014 ✅ → 0012 ✅ → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
 
 > 原次序（2026-05-29 已确认）：`0011 → 0012 → 0013 → 0010 → 0009`。本次修订**前插 0014（测试基线）；在 0009 前插入 0016（会话机制）+ 0017（TLS）；在 0015 前插入 0018（通知子系统）；后接 0015（AI 闭环）**，未改动中间四篇的相对顺序。
 
@@ -70,15 +70,28 @@
 
 ---
 
-### 📋 ADR-0012 演示重置 vs 生产数据生命周期 — After 0014
+### ✅ ADR-0012 演示重置 vs 生产数据生命周期 — Implemented（2026-06-08）
 
-- [ ] backend `build.gradle` 加 Flyway（或 Liquibase）插件 + 依赖
-- [ ] 创建 `backend/src/main/resources/db/migration/V1__initial_baseline.sql`（内容 = 当前 `01_create_schema.sql`，作为基线）
-- [ ] `application.yml` 配置 `spring.flyway.baseline-on-migrate=true`、`baseline-version=1`
-- [ ] `docker-compose.yml` 拆分 profile：dev 保留 initdb seed，prod profile 不挂载 seed
-- [ ] `Jenkinsfile` 区分 demo CI（`down --volumes` + 重建）vs 生产部署（无删卷、依赖迁移）
-- [ ] 文档同步：`operations/{deployment,configuration,runbook}.md`、`data-architecture.md §3`、`ADR-0004` 链入迁移流程
-- [ ] **关联待补**：备份/恢复 + 回滚策略（OQ-OPS-4，未决）；Neo4j 生产再同步策略（OQ-DATA-1，未决）——可在本 ADR 落地时一并记录后续 Design 议题
+> 选型：Flyway（Spring Boot 3.2.5 / Flyway 9.22.3）。详见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)。
+
+- [x] backend `build.gradle` 加 `org.flywaydb:flyway-core` 依赖（版本由 Spring Boot BOM 管理）
+- [x] 创建 `backend/src/main/resources/db/migration/V1__initial_baseline.sql`（内容 = 当前 `01_create_schema.sql`，作为基线）
+- [x] `application.yml` 配置 `spring.flyway.enabled=true`、`baseline-on-migrate=true`、`baseline-version=1`
+- [x] `docker-compose.prod.yml`（新建）+ `db/Dockerfile.prod`（新建）：生产 profile 无 initdb seed；演示路径（`docker-compose.yml`）保持不变
+- [x] `Jenkinsfile` 区分 demo CI（保留 `down --volumes` + 重建）vs 生产部署（注释说明 `docker-compose.prod.yml` 命令）
+- [x] 文档同步：`operations/{deployment,configuration,runbook}.md`、`data-architecture.md §3`、`ADR-0004` 链入迁移流程
+- [x] 测试：`FlywayMigrationTest`（新建，独立新鲜容器验证 V1 在空库执行正常 + `ddl-auto=validate` 通过）
+- [x] **后续 Design 议题已记录**：备份/恢复 + 回滚策略（OQ-OPS-4，未决）见 `deployment.md §回滚`；Neo4j 生产再同步策略（OQ-DATA-1，未决）关联 ADR-0012
+
+**迁移撰写工作流工具（2026-06-08 补完）**：
+- [x] 选型 **migra**（PostgreSQL 专用 Python diff 工具）；`db/scripts/requirements-migra.txt` 记录依赖
+- [x] `db/scripts/generate_migration.py`：DBML 导出 SQL → 临时 PG 容器 → migra diff → `V{N}__desc.sql` 草稿（带人工评审提示）
+- [x] `backend/build.gradle` 新增 `generateMigration` Gradle 任务（`./gradlew generateMigration -Pdesc=...`）
+- [x] `docs/engineering/database-guide.md` 补全端到端工作流（DBML → initdb 快照 → 生成草稿 → 人工评审 → JPA 同步 → Testcontainers 验证 → 提交）
+
+**未做（有意）**：
+- 未添加 Flyway Gradle 插件（无 `./gradlew flywayMigrate` 需求；Spring Boot 自动运行迁移）
+- `docker-compose.yml` 本体未改动（演示/CI 路径零破坏）
 
 ---
 

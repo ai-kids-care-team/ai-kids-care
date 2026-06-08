@@ -41,3 +41,4 @@ Accepted (Retrospective)
 
 - [architecture/backend-architecture.md](../../architecture/backend-architecture.md)
 - [engineering/backend-guide.md](../../engineering/backend-guide.md)
+- [ADR-0012: 演示重置与生产数据生命周期](ADR-0012-production-data-lifecycle.md) — schema 演进机制（Flyway）；schema 变更须从 `schema.dbml` → `01_create_schema.sql` 生成，再新增 Flyway 迁移文件 `VN__*.sql`，保持 DB-first 工程约定不变。

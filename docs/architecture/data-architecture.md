@@ -32,14 +32,16 @@ PostgreSQL 实际表结构
 
 > 含义：**修改数据模型应从 `schema.dbml` 开始**，再生成 SQL；后端实体需随之更新（否则 `ddl-auto=validate` 启动即失败）。详见 [engineering/database-guide.md](../engineering/database-guide.md)。
 
-## 3. 初始化脚本执行顺序
+## 3. 初始化脚本执行顺序与迁移机制
 
-✅ `db/initdb/` 按文件名前缀数字顺序执行（PostgreSQL initdb 约定）：
+### 3a. initdb 脚本（演示/CI 路径）
+
+✅ `db/initdb/` 按文件名前缀数字顺序执行（PostgreSQL initdb 约定），**仅在数据目录为空时**执行：
 
 | 序号 | 文件 | 作用 |
 | --- | --- | --- |
 | 00 | `00_init.sql` | 初始化 |
-| 01 | `01_create_schema.sql` | 建表（DDL，来自 DBML） |
+| 01 | `01_create_schema.sql` | 建表（DDL，来自 DBML）；同时作为 Flyway V1 基线快照 |
 | 02 | `02_menu.sql` | **建表 `menu`** + 菜单数据 |
 | 03 | `03_CommonCode.sql` | **建表 `common_codes`** + 公共代码字典 |
 | 21–46 | `2x/3x/4x_*_seed.sql` | 各业务表种子数据（users→…→detection_events→notifications→appreciation_letters） |
@@ -47,6 +49,24 @@ PostgreSQL 实际表结构
 | 99 | `99_sync_sequences.sql` | 同步自增序列（种子插入后重置 identity 序列，避免主键冲突） |
 
 🔶 种子顺序严格遵守外键依赖（先 users/kindergartens，后 children/teachers，再 assignments/events…）。
+
+### 3b. Flyway 迁移（生产路径 — ADR-0012）
+
+✅ 引入 Flyway 后，schema 演进路径如下：
+
+```text
+db/migration/V1__initial_baseline.sql   ← 01_create_schema.sql 的完整快照（基线）
+db/migration/V2__*.sql                  ← 首个增量变更（如 ADR-0018：放宽 notifications NOT NULL）
+db/migration/VN__*.sql                  ← 后续变更...
+```
+
+| 场景 | 行为 |
+| --- | --- |
+| 生产空库首次部署 | Flyway 执行 V1 建 schema，后续增量迁移 |
+| demo/initdb 初始化后的库 | Flyway 检测有表无历史 → `baseline-on-migrate=true` → 标记 V1 为基线跳过，执行 V2+ |
+| 生产后续部署 | V1 已记录，执行 V2+ 增量迁移 |
+
+迁移历史可通过 `SELECT * FROM flyway_schema_history` 审计。详见 [operations/runbook.md](../operations/runbook.md)（Flyway 迁移管理节）。
 
 ## 4. 多租户模型
 

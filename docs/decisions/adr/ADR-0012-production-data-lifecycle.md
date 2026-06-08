@@ -1,8 +1,9 @@
 ---
 ADR: ADR-0012
 title: "ADR-0012: 区分演示重置与生产部署的数据生命周期"
-status: Accepted
+status: Implemented
 date: 2026-05-29
+implemented: 2026-06-08
 deciders: 维护者（2026-05-29 Accept；schema 管理推荐 Flyway/Liquibase，最终选型留 Implementation）
 ---
 
@@ -12,7 +13,14 @@ deciders: 维护者（2026-05-29 Accept；schema 管理推荐 Flyway/Liquibase�
 
 ## 状态（Status）
 
-Accepted（2026-05-29 签署；schema 管理机制推荐 Flyway/Liquibase 作为方向，最终选型留待 Implementation 子 ADR）
+✅ **Implemented（2026-06-08）**
+
+实现选型：**Flyway**（Spring Boot 3.2.5 内置 Flyway 9.22.3）。
+- `backend/src/main/resources/db/migration/V1__initial_baseline.sql`：以 `01_create_schema.sql` 为基线快照。
+- `spring.flyway.baseline-on-migrate=true` + `baseline-version=1`：演示/initdb 场景自动基线化，不重建 schema；空库场景 V1 正常建 schema。
+- `docker-compose.prod.yml`：生产 compose override，使用 `db/Dockerfile.prod`（无 initdb 脚本）。
+- `Jenkinsfile`：保留演示 CI 删卷重建路径，注释说明生产部署命令。
+- `FlywayMigrationTest`：用独立 Testcontainers 容器（无 initdb）验证 V1 在空库正常执行。
 
 ## 背景（Context）
 
@@ -34,6 +42,8 @@ Accepted（2026-05-29 签署；schema 管理机制推荐 Flyway/Liquibase 作为
 生产 schema 管理（待选）：
 - **A) 引入 Flyway/Liquibase**：以现有 `01_create_schema.sql` 为基线（baseline），后续以版本化迁移演进。**（推荐）**
 - **B) 保留 initdb + 环境开关跳过 seed + 永不删卷**：改动最小，但 initdb 只在空目录运行，**无法**承担结构演进，长期不足。
+
+**迁移撰写工作流（2026-06-08 细化，维护者定）**：**DBML（dbdiagram.io）保持为 schema 的单一设计真相**；baseline `V1` = 当前 schema 快照（已完成）。**`V2` 起的迁移不手写**——用 **schema-diff 工具**（如 Atlas / Liquibase diff / Postgres `migra`）对比「DBML 导出的期望 schema vs 当前库」**自动生成** Flyway 迁移，人工评审后入 `backend/src/main/resources/db/migration/`。即 **DBML 为源、迁移为派生**，在获得 migration 好处的同时保住既有 DBML 工作流；ERD（`.mmd`）由 schema 重新派生、不手工编辑。后续改 schema 的 ADR（0013 / 0010 / 0018）均按此流程撰写迁移。
 
 ## 后果（Consequences）
 
