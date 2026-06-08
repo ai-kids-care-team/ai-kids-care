@@ -1,9 +1,10 @@
 ---
 ADR: ADR-0014
 title: "ADR-0014: 建立测试基线（Test Baseline）"
-status: Accepted
+status: Implemented
 date: 2026-06-07
-deciders: 接手人起草（2026-06-07），维护者 Accept（2026-06-07）；**实现委派给独立 Implementation session**
+implemented: 2026-06-08
+deciders: 接手人起草（2026-06-07），维护者 Accept（2026-06-07）；Implementation session 落地（2026-06-08）
 ---
 
 # ADR-0014: 建立测试基线（Test Baseline）
@@ -12,7 +13,16 @@ deciders: 接手人起草（2026-06-07），维护者 Accept（2026-06-07）；*
 
 ## 状态（Status）
 
-Accepted（2026-06-07 签署；落地次序：紧随 [ADR-0011](ADR-0011-extract-codegen-subproject.md) 之后、[ADR-0012](ADR-0012-production-data-lifecycle.md) 之前）。**实现由独立 Implementation session 执行**（本设计 session 不落地代码）。
+**Implemented（2026-06-08）**。Accepted 2026-06-07；由独立 Implementation session 于 2026-06-08 落地。
+
+落地产物：
+- `backend/build.gradle`：Testcontainers BOM + `junit-jupiter` + `postgresql`
+- `backend/src/test/java/com/ai_kids_care/BaseIntegrationTest.java`：基类（Testcontainers PG + initdb 挂载 + DynamicPropertySource）
+- `backend/src/test/java/com/ai_kids_care/v1/auth/AuthEndpointTest.java`：6 个认证端点 characterization 测试
+- `backend/src/test/java/com/ai_kids_care/v1/detection/DetectionEventEndpointTest.java`：3 个检测事件读路径测试
+- `backend/src/test/resources/application-test.yml`：测试 profile（排除 Neo4j 自动配置）
+- `Jenkinsfile`：`Test` stage 插入 `Docker Compose Up` 之前
+- `docs/engineering/testing.md`：全量重写
 
 ## 背景（Context）
 

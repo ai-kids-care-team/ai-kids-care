@@ -11,7 +11,7 @@
 | 顺序 | ADR | 决策摘要 | 状态 | 复杂度 |
 | --- | --- | --- | --- | --- |
 | 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** | 小 |
-| 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Accepted (2026-06-07)，next（实现委派独立 session）** | 中 |
+| 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Implemented (2026-06-08)** | 中 |
 | 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | 📋 Backlog | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
 | 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
@@ -56,16 +56,17 @@
 
 ---
 
-### ✅ ADR-0014 测试基线 — Next（Accepted 2026-06-07；实现委派独立 session）
+### ✅ ADR-0014 测试基线 — Implemented（2026-06-08）
 
-> 详见 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)。范围刻意收窄为"薄而可工作的基线"。**本清单由独立 Implementation session 执行**（设计 session 不落地代码）。
+> 详见 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md)。范围刻意收窄为"薄而可工作的基线"。
 
-- [ ] backend 加 Testcontainers（PostgreSQL）依赖；确认 CI 节点可用 Docker（Jenkins agent socket/DinD）
-- [ ] 建集成测试基类：一次性 Postgres 容器 + 真实 `db/initdb/*.sql` 建库 → 顺带守护 `ddl-auto=validate`
-- [ ] 首批 characterization 测试：4 个真实认证端点（`/auth/login` `/refresh` `/register`、`GET /auth/register/availability`）+ 2~3 个代表性 CRUD 读路径
-- [ ] `Jenkinsfile` 在部署 stage **之前**加 `./gradlew test` 门禁
-- [ ] 文档同步：`engineering/testing.md`、[ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 解除其测试前置依赖
-- [ ] **显式不做**：全量覆盖、前端/AI 测试栈、E2E（后续）
+- [x] backend 加 Testcontainers（PostgreSQL）依赖；确认 CI 节点可用 Docker（Jenkins agent socket/DinD）
+- [x] 建集成测试基类：一次性 Postgres 容器 + 真实 `db/initdb/*.sql` 建库 → 顺带守护 `ddl-auto=validate`
+- [x] 首批 characterization 测试：4 个真实认证端点（`/auth/login` `/refresh` `/register`、`GET /auth/register/availability`）+ 3 个代表性 CRUD 读路径（`GET /detection_events` × 3）
+- [x] `Jenkinsfile` 在部署 stage **之前**加 `./gradlew test` 门禁
+- [x] 文档同步：`engineering/testing.md` 全量重写；ADR-0014 状态更新为 Implemented
+- [ ] ADR-0009 测试前置依赖解除（随 ADR-0009 落地时确认）
+- [x] **显式不做**：全量覆盖、前端/AI 测试栈、E2E（后续）
 
 ---
 
