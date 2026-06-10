@@ -50,6 +50,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 - 后端启动时 Flyway 自动运行迁移：空库 → 执行 `V1__initial_baseline.sql` 建 schema；有库 → 执行 `>=V2` 的增量迁移。
 - 迁移历史在 `flyway_schema_history` 表中可审计。
 
+> ⚠️ **2026-06-10 复核：此路径尚未达到生产就绪。** 合并后的 compose 仍会启动 `data-loader`；它只依赖 PostgreSQL healthcheck，不依赖后端/Flyway 完成，因此空库首启存在 loader 与 V1 迁移的竞态。loader 还主要导入仓库内 CSV 快照并复制敏感字段。解决这些问题前，应把本节视为“生产方向的骨架”，而不是已验证的生产部署方案。
+
 ✅ `jenkins/`（`Dockerfile` + `docker-compose.yml`）用于自建 Jenkins 环境（🔶 推断为本地/自托管 CI）。
 
 ## 生产前必做（基于已确认事实，仅清单非方案）

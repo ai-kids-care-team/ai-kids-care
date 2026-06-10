@@ -15,7 +15,7 @@ ai-kids-care/
 ├── jenkins/               # Jenkins 镜像与 compose
 ├── docs/                  # 本知识库 + ERD
 ├── docker-compose.yml     # 整栈编排（db/neo4j/data-loader/backend/frontend）
-└── Jenkinsfile            # CI：拉取→compose down -v→compose up --build
+└── Jenkinsfile            # CI：拉取→后端 Testcontainers 测试→演示环境重建
 ```
 
 ✅ **代码归属**（`CODEOWNERS`）：`/ai/`、`/frontend/`、`/backend/`、`/db/` 分属四个团队，`/docs/` 与其他文件归 leads。
@@ -80,7 +80,7 @@ ai-kids-care/
 | 前端 → 后端 | HTTP REST（生产经 Nginx `/api/` 反代；开发直连 `:8080`） | `frontend/nginx.conf`、`frontend/src/config/api.ts` |
 | 后端 → PostgreSQL | Spring Data JPA（`ddl-auto=validate`） | `application.yml` |
 | 后端 → Neo4j | Neo4j Java Driver，原生 Cypher | `GraphRepository.java` |
-| Neo4j 数据来源 | data-loader（Python）从 PostgreSQL 抽取后写入图 | `db/ne4j_kindergartens/` |
+| Neo4j 数据来源 | data-loader 主要读取仓库内 CSV 快照；另有一个 users PG 导入脚本 | `db/ne4j_kindergartens/` |
 | 后端 → 外部通知 | Pushover（`PushoverService`） | `build.gradle`、`PushoverService.java` |
 | AI 服务 ↔ 其它 | ❓ **基本解耦**：AI 仅对外暴露 FastAPI；不连 DB、不调后端，仅 Pushover/SMS 告警 | `ai/` 全目录无 DB/HTTP-to-backend 代码 |
 
@@ -91,4 +91,4 @@ ai-kids-care/
 ✅ 详见 [data-architecture](data-architecture.md)：
 
 - **PostgreSQL** — 唯一可信源（system of record）：**30 张业务表**（核心域 28 张来自 `01_create_schema.sql` + 平台字典 `menu`/`common_codes` 2 张来自 02/03 脚本），多租户（`kindergarten_id`），强约束（复合外键、唯一索引）。
-- **Neo4j** — 派生只读视图：从 PG 加载，专用于"以儿童为中心"的关系图查询与前端可视化。
+- **Neo4j** — 当前是 CSV 快照 + 少量 PG 导入形成的查询视图，尚不能称为 PostgreSQL 的可靠派生视图；且复制了超出图查询需要的敏感字段。

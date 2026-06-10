@@ -7,7 +7,7 @@
 | 状态 | 含义 |
 | --- | --- |
 | `Proposed` | 已提出，待评审 |
-| `Accepted` | 已采纳并生效 |
+| `Accepted` | 已采纳为目标约束；不代表代码已经落地 |
 | `Accepted (Retrospective)` | **回溯记录**：决策早已固化在代码中，此处为逆向补记现状（非新提案） |
 | `Rejected` | 评审后否决 |
 | `Superseded` | 被更新的 ADR 取代 |
@@ -28,9 +28,9 @@
 | [ADR-0009](ADR-0009-restore-auth-enforcement.md) | 恢复后端鉴权强制 | **Accepted (2026-05-29)** | 第一轮重构后落地（OQ-SEC-1） |
 | [ADR-0010](ADR-0010-rrn-one-way-hash.md) | 主民登录号（RRN）单向哈希 | **Accepted (2026-05-29)** | 哈希算法选定 **HMAC-SHA-256 + pepper**；schema/ERD 勘误与数据迁移留 Implementation（OQ-SEC-4） |
 | [ADR-0011](ADR-0011-extract-codegen-subproject.md) | 抽离 pg-spring-crud-codegen 为独立工程 | **Accepted (2026-05-29)，✅ Implemented (2026-05-29)** | 方案 A 仓内迁址 + 软指针完成；后续可 `git filter-repo` 带史拆仓（OQ-ARCH-3） |
-| [ADR-0012](ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 | **Accepted (2026-05-29)** | 去删卷/去 seed + Flyway/Liquibase 迁移（OQ-OPS-1） |
+| [ADR-0012](ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 | **Accepted / Partial** | Flyway 与 prod override 已落地；loader 顺序与 CSV 快照问题仍阻碍生产就绪 |
 | [ADR-0013](ADR-0013-dictionary-tables-governance.md) | menu/common_codes 字典表治理 | **Accepted (2026-05-29)** | `menu` → C 静态；`common_codes` → β 后端枚举元数据端点 + 前端 i18n（OQ-DATA-4） |
-| [ADR-0014](ADR-0014-test-baseline.md) | 建立测试基线（Test Baseline） | **Accepted (2026-06-07)** | Testcontainers PG + characterization；从 0009 抽出、提前为加固轨第一步（OQ-TEST-1）；实现委派独立 session |
+| [ADR-0014](ADR-0014-test-baseline.md) | 建立测试基线（Test Baseline） | **Accepted / Complete** | 后端 Testcontainers 基线已提交；本地运行仍要求可用 Docker engine |
 | [ADR-0015](ADR-0015-ai-detection-closed-loop.md) | AI 检测闭环集成契约 | **Accepted (2026-06-07)** | 终态必做、排加固轨之后；**V1：AI 直写 PG + 后端 LISTEN/NOTIFY**；通知复核后发家长；勘误 ADR-0002/0006 |
 | [ADR-0016](ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（替代 JWT） | **Accepted (2026-06-07)** | Spring Session + Redis + httpOnly cookie；**取代 ADR-0007**；排在 ADR-0009 前；实现委派独立 session |
 | [ADR-0017](ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制 | **Accepted (2026-06-07)** | 由 ADR-0016 的 `Secure` cookie **硬触发**；边缘反代终结 + HTTP→HTTPS + HSTS；决断 OQ-OPS-3；实现委派独立 session |

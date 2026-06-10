@@ -13,7 +13,7 @@
 | 后端 → PostgreSQL | JDBC / JPA | 同步 | `application.yml` |
 | 后端 → Neo4j | Bolt（Neo4j Java Driver，原生 Cypher） | 同步 | `GraphRepository.java` |
 | 后端 → Pushover | HTTP（pushover-client） | 同步 | `PushoverService` |
-| data-loader → PG / Neo4j | psycopg 读 PG，driver 写 Neo4j | 批处理（一次性） | `db/ne4j_kindergartens/` |
+| data-loader → Neo4j | 主要读取提交到仓库的 CSV；仅 users 另有 psycopg 导入脚本 | 批处理（一次性） | `db/ne4j_kindergartens/` |
 | AI 服务 ← 调用方 | HTTP REST（FastAPI :8001） | 同步 | `serving/app.py` |
 | AI 实时告警 → Pushover/SMS | HTTP | 异步（流式触发） | `stream_live_alert_service.py` |
 
@@ -74,7 +74,7 @@ GET /api/v1/graph/children/{childId}
    → 前端用 reagraph 可视化
 ```
 
-> 前提：Neo4j 已被 data-loader 从 PostgreSQL 加载（图为派生只读视图）。
+> 前提：Neo4j 已被 data-loader 加载。当前大部分数据来自 CSV 快照，不保证与 PostgreSQL 同步。
 
 ## 6. 典型流：AI 推理（请求式）
 

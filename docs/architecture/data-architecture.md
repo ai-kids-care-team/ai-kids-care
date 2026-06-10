@@ -6,10 +6,10 @@
 
 | 存储 | 角色 | 内容 | 访问方 |
 | --- | --- | --- | --- |
-| **PostgreSQL 16** | 唯一可信源（System of Record） | 全部业务实体与关系 | 后端 JPA、种子脚本、Neo4j loader（读） |
-| **Neo4j 5.19** | 派生只读视图 | 以儿童为中心的关系图 | 后端 `GraphRepository`（读）、data-loader（写） |
+| **PostgreSQL 16** | 业务主存储（System of Record） | 全部业务实体与关系 | 后端 JPA、Flyway、种子脚本 |
+| **Neo4j 5.19** | 关系图查询视图 | 以儿童为中心的关系图 | 后端 `GraphRepository`（读）、data-loader（写） |
 
-🔶 **推断**：Neo4j 是 PostgreSQL 的**派生副本**而非独立可信源——数据由 data-loader 从 PG 单向加载。图存储专门服务于"某儿童 → 班级 → 教师 → 幼儿园 + 多个保护者"这类多跳关系查询与可视化，避免在关系库里做多表 JOIN。
+⚠️ **2026-06-10 实现复核**：目标上 Neo4j 应是 PostgreSQL 的最小派生视图；当前实现却主要从仓库内 CSV 快照加载，只有一个 users 脚本读取 PG，并复制了密码哈希、RRN、地址等图查询不需要的敏感字段。因此当前图库不能视为可靠的 PG 派生副本。
 
 ## 2. Schema 的事实来源链（DB-first）
 
@@ -20,7 +20,8 @@ db/dbml/schema.dbml   （人编辑的 DBML，唯一权威 schema 定义）
    │  dbml2sql（@dbml/cli）   ← db/dbml/README.md 记录此命令
    ▼
 db/initdb/01_create_schema.sql   （生成的建表 SQL）
-   │  PostgreSQL 容器启动时自动执行 initdb/*.sql
+   ├─ Demo：PostgreSQL 容器启动时执行 initdb/*.sql
+   └─ Prod：复制为 Flyway V1，后续由 V2... 迁移演进
    ▼
 PostgreSQL 实际表结构
    │  pg-spring-crud-codegen 内省         后端 JPA 实体（ddl-auto=validate 校验匹配）

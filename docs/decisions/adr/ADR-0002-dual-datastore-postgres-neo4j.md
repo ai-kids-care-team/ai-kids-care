@@ -11,6 +11,8 @@ deciders: 原始团队（逆向补记）
 > **回溯性 ADR**：描述代码现状，非新提案。
 >
 > ⚠️ **勘误（2026-06-07，维护者）**：本 ADR 的"PG 为唯一可信源（SoR）"描述的是 PG **相对 Neo4j** 的角色（PG 权威、Neo4j 派生只读），**不**蕴含"只有后端能写 PG"。曾被误读为"后端是 PG 唯一写入者"——该读法**错误**。AI 子系统将检测数据**直接写入 PG**（见 [ADR-0015](ADR-0015-ai-detection-closed-loop.md) V1）与"PG 为 SoR"**完全一致**（写入的正是权威存储）。"PG=SoR、Neo4j=派生"这一核心判断仍然有效。
+>
+> ⚠️ **实现漂移（2026-06-10 复核）**：当前 loader 并未从 PG 构建完整派生图；除 users 的一个 PG 导入脚本外，主要节点和关系来自仓库内 CSV 快照，并复制了图查询不需要的敏感字段。本 ADR 保留目标决策，但当前实现不符合该决策。
 
 ## 状态
 
@@ -18,13 +20,13 @@ Accepted (Retrospective)
 
 ## 背景
 
-✅ 系统同时使用两种数据库：**PostgreSQL 16**（27 张关系表，强约束）与 **Neo4j 5.19**（关系图）。后端通过 JPA 访问 PG，通过 Neo4j Java Driver（原生 Cypher，`GraphRepository`）访问图库。
+✅ 系统同时使用两种数据库：**PostgreSQL 16**（28 张核心业务表，另有 2 张平台字典表）与 **Neo4j 5.19**（关系图）。后端通过 JPA 访问 PG，通过 Neo4j Java Driver（原生 Cypher，`GraphRepository`）访问图库。
 
 ✅ 业务核心场景之一是"以儿童为中心"的多跳关系展示（儿童↔班级↔教师↔幼儿园↔保护者），并在前端用 `reagraph` 可视化。
 
 ## 决策
 
-以 **PostgreSQL 为唯一可信源（system of record）**，承载全部业务写入与强一致约束；以 **Neo4j 为派生只读视图**，由 `db/ne4j_kindergartens/` 的 Python 加载器从 PG 抽取并构建图，专门服务关系图查询与可视化。
+以 **PostgreSQL 为唯一可信源（system of record）**，承载业务写入与强一致约束；以 **Neo4j 为最小派生只读视图**，仅投影关系图查询所需字段，专门服务关系图查询与可视化。
 
 ## 后果
 
