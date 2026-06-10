@@ -106,7 +106,7 @@ Accepted
 
 ## 关联（References）
 
-- [.agents/AGENTS.md](../../../.agents/AGENTS.md) — Language Policy 段（本 ADR 的摘要与入口）；根目录 `CLAUDE.md` 与 `AGENTS.md` 均为指向此文件的软链
+- [.agents/AGENTS.md](../../../.ai/CONTEXT.md) — Language Policy 段（本 ADR 的摘要与入口）；根目录 `CLAUDE.md` 与 `AGENTS.md` 均为指向此文件的软链
 - [docs/README.md](../../README.md) — 语言说明
 - [docs/product/glossary.md](../../product/glossary.md) — 中/韩/英受控词表
 - [modernization/open-questions.md](../../modernization/open-questions.md) — OQ-LANG-6（i18n 机制选型）
