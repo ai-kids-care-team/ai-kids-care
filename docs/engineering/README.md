@@ -16,7 +16,7 @@
 | [ai-guide.md](ai-guide.md) | AI 训练/推理/实时告警的运行方式 |
 | [database-guide.md](database-guide.md) | DBML → SQL 工作流、种子数据、Neo4j 加载 |
 | [coding-conventions.md](coding-conventions.md) | 跨组件命名与分层约定 |
-| [testing.md](testing.md) | 测试现状（当前无自动化测试）与 `CLAUDE.md` 测试规则 |
+| [testing.md](testing.md) | 后端 Testcontainers 基线、现有覆盖与待补测试 |
 
 ## 工作模式（来自 `CLAUDE.md`）
 

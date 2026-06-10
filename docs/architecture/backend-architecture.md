@@ -114,7 +114,7 @@ templates/*.mustache  →  生成 6 类文件：
 
 | 缺口 | 状态 |
 | --- | --- |
-| 无自动化测试 | ✅ `backend/src/test/` 为空——无单元/集成测试 |
+| 测试覆盖薄 | ✅ 已有 Testcontainers 后端基线，但仅覆盖认证与检测事件少量路径；前端/AI 无测试 |
 | 无全局异常处理器 | 🔶 未见 `@ControllerAdvice`；service 多直接抛 `RuntimeException`/`IllegalArgumentException`，错误响应格式未统一 |
 | 鉴权关闭 | ✅ 见上 |
 | 密码重置未实现 | ✅ `AuthService.passwordResets` 抛 `Not implemented` |

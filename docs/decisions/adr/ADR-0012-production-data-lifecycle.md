@@ -1,7 +1,8 @@
 ---
 ADR: ADR-0012
 title: "ADR-0012: 区分演示重置与生产部署的数据生命周期"
-status: Implemented
+status: Accepted
+implementation: Partial
 date: 2026-05-29
 implemented: 2026-06-08
 deciders: 维护者（2026-05-29 Accept；schema 管理推荐 Flyway/Liquibase，最终选型留 Implementation）
@@ -13,7 +14,7 @@ deciders: 维护者（2026-05-29 Accept；schema 管理推荐 Flyway/Liquibase�
 
 ## 状态（Status）
 
-✅ **Implemented（2026-06-08）**
+**Decision: Accepted. Implementation: Partial（2026-06-10 复核）。**
 
 实现选型：**Flyway**（Spring Boot 3.2.5 内置 Flyway 9.22.3）。
 - `backend/src/main/resources/db/migration/V1__initial_baseline.sql`：以 `01_create_schema.sql` 为基线快照。
@@ -22,11 +23,13 @@ deciders: 维护者（2026-05-29 Accept；schema 管理推荐 Flyway/Liquibase�
 - `Jenkinsfile`：保留演示 CI 删卷重建路径，注释说明生产部署命令。
 - `FlywayMigrationTest`：用独立 Testcontainers 容器（无 initdb）验证 V1 在空库正常执行。
 
+> **实施勘误（2026-06-10）**：Flyway 与生产 DB override 已落地，但合并后的 production compose 仍启动 `data-loader`，且未等待 Flyway 完成；loader 主要读取 CSV 快照，并非本文原先描述的完整 PG 派生流程。因此“生产数据生命周期”只能标记为 Partial，待 loader 顺序、数据来源、敏感字段最小化与生产验证完成后再转 Complete。
+
 ## 背景（Context）
 
 ✅ CI（`Jenkinsfile:20`）执行 `docker compose down --remove-orphans --volumes --rmi local` → `up -d --build`：每次部署**清空** `postgres_data`/`neo4j_data` 卷。
 ✅ 数据库初始化依赖 `db/initdb/*.sql`：建表（`01`）+ 字典（`02`/`03`）+ 大量种子（`21..46`、`88`）+ 序列同步（`99`）。PostgreSQL **仅在数据目录为空时**执行 initdb。
-✅ Neo4j 由 data-loader 一次性从 PG 加载（`restart:"no"`），无增量同步（OQ-DATA-1）。
+⚠️ Neo4j data-loader 一次性运行（`restart:"no"`），但当前主要读取 CSV 快照；仅 users 另有 PG 导入脚本，且无可靠增量同步（OQ-DATA-1）。
 > 事实后果：在保留数据的环境运行当前 CI 将**丢失全部数据**（current-state-assessment 列为高风险）。
 
 ## 决策（Decision）

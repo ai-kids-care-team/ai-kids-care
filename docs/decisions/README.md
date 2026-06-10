@@ -2,7 +2,9 @@
 
 ## 用途
 
-本目录承载 **ADR（Architecture Decision Records，架构决策记录）**——用轻量、可追溯的方式记录"为什么这样设计"。ADR 是本知识库中**优先级最高的信息来源**（见 `CLAUDE.md`：ADR > 架构文档 > 产品文档 > 代码 > 假设）。
+本目录承载 **ADR（Architecture Decision Records，架构决策记录）**——用轻量、可追溯的方式记录"为什么这样设计"。
+
+ADR 是**意图和约束**的权威来源，但不是当前实现已经存在的证明。当前行为必须回到代码、配置、迁移、测试与运行证据核验。
 
 ADR 全部位于 [adr/](adr/README.md)。
 
@@ -22,9 +24,10 @@ ADR 标题格式：英文 ID + 描述性标题，例如 `ADR-0005: Introduce Rep
 
 1. 复制 [adr/adr-template.md](adr/adr-template.md) 为 `ADR-XXXX-标题.md`（XXXX 取下一个序号）。
 2. 填写：背景 / 决策 / 后果 / 备选。状态初始为 `Proposed`。
-3. 评审后将状态改为 `Accepted`（或 `Rejected`）。
-4. 被后续 ADR 取代时，状态改为 `Superseded by ADR-YYYY`。
-5. 在 [adr/README.md](adr/README.md) 索引中登记。
+3. 评审后将决策状态改为 `Accepted`（或 `Rejected`）。
+4. 用独立的 `implementation` 字段跟踪 `Not Started / Partial / Complete`，不要把 `Accepted` 当成 `Implemented`。
+5. 被后续 ADR 取代时，状态改为 `Superseded` 并填写 `superseded_by`。
+6. 在 [adr/README.md](adr/README.md) 索引中登记。
 
 ## 关于"回溯性 ADR"
 

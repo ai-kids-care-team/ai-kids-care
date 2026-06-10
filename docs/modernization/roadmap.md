@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** | 小 |
 | 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Implemented (2026-06-08)** | 中 |
-| 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway/Liquibase | ✅ **Implemented (2026-06-08)** | 中 |
+| 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway | ⚠️ **Partial**：迁移已落地，生产 loader 仍有竞态/快照问题 | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
 | 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
 | 6 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
@@ -23,7 +23,7 @@
 
 ## 实施次序（2026-06-07 修订）
 
-**0011 ✅ → 0014 ✅ → 0012 ✅ → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
+**0011 ✅ → 0014 ✅ → 0012 ⚠️ Partial → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
 
 > 原次序（2026-05-29 已确认）：`0011 → 0012 → 0013 → 0010 → 0009`。本次修订**前插 0014（测试基线）；在 0009 前插入 0016（会话机制）+ 0017（TLS）；在 0015 前插入 0018（通知子系统）；后接 0015（AI 闭环）**，未改动中间四篇的相对顺序。
 
@@ -70,7 +70,7 @@
 
 ---
 
-### ✅ ADR-0012 演示重置 vs 生产数据生命周期 — Implemented（2026-06-08）
+### ⚠️ ADR-0012 演示重置 vs 生产数据生命周期 — Partial
 
 > 选型：Flyway（Spring Boot 3.2.5 / Flyway 9.22.3）。详见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)。
 
@@ -82,6 +82,8 @@
 - [x] 文档同步：`operations/{deployment,configuration,runbook}.md`、`data-architecture.md §3`、`ADR-0004` 链入迁移流程
 - [x] 测试：`FlywayMigrationTest`（新建，独立新鲜容器验证 V1 在空库执行正常 + `ddl-auto=validate` 通过）
 - [x] **后续 Design 议题已记录**：备份/恢复 + 回滚策略（OQ-OPS-4，未决）见 `deployment.md §回滚`；Neo4j 生产再同步策略（OQ-DATA-1，未决）关联 ADR-0012
+- [ ] production compose 中 `data-loader` 必须等待 Flyway 完成，或从生产 profile 移除
+- [ ] Neo4j loader 改为可验证的 PG 最小投影，移除密码/RRN/地址等非必要字段
 
 **迁移撰写工作流工具（2026-06-08 补完）**：
 - [x] 选型 **migra**（PostgreSQL 专用 Python diff 工具）；`db/scripts/requirements-migra.txt` 记录依赖
@@ -164,10 +166,10 @@
 
 > ⚠️ **机制更新（2026-06-07）**：鉴权"恢复"决策不变，但**机制由 JWT 改为 session**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）。下列 **JWT 专属项作废**（access/refresh 区分、role claim、JWT secret 外部化、`expireSecond` 改名），由 ADR-0016 session 等价项替代；本节保留的是"翻转 `permitAll`→`authenticated` + 公开端点白名单 + 授权集成测试"。
 
-> **必要前置**：本 ADR 必须配套**测试基础设施**（[OQ-TEST-1](open-questions.md) 当前 `backend/src/test/` 为空）；翻转鉴权前应有 characterization 测试覆盖既有行为。
+> **必要前置（已部分满足）**：ADR-0014 已建立 Testcontainers 测试基础设施与认证 characterization；翻转鉴权前仍需补齐 session、CSRF、角色和租户边界测试。
 
-- [ ] **配套**：搭建 Spring Boot Test 基础设施（JUnit 5 + Testcontainers/H2 + `spring-security-test`）
-- [ ] **配套**：为 4 个真正实现的端点（`POST /auth/login` `/refresh` `/register`、`GET /auth/register/availability`）补 characterization 测试
+- [x] **配套**：搭建 Spring Boot Test + Testcontainers PostgreSQL + `spring-security-test`
+- [x] **配套**：为已实现认证端点补首批 characterization 测试
 - [ ] `SecurityConfig.java:48,51`：取消 `JwtAuthenticationFilter` 注释；`/api/v1/**` 由 `permitAll()` 改 `authenticated()`
 - [ ] 公开端点白名单：`/auth/login`、`/auth/refresh`、`/auth/register`、`/auth/register/availability`、`/swagger-ui/**`、`/v3/api-docs/**`、`OPTIONS /**`
 - [ ] access / refresh 区分（OQ-SEC-2）：加 `TokenTypeEnum` claim、独立过期时间；`/auth/refresh` 仅接受 `refresh` 类型 token

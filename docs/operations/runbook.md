@@ -68,7 +68,7 @@ docker exec -it ai-kids-postgres psql -U kids_user -d kids_postgres_db
 
 ### Neo4j 图数据为空或过时
 
-✅ 图由 data-loader 一次性从 PG 加载。PG 改动后需重跑 loader（`db/ne4j_kindergartens/run_all.sh`，或重建 data-loader 服务）。
+⚠️ data-loader 当前主要读取仓库内 CSV 快照；仅 users 另有 PG 导入脚本，且没有可靠增量同步。图为空或过时时，应先确认 CSV/PG 数据来源，再运行 `db/ne4j_kindergartens/run_all.sh` 或重建 data-loader 服务。
 
 ## Flyway 迁移管理
 

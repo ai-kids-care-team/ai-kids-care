@@ -1,1 +1,2 @@
-@.agents/CONTEXT.md
+@.ai/CONTEXT.md
+@.ai/project.md

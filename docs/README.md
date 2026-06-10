@@ -16,11 +16,13 @@
 | 有哪些 API、数据长什么样 | [api/](api/README.md)、[architecture/data-architecture.md](architecture/data-architecture.md) |
 | 怎么部署、怎么配置 | [operations/](operations/README.md) |
 | 历史架构决策、为什么这样设计 | [decisions/adr/](decisions/adr/README.md) |
-| 当前技术债、风险、待确认事项 | [modernization/](modernization/README.md) |
+| 当前技术债、风险、待确认事项 | [assessments/2026-06-10-codebase-audit.md](assessments/2026-06-10-codebase-audit.md) |
+| 开始一项新功能或技术改动 | [specs/](specs/README.md) |
+| 文档如何组织和维护 | [governance/README.md](governance/README.md) |
 
 ---
 
-## 三级可信度标注（重要约定）
+## 可信度与真相类型（重要约定）
 
 本知识库的每一条非显然结论，都按其**证据强度**分为三级。阅读时请始终注意标注，不要把"推断"当成"事实"。
 
@@ -30,7 +32,7 @@
 | 🔶 **推断（Inferred）** | 根据代码高度推测，但缺少直接证据 | 多处迹象一致指向同一结论，但意图未被显式写明 |
 | ❓ **待确认（Open Question）** | 需要人工（原作者/团队）确认 | 代码存在矛盾、缺口或意图不明，无法仅凭代码判定 |
 
-> 所有 ❓ 待确认事项都汇总在 [modernization/open-questions.md](modernization/open-questions.md)，这是与团队对齐的核对清单。
+> 当前行为以代码、配置、迁移、测试和运行证据为准；ADR/Approved Spec 表达目标意图。二者冲突时必须显式登记漂移。所有 ❓ 待确认事项仍汇总在 [modernization/open-questions.md](modernization/open-questions.md)。
 
 ---
 
@@ -42,6 +44,9 @@ docs/
 ├── product/                   # 产品视角：做什么、给谁、有什么价值
 ├── architecture/              # 系统架构：组成、分层、数据流、安全
 ├── decisions/adr/             # 架构决策记录（ADR）：为什么这样设计
+├── specs/                     # 未来行为契约：先写什么，再实现
+├── assessments/               # 日期化代码审计与事实快照
+├── governance/                # 文档信息架构、可信度与维护规则
 ├── engineering/               # 工程指南：如何开发、约定、本地运行
 ├── operations/                # 运维：部署、配置、排障、可观测性
 ├── modernization/             # 演进：现状评估、技术债、待确认事项、路线图
@@ -71,12 +76,13 @@ AI Kids Care 是面向**幼儿园安全管理**的 AI 平台：通过 CCTV 视�
 
 ## 维护约定
 
-- 本知识库受仓库根目录 [`CLAUDE.md`](../CLAUDE.md) 约束。当文档与代码冲突时，**信息优先级**为：ADR > 架构文档 > 产品文档 > 现有代码 > 假设。
+- 本知识库受仓库根目录 [`CLAUDE.md`](../CLAUDE.md) 与 [`.ai/project.md`](../.ai/project.md) 约束。
+- **当前行为**以实现证据为准；**目标方向**以 Accepted ADR / Approved Spec 为准。不要把两类真相混为一谈。
 - 文档中引用代码时尽量带 `文件路径:行号`，以便追溯与校验。
 - 信息会随时间过期。任何基于本库做决策前，请先核对当前代码状态，发现不一致时**以代码为准并更新文档**。
 - 重大决策的变更必须通过新增 ADR，而不是悄悄改写文档。
 
-**基线快照时间：2026-05-29**（首次建立）。本库内容反映该时间点的代码状态。
+首次知识库基线为 **2026-05-29**。最新全仓复核为 **2026-06-10**，见 [代码与文档审计](assessments/2026-06-10-codebase-audit.md)。
 
 ## 语言说明
 

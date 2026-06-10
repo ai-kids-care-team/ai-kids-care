@@ -12,16 +12,14 @@ A contribution is acceptable only if it preserves stability while doing at least
 
 ## Source of Truth
 
-For repository facts, defer in this order:
+Separate **as-built facts** from **intended decisions**:
 
-1. ADRs or decision records
-2. Architecture documentation
-3. Product, requirements, or business documentation
-4. API contracts and schemas
-5. Existing code
-6. Explicitly stated assumptions
+1. For current runtime behavior, prefer executable evidence: code, migrations, schemas, configuration, tests, build output, and observed runtime behavior.
+2. For intended direction and constraints, prefer accepted ADRs and approved specs.
+3. Architecture, product, API, and operations documents explain those sources but do not override contradictory executable evidence.
+4. Explicit assumptions come last and must be labeled.
 
-If sources conflict, surface the conflict before proceeding. Do not silently choose one source, overwrite a documented decision, or normalize the inconsistency. To change a documented decision, propose a decision record.
+If sources conflict, surface the conflict before proceeding. Record whether the drift is in implementation, decision status, or explanatory documentation. Do not silently rewrite an accepted decision; supersede it with a new decision record when the intended direction changes.
 
 ## Required Working Modes
 
