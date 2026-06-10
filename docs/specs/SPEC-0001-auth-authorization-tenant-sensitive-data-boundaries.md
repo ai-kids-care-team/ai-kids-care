@@ -300,7 +300,7 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 本 Spec 可拆为多个独立 Implementation session，但只有全部验收标准完成后才能标记 `Implemented`。
 
-1. **暴露面止血**：禁止匿名特权注册；移除 S0 response/write DTO；关闭 audit 通用写删；补回归测试。
+1. **暴露面止血**：公开注册仅创建允许角色的 PENDING 申请并拒绝 `PLATFORM_IT_ADMIN`；移除 S0 response/write DTO；关闭 audit 通用写删；补回归测试。
 2. **会话认证**：Spring Session + Redis、login/session/logout、CSRF、前端去 JWT 化。
 3. **授权与 Tenant Context**：默认认证、角色策略、context selection、tenant-aware query/write。
 4. **资源关系与审计**：Guardian/Teacher relation policy、S1 访问审计、session 撤销。
