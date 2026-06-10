@@ -2,6 +2,12 @@
 
 `docs/specs/` 存放面向未来、可评审的行为契约。Spec 在实现开始前描述**系统必须满足什么**；它不是进度日志，也不替代 ADR。
 
+## 索引
+
+| ID | 标题 | 状态 | Implementation |
+| --- | --- | --- | --- |
+| [SPEC-0001](SPEC-0001-auth-authorization-tenant-sensitive-data-boundaries.md) | 认证、授权、租户与敏感数据边界 | Approved | Not Started |
+
 ## 生命周期
 
 | Status | 含义 |
