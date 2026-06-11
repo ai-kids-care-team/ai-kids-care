@@ -13,10 +13,10 @@ export interface CameraStreamVO {
   kindergartenId: number;
   cameraId: number;
   streamType: string | null;
-  streamUrl: string | null;
-  streamUser: string | null;
-  streamPasswordEncrypted: string | null;
-  protocol: string | null;
+  hasPassword: boolean | null;
+  sourceProtocol: string | null;
+  playbackUrl: string | null;
+  playbackProtocol: string | null;
   fps: number | null;
   resolution: string | null;
   isPrimary: boolean | null;

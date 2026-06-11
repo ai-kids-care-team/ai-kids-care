@@ -9,7 +9,6 @@ export type GuardianVO = {
   kindergartenId: number;
   userId: number;
   name: string;
-  rrnEncrypted: string | null;
   rrnFirst6: string | null;
   gender: string | null;
   address: string | null;
@@ -28,7 +27,6 @@ function normalizeGuardianVO(raw: unknown): GuardianVO {
     kindergartenId: Number.isFinite(kindergartenId) && kindergartenId > 0 ? kindergartenId : 0,
     userId: Number.isFinite(userId) && userId > 0 ? userId : 0,
     name: String(r.name ?? '').trim(),
-    rrnEncrypted: (r.rrnEncrypted ?? r.rrn_encrypted) as string | null,
     rrnFirst6: (r.rrnFirst6 ?? r.rrn_first6) as string | null,
     gender: (r.gender as string) ?? null,
     address: (r.address as string) ?? null,

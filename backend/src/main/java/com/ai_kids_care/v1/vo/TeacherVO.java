@@ -16,7 +16,6 @@ public record TeacherVO(
         String gender,
         String emergencyContactName,
         String emergencyContactPhone,
-        String rrnEncrypted,
         String rrnFirst6,
         String level,
         LocalDate startDate,

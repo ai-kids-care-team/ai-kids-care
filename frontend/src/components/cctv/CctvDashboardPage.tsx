@@ -224,10 +224,10 @@ function displayLocationLine(vo: CctvCameraVO): string {
   return vo.serialNo?.trim() || vo.model?.trim() || '위치 미지정';
 }
 
-/** iframe에는 http(s)만 — RTSP 등은 브라우저에서 재생 불가 */
+/** iframe에는 공개 playbackUrl 의 http(s)만 — RTSP 등 원본 source URL은 브라우저에서 직접 재생하지 않음 */
 function pickPrimaryStreamUrl(streams: CameraStreamVO[]): string | null {
   const httpStreams = streams.filter((s) => {
-    const u = s.streamUrl?.trim();
+    const u = s.playbackUrl?.trim();
     if (!u) return false;
     const lower = u.toLowerCase();
     return lower.startsWith('http://') || lower.startsWith('https://');
@@ -236,7 +236,7 @@ function pickPrimaryStreamUrl(streams: CameraStreamVO[]): string | null {
   const enabled = httpStreams.filter((s) => s.enabled !== false);
   const pool = enabled.length > 0 ? enabled : httpStreams;
   const primary = pool.find((s) => s.isPrimary === true);
-  return (primary ?? pool[0]).streamUrl!.trim();
+  return (primary ?? pool[0]).playbackUrl!.trim();
 }
 
 const ROLE_COLORS: Record<UserRole, string> = {
@@ -634,7 +634,7 @@ export function CctvDashboardPage() {
         const cam1 = m.get(1) ?? [];
         const cam1Primary = pickPrimaryStreamUrl(cam1);
         if (!cam1Primary) {
-          console.warn('camera_streams: cameraId=1 has no usable http(s) primary streamUrl', {
+          console.warn('camera_streams: cameraId=1 has no usable http(s) primary playbackUrl', {
             cam1Count: cam1.length,
           });
         }
@@ -1475,10 +1475,10 @@ export function CctvDashboardPage() {
                     className="rounded border bg-gray-50 p-2 text-xs"
                   >
                     <p>
-                      #{s.streamId ?? idx + 1} · {s.protocol ?? 'UNKNOWN'} · {s.streamType ?? 'N/A'} ·{' '}
+                      #{s.streamId ?? idx + 1} · {s.playbackProtocol ?? s.sourceProtocol ?? 'UNKNOWN'} · {s.streamType ?? 'N/A'} ·{' '}
                       {s.enabled ? 'ENABLED' : 'DISABLED'}
                     </p>
-                    <p className="truncate text-gray-600">{s.streamUrl ?? 'streamUrl 없음'}</p>
+                    <p className="truncate text-gray-600">{s.playbackUrl ?? 'playbackUrl 없음'}</p>
                   </div>
                 ))}
                   </div>

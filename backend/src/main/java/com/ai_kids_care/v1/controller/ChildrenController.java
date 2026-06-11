@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.ChildCreateDTO;
 import com.ai_kids_care.v1.dto.ChildUpdateDTO;
 import com.ai_kids_care.v1.service.ChildrenService;
 import com.ai_kids_care.v1.vo.ChildVO;
@@ -10,7 +9,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,11 +33,6 @@ public class ChildrenController {
     @GetMapping("/rrn")
     public ResponseEntity<ChildVO> getChildByRRN(@RequestParam("rrn_First6") String rrn_First6, @RequestParam("rrn_Last7") String rrn_Last7) {
         return ResponseEntity.ok(service.getChildByRRN(rrn_First6, rrn_Last7));
-    }
-
-    @PostMapping
-    public ResponseEntity<ChildVO> createChildren(@RequestBody ChildCreateDTO createDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createChildren(createDTO));
     }
 
     @PutMapping("/{id}")

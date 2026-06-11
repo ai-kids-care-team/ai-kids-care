@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.UserCreateDTO;
 import com.ai_kids_care.v1.dto.UserUpdateDTO;
 import com.ai_kids_care.v1.vo.UserVO;
 import com.ai_kids_care.v1.service.UserService;
@@ -10,7 +9,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,11 +31,6 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserVO> getUser(@PathVariable Long id) {
         return ResponseEntity.ok(service.getUser(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<UserVO> createUser(@RequestBody UserCreateDTO createDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createUser(createDTO));
     }
 
     @PutMapping("/{id}")

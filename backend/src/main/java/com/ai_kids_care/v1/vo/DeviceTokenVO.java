@@ -10,7 +10,6 @@ public record DeviceTokenVO(
         Long deviceId,
         Long userId,
         String platform,
-        String pushToken,
         String status,
         OffsetDateTime lastSeenAt,
         OffsetDateTime createdAt

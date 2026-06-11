@@ -19,7 +19,6 @@ public class ChildUpdateDTO implements Serializable {
     private Long kindergartenId;
     private String name;
     private String childNo;
-    private String rrnEncrypted;
     private String rrnFirst6;
     private LocalDate birthDate;
     private String gender;

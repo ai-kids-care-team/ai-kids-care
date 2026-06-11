@@ -12,7 +12,6 @@ public record ChildVO(
         Long kindergartenId,
         String name,
         String childNo,
-        String rrnEncrypted,
         String rrnFirst6,
         LocalDate birthDate,
         String gender,

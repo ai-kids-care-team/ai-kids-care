@@ -34,7 +34,7 @@
 
 ## 标准 CRUD 约定
 
-✅ 以 `ChildrenController` 为确证样例的统一模式（🔶 推断大多数资源型控制器同构，因均由 codegen 生成，见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）：
+✅ 大多数资源型控制器仍保持 codegen 风格的 CRUD 结构（见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）：
 
 | 方法 | 路径 | 行为 |
 | --- | --- | --- |
@@ -44,7 +44,22 @@
 | `PUT` | `/api/v1/<resource>/{id}` | 更新（入参 `UpdateDTO`） |
 | `DELETE` | `/api/v1/<resource>/{id}` | 删除（204） |
 
-> 具体每个资源是否实现全部五种方法、是否有额外查询端点（如 children 的 `GET /children/rrn`），以 Swagger 为准。
+> 具体每个资源是否实现全部五种方法、是否有额外查询端点（如 children 的 `GET /children/rrn`），以 Swagger / `/v3/api-docs` 为准。
+
+### Phase 1A 已确认例外（as-built）
+
+以下内容是 **SPEC-0001 Phase 1A 当前已实现状态**，仅表示“敏感数据暴露止血”后的接口形状；**不表示** Session、审批流、tenant enforcement 或角色授权已经完成。
+
+| 资源 | 当前公共方法 | 说明 |
+| --- | --- | --- |
+| `/api/v1/users` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/users` 返回 `405 Method Not Allowed` |
+| `/api/v1/children` | `GET` list/detail, `GET /children/rrn`, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/children` 返回 `405` |
+| `/api/v1/guardians` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/guardians` 返回 `405` |
+| `/api/v1/teachers` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/teachers` 返回 `405` |
+| `/api/v1/device_tokens` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`。完整 `pushToken` 不再出现在公共 response / write contract，后续需改为绑定服务端身份的专用 command |
+| `/api/v1/event_evidence_files` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`，`storageUri` 不再经公共 generic write contract 可写 |
+| `/api/v1/camera_streams` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`。公共 `CameraStreamVO` 不再暴露 `sourceUrl`、`streamUser` 或任何 camera credential/ciphertext/IV/key version 表示，前端公开播放改读 `playbackUrl` / `playbackProtocol` |
+| `/api/v1/audit_logs` | `GET` list/detail only | 公共 `POST` / `PUT` / `DELETE` 均不存在；Audit Log 当前为只读查询接口 |
 
 ## 认证端点（详列）
 
