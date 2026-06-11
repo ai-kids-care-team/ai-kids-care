@@ -11,8 +11,6 @@ public record CameraStreamVO(
         Long kindergartenId,
         Long cameraId,
         String streamType,
-        String sourceUrl,
-        String streamUser,
         Boolean hasPassword,
         String sourceProtocol,
         String playbackUrl,

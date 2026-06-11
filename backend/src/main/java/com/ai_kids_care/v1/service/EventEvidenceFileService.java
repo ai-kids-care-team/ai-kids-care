@@ -1,7 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.EventEvidenceFileCreateDTO;
-import com.ai_kids_care.v1.dto.EventEvidenceFileUpdateDTO;
 import com.ai_kids_care.v1.entity.EventEvidenceFile;
 import com.ai_kids_care.v1.mapper.EventEvidenceFileMapper;
 import com.ai_kids_care.v1.repository.EventEvidenceFileRepository;
@@ -27,17 +25,6 @@ public class EventEvidenceFileService {
     public EventEvidenceFileVO getEventEvidenceFile(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventEvidenceFile not found"));
-    }
-
-    public EventEvidenceFileVO createEventEvidenceFile(EventEvidenceFileCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    public EventEvidenceFileVO updateEventEvidenceFile(Long id, EventEvidenceFileUpdateDTO updateDTO) {
-        EventEvidenceFile entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("EventEvidenceFile not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
     }
 
     public void deleteEventEvidenceFile(Long id) {

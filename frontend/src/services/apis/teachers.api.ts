@@ -16,7 +16,6 @@ export type TeacherVO = {
   gender: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
-  rrnEncrypted: string | null;
   rrnFirst6: string | null;
   level: string | null;
   startDate: string | null;
@@ -31,6 +30,14 @@ export type TeacherApiRow = TeacherVO & {
   kindergarten_id?: number;
   user_id?: number;
   teacher_id?: number;
+  staff_no?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  rrn_first6?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
@@ -82,6 +89,18 @@ function inferTeacherIdFromUserAndKindergarten(
 
 export type NormalizeTeacherOptions = { fallbackKindergartenId?: number };
 
+function firstDefined(...vals: unknown[]): unknown {
+  for (const v of vals) {
+    if (v !== undefined) return v;
+  }
+  return undefined;
+}
+
+function nullableString(...vals: unknown[]): string | null {
+  const value = firstDefined(...vals);
+  return value == null ? null : String(value);
+}
+
 export function normalizeTeacherVO(
   raw: TeacherApiRow,
   options?: NormalizeTeacherOptions,
@@ -103,11 +122,23 @@ export function normalizeTeacherVO(
     const inferred = inferTeacherIdFromUserAndKindergarten(userId, kindergartenId);
     if (inferred != null) teacherId = inferred;
   }
+
   return {
-    ...raw,
     teacherId,
     kindergartenId,
     userId,
+    staffNo: nullableString(raw.staffNo, r.staff_no),
+    name: nullableString(raw.name, r.name) ?? '',
+    gender: nullableString(raw.gender, r.gender),
+    emergencyContactName: nullableString(raw.emergencyContactName, r.emergency_contact_name),
+    emergencyContactPhone: nullableString(raw.emergencyContactPhone, r.emergency_contact_phone),
+    rrnFirst6: nullableString(raw.rrnFirst6, r.rrn_first6),
+    level: nullableString(raw.level, r.level),
+    startDate: nullableString(raw.startDate, r.start_date),
+    endDate: nullableString(raw.endDate, r.end_date),
+    status: nullableString(raw.status, r.status),
+    createdAt: nullableString(raw.createdAt, r.created_at),
+    updatedAt: nullableString(raw.updatedAt, r.updated_at),
   };
 }
 

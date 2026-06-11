@@ -11,7 +11,6 @@ public record EventEvidenceFileVO(
         Long eventId,
         Long kindergartenId,
         String type,
-        String storageUri,
         String mimeType,
         OffsetDateTime createdAt,
         OffsetDateTime retentionUntil,

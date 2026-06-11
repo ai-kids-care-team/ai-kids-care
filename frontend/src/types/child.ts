@@ -23,7 +23,6 @@ export interface Child {
     childNo: string;
 
     rrnFirst6: string;
-    rrnEncrypted: string;
 
     birthDate: string;       // YYYY-MM-DD
     gender: GenderEnum;
@@ -49,7 +48,6 @@ export interface ChildCreateRequest {
     childNo: string;
 
     rrnFirst6: string;
-    rrnEncrypted: string;
 
     birthDate: string;
     gender: GenderEnum;

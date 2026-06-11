@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.GuardianCreateDTO;
 import com.ai_kids_care.v1.dto.GuardianUpdateDTO;
 import com.ai_kids_care.v1.vo.GuardianVO;
 import com.ai_kids_care.v1.service.GuardianService;
@@ -10,7 +9,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,11 +31,6 @@ public class GuardianController {
     @GetMapping("/{id}")
     public ResponseEntity<GuardianVO> getGuardian(@PathVariable Long id) {
         return ResponseEntity.ok(service.getGuardian(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<GuardianVO> createGuardian(@RequestBody GuardianCreateDTO createDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createGuardian(createDTO));
     }
 
     @PutMapping("/{id}")

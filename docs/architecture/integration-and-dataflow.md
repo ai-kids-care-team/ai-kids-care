@@ -46,17 +46,48 @@
         └─ 失败 → 清 token + 弹出登录框(openLoginModal)
 ```
 
-## 4. 典型流：CRUD（以儿童为例）
+## 4. 典型流：Phase 1A 已关闭的通用写入口
 
-✅ 来源 `ChildrenController` → `ChildrenService`。体现统一分层（见 [backend-architecture](backend-architecture.md)）。
+✅ 来源 `ChildrenController`、`DeviceTokenController`、`EventEvidenceFileController`、`CameraStreamController`、`SensitiveWriteContractTest`。体现当前控制器映射与 Phase 1A 止血后的 as-built 行为（见 [backend-architecture](backend-architecture.md)）。
 
 ```text
 GET /api/v1/children?keyword=&page=&size=
    Controller(分页参数) → Service.listChildren → Repository(分页查询)
                         → MapStruct: Entity → ChildVO → 返回 Page<ChildVO>
+
 POST /api/v1/children {ChildCreateDTO}
-   Controller → Service.createChildren → Mapper: DTO→Entity → save → Entity→VO → 201
+   当前通用 create 已关闭
+    → Controller 不再提供 POST 映射
+    → Spring MVC 返回 405 Method Not Allowed
+    → 不调用 ChildrenService.createChildren
+    → 替代性的专用安全 command 尚未实现
+
+POST /api/v1/event_evidence_files {no public CreateDTO}
+PUT /api/v1/event_evidence_files/{id} {no public UpdateDTO}
+   当前公共 generic write 已关闭
+    → Controller 不再提供 POST / PUT 映射
+    → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
+    → 不调用 EventEvidenceFileService.createEventEvidenceFile / updateEventEvidenceFile
+    → `storageUri` 保留在 entity 内部存储模型，不再属于公共 write contract
+
+POST /api/v1/device_tokens {no public CreateDTO}
+PUT /api/v1/device_tokens/{id} {no public UpdateDTO}
+   当前公共 generic write 已关闭
+     → Controller 不再提供 POST / PUT 映射
+     → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
+     → 不调用 DeviceTokenService.createDeviceToken / updateDeviceToken
+     → `pushToken` 仍保留在 entity 内部存储模型，但未来只能通过绑定服务端身份的专用 command 接收
+
+POST /api/v1/camera_streams {no public CreateDTO}
+PUT /api/v1/camera_streams/{id} {no public UpdateDTO}
+   当前公共 generic write 已关闭
+    → Controller 不再提供 POST / PUT 映射
+    → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
+    → 不调用 CameraStreamService.createCameraStream / updateCameraStream
+    → `sourceUrl`、`streamUser` 与 `stream_password_*` 仍保留在 entity 内部存储模型，公共读取 contract 只发布 `hasPassword`、`sourceProtocol`、`playbackUrl`、`playbackProtocol` 等非敏感字段
 ```
+
+> 同一轮 Phase 1A 止血也适用于 `POST /api/v1/users`、`/children`、`/guardians`、`/teachers`，以及 `POST`/`PUT` `/api/v1/device_tokens`、`/event_evidence_files`、`/camera_streams`：通用敏感写入口已关闭并返回 `405`。这只是停止公共 generic write 暴露面；公开注册审批流、server-side session、tenant context 和授权隔离尚未在当前实现中落地。
 
 ## 5. 典型流：以儿童为中心的关系图
 

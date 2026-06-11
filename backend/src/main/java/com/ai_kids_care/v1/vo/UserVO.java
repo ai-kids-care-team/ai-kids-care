@@ -11,7 +11,6 @@ public record UserVO(
         String loginId,
         String email,
         String phone,
-        String passwordHash,
         String status,
         OffsetDateTime lastLoginAt,
         OffsetDateTime createdAt,

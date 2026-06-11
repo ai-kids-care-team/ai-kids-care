@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.ChildCreateDTO;
 import com.ai_kids_care.v1.dto.ChildUpdateDTO;
 import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.mapper.ChildMapper;
@@ -40,10 +39,6 @@ public class ChildrenService {
         return repository.findByRrnFirst6(rrn_First6).stream()
                 .filter(child -> passwordEncoder.matches(rrn_Last7, child.getRrnEncrypted()))
                 .findFirst();
-    }
-
-    public ChildVO createChildren(ChildCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
     public ChildVO updateChildren(Long id, ChildUpdateDTO updateDTO) {

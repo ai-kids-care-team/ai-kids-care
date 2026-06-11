@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.dto.TeacherCreateDTO;
 import com.ai_kids_care.v1.dto.TeacherUpdateDTO;
 import com.ai_kids_care.v1.vo.TeacherVO;
 import com.ai_kids_care.v1.service.TeacherService;
@@ -10,7 +9,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,11 +33,6 @@ public class TeacherController {
     @GetMapping("/{id}")
     public ResponseEntity<TeacherVO> getTeacher(@PathVariable Long id) {
         return ResponseEntity.ok(service.getTeacher(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<TeacherVO> createTeacher(@RequestBody TeacherCreateDTO createDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createTeacher(createDTO));
     }
 
     @PutMapping("/{id}")

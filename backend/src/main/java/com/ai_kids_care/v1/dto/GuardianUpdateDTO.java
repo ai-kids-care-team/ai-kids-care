@@ -18,7 +18,6 @@ public class GuardianUpdateDTO implements Serializable {
     private Long kindergartenId;
     private Long userId;
     private String name;
-    private String rrnEncrypted;
     private String rrnFirst6;
     private String gender;
     private String address;

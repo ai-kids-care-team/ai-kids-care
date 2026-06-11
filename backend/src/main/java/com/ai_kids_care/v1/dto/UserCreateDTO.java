@@ -18,7 +18,6 @@ public class UserCreateDTO implements Serializable {
     private String loginId;
     private String email;
     private String phone;
-    private String passwordHash;
     private String status;
     private OffsetDateTime lastLoginAt;
     private OffsetDateTime createdAt;

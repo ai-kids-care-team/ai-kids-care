@@ -2,10 +2,10 @@
 id: SPEC-0001
 title: "认证、授权、租户与敏感数据边界"
 status: Approved
-implementation: Not Started
+implementation: Partial
 owner: 维护者
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-11
 related_adrs:
   - ADR-0003
   - ADR-0009
@@ -32,8 +32,8 @@ related_adrs:
 - `POST /api/v1/auth/register` 可由匿名调用者直接请求 `SUPERADMIN` 或 `PLATFORM_IT_ADMIN`，`AuthService.register()` 会创建 ACTIVE 用户和 ACTIVE 角色分配。
 - `AuthEndpointTest.register_superadminRole_returns201WithUserId` 当前把匿名创建 `SUPERADMIN` 固化为 characterization 行为；该测试记录现状，不是目标契约。
 - `DIRECTOR`（院长）和 `VICE_DIRECTOR`（副院长）属于 `LevelEnum`，不是独立 `UserRoleEnum`。当前前端只把 `DIRECTOR` 映射为 `KINDERGARTEN_ADMIN`，`VICE_DIRECTOR` 被映射为普通 `TEACHER`，因此现状无法让副院长基于管理员 role 执行审批。
-- `UserVO` 返回 `passwordHash`；`ChildVO`、`GuardianVO`、`TeacherVO` 返回 `rrnEncrypted`；对应通用 Create/Update DTO 允许客户端直接写入这些存储值。
-- `DeviceTokenVO` 返回完整 `pushToken`；`EventEvidenceFileVO` 返回内部 `storageUri`；`CameraStreamVO` 返回 `sourceUrl` 和 `streamUser`。
+- Phase 1A 已从 `UserVO` 移除 `passwordHash`，从 `ChildVO`、`GuardianVO`、`TeacherVO` 移除 `rrnEncrypted`；对应通用 Create/Update DTO 不再接受这些存储表示，且四类资源的通用 `POST` 已关闭。
+- `DeviceTokenVO` 与 `EventEvidenceFileVO` 的公共响应已分别移除完整 `pushToken` 和内部 `storageUri`，两类资源的通用 `POST` / `PUT` 已关闭；`CameraStream` 的 entity 仍内部存储 `sourceUrl`、`streamUser` 和加密凭据列，但公共 `CameraStreamVO` 现仅返回脱敏播放字段，且通用 `POST` / `PUT` 已关闭。
 - 后端未见 `@PreAuthorize`、统一 Authorization Context 或集中式 tenant enforcement；多处 tenant-scoped entity 使用不带租户条件的 `findById`。
 - 数据库复合外键可阻止跨园关联写错，但不能阻止应用读取或修改另一幼儿园的合法记录。
 - `user_role_assignments` 允许 `PLATFORM` scope 使用 `scope_id=NULL`；当前普通 unique index 不足以阻止相同平台角色因 NULL 语义被重复授予，也未见约束强制 PLATFORM/KINDERGARTEN 与 `scope_id` 的合法组合。
@@ -411,3 +411,16 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 数据迁移或兼容策略。
 - 验证命令和结果。
 - 已知风险、临时限制和后续 Spec/ADR。
+
+### 2026-06-10 Phase 1A：敏感数据暴露止血
+
+- 状态：已完成工作区实现，尚未提交。
+- 公共 response 已移除 `passwordHash`、`rrnEncrypted`、完整 `pushToken` 和内部 `storageUri`，并同步前端类型。
+- User、Child、Guardian、Teacher 通用 Create/Update DTO 已移除密码 hash 与 RRN ciphertext；因数据库 create 字段仍为 `NOT NULL`，对应通用 `POST` 入口已关闭并返回 `405`，四个 service/mapper 的 generic create 方法也已移除，普通字段 `PUT` 保留且不会覆盖现有敏感存储值。
+- `DeviceToken` 公共 `POST /api/v1/device_tokens` 与 `PUT /api/v1/device_tokens/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，`pushToken` 仍保留在 entity 内部存储模型，未来需通过绑定服务端身份的专用 command 接收。
+- `EventEvidenceFile` 公共 `POST /api/v1/event_evidence_files` 与 `PUT /api/v1/event_evidence_files/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，`storageUri` 仍保留在 entity 内部存储模型，不再属于公共 write contract。
+- `CameraStream` 公共 `POST /api/v1/camera_streams` 与 `PUT /api/v1/camera_streams/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，公共 `CameraStreamVO` 不再返回 `sourceUrl`、`streamUser` 或任何 camera credential/ciphertext/IV/key version 表示；前端公开播放最小同步改读现有 `playbackUrl` / `playbackProtocol`。
+- Audit Log 公共 API 已改为只读；公共 create/update/delete DTO、service 方法和 mapper 写映射已移除。
+- 新增 `SensitiveResponseContractTest`、`SensitiveWriteContractTest`、`AuditLogReadOnlyContractTest` 和独立的 `PublishedOpenApiContractTest`；后者使用隔离的 Spring Boot MockMvc context 发布真实 `/v3/api-docs`，不加载 DataSource / JPA / Flyway / Neo4j / Testcontainers。
+- 验证：四个 contract test 通过；backend `compileJava` / `compileTestJava` 通过；frontend production build 通过并生成 20 个静态页面；`git diff --check` 通过。
+- 未运行依赖 Docker/Testcontainers 的完整后端测试。注册 PENDING、Session、授权、tenant isolation、S1 字段最小化和内部 append-only audit writer 仍待后续阶段实现。

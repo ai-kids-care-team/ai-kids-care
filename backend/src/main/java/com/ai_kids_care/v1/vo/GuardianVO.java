@@ -11,7 +11,6 @@ public record GuardianVO(
         Long kindergartenId,
         Long userId,
         String name,
-        String rrnEncrypted,
         String rrnFirst6,
         String gender,
         String address,

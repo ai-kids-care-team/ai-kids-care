@@ -23,7 +23,6 @@ public class TeacherCreateDTO implements Serializable {
     private String gender;
     private String emergencyContactName;
     private String emergencyContactPhone;
-    private String rrnEncrypted;
     private String rrnFirst6;
     private String level;
     private LocalDate startDate;
