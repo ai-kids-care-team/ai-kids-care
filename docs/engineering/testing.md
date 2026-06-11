@@ -26,7 +26,18 @@ cd backend
 open build/reports/tests/test/index.html
 ```
 
-CI（Jenkinsfile）在 `Docker Compose Up` stage **之前**自动运行 `./gradlew test`；失败即阻断部署。
+CI 自动运行同一套 `./gradlew test`：
+
+- GitHub Actions：`.github/workflows/backend-java-tests.yml` 在推送或 Pull Request 到 `develop` / `main` 时运行，也支持手动触发。使用 GitHub hosted Ubuntu runner 的 Docker 执行 Testcontainers，并保留 7 天测试报告 artifact。
+- Jenkins：`Jenkinsfile` 在 `Docker Compose Up` stage **之前**运行测试；失败即阻断部署。
+
+Testcontainers 通过 Spring Boot BOM 的 `testcontainers.version` property 固定为 `1.21.4`；该 1.x patch line 包含近期 Docker Engine 兼容修复。
+
+### 已知临时跳过：`FlywayMigrationTest`
+
+`FlywayMigrationTest` 当前以 `@Disabled` 保留。原因不是缺少 `common_codes` 迁移：已接受的 [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) 明确要求删除该表，而 Flyway V1 已按目标架构不创建它；当前失败来自尚未落地的遗留 `CommonCode` JPA 映射。
+
+ADR-0013 Implementation 删除 `CommonCode` 实体与通用 CRUD 栈后，必须移除 `@Disabled` 并恢复“空数据库执行 Flyway V1 + `ddl-auto=validate`”门禁。CI 报告会把这两个测试显示为 skipped，避免把过渡状态误报为已验证通过。
 
 ---
 
@@ -61,7 +72,7 @@ testcontainers.reuse.enable=true
 | 测试 | 端点 | 验证内容 |
 |---|---|---|
 | `login_validCredentials_returns200WithTokenFields` | `POST /auth/login` | 200 + accessToken/refreshToken/tokenType |
-| `login_wrongPassword_returns500` | `POST /auth/login` | 当前行为：500（OQ-ARCH-2 全局异常处理落地后改为 401） |
+| `login_wrongPassword_returns401` | `POST /auth/login` | 当前行为：security entry point 返回通用 401 |
 | `refresh_validRefreshToken_returns200WithNewTokens` | `POST /auth/refresh` | 200 + 新 accessToken |
 | `register_superadminRole_returns201WithUserId` | `POST /auth/register` | 201 + userId |
 | `availability_existingLoginId_returnsUnavailable` | `GET /auth/register/availability` | `available=false`（seed 用户 admin） |
@@ -102,3 +113,4 @@ availability_existingLoginId_returnsUnavailable
 
 > ❓ 是否存在仓库之外的测试（如手工测试用例、Postman 集合）？
 > ❓ Jenkins agent 的 Docker socket 已验证可用（Testcontainers 依赖）？详见 ADR-0014 "负面代价"。
+> ❓ GitHub 仓库 branch protection 是否已把 `Backend Java Tests / Gradle test (Java 21)` 设为 required status check？workflow 已提供门禁信号，但 required 规则需在 GitHub 仓库设置中启用。

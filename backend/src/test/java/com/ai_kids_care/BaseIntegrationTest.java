@@ -6,8 +6,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.file.Paths;
 
@@ -26,7 +24,6 @@ import java.nio.file.Paths;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Testcontainers
 public abstract class BaseIntegrationTest {
 
     // Resolved relative to the Gradle project dir (backend/).  ../db/initdb = repo-root/db/initdb.
@@ -37,8 +34,7 @@ public abstract class BaseIntegrationTest {
                  .toAbsolutePath()
                  .toString();
 
-    @Container
-    static final PostgreSQLContainer<?> postgres =
+    private static final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>("postgres:16-alpine")
                     .withDatabaseName("kids_postgres_db")
                     .withUsername("kids_user")
@@ -48,6 +44,13 @@ public abstract class BaseIntegrationTest {
                     // ddl-auto=validate passes against the live schema (no drift).
                     .withFileSystemBind(INITDB_HOST_PATH, "/docker-entrypoint-initdb.d", BindMode.READ_ONLY)
                     .withReuse(true);  // requires testcontainers.reuse.enable=true in ~/.testcontainers.properties
+
+    static {
+        // Keep one container alive for the full Gradle test JVM. JUnit's per-class
+        // @Container lifecycle would stop this inherited container between subclasses
+        // while Spring still reuses the cached application context.
+        postgres.start();
+    }
 
     @DynamicPropertySource
     static void overrideDatasource(DynamicPropertyRegistry registry) {

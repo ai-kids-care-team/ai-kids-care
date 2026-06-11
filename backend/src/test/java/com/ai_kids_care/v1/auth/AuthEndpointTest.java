@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Characterization tests for the four implemented auth endpoints.
  *
  * These tests record the system's CURRENT behaviour (including quirks such as
- * wrong-password -> 500).  If a future change alters that behaviour intentionally,
+ * wrong-password -> 401 via the configured security entry point). If a future change alters that behaviour intentionally,
  * update the assertion and note the reason.  Do not silently accept a regression.
  *
  * Seed data (from db/initdb/21_users_seed.sql) provides user login_id='admin'.
@@ -69,15 +69,15 @@ class AuthEndpointTest extends BaseIntegrationTest {
     }
 
     @Test
-    void login_wrongPassword_returns500() {
-        // Current behaviour: AuthService throws RuntimeException -> Spring maps to 500.
-        // When proper error handling (OQ-ARCH-2) is added, update this assertion to 401.
+    void login_wrongPassword_returns401() {
+        // Current behaviour: the error dispatch is handled by the configured security
+        // entry point, which returns a generic 401.
         var resp = rest.postForEntity(
                 "/api/v1/auth/login",
                 Map.of("identifier", TEST_LOGIN_ID, "password", "definitely-wrong"),
                 Map.class);
 
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     // ── POST /api/v1/auth/refresh ────────────────────────────────────────────
@@ -113,7 +113,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 "userRole",   "SUPERADMIN",
                 "loginId",    "test-reg-" + suffix,
                 "email",      "test-reg-" + suffix + "@test-baseline.internal",
-                "phone",      "010-2222-" + suffix.substring(0, 4),
+                "phone",      "0102222" + suffix.substring(0, 4),
                 "password",   TEST_PASSWORD,
                 "name",       "Test Superadmin",
                 "rrnFirst6",  "990101",
