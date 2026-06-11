@@ -16,13 +16,16 @@ deciders: 接手人起草（2026-06-07），维护者 Accept（2026-06-07）；I
 **Implemented（2026-06-08）**。Accepted 2026-06-07；由独立 Implementation session 于 2026-06-08 落地。
 
 落地产物：
-- `backend/build.gradle`：Testcontainers BOM + `junit-jupiter` + `postgresql`
+- `backend/build.gradle`：Testcontainers BOM + `junit-jupiter` + `postgresql`；2026-06-11 通过 Spring Boot BOM 的 `testcontainers.version` property 将运行时依赖对齐至 `1.21.4`，并兼容近期 Docker Engine
 - `backend/src/test/java/com/ai_kids_care/BaseIntegrationTest.java`：基类（Testcontainers PG + initdb 挂载 + DynamicPropertySource）
 - `backend/src/test/java/com/ai_kids_care/v1/auth/AuthEndpointTest.java`：6 个认证端点 characterization 测试
 - `backend/src/test/java/com/ai_kids_care/v1/detection/DetectionEventEndpointTest.java`：3 个检测事件读路径测试
 - `backend/src/test/resources/application-test.yml`：测试 profile（排除 Neo4j 自动配置）
 - `Jenkinsfile`：`Test` stage 插入 `Docker Compose Up` 之前
+- `.github/workflows/backend-java-tests.yml`：2026-06-11 补充 GitHub Actions Java 21 + Gradle + Testcontainers 测试门禁
 - `docs/engineering/testing.md`：全量重写
+
+临时限制（2026-06-11）：`FlywayMigrationTest` 在 ADR-0013 落地前以 `@Disabled` 保留。Flyway V1 按已接受目标不创建 `common_codes`，但遗留 `CommonCode` 实体仍参与 `ddl-auto=validate`；ADR-0013 删除该映射后必须立即恢复此门禁，不得用新增 `common_codes` 迁移规避。
 
 ## 背景（Context）
 

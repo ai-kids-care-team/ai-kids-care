@@ -15,7 +15,8 @@ ai-kids-care/
 ├── jenkins/               # Jenkins 镜像与 compose
 ├── docs/                  # 本知识库 + ERD
 ├── docker-compose.yml     # 整栈编排（db/neo4j/data-loader/backend/frontend）
-└── Jenkinsfile            # CI：拉取→后端 Testcontainers 测试→演示环境重建
+├── .github/workflows/     # GitHub Actions：后端 Java/Testcontainers 自动化测试
+└── Jenkinsfile            # Jenkins：拉取→后端 Testcontainers 测试→演示环境重建
 ```
 
 ✅ **代码归属**（`CODEOWNERS`）：`/ai/`、`/frontend/`、`/backend/`、`/db/` 分属四个团队，`/docs/` 与其他文件归 leads。
@@ -28,7 +29,7 @@ ai-kids-care/
 | Backend | Java 21、Spring Boot 3.2.5（Web/Security/Data JPA/Validation）、MapStruct 1.5.5、springdoc-openapi 2.6、jjwt 0.12.3、Neo4j Java Driver 5.19、Pushover client | `backend/build.gradle` |
 | Database | PostgreSQL 16、Neo4j 5.19 | `docker-compose.yml`、`db/` |
 | AI | Python、FastAPI、Uvicorn、PyTorch、HuggingFace Transformers（VideoMAE）、PyAV/FFmpeg | `ai/requirements.txt`、`ai/src/ai_app/` |
-| DevOps | Docker、Docker Compose、Nginx、Gradle、Jenkins | 各 `Dockerfile`、`Jenkinsfile` |
+| DevOps | Docker、Docker Compose、Nginx、Gradle、GitHub Actions、Jenkins | 各 `Dockerfile`、`.github/workflows/backend-java-tests.yml`、`Jenkinsfile` |
 
 ## 3. 运行时拓扑（整栈 docker-compose）
 
