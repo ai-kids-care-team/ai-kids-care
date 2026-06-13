@@ -71,6 +71,20 @@ Do not infer project conventions from unrelated directories. Do not invent missi
 
 Create commits or PRs only when explicitly requested or required by the repository workflow.
 
+## Long-Running Work
+
+For substantial, interrupted, or multi-agent tasks, maintain a concise local checkpoint when the repository defines one. A checkpoint records execution state only; it does not replace a spec, ADR, test, or as-built document.
+
+When runtime budget telemetry is available, check it before starting broad verification or a fresh review cycle. If 40 percent or less of the context budget remains, update the checkpoint and hand off instead of starting another broad cycle.
+
+Keep command output proportional to the decision being made:
+
+- Prefer compact status, file lists, statistics, test summaries, and targeted diff slices.
+- Do not print complete large diffs, repeated status listings, generated output, or repetitive warnings unless they are required to diagnose a failure.
+- On resume, read the checkpoint, re-verify branch, HEAD, remote state, staging, and worktree state, then reload only the sources linked to the pending action.
+
+Treat independent review as a release confirmation, not the first discovery mechanism. Before requesting final review, run the repository's deterministic pre-review checks. When a reviewer reports a valid finding, record it in the checkpoint and add a regression test or deterministic check where practical before fixing it. Use a fresh reviewer for the next release-gate decision.
+
 ## Architecture Principles
 
 Prefer clear boundaries, explicit dependencies, small reversible changes, and maintainability over cleverness.
@@ -92,6 +106,8 @@ Each session must have a single objective and be reviewable on its own.
 Parallel implementation must avoid overlapping files unless explicitly coordinated.
 
 Reviewer agents should use fresh context when practical and should not be the same session that produced the implementation.
+
+Give fresh reviewers the task boundary, baseline, raw repository artifacts, and required checks. Do not pass a long implementation transcript when those sources are sufficient.
 
 The human owner decides final merge, release, and architecture tradeoffs.
 
