@@ -57,5 +57,9 @@ public class TokenVO {
     @Schema(name = "loginId")
     @JsonProperty("loginId")
     private String loginId;
+
+    @Schema(name = "kindergartenId")
+    @JsonProperty("kindergartenId")
+    private Long kindergartenId;
 }
 

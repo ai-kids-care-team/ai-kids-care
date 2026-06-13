@@ -9,13 +9,8 @@ import java.time.OffsetDateTime;
 public record KindergartenVO(
         Long kindergartenId,
         String name,
-        String address,
         String regionCode,
         String code,
-        String businessRegistrationNo,
-        String contactName,
-        String contactPhone,
-        String contactEmail,
         String status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

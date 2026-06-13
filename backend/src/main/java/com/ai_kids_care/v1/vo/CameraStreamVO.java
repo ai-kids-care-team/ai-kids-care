@@ -13,7 +13,6 @@ public record CameraStreamVO(
         String streamType,
         Boolean hasPassword,
         String sourceProtocol,
-        String playbackUrl,
         String playbackProtocol,
         Integer fps,
         String resolution,

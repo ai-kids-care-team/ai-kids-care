@@ -1,8 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.DetectionSessionCreateDTO;
-import com.ai_kids_care.v1.dto.DetectionSessionUpdateDTO;
-import com.ai_kids_care.v1.entity.DetectionSession;
 import com.ai_kids_care.v1.mapper.DetectionSessionMapper;
 import com.ai_kids_care.v1.repository.DetectionSessionRepository;
 import com.ai_kids_care.v1.vo.DetectionSessionVO;
@@ -27,22 +24,5 @@ public class DetectionSessionService {
     public DetectionSessionVO getDetectionSession(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("DetectionSession not found"));
-    }
-
-    public DetectionSessionVO createDetectionSession(DetectionSessionCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    public DetectionSessionVO updateDetectionSession(Long id, DetectionSessionUpdateDTO updateDTO) {
-        DetectionSession entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("DetectionSession not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteDetectionSession(Long id) {
-        DetectionSession entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("DetectionSession not found"));
-        repository.delete(entity);
     }
 }

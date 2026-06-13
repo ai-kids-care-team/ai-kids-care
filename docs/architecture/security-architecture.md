@@ -85,7 +85,7 @@
 
 ## 7. 审计
 
-- ✅ 存在 `audit_logs` 表（action/resource_type/resource_id/ip/user_agent）与 `AuditLogController`/`AuditLogService`。
+- ✅ 存在 `audit_logs` 表（action/resource_type/resource_id/ip/user_agent）与内部 `AuditLogService`；`AuditLogController` 当前不发布公共 operation。
 - ❓ 各写操作是否实际产生审计记录，需核对各 service 是否调用审计写入（未见统一切面/拦截器）。
 
 ---

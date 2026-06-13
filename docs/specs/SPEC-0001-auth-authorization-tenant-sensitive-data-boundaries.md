@@ -5,7 +5,7 @@ status: Approved
 implementation: Partial
 owner: 维护者
 created: 2026-06-10
-updated: 2026-06-11
+updated: 2026-06-13
 related_adrs:
   - ADR-0003
   - ADR-0009
@@ -28,16 +28,17 @@ related_adrs:
 - `backend/.../config/SecurityConfig.java` 将 `/api/v1/**` 配置为 `permitAll()`，JWT filter 未加入过滤链，当前全部业务 API 可匿名访问。
 - [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 已决定使用 Spring Session + Redis + `httpOnly` cookie 取代 JWT，但尚未实现。
 - `user_role_assignments` 已表达 `PLATFORM` / `KINDERGARTEN` scope；`user_kindergarten_memberships` 已表达用户与幼儿园的成员关系，但业务查询没有统一使用这些数据做运行时隔离。
-- 多个 Controller、DTO 和前端调用接受客户端提供的 `kindergartenId`；`frontend/src/utils/session-kindergarten.ts` 甚至可按 demo user ID 区间推断幼儿园。客户端目前被错误地当成租户真相来源。
-- `POST /api/v1/auth/register` 可由匿名调用者直接请求 `SUPERADMIN` 或 `PLATFORM_IT_ADMIN`，`AuthService.register()` 会创建 ACTIVE 用户和 ACTIVE 角色分配。
-- `AuthEndpointTest.register_superadminRole_returns201WithUserId` 当前把匿名创建 `SUPERADMIN` 固化为 characterization 行为；该测试记录现状，不是目标契约。
-- `DIRECTOR`（院长）和 `VICE_DIRECTOR`（副院长）属于 `LevelEnum`，不是独立 `UserRoleEnum`。当前前端只把 `DIRECTOR` 映射为 `KINDERGARTEN_ADMIN`，`VICE_DIRECTOR` 被映射为普通 `TEACHER`，因此现状无法让副院长基于管理员 role 执行审批。
-- Phase 1A 已从 `UserVO` 移除 `passwordHash`，从 `ChildVO`、`GuardianVO`、`TeacherVO` 移除 `rrnEncrypted`；对应通用 Create/Update DTO 不再接受这些存储表示，且四类资源的通用 `POST` 已关闭。
-- `DeviceTokenVO` 与 `EventEvidenceFileVO` 的公共响应已分别移除完整 `pushToken` 和内部 `storageUri`，两类资源的通用 `POST` / `PUT` 已关闭；`CameraStream` 的 entity 仍内部存储 `sourceUrl`、`streamUser` 和加密凭据列，但公共 `CameraStreamVO` 现仅返回脱敏播放字段，且通用 `POST` / `PUT` 已关闭。
+- 多个 Controller、DTO 和前端调用仍接受客户端提供的 `kindergartenId`，该值尚未统一与服务端授权上下文绑定。Phase 1A 补充止血已移除前端从 JWT、localStorage 或 demo user ID 推断园区的逻辑，登录/刷新改为从 ACTIVE role assignment 返回服务端派生的园区 ID。
+- Phase 1B 后，`POST /api/v1/auth/register` 对 `PLATFORM_IT_ADMIN` 在首次 persistence 前返回 `400`；`GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN`、`SUPERADMIN` 只创建 PENDING user、role assignment、业务档案和园级 membership。
+- `AuthRegisterDTO` 不再发布客户端 `status` 字段；未知 `status=ACTIVE` 输入会被忽略。PENDING user、没有 ACTIVE role assignment 或存在多条 ACTIVE role assignment 的 user 登录/刷新返回通用 `401`，不再默认回退 `GUARDIAN` 或取最近一条。
+- `DIRECTOR`（院长）和 `VICE_DIRECTOR`（副院长）属于 `LevelEnum`，不是独立 `UserRoleEnum`。Phase 1B 前后端都将这两个 level 约束为 `KINDERGARTEN_ADMIN` 申请；普通 `TEACHER` 不能通过伪造院长级别提交申请。
+- Phase 1A 已从 `UserVO` 移除 `passwordHash`、email、phone，从 `ChildVO` 移除 `rrnEncrypted`、`rrnFirst6`、birth date、address，从 `GuardianVO` 移除 `rrnEncrypted`、`rrnFirst6`、address，从 `TeacherVO` 移除 `rrnEncrypted`、`rrnFirst6`、staff number 和 emergency contact；因人员/账户资料仍可被匿名枚举，四类 Controller 的公共读写 operation 现已全部关闭。
+- `DeviceTokenVO` 与 `EventEvidenceFileVO` 已分别移除完整 `pushToken` 和内部 `storageUri`；因设备注册与证据元数据仍属受限数据，两类 Controller 的公共读写 operation 现已全部关闭。`CameraStream` 的 entity 仍内部存储 `sourceUrl`、`streamUser`、`playbackUrl` 和加密凭据列，但公共 `CameraStreamVO` 不返回可播放地址或凭据，且通用写删链已关闭。
+- Kindergarten 公共 list/detail 和注册查找只返回最小目录字段；通用 `POST` / `PUT` / `DELETE` 与敏感 write DTO 已关闭。Graph、Audit Log、Notification controller 当前不发布公共 operation，等待资源授权或内部 command 架构后再开放。
 - 后端未见 `@PreAuthorize`、统一 Authorization Context 或集中式 tenant enforcement；多处 tenant-scoped entity 使用不带租户条件的 `findById`。
 - 数据库复合外键可阻止跨园关联写错，但不能阻止应用读取或修改另一幼儿园的合法记录。
 - `user_role_assignments` 允许 `PLATFORM` scope 使用 `scope_id=NULL`；当前普通 unique index 不足以阻止相同平台角色因 NULL 语义被重复授予，也未见约束强制 PLATFORM/KINDERGARTEN 与 `scope_id` 的合法组合。
-- `audit_logs` 表和通用 CRUD API 已存在，但未见安全敏感操作的统一审计写入；审计记录自身目前也可被通用更新和删除。其 `kindergarten_id` 为 `NOT NULL`，无法自然表达不属于某个幼儿园的平台级安全事件。
+- `audit_logs` 表仍存在，但公共 controller 当前不发布读写 operation；未见安全敏感操作的统一内部审计写入。其 `kindergarten_id` 为 `NOT NULL`，无法自然表达不属于某个幼儿园的平台级安全事件。
 - 生产 TLS 已由 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) 规定，但仓库当前仍以 HTTP 运行。
 
 ## 信任模型与定义
@@ -327,12 +328,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 ### Registration And Privilege
 
 - [ ] 匿名请求 `GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN` 或 `SUPERADMIN` 只创建一致的 PENDING 申请，不能直接访问业务 API。
-- [ ] 匿名请求 `PLATFORM_IT_ADMIN` 被拒绝且不创建任何数据。
-- [ ] 客户端提交 `status=ACTIVE`、scope 或授权者字段不能改变服务端结果。
-- [ ] 通用 child RRN 搜索不再匿名返回儿童资料。
+- [x] 匿名请求 `PLATFORM_IT_ADMIN` 被拒绝且不创建任何数据。
+- [x] 客户端提交 `status=ACTIVE`、scope 或授权者字段不能改变服务端结果。
+- [x] 通用 child RRN 搜索不再匿名返回儿童资料。
 - [ ] Guardian、Teacher 及后续院长/副院长申请只能由同园、ACTIVE、level 为 `DIRECTOR` 或 `VICE_DIRECTOR` 的 `KINDERGARTEN_ADMIN` 批准，且不能自批。
 - [ ] `DIRECTOR` 和 `VICE_DIRECTOR` 获批后都具有 `KINDERGARTEN_ADMIN` role，普通 Teacher 不因伪造 level 获得审批权。
-- [ ] 现有 `register_superadminRole_returns201WithUserId` characterization 测试被替换为“创建 PENDING 且不能登录”的目标测试。
+- [x] 现有 `register_superadminRole_returns201WithUserId` characterization 测试被替换为“创建 PENDING 且不能登录”的目标测试。
 
 ### Authorization And Tenant Isolation
 
@@ -414,13 +415,31 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 ### 2026-06-10 Phase 1A：敏感数据暴露止血
 
-- 状态：已完成工作区实现，尚未提交。
-- 公共 response 已移除 `passwordHash`、`rrnEncrypted`、完整 `pushToken` 和内部 `storageUri`，并同步前端类型。
-- User、Child、Guardian、Teacher 通用 Create/Update DTO 已移除密码 hash 与 RRN ciphertext；因数据库 create 字段仍为 `NOT NULL`，对应通用 `POST` 入口已关闭并返回 `405`，四个 service/mapper 的 generic create 方法也已移除，普通字段 `PUT` 保留且不会覆盖现有敏感存储值。
-- `DeviceToken` 公共 `POST /api/v1/device_tokens` 与 `PUT /api/v1/device_tokens/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，`pushToken` 仍保留在 entity 内部存储模型，未来需通过绑定服务端身份的专用 command 接收。
-- `EventEvidenceFile` 公共 `POST /api/v1/event_evidence_files` 与 `PUT /api/v1/event_evidence_files/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，`storageUri` 仍保留在 entity 内部存储模型，不再属于公共 write contract。
-- `CameraStream` 公共 `POST /api/v1/camera_streams` 与 `PUT /api/v1/camera_streams/{id}` 已关闭并返回 `405`；对应 generic create/update DTO、controller 写方法、service create/update 与 mapper 写映射已移除。公共 `GET` list/detail 与既有 `DELETE` 暂时保留，公共 `CameraStreamVO` 不再返回 `sourceUrl`、`streamUser` 或任何 camera credential/ciphertext/IV/key version 表示；前端公开播放最小同步改读现有 `playbackUrl` / `playbackProtocol`。
-- Audit Log 公共 API 已改为只读；公共 create/update/delete DTO、service 方法和 mapper 写映射已移除。
-- 新增 `SensitiveResponseContractTest`、`SensitiveWriteContractTest`、`AuditLogReadOnlyContractTest` 和独立的 `PublishedOpenApiContractTest`；后者使用隔离的 Spring Boot MockMvc context 发布真实 `/v3/api-docs`，不加载 DataSource / JPA / Flyway / Neo4j / Testcontainers。
-- 验证：四个 contract test 通过；backend `compileJava` / `compileTestJava` 通过；frontend production build 通过并生成 20 个静态页面；`git diff --check` 通过。
-- 未运行依赖 Docker/Testcontainers 的完整后端测试。注册 PENDING、Session、授权、tenant isolation、S1 字段最小化和内部 append-only audit writer 仍待后续阶段实现。
+- 状态：基础止血由提交 `3d00625` 完成；当前工作区继续补齐独立终审发现的公开 S1 契约。
+- 公共 response 已移除 `passwordHash`、`rrnEncrypted`、完整 `pushToken`、内部 `storageUri`，并进一步从四类通用人员 response 移除公开环境下不应发布的 email、phone、RRN 前 6 位、儿童 birth date/address、Guardian address、Teacher staff number 和 emergency contact；前端类型已同步。
+- User、Child、Guardian、Teacher 的通用 Create/Update DTO、service/mapper generic 写链和全部公共 Controller operation 均已关闭；内部 VO 仍保持最小字段，供未来受控 contract 复用。
+- `DeviceToken`、`EventEvidenceFile` 的通用 DTO/service/mapper 写链和全部公共 Controller operation 已关闭。`CameraStream` 通用 create/update/delete 链关闭，但保留不含播放地址或凭据的 GET metadata。`pushToken`、`storageUri`、`sourceUrl`、`streamUser`、`playbackUrl` 与 camera credential 存储表示继续留在内部 entity。
+- `DetectionEvent` 的全部公共 operation 已关闭；`CctvCamera` 与 `DetectionSession` 的通用写删链已关闭并保留脱敏 GET。DetectionSession Create/Update DTO 及 service/mapper 写链已删除。`EventReview`、`NotificationRule`、`Superadmin`、`AppreciationLetter` 当前不发布公共 operation。感谢信与检测事件前端路由保留但显示暂不可用，不发送匿名 API 请求。
+- CCTV 前端仅为 `TEACHER` / `KINDERGARTEN_ADMIN` 在登录响应提供有效 kindergarten scope 时加载 camera/stream 元数据，不再下载 DetectionEvent、扫描 Teacher 目录或请求不存在的 `/common_codes/code_group/detection_events`。DetectionEvent 公共 list/detail 已关闭，相关前端路由只显示待授权提示。公共 CameraStream 不再返回播放地址，幼儿园直播 fallback 已移除，因此 Session/授权专用播放接口实现前不提供 live stream。
+- 浏览器登录态与 bearer token 只保存在 Redux 内存，不写入或恢复自 localStorage；401 清空内存会话并提示重新登录，刷新页面同样需要重新登录。前端不再从 JWT、localStorage 或 demo user ID 推断园区。
+- 尚未实现安全语义的 `logout`、修改密码、密码重置和验证码 controller mapping 已撤下；对应前端入口显示暂不可用，OpenAPI contract 固定这些路径和 schema 不被发布。
+- Kindergarten 公共 list/detail 与注册查找只发布 `id/name/regionCode/code/status` 等最小目录字段；通用 `POST` / `PUT` / `DELETE`、Create/Update DTO 与 service/mapper 写链已关闭。注册查找不回显 business registration number、address 或联系人信息。
+- Graph、Audit Log、Notification controller 当前不发布公共 operation；Neo4j graph repository、audit/notification 内部 service 和存储模型保留，等待资源授权或内部 command 架构后再接回。
+- 新增 `SensitiveResponseContractTest`、`SensitiveWriteContractTest`、`SensitivePublicApiClosureContractTest` 和独立的 `PublishedOpenApiContractTest`；后者使用隔离的 Spring Boot MockMvc context 发布真实 `/v3/api-docs`，不加载 DataSource / JPA / Flyway / Neo4j / Testcontainers，并限制 S1 字段只能出现在显式批准的专用 command schema。补充测试固定 `playbackUrl` absence、DetectionSession 写链 absence/405，以及 User/Child/Guardian/Teacher/DeviceToken/EventEvidenceFile/DetectionEvent path 与 schema absence。
+- 2026-06-13 最终预审验证：完整 backend `test` 通过，共 51 项（49 passed、0 failed、0 errors、2 个 ADR-0013 预期 skip）；P2 聚焦的 auth service/controller 与关闭路径共 28 项单独通过。
+- frontend production build 通过并生成 20 个静态页面；Phase 1A 的 39 个已修改前端源码文件 scoped ESLint 为 0 error / 0 warning。全仓 lint 仍被 4 个既有 error 和 8 个 warning 阻断，均位于本阶段未修改文件。
+- Session、授权、tenant isolation、其余资源的 S1 字段级授权与最小化，以及内部 append-only audit writer 仍待后续阶段实现。
+
+### 2026-06-11 Phase 1B：公开注册权限收敛
+
+- 状态：工作区实现完成，待终审。
+- 公开注册允许 `GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN`、`SUPERADMIN` 提交申请；user、role assignment、业务 profile 和园级 membership 统一写为 `PENDING`。客户端 `status=ACTIVE` 不属于公开 DTO，无法改变服务端结果。
+- `PLATFORM_IT_ADMIN` 公开注册在首次 persistence 前返回 `400`，不会创建 user/profile/role/membership。
+- Guardian 的 kindergarten scope 和 membership 只从服务端匹配到的儿童记录派生，客户端提交的 `kindergartenId` 不参与授权范围写入。
+- 返回完整 `ChildVO` 的通用 `/children/rrn` 已关闭；新增专用 `POST /auth/guardian-child-verifications`，只返回 `{verified}`，不回显 child ID、姓名、班级或其他 PII。注册事务仍会再次验证完整 RRN。
+- 公开注册与儿童验证的 RRN 字段同时在 DTO 与 service 层要求纯数字 6/7 位，非法格式在 persistence 或儿童查询前返回 `400`。
+- `KINDERGARTEN_ADMIN` 申请只接受 `DIRECTOR` / `VICE_DIRECTOR` level；普通 `TEACHER` 申请拒绝这两个管理员 level。前端对院长和副院长统一提交 `KINDERGARTEN_ADMIN`。
+- login/refresh 要求 ACTIVE user 且 ACTIVE role assignment 数量严格等于一；错误凭据、无效 refresh token、缺失或多条 ACTIVE role 均由 Auth API 显式返回通用 `401 {"error":"Authentication failed"}`，不依赖受保护 `/error`、不回退 `GUARDIAN` 或取最近一条。ERROR dispatcher 仅用于保留真实 MVC 错误状态，已关闭路径在完整应用和 standalone MVC/OpenAPI contract 中固定为 `404` / absence。前端同时拒绝缺失/未知 role 或空 access token 的登录响应。PENDING 申请使用正确密码登录仍返回通用 `401`。
+- 前端移除 `PLATFORM_IT_ADMIN` 注册选项及专用表单，儿童验证只显示通用结果；注册 payload 使用按角色区分的显式 TypeScript 联合类型，不接受 `childId`、`status` 或 scope 字段。注册成功后只显示待审批提示，不再自动登录或写 token/localStorage。
+- `AuthEndpointTest` 覆盖四类允许角色的 PENDING persistence、平台角色零落库、客户端 ACTIVE 无效、Guardian 伪造园区无效、儿童验证最小响应与非法 RRN 拒绝、role/level 不一致拒绝、PENDING/无 ACTIVE role/多 ACTIVE role/无效 refresh token 的显式 401 契约，以及园级 ACTIVE role 的服务端 `kindergartenId` 返回；纯 Mockito service test 固定同一异常语义。`DetectionEventEndpointTest` 固定完整应用中的关闭路径 `404`，`PublishedOpenApiContractTest` 固定旧 RRN 与 DetectionEvent path absence、专用验证 path presence、最小响应 schema 和公开注册 DTO 完整字段集合。
+- 已知限制：审批 endpoint/激活事务尚未实现；`child_guardian_relationships` 无 status 列，Guardian 申请仍创建关系行，但 PENDING guardian/membership/role 使其当前不构成有效授权关系。`/api/v1/**` 仍处于 `permitAll` 演示态，因此“不能登录”尚不等于业务 API 已受保护；Session、Redis、tenant enforcement 和资源关系授权不在本阶段范围。

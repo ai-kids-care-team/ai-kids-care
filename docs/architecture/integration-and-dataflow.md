@@ -25,87 +25,85 @@
 
 ```text
 前端 →(POST /api/v1/auth/login {identifier, password})→ 后端
-   后端: 按 loginId/email/phone 查 user → BCrypt 校验密码
+   后端: 按 loginId/email/phone 查 ACTIVE user → BCrypt 校验密码
+        → 要求恰好存在一条 ACTIVE 角色分配（缺失或多条均拒绝，不回退 GUARDIAN）
         → 生成 accessToken & refreshToken（同法生成）
         → 取最近 ACTIVE 角色分配 → 返回 TokenVO{accessToken, refreshToken, role, id, loginId, expiresIn}
-前端: 存 token 到 Redux + localStorage
+前端: token 只存 Redux 内存；不写 user/access/refresh token 到 localStorage
 ```
+
+### 2.1 公开注册申请（Phase 1B）
+
+```text
+前端 → POST /api/v1/auth/guardian-child-verifications {childRrnFirst6, childRrnBack7}
+        → 200 {verified=true|false}，不返回儿童 PII
+     → POST /api/v1/auth/register
+   ├─ PLATFORM_IT_ADMIN → 400，首次 persistence 前拒绝
+   └─ GUARDIAN / TEACHER / KINDERGARTEN_ADMIN / SUPERADMIN
+        → users.status = PENDING
+        → user_role_assignments.status = PENDING
+        → profile.status = PENDING
+        → 园级角色 membership.status = PENDING
+        → 201 {userId, status=PENDING, createdAt}
+前端: 显示“申请已提交、待审批”，不自动登录、不写 token/localStorage
+```
+
+> 返回完整 `ChildVO` 的通用 `GET /api/v1/children/rrn` 已关闭。Guardian 注册 payload 不携带 `childId`；服务端在注册事务中再次按完整 RRN 匹配儿童，并从该记录派生 kindergarten scope 与 membership。`KINDERGARTEN_ADMIN` 仅接受 `DIRECTOR` / `VICE_DIRECTOR` level，普通 `TEACHER` 不能提交这两个管理员 level。
+>
+> 审批 endpoint 和激活事务尚未实现。`child_guardian_relationships` 当前没有 status 列，Guardian 申请仍会创建关系行，但 PENDING guardian、membership 与 role assignment 会阻止其成为有效授权关系；该模型缺口留给后续审批/资源关系阶段处理。
 
 ## 3. 典型流：带鉴权的数据请求（前端预期）
 
-✅ 来源 `apiClient.ts`。注意此为**前端实现的预期流程**；后端当前不强制校验（[security-architecture](security-architecture.md)）。
+✅ 来源 `apiClient.ts`。注意此为 server-side session 上线前的临时流程；后端当前仍未统一强制校验（[security-architecture](security-architecture.md)）。
 
 ```text
 前端发起请求
-   请求拦截器: 注入 Authorization: Bearer <token>
+   请求拦截器: 从 Redux 内存注入 Authorization: Bearer <token>
 后端响应
    ├─ 200 → 正常返回
-   └─ 401 → 响应拦截器:
-        取 localStorage.refreshToken → POST /api/v1/auth/refresh
-        ├─ 成功 → 存新 token → 用新 token 重放原请求
-        └─ 失败 → 清 token + 弹出登录框(openLoginModal)
+   └─ 401 → 清空 Redux 会话 + 弹出登录框(openLoginModal)
+
+刷新浏览器
+   → 内存会话丢失
+   → 重新登录；前端当前不自动调用 refresh
 ```
 
-## 4. 典型流：Phase 1A 已关闭的通用写入口
+## 4. 典型流：Phase 1A 已关闭的敏感通用入口
 
 ✅ 来源 `ChildrenController`、`DeviceTokenController`、`EventEvidenceFileController`、`CameraStreamController`、`SensitiveWriteContractTest`。体现当前控制器映射与 Phase 1A 止血后的 as-built 行为（见 [backend-architecture](backend-architecture.md)）。
 
 ```text
-GET /api/v1/children?keyword=&page=&size=
-   Controller(分页参数) → Service.listChildren → Repository(分页查询)
-                        → MapStruct: Entity → ChildVO → 返回 Page<ChildVO>
+GET|POST|PUT|DELETE /api/v1/{users|children|guardians|teachers}
+   当前 Controller 不发布任何 operation
+    → 匿名调用不能枚举账户、儿童、Guardian 或 Teacher profile
+    → entity/service/mapper 内部读取模型保留，等待 self/admin/relationship policy 后由专用 contract 使用
 
-POST /api/v1/children {ChildCreateDTO}
-   当前通用 create 已关闭
-    → Controller 不再提供 POST 映射
-    → Spring MVC 返回 405 Method Not Allowed
-    → 不调用 ChildrenService.createChildren
-    → 替代性的专用安全 command 尚未实现
+GET|POST|PUT|DELETE /api/v1/{event_evidence_files|device_tokens}
+   当前 Controller 不发布任何 operation
+    → 不公开 evidence existence/retention/hash 或 device registry metadata
+    → `storageUri` / `pushToken` 仍保留在内部存储模型，未来只能由受控 query/command 使用
 
-POST /api/v1/event_evidence_files {no public CreateDTO}
-PUT /api/v1/event_evidence_files/{id} {no public UpdateDTO}
-   当前公共 generic write 已关闭
-    → Controller 不再提供 POST / PUT 映射
-    → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
-    → 不调用 EventEvidenceFileService.createEventEvidenceFile / updateEventEvidenceFile
-    → `storageUri` 保留在 entity 内部存储模型，不再属于公共 write contract
-
-POST /api/v1/device_tokens {no public CreateDTO}
-PUT /api/v1/device_tokens/{id} {no public UpdateDTO}
-   当前公共 generic write 已关闭
-     → Controller 不再提供 POST / PUT 映射
-     → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
-     → 不调用 DeviceTokenService.createDeviceToken / updateDeviceToken
-     → `pushToken` 仍保留在 entity 内部存储模型，但未来只能通过绑定服务端身份的专用 command 接收
+GET|POST|PUT|DELETE /api/v1/detection_events
+   当前 Controller 不发布任何 operation
+    → 客户端提交 kindergartenId 不再获得整园事件 feed
+    → 等待 authenticated tenant/resource policy 后再开放
 
 POST /api/v1/camera_streams {no public CreateDTO}
-PUT /api/v1/camera_streams/{id} {no public UpdateDTO}
-   当前公共 generic write 已关闭
-    → Controller 不再提供 POST / PUT 映射
-    → Spring MVC 在现有 GET / DELETE path 上返回 405 Method Not Allowed
-    → 不调用 CameraStreamService.createCameraStream / updateCameraStream
-    → `sourceUrl`、`streamUser` 与 `stream_password_*` 仍保留在 entity 内部存储模型，公共读取 contract 只发布 `hasPassword`、`sourceProtocol`、`playbackUrl`、`playbackProtocol` 等非敏感字段
+PUT|DELETE /api/v1/camera_streams/{id}
+   当前公共 generic write/delete 已关闭
+    → Controller 仅保留 GET list/detail
+    → 不调用 CameraStreamService 的 create/update/delete 链
+    → `sourceUrl`、`streamUser`、`playbackUrl` 与 `stream_password_*` 仍保留在 entity 内部存储模型
+    → 公共读取 contract 只发布不含可播放地址或凭据的配置元数据
 ```
 
-> 同一轮 Phase 1A 止血也适用于 `POST /api/v1/users`、`/children`、`/guardians`、`/teachers`，以及 `POST`/`PUT` `/api/v1/device_tokens`、`/event_evidence_files`、`/camera_streams`：通用敏感写入口已关闭并返回 `405`。这只是停止公共 generic write 暴露面；公开注册审批流、server-side session、tenant context 和授权隔离尚未在当前实现中落地。
+> 同一轮止血已关闭 User、Child、Guardian、Teacher、DetectionEvent、DeviceToken、EventEvidenceFile 的全部公共 operation；CctvCamera、DetectionSession、CameraStream 仅保留脱敏 GET，通用写删链关闭；EventReview、NotificationRule、Superadmin、AppreciationLetter 同样不发布公共 operation。Phase 1B 已进一步把公开注册收敛为 PENDING 申请，但审批流、server-side session、tenant context 和授权隔离尚未落地。
 
-## 5. 典型流：以儿童为中心的关系图
+## 5. 典型流：以儿童为中心的关系图（公共入口已关闭）
 
-✅ 来源 `GraphController` → `GraphService` → `GraphRepository`（Cypher）。
+`GraphRepository` 和 Neo4j Cypher 映射仍保留为内部实现，但 `GraphController` 当前不发布 `/api/v1/graph/children/{childId}`。原因是响应包含儿童、Guardian、Teacher 与关系顺位等 S1 数据，而资源授权尚未实现。前端关系图入口只显示“待权限实现”提示，不再发起公共请求。
 
-```text
-GET /api/v1/graph/children/{childId}
-   → 后端在 Neo4j 执行 Cypher:
-       MATCH (ch:Child {child_id})
-       OPTIONAL MATCH (c:Class)-[:HAS_CHILD]->(ch)
-       OPTIONAL MATCH (t:Teacher)-[:HAS_CLASS]->(c)
-       OPTIONAL MATCH (k:Kindergarten)-[:HAS_TEACHER]->(t)
-       OPTIONAL MATCH (ch)-[rg:HAS_GUARDIAN]->(g:Guardian)
-   → 组装 ChildGraphVO{child, classInfo, teacher, kindergarten, guardians[](按 priority 排序)}
-   → 前端用 reagraph 可视化
-```
-
-> 前提：Neo4j 已被 data-loader 加载。当前大部分数据来自 CSV 快照，不保证与 PostgreSQL 同步。
+> Neo4j 当前大部分数据仍来自 CSV 快照，不保证与 PostgreSQL 同步。未来重新开放关系图必须同时完成资源关系授权、最小字段投影和 S1 访问审计。
 
 ## 6. 典型流：AI 推理（请求式）
 

@@ -4,9 +4,9 @@
 
 ## 端点
 
-### `GET /api/v1/graph/children/{childId}`
+### `GET /api/v1/graph/children/{childId}`（当前关闭）
 
-返回以某儿童为中心的关系图。
+该路径当前不由 `GraphController` 发布，也不会进入 `/v3/api-docs`。原响应包含儿童、Guardian、Teacher 和关系顺位等 S1 数据；在资源关系授权、最小字段投影与访问审计完成前不得恢复为公共端点。
 
 ✅ 后端在 Neo4j 执行的 Cypher（`GraphRepository.findChildGraph`）：
 
@@ -20,7 +20,7 @@ RETURN ch, c, t, k, collect({guardian:g, relationship:rg.relationship,
                              is_primary:rg.is_primary, priority:rg.priority}) AS guardians
 ```
 
-✅ 响应（`ChildGraphVO`）结构：
+内部 `ChildGraphVO` 结构仍保留供后续受控实现参考：
 
 ```text
 {

@@ -46,13 +46,14 @@ export function resolveLetterKindergartenId(
   return null;
 }
 
-/** 목록·상세·수정 화면용 시청자 컨텍스트 (토큰에서 유치원 ID 보강) */
+/** 목록·상세·수정 화면용 시청자 컨텍스트 */
 export function buildAppreciationLetterViewerContext(
   user: { id: string; role?: string; kindergartenId?: number } | null,
-  token: string | null | undefined,
+  _token: string | null | undefined,
 ): AppreciationLetterViewerContext {
+  void _token;
   if (!user) return null;
-  const kg = resolveViewerSessionKindergartenId(user, token);
+  const kg = resolveViewerSessionKindergartenId(user);
   return {
     id: user.id,
     kindergartenId: kg ?? undefined,

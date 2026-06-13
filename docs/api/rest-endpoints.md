@@ -44,7 +44,7 @@
 | `PUT` | `/api/v1/<resource>/{id}` | 更新（入参 `UpdateDTO`） |
 | `DELETE` | `/api/v1/<resource>/{id}` | 删除（204） |
 
-> 具体每个资源是否实现全部五种方法、是否有额外查询端点（如 children 的 `GET /children/rrn`），以 Swagger / `/v3/api-docs` 为准。
+> 具体每个资源是否实现全部五种方法、是否有额外查询端点，以 Swagger / `/v3/api-docs` 为准。
 
 ### Phase 1A 已确认例外（as-built）
 
@@ -52,14 +52,24 @@
 
 | 资源 | 当前公共方法 | 说明 |
 | --- | --- | --- |
-| `/api/v1/users` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/users` 返回 `405 Method Not Allowed` |
-| `/api/v1/children` | `GET` list/detail, `GET /children/rrn`, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/children` 返回 `405` |
-| `/api/v1/guardians` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/guardians` 返回 `405` |
-| `/api/v1/teachers` | `GET` list/detail, `PUT`, `DELETE` | 通用 `POST` 已关闭；`POST /api/v1/teachers` 返回 `405` |
-| `/api/v1/device_tokens` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`。完整 `pushToken` 不再出现在公共 response / write contract，后续需改为绑定服务端身份的专用 command |
-| `/api/v1/event_evidence_files` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`，`storageUri` 不再经公共 generic write contract 可写 |
-| `/api/v1/camera_streams` | `GET` list/detail, `DELETE` | 通用 `POST` 与 `PUT /{id}` 已关闭；未映射请求返回 `405`。公共 `CameraStreamVO` 不再暴露 `sourceUrl`、`streamUser` 或任何 camera credential/ciphertext/IV/key version 表示，前端公开播放改读 `playbackUrl` / `playbackProtocol` |
-| `/api/v1/audit_logs` | `GET` list/detail only | 公共 `POST` / `PUT` / `DELETE` 均不存在；Audit Log 当前为只读查询接口 |
+| `/api/v1/users` | none | 账户目录含可枚举账户元数据；在 authenticated self/admin contract 落地前不发布公共 operation |
+| `/api/v1/children` | none | 儿童资料属于 S1；通用 list/detail、RRN 查询与写删 operation 均关闭，等待关系授权接口 |
+| `/api/v1/guardians` | none | Guardian profile 属于 S1；通用读写 operation 均关闭 |
+| `/api/v1/teachers` | none | Teacher profile 属于 S1；通用读写 operation 均关闭 |
+| `/api/v1/kindergartens` | `GET` list/detail + business-registration lookup | 公共 response 与注册查找只返回最小目录字段；通用 `POST` / `PUT` / `DELETE` 已关闭，不回显 address、business registration number 或联系人信息 |
+| `/api/v1/device_tokens` | none | 设备注册元数据与完整 token 均不再公开；等待绑定服务端身份的专用 command/query |
+| `/api/v1/event_evidence_files` | none | 证据存在性、保留期、hash 与内部 URI 均不再通过匿名通用 contract 发布 |
+| `/api/v1/camera_streams` | `GET` list/detail | 通用写入与删除链已关闭。公共 `CameraStreamVO` 不暴露 `sourceUrl`、`streamUser`、`playbackUrl` 或任何 camera credential/ciphertext/IV/key version 表示 |
+| `/api/v1/cctv_cameras` | `GET` list/detail | 通用 `POST` / `PUT` / `DELETE`、Create/Update DTO 与 service/mapper 写链已关闭 |
+| `/api/v1/detection_events` | none | 客户端 `kindergartenId` 不能构成授权；list/detail 与通用写链均关闭，等待 authenticated tenant/resource policy |
+| `/api/v1/detection_sessions` | `GET` list/detail | 通用 `POST` / `PUT` / `DELETE`、Create/Update DTO 与 service/mapper 写链已关闭 |
+| `/api/v1/event_reviews` | none | 公共 operation 与 generic 写链已关闭；等待授权和事件状态同事务的专用复核 command |
+| `/api/v1/notification_rules` | none | 公共 operation 与 generic 写链已关闭；等待 tenant-scoped 专用配置接口 |
+| `/api/v1/superadmins` | none | 公共 operation 与 generic 写链已关闭；等待平台治理授权接口 |
+| `/api/v1/appreciation_letters` | none | 正文与作者/目标关系不再通过匿名通用 CRUD 发布；前端路由显示暂不可用 |
+| `/api/v1/graph` | none | 儿童关系图含 S1 关系数据，公共 operation 已关闭；等待资源授权后再开放 |
+| `/api/v1/audit_logs` | none | 公共读写 operation 均关闭；未来只允许内部 append writer 与获授权查询 |
+| `/api/v1/notifications` | none | 通知内容与投递元数据不再通过通用 CRUD 公开；等待内部发送 command/授权查询 |
 
 ## 认证端点（详列）
 
@@ -68,19 +78,17 @@
 | 方法 | 路径 | 说明 | 状态 |
 | --- | --- | --- | --- |
 | `POST` | `/api/v1/auth/login` | 登录，返回 access/refresh + role | ✅ |
-| `POST` | `/api/v1/auth/logout` | 登出 | ❓ **待开发占位**（`throw "Not implemented"`） |
-| `POST` | `/api/v1/auth/register` | 注册（按角色建档） | ✅ |
+| `POST` | `/api/v1/auth/register` | 公开注册申请；`GUARDIAN`/`TEACHER`/`KINDERGARTEN_ADMIN`/`SUPERADMIN` 仅创建 `PENDING` user、role、profile/membership；Guardian scope 从儿童记录派生；管理员 role 仅接受院长/副院长 level；`PLATFORM_IT_ADMIN` 返回 `400` 且不落库 | ✅ Phase 1B |
+| `POST` | `/api/v1/auth/guardian-child-verifications` | Guardian 注册前验证儿童完整 RRN；只返回 `{verified}`，不返回 child ID、姓名、班级或其他 PII | ✅ Phase 1B |
 | `GET` | `/api/v1/auth/register/availability` | 字段查重（loginId/email/phone） | ✅ |
 | `POST` | `/api/v1/auth/refresh` | 刷新令牌 | ✅ |
-| `PATCH` | `/api/v1/auth/password` | 修改密码 | ❓ **待开发占位**（`throw "Not implemented"`） |
-| `POST` | `/api/v1/auth/password-resets` | 申请密码重置 | ❓ **待开发占位**（抛 `Not implemented`，OQ-PROD-3） |
-| `PATCH` | `/api/v1/auth/password-resets/{resetToken}` | 用令牌重置密码 | ❓ **待开发占位**（`throw "Not implemented"`） |
-| `POST` | `/api/v1/auth/verification-codes` | 发送验证码 | ❓ **待开发占位**（`throw "Not implemented"`） |
-| `POST` | `/api/v1/auth/verification-codes/{challengeId}/verifications` | 校验验证码 | ❓ **待开发占位**（`throw "Not implemented"`） |
-
-> ✅ 已逐一核对 `AuthController`（2026-05-29）：上列标「待开发占位」的端点方法体当前均为 `throw new IllegalArgumentException("Not implemented")`，属**计划开发中的占位**（团队确认）。真正实现并连通 service 的仅 `login` / `refresh` / `register` / `register/availability`。
+> `logout`、修改密码、密码重置与验证码流程尚未达到安全开放条件，当前不发布 controller mapping，也不进入 OpenAPI。前端对应入口显示暂不可用。真正实现并连通 service 的只有 `login` / `refresh` / `register` / `register/availability` / `guardian-child-verifications`。
+>
+> Phase 1B 后，客户端提交的 `status`、`scopeType`、`scopeId` 不属于 `AuthRegisterDTO`，未知字段会被忽略；Guardian 的客户端 `kindergartenId` 不用于 scope 写入。公开申请不能自行激活，审批 API 仍未实现。
+>
+> 登录/刷新只接受“恰好一条” ACTIVE role assignment；缺失或多条均返回通用 `401`。KINDERGARTEN scope 的登录响应返回服务端派生的 `kindergartenId`。前端还会拒绝缺失/未知 role 或空 access token 的响应。bearer token 当前只保存在 Redux 内存，不写入 localStorage、不自动 refresh；刷新页面后需重新登录。
 
 ## 特别说明
 
-- ✅ 检测域（`/detection_events`、`/detection_sessions`、`/event_reviews`、`/event_evidence_files`）数据当前来自种子，非实时 AI（见 [open-questions](../modernization/open-questions.md) OQ-AI-1）。
-- ✅ `/camera_streams`、`/detection_events` 在前端注释中被记为"对无认证调用返回 401"——与当前后端 permitAll 存在张力（OQ-SEC-1）。
+- ✅ 检测域数据当前来自种子，非实时 AI（见 [open-questions](../modernization/open-questions.md) OQ-AI-1）；`detection_events` 与 `event_reviews` 当前均不发布公共 operation。
+- ⚠️ `/api/v1/**` 仍为 `permitAll` 演示态；本轮只做公开暴露止血，不等同于完成 Session、tenant 或资源关系授权。

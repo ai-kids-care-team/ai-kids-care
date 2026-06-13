@@ -5,26 +5,19 @@ import { Search } from 'lucide-react';
 import { getKindergarten, searchKindergartens, type KindergartenVO } from '@/services/apis/kindergartens.api';
 import {
   normalizeTeacherVO,
-  searchTeachers,
   type TeacherApiRow,
   type TeacherVO,
 } from '@/services/apis/teachers.api';
 import type { AppreciationTargetType } from '@/types/appreciationLetter';
 
 const LIST_PAGE_SIZE = 100;
-const TEACHER_FALLBACK_SIZE = 500;
 
 function minimalKindergartenVO(kindergartenId: number, name: string): KindergartenVO {
   return {
     kindergartenId,
     name,
-    address: null,
     regionCode: null,
     code: null,
-    businessRegistrationNo: null,
-    contactName: null,
-    contactPhone: null,
-    contactEmail: null,
     status: null,
     createdAt: null,
     updatedAt: null,
@@ -106,7 +99,7 @@ export function LetterTargetPicker({
     }
 
     skipNextPresetRef.current = false;
-  }, [targetType, presetKindergartenForTeacherFlow?.kindergartenId, presetKindergartenForTeacherFlow?.name]);
+  }, [targetType, presetKindergartenForTeacherFlow]);
 
   const isKgTarget = targetType === 'KINDERGARTEN';
   const teacherStepPickKg = targetType === 'TEACHER' && !pickedKgForTeacher;
@@ -162,32 +155,11 @@ export function LetterTargetPicker({
           setTeacherRows([]);
           setTotalCount(page.totalElements ?? (page.content?.length ?? 0));
         } else if (teacherStepPickTeacher && pickedKgForTeacher) {
-          /* 백엔드는 kindergartenId 필터 없음 → 넉넉히 받아서 프론트에서 원만 필터 */
-          const kgId = pickedKgForTeacher.kindergartenId;
-          const kwLower = q.toLowerCase();
-          const page = await searchTeachers({
-            keyword: q,
-            page: 0,
-            size: TEACHER_FALLBACK_SIZE,
-            sort: 'name,asc',
-          });
           if (cancelled) return;
-          const normOpts =
-            kgId > 0 ? ({ fallbackKindergartenId: kgId } as const) : undefined;
-          let content = (page.content ?? []).map((row) =>
-            normalizeTeacherVO(row as TeacherApiRow, normOpts),
-          );
-          content = content.filter((t) => t.kindergartenId === kgId);
-          if (kwLower) {
-            content = content.filter(
-              (t) =>
-                (t.name || '').toLowerCase().includes(kwLower) ||
-                String(t.teacherId).includes(kwLower),
-            );
-          }
-          setTeacherRows(content);
+          setError('교사 대상 조회는 인증된 유치원 범위 API가 마련된 뒤 제공됩니다.');
+          setTeacherRows([]);
           setKindergartenRows([]);
-          setTotalCount(content.length);
+          setTotalCount(0);
         }
       } catch (e) {
         if (cancelled) return;
@@ -208,9 +180,13 @@ export function LetterTargetPicker({
   }, [
     targetType,
     appliedQuery,
+    isKgTarget,
+    pickedKgForTeacher,
     pickedKgForTeacher?.kindergartenId,
     reloadNonce,
     lockedKindergartenId,
+    teacherStepPickKg,
+    teacherStepPickTeacher,
   ]);
 
   const applySearch = () => {
@@ -485,7 +461,6 @@ export function LetterTargetPicker({
                   <span className="font-medium text-slate-900">{row.name}</span>
                   <span className={compact ? 'text-[11px] text-gray-500' : 'text-xs text-gray-500'}>
                     유치원 ID {row.kindergartenId}
-                    {row.address ? ` · ${row.address}` : ''}
                   </span>
                 </button>
               </li>

@@ -1,13 +1,12 @@
 'use client';
 
 import { Eye, EyeOff, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
-import { useForgotPasswordMutation, useLoginMutation } from '@/services/apis/auth.api';
-import type { UserRole } from '@/types/user-role';
-import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
+import { useLoginMutation } from '@/services/apis/auth.api';
+import { isUserRole } from '@/types/user-role';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,36 +15,21 @@ interface LoginModalProps {
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
-const getForgotPasswordErrorMessage = (err: any) => {
-  if (err?.status === 'FETCH_ERROR') {
-    return '백엔드 서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해주세요.';
-  }
-
-  return err?.data?.error || err?.data?.message || '요청을 처리하는 중 오류가 발생했습니다. 이메일을 다시 확인해주세요.';
-};
-
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const dispatch = useAppDispatch();
   const [loginApi, { isLoading }] = useLoginMutation();
-  const [forgotPasswordApi, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
   const [viewMode, setViewMode] = useState<'login' | 'forgot'>('login');
   const [formData, setFormData] = useState({
     id: '',
     loginId: '',
     password: '',
   });
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotError, setForgotError] = useState('');
-  const [forgotSuccess, setForgotSuccess] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const resetForm = () => {
     setViewMode('login');
     setFormData({ loginId: '', password: '' , id:''});
-    setForgotEmail('');
-    setForgotError('');
-    setForgotSuccess(false);
     setError('');
     setShowPassword(false);
   };
@@ -54,12 +38,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     resetForm();
     onClose();
   };
-
-  useEffect(() => {
-    if (!isOpen) {
-      resetForm();
-    }
-  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,38 +53,26 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
       const responseLoginId = response?.loginId ?? formData.loginId;
       const responseId = response?.id ?? formData.id;
-      const numericUserId = Number(responseId);
-      const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
-      const refreshToken = response?.refreshToken ?? '';
+      if (!isUserRole(response?.role) || token.trim() === '') {
+        throw new Error('Invalid login response');
+      }
+      const role = response.role;
       const name = response?.name;
       const apiKg = Number(response?.kindergartenId);
-      const userBase = {
+      const user = {
         id: String(responseId ?? responseLoginId),
         loginId: responseLoginId,
         username: responseLoginId,
         name: name || responseLoginId,
-        role: role as UserRole,
+        role,
         kindergartenId: Number.isFinite(apiKg) && apiKg > 0 ? Math.trunc(apiKg) : undefined,
       };
-      const kg = resolveViewerSessionKindergartenId(userBase, token);
-      const user = {
-        ...userBase,
-        ...(kg != null ? { kindergartenId: kg } : {}),
-      };
-
       dispatch(setCredentials({ user, token }));
-      localStorage.setItem('user', JSON.stringify(user));
-      if (token) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('accessToken', token);
-      }
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
       handleModalClose();
-    } catch (err: any) {
-      setError(err?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err: unknown) {
+      const apiError = err as { data?: { message?: string } };
+      setError(apiError.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 
@@ -118,27 +84,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const handleForgotPasswordOpen = () => {
     setViewMode('forgot');
-    setForgotError('');
-    setForgotSuccess(false);
     setError('');
   };
 
   const handleBackToLogin = () => {
     setViewMode('login');
-    setForgotError('');
-    setForgotSuccess(false);
-  };
-
-  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setForgotError('');
-
-    try {
-      await forgotPasswordApi({ email: forgotEmail }).unwrap();
-      setForgotSuccess(true);
-    } catch (err: any) {
-      setForgotError(getForgotPasswordErrorMessage(err));
-    }
   };
 
   if (!isOpen) return null;
@@ -259,59 +209,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <>
             <div className="text-center mb-8">
               <h2 className="text-3xl mb-2">비밀번호 찾기</h2>
-              <p className="text-gray-600">가입 시 등록한 이메일을 입력해 주세요.</p>
+              <p className="text-gray-600">비밀번호 재설정 기능은 아직 제공되지 않습니다.</p>
             </div>
 
-            {forgotSuccess ? (
-              <div className="space-y-4">
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
-                  비밀번호 재설정 안내 메일(또는 인증코드)이 발송되었습니다. 이메일함을 확인해 주세요.
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBackToLogin}
-                  className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  로그인으로 돌아가기
-                </button>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                안전한 재설정 토큰과 요청 제한이 구현된 뒤 다시 제공됩니다.
               </div>
-            ) : (
-              <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm mb-2">이메일 주소</label>
-                  <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="name@example.com"
-                  />
-                </div>
-
-                {forgotError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {forgotError}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isForgotLoading || !forgotEmail.trim()}
-                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isForgotLoading ? '요청 중...' : '비밀번호 재설정 요청'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleBackToLogin}
-                  className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  로그인으로 돌아가기
-                </button>
-              </form>
-            )}
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="w-full px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                로그인으로 돌아가기
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -1,14 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   Camera,
   ChevronLeft,
   ChevronRight,
   Circle,
-  Download,
   Eye,
   Grid2x2,
   Grid3x3,
@@ -28,15 +26,12 @@ import { useAppSelector } from '@/store/hook';
 import {
   getCctvCamerasPage,
   getCameraStreamsPage,
-  getDetectionEventTypeCodes,
-  getDetectionEventsPage,
 } from '@/services/apis/cctv.api';
 import { getKindergarten } from '@/services/apis/kindergartens.api';
-import { fetchTeacherDisplayNameForUser } from '@/services/apis/teachers.api';
 import type { CameraStreamVO } from '@/services/apis/cctv.api';
 import type { CctvCameraVO, DetectionEventVO } from '@/types/cctv.vo';
 import type { UserRole } from '@/types/user-role';
-import { roleLabels, rolePermissions } from '@/types/user-role';
+import { roleLabels } from '@/types/user-role';
 import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import { Card } from '@/components/shared/ui/card';
@@ -55,11 +50,6 @@ const CCTV_TRAFFIC_PLACEHOLDER_ENABLED = false;
 
 /** DB에 스트림 URL 없을 때 실제 카메라 타일에 임시 영상 넣기 */
 const CCTV_CAMERA_TILE_DUMMY_ENABLED = false;
-
-// DB의 `camera_streams`에서 camera_id=1 MAIN의 http(s) UTIC url을 못 찾는 경우에 대비한 fallback.
-// seed `39_camera_streams_seed.sql`의 MAIN https URL을 그대로 사용.
-const UTIC_CAMERA1_MAIN_HTTPS_FALLBACK_URL =
-  'http://www.ai-kids-care.asia:8082/live/livestream.m3u8';
 
 const TRAFFIC_DEMO_STREAMS = [
   'https://www.utic.go.kr/jsp/map/cctvStream.jsp?cctvid=E970150&cctvname=%25EC%259B%2590%25ED%259A%25A8%25EB%258C%2580%25EA%25B5%2590%25EB%25B6%2581%25EB%258B%25A8&kind=EC&cctvip=undefined&cctvch=53&id=424&cctvpasswd=undefined&cctvport=undefined&minX=126.83673788313612&minY=37.4649974459518&maxX=127.12636287326224&maxY=37.585756195539204',
@@ -107,13 +97,8 @@ function padSlotTitleName(globalSlotIndex: number, padStreamUrl: string | null):
 }
 
 function resolveRealCameraTileEmbedUrl(
-  cameraId: number | null,
   globalSlotIndex: number,
-  apiStreamUrl: string | null,
 ): string | null {
-  const u = apiStreamUrl?.trim() || null;
-  if (u) return u;
-  if (cameraId === 1) return UTIC_CAMERA1_MAIN_HTTPS_FALLBACK_URL;
   return dummyStreamForCameraTile(globalSlotIndex, false);
 }
 
@@ -224,21 +209,6 @@ function displayLocationLine(vo: CctvCameraVO): string {
   return vo.serialNo?.trim() || vo.model?.trim() || '위치 미지정';
 }
 
-/** iframe에는 공개 playbackUrl 의 http(s)만 — RTSP 등 원본 source URL은 브라우저에서 직접 재생하지 않음 */
-function pickPrimaryStreamUrl(streams: CameraStreamVO[]): string | null {
-  const httpStreams = streams.filter((s) => {
-    const u = s.playbackUrl?.trim();
-    if (!u) return false;
-    const lower = u.toLowerCase();
-    return lower.startsWith('http://') || lower.startsWith('https://');
-  });
-  if (httpStreams.length === 0) return null;
-  const enabled = httpStreams.filter((s) => s.enabled !== false);
-  const pool = enabled.length > 0 ? enabled : httpStreams;
-  const primary = pool.find((s) => s.isPrimary === true);
-  return (primary ?? pool[0]).playbackUrl!.trim();
-}
-
 const ROLE_COLORS: Record<UserRole, string> = {
   SUPERADMIN: 'bg-purple-600',
   PLATFORM_IT_ADMIN: 'bg-indigo-600',
@@ -248,25 +218,13 @@ const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 export function CctvDashboardPage() {
-  const router = useRouter();
   const sessionUser = useAppSelector((s) => s.user.user);
   const isAuthenticated = useAppSelector((s) => s.user.isAuthenticated);
-  const sessionToken = useAppSelector((s) => s.user.token);
-
-  // Hydration mismatch 방지:
-  // SSR에서는 Redux/localStorage가 복구되기 전이라 역할(effectiveRole)이 기본값(GUARDIAN)으로 렌더될 수 있습니다.
-  // 첫 클라이언트 렌더에서 역할이 달라지면 아이콘/색상 같은 조건부 렌더가 달라져 경고가 뜹니다.
-  // 따라서 UI 표시용 역할은 마운트 이후에만 실제 값으로 전환합니다.
-  const [uiHydrated, setUiHydrated] = useState(false);
-  useEffect(() => {
-    setUiHydrated(true);
-  }, []);
 
   const [cameras, setCameras] = useState<CctvCameraVO[]>([]);
   const [events, setEvents] = useState<DetectionEventVO[]>([]);
   const [loading, setLoading] = useState(true);
   /** API 실패해도 그리드 레이아웃은 유지(데모는 `CCTV 데모 스트림: BEGIN~END` + 진입점 함수) */
-  const [eventTypeLabels, setEventTypeLabels] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<LayoutMode>('2x2');
   const [categoryFilter, setCategoryFilter] = useState<CategoryKey>('all');
   const [currentPage, setCurrentPage] = useState(0);
@@ -282,81 +240,45 @@ export function CctvDashboardPage() {
   const playlistFullscreenElRef = useRef<HTMLDivElement | null>(null);
 
   const effectiveRole: UserRole = sessionUser?.role ?? 'GUARDIAN';
-  const effectiveRoleForUi: UserRole = uiHydrated ? effectiveRole : 'GUARDIAN';
+  const effectiveRoleForUi: UserRole = effectiveRole;
   const loginIdDisplay =
     sessionUser?.loginId?.trim() || sessionUser?.username?.trim() || (isAuthenticated ? '—' : '게스트');
-  const perms = rolePermissions[effectiveRole];
-  const decodeJwtKindergartenId = useCallback((token: string | null | undefined): number | null => {
-    if (!token) return null;
-    try {
-      const parts = token.split('.');
-      if (parts.length < 2) return null;
-      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const json = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((ch) => `%${ch.charCodeAt(0).toString(16).padStart(2, '0')}`)
-          .join(''),
-      );
-      const payload = JSON.parse(json) as {
-        kindergartenId?: number;
-        kindergarten_id?: number;
-        kgId?: number;
-      };
-      const v = Number(payload.kindergartenId ?? payload.kindergarten_id ?? payload.kgId ?? 0);
-      return Number.isFinite(v) && v > 0 ? v : null;
-    } catch {
-      return null;
-    }
-  }, []);
-  const inferKindergartenIdFromUserId = useCallback((userIdRaw: unknown): number | null => {
-    const userId = Number(userIdRaw);
-    if (!Number.isFinite(userId) || userId <= 0) return null;
-    if (userId >= 700) return 3;
-    if (userId >= 400) return 2;
-    if (userId >= 100) return 1;
-    return null;
-  }, []);
   const sessionKindergartenId = useMemo(() => {
     const direct = Number((sessionUser as { kindergartenId?: number } | null)?.kindergartenId ?? 0);
-    if (Number.isFinite(direct) && direct > 0) return direct;
-    const fromUserId = inferKindergartenIdFromUserId((sessionUser as { id?: unknown } | null)?.id);
-    if (fromUserId != null) return fromUserId;
-    const fromSessionToken = decodeJwtKindergartenId(sessionToken);
-    if (fromSessionToken != null) return fromSessionToken;
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem('user');
-      const parsed = raw ? (JSON.parse(raw) as { kindergartenId?: number }) : null;
-      const fromStorageUser = Number(parsed?.kindergartenId ?? 0);
-      if (Number.isFinite(fromStorageUser) && fromStorageUser > 0) return fromStorageUser;
-      const fromStorageToken = decodeJwtKindergartenId(
-        localStorage.getItem('accessToken') ?? localStorage.getItem('token'),
-      );
-      return fromStorageToken;
-    } catch {
-      return null;
-    }
-  }, [decodeJwtKindergartenId, inferKindergartenIdFromUserId, sessionToken, sessionUser]);
+    return Number.isFinite(direct) && direct > 0 ? Math.trunc(direct) : null;
+  }, [sessionUser]);
   const shouldScopeToOwnKindergarten =
     effectiveRole === 'KINDERGARTEN_ADMIN' || effectiveRole === 'TEACHER';
+  const canViewLiveStreams = shouldScopeToOwnKindergarten;
 
-  const [kindergartenNameResolved, setKindergartenNameResolved] = useState<string | null>(null);
-  const [selectedCameraKindergartenName, setSelectedCameraKindergartenName] = useState<string | null>(null);
+  const [kindergartenNameResolved, setKindergartenNameResolved] = useState<{
+    kindergartenId: number;
+    name: string;
+  } | null>(null);
+  const [selectedCameraKindergartenName, setSelectedCameraKindergartenName] = useState<{
+    kindergartenId: number;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (sessionKindergartenId == null || sessionKindergartenId <= 0) {
-      setKindergartenNameResolved('');
-      return;
-    }
+    if (sessionKindergartenId == null || sessionKindergartenId <= 0) return;
     let cancelled = false;
-    setKindergartenNameResolved(null);
     void getKindergarten(sessionKindergartenId)
       .then((kg) => {
-        if (!cancelled) setKindergartenNameResolved(kg.name?.trim() || `유치원 #${sessionKindergartenId}`);
+        if (!cancelled) {
+          setKindergartenNameResolved({
+            kindergartenId: sessionKindergartenId,
+            name: kg.name?.trim() || `유치원 #${sessionKindergartenId}`,
+          });
+        }
       })
       .catch(() => {
-        if (!cancelled) setKindergartenNameResolved(`유치원 #${sessionKindergartenId}`);
+        if (!cancelled) {
+          setKindergartenNameResolved({
+            kindergartenId: sessionKindergartenId,
+            name: `유치원 #${sessionKindergartenId}`,
+          });
+        }
       });
     return () => {
       cancelled = true;
@@ -366,18 +288,24 @@ export function CctvDashboardPage() {
   // 선택된 카메라의 유치원 이름(세션 소속과 무관하게, 해당 카메라가 속한 유치원 기준)
   useEffect(() => {
     const kgId = selectedCamera?.kindergartenId;
-    if (!kgId || kgId <= 0) {
-      setSelectedCameraKindergartenName('');
-      return;
-    }
+    if (!kgId || kgId <= 0) return;
     let cancelled = false;
-    setSelectedCameraKindergartenName(null);
     void getKindergarten(kgId)
       .then((kg) => {
-        if (!cancelled) setSelectedCameraKindergartenName(kg.name?.trim() || `유치원 #${kgId}`);
+        if (!cancelled) {
+          setSelectedCameraKindergartenName({
+            kindergartenId: kgId,
+            name: kg.name?.trim() || `유치원 #${kgId}`,
+          });
+        }
       })
       .catch(() => {
-        if (!cancelled) setSelectedCameraKindergartenName(`유치원 #${kgId}`);
+        if (!cancelled) {
+          setSelectedCameraKindergartenName({
+            kindergartenId: kgId,
+            name: `유치원 #${kgId}`,
+          });
+        }
       });
     return () => {
       cancelled = true;
@@ -386,8 +314,10 @@ export function CctvDashboardPage() {
 
   const kindergartenAffiliationLabel = useMemo(() => {
     if (sessionKindergartenId != null && sessionKindergartenId > 0) {
-      if (kindergartenNameResolved === null) return '불러오는 중…';
-      return kindergartenNameResolved || `유치원 #${sessionKindergartenId}`;
+      if (kindergartenNameResolved?.kindergartenId !== sessionKindergartenId) {
+        return '불러오는 중…';
+      }
+      return kindergartenNameResolved.name;
     }
     if (effectiveRole === 'SUPERADMIN' || effectiveRole === 'PLATFORM_IT_ADMIN') {
       return '전체(유치원 미지정)';
@@ -395,95 +325,32 @@ export function CctvDashboardPage() {
     return '소속 유치원 없음';
   }, [effectiveRole, kindergartenNameResolved, sessionKindergartenId]);
 
-  /**
-   * CCTV 사이드바 두 번째 줄: `teachers.name`만 채움. 유치원 라벨(`kindergartenAffiliationLabel`)과 무관.
-   * 교사·원장(유치원) 역할만 조회; 그 외는 Redux `name`만 사용.
-   */
-  const [teacherTableName, setTeacherTableName] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    const needsTeacherRow =
-      isAuthenticated &&
-      (effectiveRole === 'TEACHER' || effectiveRole === 'KINDERGARTEN_ADMIN');
-    if (!needsTeacherRow) {
-      setTeacherTableName('');
-      return;
-    }
-    const uid = Number(sessionUser?.id);
-    if (!Number.isFinite(uid) || uid <= 0 || sessionKindergartenId == null || sessionKindergartenId <= 0) {
-      setTeacherTableName('');
-      return;
-    }
-    let cancelled = false;
-    setTeacherTableName(undefined);
-    void fetchTeacherDisplayNameForUser(uid, sessionKindergartenId).then((n) => {
-      if (!cancelled) setTeacherTableName(n ?? '');
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, effectiveRole, sessionUser?.id, sessionKindergartenId]);
-
-  const personNameDisplay = useMemo(() => {
-    const fromTeachers = teacherTableName?.trim();
-    if (fromTeachers) return fromTeachers;
-    return sessionUser?.name?.trim() || '—';
-  }, [teacherTableName, sessionUser?.name]);
+  const personNameDisplay = sessionUser?.name?.trim() || '—';
 
   const load = useCallback(async () => {
     setLoading(true);
-    if (shouldScopeToOwnKindergarten && sessionKindergartenId == null) {
+    if (!canViewLiveStreams || sessionKindergartenId == null) {
       setCameras([]);
       setEvents([]);
       setLoading(false);
       return;
     }
-    const [camResult, evResult, codeResult] = await Promise.allSettled([
-      getCctvCamerasPage(0, 200, sessionKindergartenId ?? undefined),
-      getDetectionEventsPage(0, 300),
-      getDetectionEventTypeCodes(),
-    ]);
-
-    const errors: string[] = [];
-
-    if (camResult.status === 'fulfilled') {
-      setCameras(camResult.value?.content ?? []);
-    } else {
+    try {
+      const cameraPage = await getCctvCamerasPage(0, 200, sessionKindergartenId);
+      setCameras(cameraPage?.content ?? []);
+    } catch {
       setCameras([]);
-      errors.push('카메라 목록');
+      console.warn('카메라 목록 조회에 실패했습니다.');
     }
-
-    if (evResult.status === 'fulfilled') {
-      setEvents(evResult.value?.content ?? []);
-    } else {
-      setEvents([]);
-      errors.push('이벤트 목록');
-    }
-
-    if (codeResult.status === 'fulfilled') {
-      setEventTypeLabels(
-        (codeResult.value ?? []).reduce<Record<string, string>>((acc, row) => {
-          const key = String(row.code ?? '').trim().toUpperCase();
-          if (!key) return acc;
-          acc[key] = row.codeName ?? row.code;
-          return acc;
-        }, {}),
-      );
-    } else {
-      setEventTypeLabels({});
-      errors.push('이벤트 타입 코드');
-    }
-
-    if (errors.length > 0) {
-      // 에러 카드는 필요 없으므로, 그리드는 계속 렌더되게 두고 콘솔만 남깁니다.
-      // (예: 이벤트 목록만 실패해도 카메라 그리드는 표시)
-      console.warn(`${errors.join(', ')} 조회에 실패했습니다. 일부 데이터만 표시됩니다.`, errors);
-    }
+    setEvents([]);
     setLoading(false);
-  }, [sessionKindergartenId, shouldScopeToOwnKindergarten]);
+  }, [canViewLiveStreams, sessionKindergartenId]);
 
   useEffect(() => {
-    void load();
+    const timeoutId = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [load]);
 
   const scopedCameras = useMemo(
@@ -592,21 +459,19 @@ export function CctvDashboardPage() {
   }, [quickPlaylistIndex, filteredCameras]);
 
   const playlistEmbedUrl = useMemo(() => {
-    if (!playlistCamera || quickPlaylistIndex === null) return null;
-    const linked = pickPrimaryStreamUrl(streamMapByCamera.get(playlistCamera.cameraId) ?? []);
-    return resolveRealCameraTileEmbedUrl(playlistCamera.cameraId, quickPlaylistIndex, linked);
-  }, [playlistCamera, quickPlaylistIndex, streamMapByCamera]);
+    if (!canViewLiveStreams || !playlistCamera || quickPlaylistIndex === null) return null;
+    return resolveRealCameraTileEmbedUrl(quickPlaylistIndex);
+  }, [canViewLiveStreams, playlistCamera, quickPlaylistIndex]);
 
   const playlistSubLine = useMemo(() => {
     if (!playlistCamera || quickPlaylistIndex === null) return '—';
-    const linked = pickPrimaryStreamUrl(streamMapByCamera.get(playlistCamera.cameraId) ?? []);
     // "데모(임시)" 라벨은 더미 영상이 실제로 들어간 경우에만 표시
     const dummyFallbackUrl = dummyStreamForCameraTile(quickPlaylistIndex, false);
-    const onlyDemo = !(linked?.trim() ?? '') && Boolean(dummyFallbackUrl) && playlistEmbedUrl === dummyFallbackUrl;
+    const onlyDemo = Boolean(dummyFallbackUrl) && playlistEmbedUrl === dummyFallbackUrl;
     return onlyDemo
       ? `${displayLocationLine(playlistCamera)} · 데모(임시)`
       : displayLocationLine(playlistCamera);
-  }, [playlistCamera, quickPlaylistIndex, playlistEmbedUrl, streamMapByCamera]);
+  }, [playlistCamera, quickPlaylistIndex, playlistEmbedUrl]);
 
   const adminLike =
     effectiveRoleForUi === 'SUPERADMIN' ||
@@ -614,12 +479,13 @@ export function CctvDashboardPage() {
     effectiveRoleForUi === 'KINDERGARTEN_ADMIN';
 
   const loadCameraStreams = useCallback(async () => {
+    if (!canViewLiveStreams || sessionKindergartenId == null || sessionKindergartenId <= 0) {
+      setStreamMapByCamera(new Map());
+      return;
+    }
     try {
-      const page = await getCameraStreamsPage(0, 500);
+      const page = await getCameraStreamsPage(sessionKindergartenId, 0, 500);
       const source = page?.content ?? [];
-      // stream은 iframe 선택 단계에서 `cameraId`로 매칭되므로,
-      // 여기서 kindergartenId 필터를 걸면 sessionKindergartenId 산정이 어긋날 때 해당 카메라 stream이 누락될 수 있음.
-      // 프론트만 최소 수정으로 확실히 하기 위해 전체를 로드한다.
       const scoped = source;
       const m = new Map<number, CameraStreamVO[]>();
       for (const row of scoped) {
@@ -627,27 +493,21 @@ export function CctvDashboardPage() {
         list.push(row);
         m.set(row.cameraId, list);
       }
-      // 빠른 진단: 스트림이 비면 더미/빈슬롯으로 떨어지게 됩니다.
       if (m.size === 0) {
         console.warn('camera_streams loaded but empty (streamMapByCamera size=0)');
-      } else {
-        const cam1 = m.get(1) ?? [];
-        const cam1Primary = pickPrimaryStreamUrl(cam1);
-        if (!cam1Primary) {
-          console.warn('camera_streams: cameraId=1 has no usable http(s) primary playbackUrl', {
-            cam1Count: cam1.length,
-          });
-        }
       }
       setStreamMapByCamera(m);
     } catch (err) {
       console.warn('camera_streams 조회 실패: /camera_streams', err);
       setStreamMapByCamera(new Map());
     }
-  }, [sessionKindergartenId, shouldScopeToOwnKindergarten]);
+  }, [canViewLiveStreams, sessionKindergartenId]);
 
   useEffect(() => {
-    void loadCameraStreams();
+    const timeoutId = window.setTimeout(() => {
+      void loadCameraStreams();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [loadCameraStreams]);
 
   const handleOpenDetail = useCallback((camera: CctvCameraVO | null) => {
@@ -677,13 +537,18 @@ export function CctvDashboardPage() {
   useEffect(() => {
     if (quickPlaylistIndex === null || filteredCameras.length > 0) return;
     void document.exitFullscreen?.();
-    setQuickPlaylistIndex(null);
+    const timeoutId = window.setTimeout(() => setQuickPlaylistIndex(null), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [filteredCameras.length, quickPlaylistIndex]);
 
   useEffect(() => {
     if (quickPlaylistIndex === null || filteredCameras.length === 0) return;
     if (quickPlaylistIndex < filteredCameras.length) return;
-    setQuickPlaylistIndex(filteredCameras.length - 1);
+    const timeoutId = window.setTimeout(
+      () => setQuickPlaylistIndex(filteredCameras.length - 1),
+      0,
+    );
+    return () => window.clearTimeout(timeoutId);
   }, [filteredCameras.length, quickPlaylistIndex, filteredCameras]);
 
   const goQuickPlaylistStep = useCallback(
@@ -900,6 +765,13 @@ export function CctvDashboardPage() {
 
             {/* apiError 카드 제거: 이벤트/일부 데이터 조회 실패가 있어도 그리드는 계속 렌더됩니다. */}
 
+            {!canViewLiveStreams && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                현재 역할에는 live CCTV 접근 권한이 없습니다. 향후 권한이 검증된 tenant context를
+                통해서만 제공됩니다.
+              </div>
+            )}
+
             {!loading && (
               <div className="flex flex-col gap-4">
                 {categoryFilter !== 'all' && filteredCameras.length === 0 ? (
@@ -912,20 +784,17 @@ export function CctvDashboardPage() {
                     const gridSlot = safePage * itemsPerPage + slotIdx;
                     const isPadSlot = camera == null;
                     const padStream = isPadSlot ? resolvePadSlotEmbedUrl(gridSlot) : null;
-                    const cameraId = !isPadSlot ? camera.cameraId : null;
-                    const linkedStreamUrl = !isPadSlot
-                      ? pickPrimaryStreamUrl(streamMapByCamera.get(camera.cameraId) ?? [])
-                      : null;
-                    const streamEmbedUrl = isPadSlot
-                      ? padStream
-                      : resolveRealCameraTileEmbedUrl(cameraId, gridSlot, linkedStreamUrl);
+                    const streamEmbedUrl = !canViewLiveStreams
+                      ? null
+                      : isPadSlot
+                        ? padStream
+                        : resolveRealCameraTileEmbedUrl(gridSlot);
 
                     // "데모(임시)" 라벨은 더미 스트림(traffic demo)이 실제로 들어간 경우에만 표시
                     const demoFallbackUrl = !isPadSlot ? dummyStreamForCameraTile(gridSlot, false) : null;
                     const usingDemoFallbackOnCamera =
                       !isPadSlot &&
                       streamEmbedUrl != null &&
-                      !linkedStreamUrl &&
                       demoFallbackUrl === streamEmbedUrl;
                     const camEvents = !isPadSlot
                       ? (eventsByCamera.get(camera.cameraId) ?? [])
@@ -1062,7 +931,7 @@ export function CctvDashboardPage() {
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5">
                                         <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                                         <span className="truncate text-xs font-semibold">
-                                          {eventTypeLabels[event.eventType] ?? event.eventType}
+                                          {event.eventType}
                                         </span>
                                       </div>
                                       {uiStatus === 'active' && (
@@ -1303,7 +1172,7 @@ export function CctvDashboardPage() {
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
                           <h4 className="text-sm font-semibold text-gray-900">
-                            {eventTypeLabels[event.eventType] ?? event.eventType}
+                            {event.eventType}
                           </h4>
                         </div>
                         <Badge
@@ -1453,9 +1322,9 @@ export function CctvDashboardPage() {
                 <div>
                   <p className="text-gray-500">유치원</p>
                   <p className="font-medium text-gray-900">
-                    {selectedCameraKindergartenName === null
-                      ? '불러오는 중…'
-                      : selectedCameraKindergartenName || `유치원 #${selectedCamera.kindergartenId}`}
+                    {selectedCameraKindergartenName?.kindergartenId === selectedCamera.kindergartenId
+                      ? selectedCameraKindergartenName.name
+                      : '불러오는 중…'}
                   </p>
                 </div>
                 <div>
@@ -1465,7 +1334,11 @@ export function CctvDashboardPage() {
               </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-gray-800">스트림 설정 (백엔드 `camera_streams`)</p>
-                {(streamMapByCamera.get(selectedCamera.cameraId) ?? []).length === 0 ? (
+                {!canViewLiveStreams ? (
+                  <p className="text-sm text-amber-700">
+                    이 역할에는 live stream 접근 권한이 제공되지 않습니다.
+                  </p>
+                ) : (streamMapByCamera.get(selectedCamera.cameraId) ?? []).length === 0 ? (
                   <p className="text-sm text-gray-500">연결된 스트림 설정이 없습니다.</p>
                 ) : (
                   <div className="space-y-2">
@@ -1478,7 +1351,7 @@ export function CctvDashboardPage() {
                       #{s.streamId ?? idx + 1} · {s.playbackProtocol ?? s.sourceProtocol ?? 'UNKNOWN'} · {s.streamType ?? 'N/A'} ·{' '}
                       {s.enabled ? 'ENABLED' : 'DISABLED'}
                     </p>
-                    <p className="truncate text-gray-600">{s.playbackUrl ?? 'playbackUrl 없음'}</p>
+                    <p className="text-gray-600">재생 주소는 공개 API에서 제공하지 않습니다.</p>
                   </div>
                 ))}
                   </div>

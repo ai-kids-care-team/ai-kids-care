@@ -6,29 +6,16 @@ import { Html } from "@react-three/drei";
 import {
     AlertTriangle,
     ClipboardList,
-    CheckSquare,
     Search,
     Send,
-    CheckCircle2,
-    XCircle,
-    Megaphone,
 } from "lucide-react";
 import { useDetectionEventDetail } from "@/components/detectionEvents/functions/useDetectionEventDetail";
-import { EventReviewFlow } from "@/components/detectionEvents/EventReviewFlow";
-import {
-    createEventReview,
-    getLatestEventReview,
-    type CreateEventReviewDTO,
-    type EventReview,
-} from "@/services/apis/eventReviews.api";
-import { updateDetectionEvent } from "@/services/apis/detectionEvents.api";
-import { useAppSelector } from "@/store/hook";
 import {
     getParentCommonCodeList,
     type CommonCode,
 } from "@/services/apis/commonCodes.api";
 import { searchChildrenByName } from "@/services/apis/children.api";
-import { getChildGraph, type ChildGraph } from "@/services/apis/graph.api";
+import type { ChildGraph } from "@/services/apis/graph.api";
 import {
     GraphCanvas,
     lightTheme,
@@ -67,7 +54,7 @@ const REAGRAPH_CHILD_GLOW_LAYERS: { scale: number; opacity: number }[] = [
 const REAGRAPH_3D_POST_FIT_DOLLY_OUT = 220;
 
 /** Reagraph: 기본 반지름 (아이는 renderNode에서 CHILD_NODE_VISUAL_SCALE 적용) */
-function reagraphNodeSizeByType(_nodeType: string): number {
+function reagraphNodeSizeByType(): number {
     return CHILD_NODE_SIZE;
 }
 
@@ -96,11 +83,7 @@ function formatDateTime(value: string | null): string {
 }
 
 export function DetectionEventsDetailPage() {
-    const { id, detail, loading, error, reload } = useDetectionEventDetail();
-    const { user } = useAppSelector((state) => state.user);
-    const [latestReview, setLatestReview] = useState<EventReview | null>(null);
-    const [memo, setMemo] = useState('');
-    const [refreshKey, setRefreshKey] = useState(0);
+    const { detail, loading, error } = useDetectionEventDetail();
     const [eventTypeLabel, setEventTypeLabel] = useState<string | null>(null);
     const [isChildModalOpen, setIsChildModalOpen] = useState(false);
     const [childNameKeyword, setChildNameKeyword] = useState('');
@@ -252,11 +235,11 @@ export function DetectionEventsDetailPage() {
         if (!graphData.nodes.length) {
             return { nodes: [] as GraphNode[], edges: [] as GraphEdge[] };
         }
-        const nodes: GraphNode[] = (graphData.nodes as any[]).map((n) => ({
+        const nodes: GraphNode[] = graphData.nodes.map((n) => ({
             id: n.id as string,
             label: n.label as string,
             fill: n.color as string,
-            size: reagraphNodeSizeByType(String(n.type)),
+            size: reagraphNodeSizeByType(),
             fx: n.fx as number,
             fy: n.fy as number,
             fz: n.fz as number,
@@ -359,20 +342,6 @@ export function DetectionEventsDetailPage() {
         );
     }, []);
 
-    useEffect(() => {
-        const loadLatest = async () => {
-            if (!Number.isFinite(id) || id <= 0) return;
-            try {
-                const review = await getLatestEventReview(id);
-                setLatestReview(review);
-            } catch (e) {
-                console.error('최신 처리 상태 조회 실패:', e);
-            }
-        };
-
-        void loadLatest();
-    }, [id]);
-
     // 사건 유형 코드 → 한글 명칭 매핑
     useEffect(() => {
         const loadEventTypeLabel = async () => {
@@ -394,15 +363,6 @@ export function DetectionEventsDetailPage() {
 
         void loadEventTypeLabel();
     }, [detail?.eventType]);
-
-    const latestStatus = latestReview?.result_status ?? null;
-    const showConfirm = latestStatus === 'OPEN';
-    const showReview = latestStatus === 'ACKNOWLEDGED';
-    const showResolve = latestStatus === 'IN_REVIEW';
-    const showDismiss =
-        latestStatus === 'ACKNOWLEDGED' || latestStatus === 'IN_REVIEW';
-    const showEscalate = latestStatus === 'RESOLVED';
-    const hasAnyAction = showConfirm || showReview || showResolve || showDismiss || showEscalate;
 
     const openChildSearchModal = () => {
         setChildSearchResults([]);
@@ -450,22 +410,13 @@ export function DetectionEventsDetailPage() {
         setIsChildModalOpen(false);
     };
 
-    const openGraphModal = async () => {
+    const openGraphModal = () => {
         if (!selectedChild || !Number.isFinite(selectedChild.childId)) return;
 
         setIsGraphModalOpen(true);
         setChildGraph(null);
-        setGraphError('');
-        setIsGraphLoading(true);
-        try {
-            const graph = await getChildGraph(selectedChild.childId);
-            setChildGraph(graph);
-        } catch (err) {
-            console.error('아이 관계 그래프 조회 실패:', err);
-            setGraphError('아이 관계 정보를 불러오지 못했습니다.');
-        } finally {
-            setIsGraphLoading(false);
-        }
+        setGraphError('관계 그래프는 권한 기반 조회가 구현된 뒤 다시 제공됩니다.');
+        setIsGraphLoading(false);
     };
 
     const closeGraphModal = () => {
@@ -522,42 +473,6 @@ export function DetectionEventsDetailPage() {
         return () => ro.disconnect();
     }, [isGraphModalOpen, childGraph, isGraphLoading, graphMode]);
 
-    const handleStatusChange = async (
-        nextStatus: 'ACKNOWLEDGED' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED',
-    ) => {
-        if (!Number.isFinite(id) || id <= 0) return;
-        if (!user || user.id === '') {
-            console.warn('로그인한 사용자 정보가 없습니다.');
-            return;
-        }
-
-        const reviewDto: CreateEventReviewDTO = {
-            event_id: id,
-            user_id: user.id,
-            from_status: latestStatus ?? null,
-            result_status: nextStatus,
-            comment: memo.trim() || null,
-        };
-
-        const detectionUpdateDto = {
-            status: nextStatus,
-        } as const;
-
-        try {
-            await Promise.all([
-                createEventReview(reviewDto),
-                updateDetectionEvent(id, detectionUpdateDto),
-            ]);
-            // 상세 정보 전체 재조회
-            await reload();
-            const refreshed = await getLatestEventReview(id);
-            setLatestReview(refreshed);
-            setRefreshKey((prev) => prev + 1);
-        } catch (e) {
-            console.error('상태 변경 처리 실패:', e);
-        }
-    };
-
     if (loading) {
         return <div className="min-h-screen bg-gray-50 p-5 text-center text-gray-500">불러오는 중입니다.</div>;
     }
@@ -588,8 +503,9 @@ export function DetectionEventsDetailPage() {
 
                     {!error && detail && (
                         <div className="space-y-6">
-                            {/* 처리 프로세스 플로우 */}
-                            <EventReviewFlow key={refreshKey} eventId={id} />
+                            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                                처리 이력 조회와 상태 변경은 권한 기반 단일 command가 구현된 뒤 다시 제공됩니다.
+                            </section>
 
                             {/* 기본 정보 */}
                             <section>
@@ -674,7 +590,6 @@ export function DetectionEventsDetailPage() {
                                             if (!isCurrent) {
                                                 return (
                                                     <span
-                                                        // eslint-disable-next-line react/no-array-index-key
                                                         key={idx}
                                                         className="h-6 w-6 rounded-full border border-transparent shadow-sm"
                                                         style={{ backgroundColor }}
@@ -684,7 +599,6 @@ export function DetectionEventsDetailPage() {
 
                                             return (
                                                 <span
-                                                    // eslint-disable-next-line react/no-array-index-key
                                                     key={idx}
                                                     className="relative flex h-6 w-6 items-center justify-center"
                                                 >
@@ -769,7 +683,7 @@ export function DetectionEventsDetailPage() {
                                                         <span>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => void openGraphModal()}
+                                                                onClick={openGraphModal}
                                                                 className="font-semibold text-slate-800 underline-offset-2 hover:underline"
                                                             >
                                                                 {selectedChild.name}
@@ -794,67 +708,16 @@ export function DetectionEventsDetailPage() {
                                 <h3 className="mb-3 text-lg font-semibold text-slate-900">처리 메모</h3>
                                 <textarea
                                     className="h-28 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm leading-relaxed text-slate-700"
-                                    placeholder="처리 내용이나 특이사항을 입력하세요..."
-                                    value={memo}
-                                    onChange={(e) => setMemo(e.target.value)}
-                                    readOnly={!hasAnyAction}
+                                    placeholder="권한 기반 처리 command 구현 후 입력할 수 있습니다."
+                                    value=""
+                                    readOnly
                                 />
                             </section>
 
-                            {/* 상태 변경 (UI만, 동작 없음) */}
                             <section>
-                                <div className="flex flex-wrap justify-center gap-3">
-                                    {showConfirm && (
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                                            onClick={() => handleStatusChange('ACKNOWLEDGED')}
-                                        >
-                                            <CheckSquare className="h-4 w-4 text-emerald-600" />
-                                            <span>확인</span>
-                                        </button>
-                                    )}
-                                    {showReview && (
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                                            onClick={() => handleStatusChange('IN_REVIEW')}
-                                        >
-                                            <Search className="h-4 w-4 text-slate-700" />
-                                            <span>검토</span>
-                                        </button>
-                                    )}
-                                    {showResolve && (
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                                            onClick={() => handleStatusChange('RESOLVED')}
-                                        >
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                            <span>완료</span>
-                                        </button>
-                                    )}
-                                    {showDismiss && (
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                                            onClick={() => handleStatusChange('DISMISSED')}
-                                        >
-                                            <XCircle className="h-4 w-4 text-red-500" />
-                                            <span>오탐</span>
-                                        </button>
-                                    )}
-                                    {showEscalate && (
-                                        <button
-                                            type="button"
-                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm text-slate-700 shadow-sm"
-                                            onClick={() => handleStatusChange('ESCALATED')}
-                                        >
-                                            <Megaphone className="h-4 w-4 text-red-500" />
-                                            <span>보고</span>
-                                        </button>
-                                    )}
-                                </div>
+                                <p className="text-center text-sm text-slate-500">
+                                    확인, 검토, 완료, 오탐 및 보고 작업은 현재 비활성화되어 있습니다.
+                                </p>
                             </section>
                         </div>
                     )}
@@ -932,7 +795,7 @@ export function DetectionEventsDetailPage() {
                                         <td className="px-3 py-1">{child.childId}</td>
                                         <td className="px-3 py-1">{child.name}</td>
                                         <td className="px-3 py-1">{child.childNo ?? '-'}</td>
-                                        <td className="px-3 py-1">{child.birthDate ?? '-'}</td>
+                                        <td className="px-3 py-1">-</td>
                                         <td className="px-3 py-1">{child.gender ?? '-'}</td>
                                         <td className="px-3 py-1">
                                             <button

@@ -10,12 +10,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.validator.constraints.Length;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.io.Serializable;
@@ -30,7 +29,6 @@ import java.io.Serializable;
 public class AuthRegisterDTO implements Serializable {
     @Enumerated(EnumType.STRING)
     @NotNull(message = "회원유형을 선택해주세요.")
-    @NotBlank(message = "회원유형을 선택해주세요.")
     private UserRoleEnum userRole;
 
     @NotNull(message = "로그인 ID를 입력해주세요.")
@@ -50,38 +48,32 @@ public class AuthRegisterDTO implements Serializable {
     @NotBlank(message = "비밀번호를 입력해주세요.")
     private String password;
 
-    /** GUARDIAN: 아이 소속 유치원(히든), TEACHER/KINDERGARTEN_ADMIN: 선택 유치원 */
-    @NotNull(message = "유치원을 선택해주세요.")
+    /** TEACHER/KINDERGARTEN_ADMIN only; Guardian scope is derived from the matched child. */
     private Long kindergartenId;
 
     @NotNull(message = "이름을 입력해주세요.")
     @NotBlank(message = "이름을 입력해주세요.")
     private String name;
 
-    /** 양육자·유치원 관계자 가입 시 필수 (서비스에서 검증) */
-    @NotNull(message = "주민등록번호 앞자리를 입력해주세요.")
-    @NotBlank(message = "주민등록번호 앞자리를 입력해주세요.")
-    @Length(min = 6, max = 6, message = "주민등록번호 앞자리는 숫자 6자리여야 합니다.")
+    /** Guardian/Teacher/KINDERGARTEN_ADMIN only; role-specific presence is checked by AuthService. */
+    @Pattern(regexp = "\\d{6}", message = "주민등록번호 앞자리는 숫자 6자리여야 합니다.")
     private String rrnFirst6;
 
-    @NotNull(message = "주민등록번호 뒷자리를 입력해주세요.")
-    @NotBlank(message = "주민등록번호 뒷자리를 입력해주세요.")
-    @Length(min = 7, max = 7, message = "주민등록번호 뒷자리는 숫자 7자리여야 합니다.")
+    @Pattern(regexp = "\\d{7}", message = "주민등록번호 뒷자리는 숫자 7자리여야 합니다.")
     private String rrnBack7;
 
     @Enumerated(EnumType.STRING)
-    @NotNull(message = "성별을 입력해주세요.")
     private GenderEnum gender;
 
     // Guardian
     private String address;
 
     // Guardian
-    @Length(min = 6, max = 6, message = "주민등록번호 앞자리는 숫자 6자리여야 합니다.")
+    @Pattern(regexp = "\\d{6}", message = "주민등록번호 앞자리는 숫자 6자리여야 합니다.")
     private String childRrnFirst6;
 
     // Guardian
-    @Length(min = 7, max = 7, message = "주민등록번호 뒷자리는 숫자 7자리여야 합니다.")
+    @Pattern(regexp = "\\d{7}", message = "주민등록번호 뒷자리는 숫자 7자리여야 합니다.")
     private String childRrnBack7;
 
     /** 프론트 공통코드: MOTHER, FATHER, MATERNAL_GRANDMOTHER 등 → 서버에서 DB 허용 값으로 매핑 */
@@ -90,17 +82,12 @@ public class AuthRegisterDTO implements Serializable {
     private RelationshipEnum relationship;
 
     // Guardian
-    @JsonAlias("primaryGuardian")
-    private Boolean isPrimaryGuardian;
+    private Boolean primaryGuardian;
 
     // Teacher
-    @NotNull(message = "비상 연락처 이름을 입력해주세요.")
-    @NotBlank(message = "비상 연락처 이름을 입력해주세요.")
     private String emergencyContactName;
 
     // Teacher
-    @NotNull(message = "비상 연락처 전화번호를 입력해주세요.")
-    @NotBlank(message = "비상 연락처 전화번호를 입력해주세요.")
     private String emergencyContactPhone;
 
     // Teacher
@@ -111,6 +98,4 @@ public class AuthRegisterDTO implements Serializable {
     // Superadmin
     private String department;
 
-    /** 프론트 히든용 (무시) */
-    private String status;
 }

@@ -8,8 +8,7 @@ import { Eye, EyeOff, Shield } from 'lucide-react';
 import { useAppDispatch } from '@/store/hook';
 import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
-import type { UserRole } from '@/types/user-role';
-import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
+import { isUserRole } from '@/types/user-role';
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
@@ -40,46 +39,32 @@ export function LoginForm() {
         Number.isFinite(responseIdNum) && responseIdNum > 0
           ? Math.trunc(responseIdNum)
           : undefined;
-      const role = response?.role ?? 'GUARDIAN';
       const token = response?.accessToken ?? response?.token ?? '';
+      if (!isUserRole(response?.role) || token.trim() === '') {
+        throw new Error('Invalid login response');
+      }
+      const role = response.role;
       const apiName =
         typeof response?.name === 'string' && response.name.trim() !== '' ? response.name.trim() : '';
-      const refreshToken = response?.refreshToken ?? '';
-      const userBase = {
+      const user = {
         id: String(responseUserId ?? responseLoginId),
         username: responseLoginId,
         loginId: responseLoginId,
         name: apiName,
-        role: role as UserRole,
+        role,
         kindergartenId:
           typeof response?.kindergartenId === 'number' && Number.isFinite(response.kindergartenId)
             ? response.kindergartenId
             : undefined,
       };
-      const kg = resolveViewerSessionKindergartenId(userBase, token);
-      const user = {
-        ...userBase,
-        ...(kg != null ? { kindergartenId: kg } : {}),
-      };
-
-      // 1. Redux 스토어에 유저 정보와 토큰 저장
+      // Session/Redis 전환 전까지 bearer token은 Redux 메모리에만 보관합니다.
       dispatch(setCredentials({ user, token }));
-
-      // 💡 [추가된 부분] 2. 브라우저 LocalStorage에 백업 (새로고침 방어용)
-      localStorage.setItem('user', JSON.stringify(user));
-      if (token) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('accessToken', token);
-      }
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-      // -------------------------------------------------------------
 
       router.push('/');
 
-    } catch (err: any) {
-      setError(err?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err: unknown) {
+      const apiError = err as { data?: { message?: string } };
+      setError(apiError.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 
@@ -158,10 +143,8 @@ export function LoginForm() {
             아직 계정이 없으신가요? 회원가입 하러가기
           </Link>
         </div>
-        <div className="mt-2 text-center">
-          <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
-            비밀번호를 잊으셨나요?
-          </Link>
+        <div className="mt-2 text-center text-sm text-gray-500">
+          비밀번호 재설정은 아직 제공되지 않습니다.
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200">

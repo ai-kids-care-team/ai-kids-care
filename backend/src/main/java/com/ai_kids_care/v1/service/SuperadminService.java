@@ -1,8 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.SuperadminCreateDTO;
-import com.ai_kids_care.v1.dto.SuperadminUpdateDTO;
-import com.ai_kids_care.v1.entity.Superadmin;
 import com.ai_kids_care.v1.mapper.SuperadminMapper;
 import com.ai_kids_care.v1.repository.SuperadminRepository;
 import com.ai_kids_care.v1.vo.SuperadminVO;
@@ -27,22 +24,5 @@ public class SuperadminService {
     public SuperadminVO getSuperadmin(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("Superadmin not found"));
-    }
-
-    public SuperadminVO createSuperadmin(SuperadminCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    public SuperadminVO updateSuperadmin(Long id, SuperadminUpdateDTO updateDTO) {
-        Superadmin entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Superadmin not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteSuperadmin(Long id) {
-        Superadmin entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Superadmin not found"));
-        repository.delete(entity);
     }
 }

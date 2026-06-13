@@ -8,23 +8,24 @@
 
 | 能力 | API 控制器 | 主要数据表 | 状态 |
 | --- | --- | --- | --- |
-| 注册（分角色建档） | `AuthController` `/auth/register` | `users`,`user_role_assignments`,`guardians`/`teachers`/`superadmins` | ✅ |
-| 登录 / 刷新 / 登出 | `AuthController` `/auth/login` `/refresh` `/logout` | `users`,`user_role_assignments` | ✅ 登录/刷新；**登出=待开发占位**（`throw "Not implemented"`） |
+| 公开注册申请 | `AuthController` `/auth/register` | `users`,`user_role_assignments`,`guardians`/`teachers`/`superadmins` | ✅ 允许角色仅创建 PENDING；`PLATFORM_IT_ADMIN` 禁止公开申请；审批未实现 |
+| Guardian 儿童身份验证 | `AuthController` `/auth/guardian-child-verifications` | `children` | ✅ 只返回匹配布尔值；通用 `/children/rrn` PII 读取已关闭 |
+| 登录 / 刷新 | `AuthController` `/auth/login` `/refresh` | `users`,`user_role_assignments` | ✅ 仅接受恰好一条 ACTIVE role；缺失/多条均 401；登出等待 server-side session |
 | 注册字段查重（loginId/email/phone） | `AuthController` | `users` | ✅ |
-| 密码重置 | `AuthController` `/auth/password-resets` | — | ❓ **未实现**（抛 `Not implemented`） |
+| 密码重置/验证码 | 当前无公共 mapping | — | ⏸️ 等待限速、一次性 token 与防枚举设计后实现 |
 
 ## 2. 幼儿园运营数据
 
 | 能力 | 控制器 | 数据表 |
 | --- | --- | --- |
-| 幼儿园管理 | `KindergartenController` | `kindergartens` |
+| 幼儿园目录读取/注册查找 | `KindergartenController` | `kindergartens`；仅最小目录字段，通用写入关闭 |
 | 班级管理 | `ClassController` | `classes` |
 | 教室/空间管理 | `RoomController` | `rooms` |
-| 儿童管理（含按 RRN 查询） | `ChildrenController` | `children` |
-| 教师管理 | `TeacherController` | `teachers` |
-| 保护者管理 | `GuardianController` | `guardians` |
-| 超级管理员管理 | `SuperadminController` | `superadmins` |
-| 用户管理 | `UserController` | `users` |
+| 儿童目录 | `ChildrenController` | `children`；当前无公共 operation，等待关系授权 |
+| 教师目录 | `TeacherController` | `teachers`；当前无公共 operation，等待 tenant/assignment 授权 |
+| 保护者目录 | `GuardianController` | `guardians`；当前无公共 operation，等待 self/admin 授权 |
+| 超级管理员管理 | `SuperadminController` | `superadmins`；当前无公共 operation |
+| 用户目录 | `UserController` | `users`；当前无公共 operation，等待 self/admin contract |
 
 🔶 **推断**：班级↔教师、班级↔教室、班级↔儿童、儿童↔保护者、教室↔摄像头等多对多关系，由各 `*_assignments` / `*_relationships` 表承载（带 `start_date`/`end_date` 表示时间有效区间，即"历史可追溯"的排期模型）。
 
@@ -32,13 +33,13 @@
 
 | 能力 | 控制器 | 数据表 |
 | --- | --- | --- |
-| 摄像头管理 | `CctvCameraController` | `cctv_cameras` |
-| 视频流管理（含加密凭证） | `CameraStreamController` | `camera_streams` |
+| 摄像头目录 | `CctvCameraController` | `cctv_cameras`；公共契约只读 |
+| 视频流脱敏读取 | `CameraStreamController` | `camera_streams`；公共契约只读且不返回播放地址或配置凭据 |
 | AI 模型登记 | `AiModelController` | `ai_models` |
-| 检测会话 | `DetectionSessionController` | `detection_sessions` |
-| 检测事件 | `DetectionEventController` | `detection_events` |
-| 事件复核（状态流转） | `EventReviewController` | `event_reviews` |
-| 事件证据文件 | `EventEvidenceFileController` | `event_evidence_files` |
+| 检测会话 | `DetectionSessionController` | `detection_sessions`；公共契约只读 |
+| 检测事件 | `DetectionEventController` | `detection_events`；当前无公共 operation，前端路由显示待授权提示 |
+| 事件复核（状态流转） | `EventReviewController` | `event_reviews`；当前无公共 operation |
+| 事件证据文件 | `EventEvidenceFileController` | `event_evidence_files`；当前无公共 operation |
 
 ✅ 检测事件类型 `event_type_enum`：`ASSAULT`,`FIGHT`,`BURGLARY`,`VANDALISM`,`SWOON`(晕厥),`WANDER`(徘徊),`TRESPASS`(闯入),`DUMP`,`ROBBERY`,`DATEFIGHT`,`KIDNAP`,`DRUNKEN`,`OTHER`。
 ✅ 事件状态 `event_status_enum`：`OPEN` → `ACKNOWLEDGED` → `IN_REVIEW` → `RESOLVED` / `DISMISSED` / `ESCALATED`。
@@ -50,11 +51,11 @@
 
 | 能力 | 控制器 | 数据表 |
 | --- | --- | --- |
-| 通知规则（按目标/严重度/静默时段） | `NotificationRuleController` | `notification_rules` |
-| 通知记录 | `NotificationController` | `notifications` |
-| 设备推送令牌 | `DeviceTokenController` | `device_tokens` |
+| 通知规则（按目标/严重度/静默时段） | `NotificationRuleController` | `notification_rules`；当前无公共 operation |
+| 通知记录 | `NotificationController` | 公共 operation 已关闭；表与内部 service 保留 |
+| 设备推送令牌 | `DeviceTokenController` | `device_tokens`；当前无公共 operation |
 | 公告 | `AnnouncementController` | `announcements` |
-| 感谢信 | `AppreciationLetterController` | `appreciation_letters` |
+| 感谢信 | `AppreciationLetterController` | `appreciation_letters`；当前无公共 operation |
 
 ✅ 通知渠道 `notification_channel_enum`：`PUSH`,`SMS`,`EMAIL`。
 ✅ 通知去重：`notifications.dedupe_key` + 唯一索引 `uq_notifications_dedupe(kindergarten_id, dedupe_key)`。
@@ -64,9 +65,9 @@
 
 | 能力 | 控制器 | 存储 |
 | --- | --- | --- |
-| 以儿童为中心的关系图 | `GraphController` `/graph/children/{childId}` | Neo4j（`GraphRepository` 原生 Cypher） |
+| 以儿童为中心的关系图 | `GraphController` 当前无公共 operation | Neo4j repository 保留；等待资源授权 |
 
-✅ 返回某儿童关联的 班级 → 教师 → 幼儿园，以及其保护者列表（按 priority 排序）。前端用 `reagraph` 可视化。详见 [graph-api](../api/graph-api.md)。
+原内部投影包含某儿童关联的班级、教师、幼儿园和保护者列表；因含 S1 关系数据，公共 API 与前端请求已关闭。详见 [graph-api](../api/graph-api.md)。
 
 ## 6. 平台基础
 
@@ -74,18 +75,16 @@
 | --- | --- | --- |
 | 公共代码（字典） | `CommonCodeController` | `common_codes`（🔶 由 `03_CommonCode.sql` 建表+初始化） |
 | 菜单（按角色） | `MenuController` | `menu`（🔶 由 `02_menu.sql` 建表+初始化；后端**无 `Menu` 实体**） |
-| 审计日志 | `AuditLogController` | `audit_logs` |
+| 审计日志 | `AuditLogController` 当前无公共 operation | `audit_logs`；等待内部 append writer 与授权查询 |
 
-🔶 **推断**：`menu` + `common_codes` 支撑前端的**角色化菜单**与下拉字典。`audit_logs` 记录操作审计（action/resource/ip/user_agent），但是否在各写操作中被实际写入需核对各 Service（❓）。
-
-> ❓ **需复审（非原作者设计）**：`menu`、`common_codes` 不属于原作者的领域建模，命名/结构与核心表不一致（`menu` 单数、`common_codes` 复数；`menu` 无后端实体），是否改名/重设计待评估，见 [open-questions](../modernization/open-questions.md) OQ-DATA-4。
+`common_codes` 已由 [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) 决定删除并以 backend enum metadata + frontend i18n 取代；该迁移属于独立后续 Implementation，本轮不修改表或现有调用。`audit_logs` 未来只由内部 append writer 写入。
 
 ## 前端页面（✅ 来自 `frontend/src/app/`）
 
 - 认证：`(auth)/signup`、`(auth)/forgot-password`、`(auth)/reset-password`
 - 公告：`announcements`（read/write/edit）
-- 感谢信：`appreciationLetter`、`letters`（read/write/edit）
+- 感谢信：`appreciationLetter`、`letters` 路由保留，但当前统一显示暂不可用且不发公共 API 请求
 - CCTV：`cctvCamera`、`cctvCameras`
-- 检测事件：`detectionEvents`（read）
+- 检测事件：`detectionEvents` 路由保留，但当前显示暂不可用且不发公共 API 请求
 
 > 🔶 前端页面覆盖的功能子集 **小于** 后端 API 全集（例如班级/教室/保护者的完整 CRUD 页面未在路由中体现），说明前端聚焦于若干核心场景（监控、事件、公告、感谢信、注册登录）。

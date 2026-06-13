@@ -10,8 +10,9 @@
 | 层 | 工具 | 目标 | 位置 |
 |---|---|---|---|
 | **集成测试（Integration）** | Spring Boot Test + Testcontainers PostgreSQL | HTTP 端点 + JPA + 真实 schema 验证 | `backend/src/test/java/` |
-| 单元测试（Unit）*（待补）* | JUnit 5 + Mockito | 纯逻辑、工具类 | 同上（后续按需补充） |
-| E2E / 契约测试 | 不在当前范围 | 见 ADR-0014 "显式不做" | — |
+| **契约测试（Contract）** | JUnit 5 + MockMvc + reflection | 公共 JSON/OpenAPI schema、关闭端点、敏感字段与 generic write absence | `backend/src/test/java/com/ai_kids_care/v1/contract/` |
+| 单元测试（Unit） | JUnit 5 + Mockito | 注册分支、落库边界及纯逻辑 | `backend/src/test/java/com/ai_kids_care/v1/service/` |
+| E2E | 尚未建立 | 浏览器到后端的跨端流程 | — |
 
 ---
 
@@ -72,19 +73,43 @@ testcontainers.reuse.enable=true
 | 测试 | 端点 | 验证内容 |
 |---|---|---|
 | `login_validCredentials_returns200WithTokenFields` | `POST /auth/login` | 200 + accessToken/refreshToken/tokenType |
-| `login_wrongPassword_returns401` | `POST /auth/login` | 当前行为：security entry point 返回通用 401 |
+| `login_kindergartenScopedRole_returnsServerDerivedKindergartenId` | `POST /auth/login` | ACTIVE 园级角色返回 role assignment 派生的 `kindergartenId` |
+| `login_wrongPassword_returns401` | `POST /auth/login` | Auth API 显式返回通用 401 JSON，不经受保护 `/error` |
+| `login_activeUserWithoutActiveRole_returns401` | `POST /auth/login` | ACTIVE user 没有 ACTIVE role 时 401，不回退 GUARDIAN |
+| `login_activeUserWithMultipleActiveRoles_returns401` | `POST /auth/login` | ACTIVE role 多于一条时 401，不取最近一条 |
 | `refresh_validRefreshToken_returns200WithNewTokens` | `POST /auth/refresh` | 200 + 新 accessToken |
-| `register_superadminRole_returns201WithUserId` | `POST /auth/register` | 201 + userId |
+| `refresh_userWithoutActiveRole_returns401` | `POST /auth/refresh` | refresh token 有效但无 ACTIVE role 时 401 |
+| `refresh_userWithMultipleActiveRoles_returns401` | `POST /auth/refresh` | refresh token 有效但 ACTIVE role 歧义时 401 |
+| `refresh_pendingUser_returns401` | `POST /auth/refresh` | refresh token 有效但 user 已为 PENDING 时 401 |
+| `refresh_invalidToken_returnsExplicit401` | `POST /auth/refresh` | 无法解析的 refresh token 由 Auth API 显式返回通用 401 JSON |
+| `guardianChildVerification_returnsOnlyGenericMatchResultAndLegacyLookupIsClosed` | `POST /auth/guardian-child-verifications` | 正确/错误 RRN 均只返回 `verified`；旧 `/children/rrn` 明确返回 404 |
+| `guardianChildVerificationAndRegistration_rejectMalformedRrnBeforePersistence` | Guardian verification/register | 非数字 RRN 返回 400，注册 users 零落库 |
+| `register_superadminRole_createsPendingApplicationAndCannotLogin` | `POST /auth/register` | user/role/profile 全为 PENDING，客户端 ACTIVE 无效，随后登录 401 |
+| `register_platformItAdminRole_isRejectedBeforePersistence` | `POST /auth/register` | 400 且 users 零落库 |
+| `register_kindergartenRoles_createPendingProfileRoleAndMembership` | `POST /auth/register` | TEACHER、院长和副院长申请的 profile/role/membership 全为 PENDING |
+| `register_kindergartenRoleLevelMismatch_isRejectedBeforePersistence` | `POST /auth/register` | 管理员 role/level 双向不一致时 400 且 users 零落库 |
+| `register_guardianRole_createsPendingProfileRoleAndMembership` | `POST /auth/register` | Guardian profile/role/membership 全为 PENDING，scope 由匹配儿童派生 |
 | `availability_existingLoginId_returnsUnavailable` | `GET /auth/register/availability` | `available=false`（seed 用户 admin） |
 | `availability_newLoginId_returnsAvailable` | `GET /auth/register/availability` | `available=true`（随机未使用 ID） |
 
-### 检测事件读路径（`DetectionEventEndpointTest`）
+`PublishedOpenApiContractTest` 另固定 `/api/v1/children/rrn` path absence、专用 Guardian 验证 path presence、响应 schema 只能包含 `verified`，并精确列举 `AuthRegisterDTO` 的全部允许字段。
+
+### 敏感数据与公共 API 契约
+
+- `SensitiveResponseContractTest`：固定内部 VO 不含敏感存储字段，并验证已关闭资源不产生 MVC response；CameraStream 脱敏 response 继续做字段级断言。
+- `SensitiveWriteContractTest`：固定敏感 generic create/update DTO、service 与 mapper 写链的 absence，并验证普通更新不覆盖内部敏感值。
+- `SensitivePublicApiClosureContractTest`：固定 Graph、Audit Log、Notification、User、Child、Guardian、Teacher、DeviceToken、EventEvidenceFile、DetectionEvent 无公共 operation，Kindergarten 通用写入关闭且注册查找仅返回最小目录字段。
+- `PublishedOpenApiContractTest`：扫描全部 v1 `@RestController` 发布的真实 `/v3/api-docs`，执行 S0 denylist、受限 S1 command allowlist、关键 path/method presence/absence 与 schema 精确字段检查。
+
+### 检测事件关闭契约（`DetectionEventEndpointTest`）
 
 | 测试 | 端点 | 验证内容 |
 |---|---|---|
-| `listDetectionEvents_returns200WithPageStructure` | `GET /detection_events` | 200 + Spring Page 结构 |
-| `listDetectionEvents_seedDataPresent_contentIsNonEmpty` | `GET /detection_events` | content 非空（seed 数据存在） |
-| `listDetectionEvents_withPageSize_respectsRequestedSize` | `GET /detection_events?size=3` | content.size ≤ 3 |
+| `listDetectionEvents_isNotPublished` | `GET /detection_events?kindergartenId=...` | 完整应用明确返回 404；OpenAPI/standalone contract 证明 path 未发布 |
+| `detectionEventDetail_isNotPublished` | `GET /detection_events/{id}?kindergartenId=...` | 完整应用明确返回 404；详情读取等待资源授权 |
+
+2026-06-13 完整 backend suite：51 tests，49 passed，0 failed，0 errors，2 个 ADR-0013 预期 skip。
+同轮 frontend production build 生成 20 个静态页面；Phase 1A 的 39 个已修改前端源码文件 scoped ESLint 为 0 error / 0 warning。全仓 lint 仍有 4 个既有 error 和 8 个 warning，均位于本阶段未修改文件。
 
 ---
 
@@ -92,7 +117,7 @@ testcontainers.reuse.enable=true
 
 > "Characterization 测试固定**现有行为**，而非理想行为。"
 
-1. 测试失败 = 行为发生变化。在变更是**预期的**时，更新测试并注明原因（如 `login_wrongPassword` 将来改为 401）。
+1. 测试失败 = 行为发生变化。在变更是**预期的**时，更新测试并注明原因（如关闭路径从受保护 `/error` 产生的偶然 401 改为明确 404）。
 2. 每次向高 blast-radius ADR（0012/0013/0010/0009）添加改动前，须先补 characterization 测试覆盖受影响路径。
 3. 测试数据：优先使用 initdb seed 中的已知记录；写操作使用 UUID 后缀保证幂等。
 

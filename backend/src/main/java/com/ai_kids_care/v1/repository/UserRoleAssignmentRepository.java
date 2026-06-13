@@ -4,8 +4,8 @@ import com.ai_kids_care.v1.entity.UserRoleAssignment;
 import com.ai_kids_care.v1.type.StatusEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssignment, Long> {
-    Optional<UserRoleAssignment> findFirstByUser_IdAndStatusOrderByGrantedAtDesc(Long userId, StatusEnum status);
+    List<UserRoleAssignment> findAllByUser_IdAndStatusOrderByGrantedAtDesc(Long userId, StatusEnum status);
 }

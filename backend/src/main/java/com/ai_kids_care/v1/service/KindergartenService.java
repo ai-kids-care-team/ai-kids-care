@@ -1,10 +1,9 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.KindergartenCreateDTO;
-import com.ai_kids_care.v1.dto.KindergartenUpdateDTO;
 import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.mapper.KindergartenMapper;
 import com.ai_kids_care.v1.repository.KindergartenRepository;
+import com.ai_kids_care.v1.vo.KindergartenLookupResponse;
 import com.ai_kids_care.v1.vo.KindergartenVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -31,29 +30,12 @@ public class KindergartenService {
                 .orElseThrow(() -> new EntityNotFoundException("Kindergarten not found"));
     }
 
-    public KindergartenVO createKindergarten(KindergartenCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    public KindergartenVO updateKindergarten(Long id, KindergartenUpdateDTO updateDTO) {
-        Kindergarten entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Kindergarten not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteKindergarten(Long id) {
-        Kindergarten entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Kindergarten not found"));
-        repository.delete(entity);
-    }
-
     /**
      * 회원가입용: 사업자등록번호(숫자 10자리)로 유치원 조회.
      *
      * @param raw 하이픈 포함 입력 가능
      */
-    public List<KindergartenVO> searchForSignupByBusinessRegistrationNo(String raw) {
+    public List<KindergartenLookupResponse> searchForSignupByBusinessRegistrationNo(String raw) {
         if (!StringUtils.hasText(raw)) {
             return List.of();
         }
@@ -62,7 +44,7 @@ public class KindergartenService {
             return List.of();
         }
         return repository.findByBusinessRegistrationNoContains(digits).stream()
-                .map(mapper::toVO)
+                .map(mapper::toLookupResponse)
                 .toList();
     }
 }

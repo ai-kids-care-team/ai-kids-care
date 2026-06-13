@@ -24,12 +24,41 @@ type LoginResponse = {
   kindergartenId?: number;
 };
 
-type RegisterRequest = Record<string, unknown>;
-
-type ResetPasswordRequest = {
-  token: string;
-  newPassword: string;
+type CommonRegisterRequest = {
+  loginId: string;
+  password: string;
+  email: string;
+  phone: string;
+  name: string;
 };
+
+export type RegisterRequest =
+  | (CommonRegisterRequest & {
+      userRole: 'GUARDIAN';
+      rrnFirst6: string;
+      rrnBack7: string;
+      gender: string;
+      address: string;
+      childRrnFirst6: string;
+      childRrnBack7: string;
+      relationship: string;
+      primaryGuardian: boolean;
+    })
+  | (CommonRegisterRequest & {
+      userRole: 'TEACHER' | 'KINDERGARTEN_ADMIN';
+      rrnFirst6: string;
+      rrnBack7: string;
+      gender: string;
+      kindergartenId: number;
+      emergencyContactName: string;
+      emergencyContactPhone: string;
+      level: string;
+      staffNo: string;
+    })
+  | (CommonRegisterRequest & {
+      userRole: 'SUPERADMIN';
+      department: string;
+    });
 
 /** 회원가입: 로그인 ID / 이메일 / 연락처 중복 여부 (포커스 아웃 검사) */
 export async function fetchRegisterFieldAvailability(
@@ -56,17 +85,6 @@ export type CommonCodeItem = {
   updatedAt?: string;
 };
 
-export type ChildLookupItem = {
-  childId: number;
-  kindergartenId: number;
-  classId: number | null;
-  className: string | null;
-  name: string;
-  childNo: string | null;
-  birthDate: string | null;
-  gender: string | null;
-};
-
 type CommonCodePageResponse = {
   content?: CommonCodeItem[];
 };
@@ -87,34 +105,6 @@ export const authApi = baseApi.injectEndpoints({
         body: userData,
       }),
     }),
-    sendVerificationCode: build.mutation<void, { type: string; target: string }>({
-      query: (data) => ({
-        url: '/auth/verification-codes',
-        method: 'POST',
-        body: data,
-      }),
-    }),
-    verifyCode: build.mutation<void, { target: string; code: string }>({
-      query: (data) => ({
-        url: '/auth/verification-codes/verify',
-        method: 'POST',
-        body: data,
-      }),
-    }),
-    forgotPassword: build.mutation<void, { email: string }>({
-      query: (data) => ({
-        url: '/auth/password/forgot',
-        method: 'POST',
-        body: data,
-      }),
-    }),
-    resetPassword: build.mutation<void, ResetPasswordRequest>({
-      query: (data) => ({
-        url: '/auth/password/reset',
-        method: 'POST',
-        body: data,
-      }),
-    }),
     getCommonCodes: build.query<CommonCodeItem[], string>({
       query: (group) => ({
         url: '/common_codes',
@@ -128,10 +118,6 @@ export const authApi = baseApi.injectEndpoints({
       transformResponse: (response: CommonCodePageResponse | CommonCodeItem[]) =>
         Array.isArray(response) ? response : (response.content ?? []),
     }),
-    searchChildren: build.query<ChildLookupItem[], string>({
-      // 백엔드 버전별 차이 대응: 기본 경로는 /v1/children
-      query: (keyword) => `/children?name=${encodeURIComponent(keyword)}`,
-    }),
   }),
   overrideExisting: false,
 });
@@ -139,10 +125,5 @@ export const authApi = baseApi.injectEndpoints({
 export const {
   useLoginMutation,
   useRegisterMutation,
-  useSendVerificationCodeMutation,
-  useVerifyCodeMutation,
-  useForgotPasswordMutation,
-  useResetPasswordMutation,
   useGetCommonCodesQuery,
-  useLazySearchChildrenQuery,
 } = authApi;

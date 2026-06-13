@@ -227,7 +227,7 @@
 > 非独立 ADR 级别，但应在加固轨中择机插入。
 
 - [ ] **全局异常处理（OQ-ARCH-2）**：加 `@RestControllerAdvice` + 统一错误信封，收敛当前 service 直抛 `IllegalArgumentException`/`EntityNotFoundException` 导致的 500 泄栈。**建议排在 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 之前**——鉴权强制后需统一 401/403 响应格式；若达 API 契约变更门槛，另立轻量 ADR。
-- [ ] **keyword 空操作（OQ-ARCH-4）**：17 个列表端点暴露 `keyword`，14 个静默忽略。团队先决"实现 vs 移除参数"，**决策应落在 codegen 模板层**（避免 3 已实现 vs 14 未实现的持续漂移）。建议作为 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) 落地后**首个带测试的真实改动**。
+- [ ] **keyword 空操作（OQ-ARCH-4）**：15 个公开列表端点暴露 `keyword`，12 个静默忽略。团队先决"实现 vs 移除参数"，**决策应落在 codegen 模板层**（避免 3 已实现 vs 12 未实现的持续漂移）。建议作为 [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) 落地后**首个带测试的真实改动**。
 
 ---
 

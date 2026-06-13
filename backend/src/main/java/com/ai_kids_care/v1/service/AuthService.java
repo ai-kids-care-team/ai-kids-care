@@ -4,6 +4,7 @@ import com.ai_kids_care.v1.dto.AuthLoginDTO;
 import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
 import com.ai_kids_care.v1.dto.AuthRefreshRequest;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
+import com.ai_kids_care.v1.dto.GuardianChildVerificationRequest;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
 import com.ai_kids_care.v1.security.JwtUtil;
@@ -11,20 +12,22 @@ import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.TokenTypeEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
+import com.ai_kids_care.v1.type.LevelEnum;
 import com.ai_kids_care.v1.vo.AuthRegisterResponse;
 import com.ai_kids_care.v1.vo.AuthRegisterVO;
+import com.ai_kids_care.v1.vo.GuardianChildVerificationResponse;
 import com.ai_kids_care.v1.vo.TokenVO;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -46,55 +49,32 @@ public class AuthService {
     @Value("${jwt.expiration}")
     private Integer expireSecond;
 
-    private final Map<UserRoleEnum, BiConsumer<User, AuthRegisterDTO>> roleRegisterStrategies = Map.of(
-            UserRoleEnum.GUARDIAN, this::registerGuardian,
-            UserRoleEnum.TEACHER, this::registerTeacher,
-            UserRoleEnum.KINDERGARTEN_ADMIN, this::registerTeacher,
-            UserRoleEnum.PLATFORM_IT_ADMIN, this::registerPlatformItAdmin,
-            UserRoleEnum.SUPERADMIN, this::registerSuperadmin
-    );
-
     @Transactional
     public AuthRegisterResponse register(AuthRegisterDTO request) {
+        UserRoleEnum role = request.getUserRole();
+        if (role == null || role == UserRoleEnum.PLATFORM_IT_ADMIN) {
+            throw badRegistrationRequest("This role is not available for public registration");
+        }
+        RegistrationContext registrationContext = prepareRegistrationContext(role, request);
+
         User user = User.builder()
                 .loginId(request.getLoginId())
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .lastLoginAt(null)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
         User userSaved = userRepository.save(user);
 
-        // UserRoleAssignment
-        UserRoleEnum role = request.getUserRole();
-        UserRoleAssignmentScopeType scopeType;
-        Long scopeId = null;
-        switch (role) {
-            case GUARDIAN:
-            case TEACHER:
-            case KINDERGARTEN_ADMIN:
-                scopeType = UserRoleAssignmentScopeType.KINDERGARTEN;
-                scopeId = request.getKindergartenId();
-                break;
-
-            case PLATFORM_IT_ADMIN:
-            case SUPERADMIN:
-                scopeType = UserRoleAssignmentScopeType.PLATFORM;
-                break;
-
-            default:
-                throw new IllegalArgumentException("Unsupported role: " + role);
-        }
-
         UserRoleAssignment userRoleAssignment = UserRoleAssignment.builder()
                 .user(userSaved)
                 .role(request.getUserRole())
-                .scopeType(scopeType)
-                .scopeId(scopeId)
-                .status(StatusEnum.ACTIVE)
+                .scopeType(registrationContext.scopeType())
+                .scopeId(registrationContext.scopeId())
+                .status(StatusEnum.PENDING)
                 .grantedAt(OffsetDateTime.now())
                 .grantedByUser(null)
                 .revokedAt(null)
@@ -102,11 +82,13 @@ public class AuthService {
                 .build();
         userRoleAssignmentRepository.save(userRoleAssignment);
 
-        BiConsumer<User, AuthRegisterDTO> registerFunction = roleRegisterStrategies.get(role);
-        if (registerFunction == null) {
-            throw new IllegalArgumentException("지원하지 않는 회원유형입니다.");
+        switch (role) {
+            case GUARDIAN -> registerGuardian(userSaved, request, registrationContext.child());
+            case TEACHER, KINDERGARTEN_ADMIN ->
+                    registerTeacher(userSaved, request, registrationContext.kindergarten());
+            case SUPERADMIN -> registerSuperadmin(userSaved, request);
+            default -> throw badRegistrationRequest("This role is not available for public registration");
         }
-        registerFunction.accept(userSaved, request);
 
         return AuthRegisterResponse.builder()
                 .userId(userSaved.getId())
@@ -118,17 +100,16 @@ public class AuthService {
     public TokenVO login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
-        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid loginId/email/phone or password");
+        if (user == null
+                || user.getStatus() != StatusEnum.ACTIVE
+                || user.getPasswordHash() == null
+                || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw authenticationFailure();
         }
 
+        UserRoleAssignment activeRoleAssignment = resolveActiveRoleAssignment(user);
         String accessToken = jwtUtil.generateToken(request.getIdentifier());
         String refreshToken = jwtUtil.generateToken(request.getIdentifier());
-
-        UserRoleEnum resolvedRole = userRoleAssignmentRepository
-                .findFirstByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE)
-                .map(UserRoleAssignment::getRole)
-                .orElse(UserRoleEnum.GUARDIAN);
 
         return TokenVO.builder()
                 .accessToken(accessToken)
@@ -136,7 +117,8 @@ public class AuthService {
                 .expiresIn(expireSecond)
                 .refreshToken(refreshToken)
                 .refreshExpiresIn(expireSecond)
-                .role(resolvedRole.name())
+                .role(activeRoleAssignment.getRole().name())
+                .kindergartenId(resolveKindergartenScope(activeRoleAssignment))
                 .id(user.getId())
                 .loginId(user.getLoginId())
                 .build();
@@ -144,19 +126,25 @@ public class AuthService {
 
     public TokenVO refresh(AuthRefreshRequest request) {
         String refreshToken = request.getRefreshToken();
-        String username = jwtUtil.extractIdentifier(refreshToken);
-        if (!jwtUtil.validateToken(refreshToken, username)) {
-            throw new RuntimeException("Invalid refresh token");
+        String username;
+        boolean validToken;
+        try {
+            username = jwtUtil.extractIdentifier(refreshToken);
+            validToken = username != null && jwtUtil.validateToken(refreshToken, username);
+        } catch (RuntimeException exception) {
+            throw authenticationFailure();
+        }
+        if (!validToken) {
+            throw authenticationFailure();
         }
         User user = userRepository.findByLoginIdOrEmailOrPhone(username, username, username);
+        if (user == null || user.getStatus() != StatusEnum.ACTIVE) {
+            throw authenticationFailure();
+        }
 
+        UserRoleAssignment activeRoleAssignment = resolveActiveRoleAssignment(user);
         String newAccessToken = jwtUtil.generateToken(username);
         String newRefreshToken = jwtUtil.generateToken(username);
-
-        UserRoleEnum resolvedRole = userRoleAssignmentRepository
-                .findFirstByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE)
-                .map(UserRoleAssignment::getRole)
-                .orElse(UserRoleEnum.GUARDIAN);
 
         return TokenVO.builder()
                 .accessToken(newAccessToken)
@@ -164,10 +152,21 @@ public class AuthService {
                 .expiresIn(expireSecond)
                 .refreshToken(newRefreshToken)
                 .refreshExpiresIn(expireSecond)
-                .role(resolvedRole.name())
+                .role(activeRoleAssignment.getRole().name())
+                .kindergartenId(resolveKindergartenScope(activeRoleAssignment))
                 .id(user.getId())
                 .loginId(user.getLoginId())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public GuardianChildVerificationResponse verifyGuardianChild(GuardianChildVerificationRequest request) {
+        requireDigits(request.childRrnFirst6(), 6, "Child RRN first part must be 6 digits");
+        requireDigits(request.childRrnBack7(), 7, "Child RRN last part must be 7 digits");
+        boolean verified = childrenService
+                .getChildEntityByRRN(request.childRrnFirst6(), request.childRrnBack7())
+                .isPresent();
+        return new GuardianChildVerificationResponse(verified);
     }
 
     @Transactional(readOnly = true)
@@ -179,9 +178,7 @@ public class AuthService {
     }
 
 
-    private void registerGuardian(User user, AuthRegisterDTO request) {
-        Child child = childrenService.getChildEntityByRRN(request.getChildRrnFirst6(), request.getChildRrnBack7())
-                .orElseThrow(() -> new EntityNotFoundException("Child not found"));
+    private void registerGuardian(User user, AuthRegisterDTO request, Child child) {
         Guardian guardian = Guardian.builder()
                 .user(user)
                 .kindergarten(child.getKindergarten())
@@ -190,7 +187,7 @@ public class AuthService {
                 .rrnFirst6(request.getRrnFirst6())
                 .gender(request.getGender())
                 .address(request.getAddress())
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
@@ -203,7 +200,7 @@ public class AuthService {
                 .guardianId(guardian.getId())
                 .build();
 
-        boolean primaryGuardian = !Boolean.FALSE.equals(request.getIsPrimaryGuardian());
+        boolean primaryGuardian = !Boolean.FALSE.equals(request.getPrimaryGuardian());
         ChildGuardianRelationship childGuardianRelationship = ChildGuardianRelationship.builder()
                 .id(relationshipId)
                 .kindergarten(kg)
@@ -222,7 +219,7 @@ public class AuthService {
         UserKindergartenMembership userKindergartenMembership = UserKindergartenMembership.builder()
                 .user(user)
                 .kindergarten(child.getKindergarten())
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .joinedAt(OffsetDateTime.now())
                 .leftAt(null)
                 .createdAt(OffsetDateTime.now())
@@ -231,10 +228,7 @@ public class AuthService {
         userKindergartenMembershipRepository.save(userKindergartenMembership);
     }
 
-    private void registerTeacher(User user, AuthRegisterDTO request) {
-        Kindergarten kindergarten = kindergartenRepository.findById(request.getKindergartenId())
-                .orElseThrow(() -> new EntityNotFoundException("선택한 유치원 정보가 유효하지 않습니다."));
-
+    private void registerTeacher(User user, AuthRegisterDTO request, Kindergarten kindergarten) {
         Teacher teacher = Teacher.builder()
                 .kindergarten(kindergarten)
                 .user(user)
@@ -248,7 +242,7 @@ public class AuthService {
                 .staffNo(request.getStaffNo())
                 .startDate(LocalDate.now())
                 .endDate(null)
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
@@ -257,7 +251,7 @@ public class AuthService {
         UserKindergartenMembership userKindergartenMembership = UserKindergartenMembership.builder()
                 .user(user)
                 .kindergarten(kindergarten)
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .joinedAt(OffsetDateTime.now())
                 .leftAt(null)
                 .createdAt(OffsetDateTime.now())
@@ -266,29 +260,126 @@ public class AuthService {
         userKindergartenMembershipRepository.save(userKindergartenMembership);
     }
 
-    private void registerPlatformItAdmin(User user, AuthRegisterDTO request) {
-        //TODO 관리자는 없어서 같이 공유함.
+    private void registerSuperadmin(User user, AuthRegisterDTO request) {
         Superadmin superadmin = Superadmin.builder()
                 .user(user)
                 .name(request.getName())
                 .department(request.getDepartment())
-                .status(StatusEnum.ACTIVE)
+                .status(StatusEnum.PENDING)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
         superadminRepository.save(superadmin);
     }
 
-    private void registerSuperadmin(User user, AuthRegisterDTO request) {
-        Superadmin superadmin = Superadmin.builder()
-                .user(user)
-                .name(request.getName())
-                .department(request.getDepartment())
-                .status(StatusEnum.ACTIVE)
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
-                .build();
-        superadminRepository.save(superadmin);
+    private UserRoleAssignment resolveActiveRoleAssignment(User user) {
+        List<UserRoleAssignment> activeAssignments = userRoleAssignmentRepository
+                .findAllByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE);
+        if (activeAssignments.size() != 1) {
+            throw authenticationFailure();
+        }
+        return activeAssignments.get(0);
+    }
+
+    private Long resolveKindergartenScope(UserRoleAssignment activeRoleAssignment) {
+        return activeRoleAssignment.getScopeType() == UserRoleAssignmentScopeType.KINDERGARTEN
+                ? activeRoleAssignment.getScopeId()
+                : null;
+    }
+
+    private RegistrationContext prepareRegistrationContext(UserRoleEnum role, AuthRegisterDTO request) {
+        return switch (role) {
+            case GUARDIAN -> {
+                requireDigits(request.getRrnFirst6(), 6, "Applicant RRN first part must be 6 digits");
+                requireDigits(request.getRrnBack7(), 7, "Applicant RRN last part must be 7 digits");
+                requireDigits(request.getChildRrnFirst6(), 6, "Child RRN first part must be 6 digits");
+                requireDigits(request.getChildRrnBack7(), 7, "Child RRN last part must be 7 digits");
+                if (request.getGender() == null || request.getRelationship() == null) {
+                    throw badRegistrationRequest("Guardian profile fields are required");
+                }
+
+                Child child = childrenService
+                        .getChildEntityByRRN(request.getChildRrnFirst6(), request.getChildRrnBack7())
+                        .orElseThrow(() -> badRegistrationRequest("Child not found"));
+                yield new RegistrationContext(
+                        UserRoleAssignmentScopeType.KINDERGARTEN,
+                        child.getKindergarten().getId(),
+                        child,
+                        child.getKindergarten()
+                );
+            }
+            case TEACHER, KINDERGARTEN_ADMIN -> {
+                if (request.getKindergartenId() == null) {
+                    throw badRegistrationRequest("Kindergarten is required");
+                }
+                requireDigits(request.getRrnFirst6(), 6, "Applicant RRN first part must be 6 digits");
+                requireDigits(request.getRrnBack7(), 7, "Applicant RRN last part must be 7 digits");
+                requireText(request.getEmergencyContactName(), "Emergency contact is required");
+                requireText(request.getEmergencyContactPhone(), "Emergency contact is required");
+                requireText(request.getStaffNo(), "Staff number is required");
+                if (request.getGender() == null || request.getLevel() == null) {
+                    throw badRegistrationRequest("Teacher profile fields are required");
+                }
+                validateRoleLevel(role, request.getLevel());
+
+                Kindergarten kindergarten = kindergartenRepository.findById(request.getKindergartenId())
+                        .orElseThrow(() -> badRegistrationRequest("Kindergarten not found"));
+                yield new RegistrationContext(
+                        UserRoleAssignmentScopeType.KINDERGARTEN,
+                        kindergarten.getId(),
+                        null,
+                        kindergarten
+                );
+            }
+            case SUPERADMIN -> {
+                requireText(request.getDepartment(), "Department is required");
+                yield new RegistrationContext(
+                        UserRoleAssignmentScopeType.PLATFORM,
+                        null,
+                        null,
+                        null
+                );
+            }
+            default -> throw badRegistrationRequest("This role is not available for public registration");
+        };
+    }
+
+    private void validateRoleLevel(UserRoleEnum role, LevelEnum level) {
+        boolean administratorLevel = level == LevelEnum.DIRECTOR || level == LevelEnum.VICE_DIRECTOR;
+        if (role == UserRoleEnum.KINDERGARTEN_ADMIN && !administratorLevel) {
+            throw badRegistrationRequest("Kindergarten administrator role requires director level");
+        }
+        if (role == UserRoleEnum.TEACHER && administratorLevel) {
+            throw badRegistrationRequest("Director levels require kindergarten administrator role");
+        }
+    }
+
+    private void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw badRegistrationRequest(message);
+        }
+    }
+
+    private void requireDigits(String value, int length, String message) {
+        if (value == null || !value.matches("\\d{" + length + "}")) {
+            throw badRegistrationRequest(message);
+        }
+    }
+
+    private ResponseStatusException badRegistrationRequest(String reason) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, reason);
+    }
+
+    private ResponseStatusException authenticationFailure() {
+        return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication failed");
+    }
+
+    private record RegistrationContext(
+            UserRoleAssignmentScopeType scopeType,
+            Long scopeId,
+            Child child,
+            Kindergarten kindergarten
+    ) {
     }
 
     public AuthRegisterVO checkRegisterFieldAvailability(String field, String value) {

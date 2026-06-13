@@ -1,4 +1,3 @@
-import { apiClient } from './apiClient';
 import type { PageResponse } from './appreciationLetters.api';
 
 export type Teacher = {
@@ -11,12 +10,8 @@ export type TeacherVO = {
   teacherId: number;
   kindergartenId: number;
   userId: number;
-  staffNo: string | null;
   name: string;
   gender: string | null;
-  emergencyContactName: string | null;
-  emergencyContactPhone: string | null;
-  rrnFirst6: string | null;
   level: string | null;
   startDate: string | null;
   endDate: string | null;
@@ -30,10 +25,6 @@ export type TeacherApiRow = TeacherVO & {
   kindergarten_id?: number;
   user_id?: number;
   teacher_id?: number;
-  staff_no?: string | null;
-  emergency_contact_name?: string | null;
-  emergency_contact_phone?: string | null;
-  rrn_first6?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   created_at?: string | null;
@@ -41,29 +32,8 @@ export type TeacherApiRow = TeacherVO & {
 };
 
 export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
-  if (!Number.isFinite(userId) || userId <= 0) return null;
-
-  const response = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
-    params: {
-      userId,
-      page: 0,
-      size: 1,
-    },
-  });
-
-  const candidate = response.data.content?.[0];
-  if (!candidate) return null;
-
-  const normalized = normalizeTeacherVO(candidate as TeacherApiRow);
-  if (typeof normalized.userId !== 'number' || typeof normalized.name !== 'string') {
-    return null;
-  }
-
-  return {
-    teacherId: normalized.teacherId ?? null,
-    userId: normalized.userId,
-    name: normalized.name,
-  };
+  void userId;
+  return null;
 }
 
 function firstPositiveLong(...vals: unknown[]): number | undefined {
@@ -73,17 +43,6 @@ function firstPositiveLong(...vals: unknown[]): number | undefined {
     if (!Number.isFinite(n) || n <= 0) continue;
     return Math.trunc(n);
   }
-  return undefined;
-}
-
-function inferTeacherIdFromUserAndKindergarten(
-  userId: number,
-  kindergartenId: number,
-): number | undefined {
-  if (userId <= 0 || kindergartenId <= 0) return undefined;
-  if (kindergartenId === 1 && userId >= 101 && userId <= 120) return userId - 100;
-  if (kindergartenId === 2 && userId >= 401 && userId <= 420) return userId - 380;
-  if (kindergartenId === 3 && userId >= 701 && userId <= 720) return userId - 660;
   return undefined;
 }
 
@@ -116,23 +75,15 @@ export function normalizeTeacherVO(
     kindergartenId = options.fallbackKindergartenId;
   }
   const userId = firstPositiveLong(raw.userId, raw.user_id, r.user_id) ?? 0;
-  let teacherId =
+  const teacherId =
     firstPositiveLong(raw.teacherId, r.teacher_id, raw.id, r.teacherId) ?? 0;
-  if (teacherId <= 0 && userId > 0 && kindergartenId > 0) {
-    const inferred = inferTeacherIdFromUserAndKindergarten(userId, kindergartenId);
-    if (inferred != null) teacherId = inferred;
-  }
 
   return {
     teacherId,
     kindergartenId,
     userId,
-    staffNo: nullableString(raw.staffNo, r.staff_no),
     name: nullableString(raw.name, r.name) ?? '',
     gender: nullableString(raw.gender, r.gender),
-    emergencyContactName: nullableString(raw.emergencyContactName, r.emergency_contact_name),
-    emergencyContactPhone: nullableString(raw.emergencyContactPhone, r.emergency_contact_phone),
-    rrnFirst6: nullableString(raw.rrnFirst6, r.rrn_first6),
     level: nullableString(raw.level, r.level),
     startDate: nullableString(raw.startDate, r.start_date),
     endDate: nullableString(raw.endDate, r.end_date),
@@ -157,66 +108,28 @@ export async function searchTeachers(params: {
   size?: number;
   sort?: string | string[];
 }): Promise<PageResponse<TeacherVO>> {
-  const page = params.page ?? 0;
-  const size = params.size ?? 20;
-  const keyword = params.keyword?.trim() ?? '';
-  const userId = params.userId;
-  const sort = params.sort;
-  const kgId = params.kindergartenId;
-
-  const res = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
-    params: {
-      page,
-      size,
-      keyword,
-      ...(userId != null && Number.isFinite(userId) ? { userId } : {}),
-      ...(kgId != null && Number.isFinite(kgId) ? { kindergartenId: kgId } : {}),
-      ...(sort ? { sort } : {}),
-    },
+  void params;
+  return normalizeTeacherPage({
+    content: [],
+    totalElements: 0,
+    totalPages: 0,
+    size: 0,
+    number: 0,
+    first: true,
+    last: true,
   });
-
-  return normalizeTeacherPage(res.data);
 }
 
 export async function getTeacher(id: number): Promise<TeacherVO> {
-  const res = await apiClient.get<TeacherVO>(`/teachers/${id}`);
-  return normalizeTeacherVO(res.data as TeacherApiRow);
+  void id;
+  throw new Error('Teacher profile reads are unavailable until tenant authorization exists');
 }
 
-/**
- * `teachers.name` (예: `30_teachers_seed.sql`). 로그인 응답에 실명이 없을 때만 사용.
- * 1) 시드 규칙으로 `teacher_id` 추론 후 GET `/teachers/{id}`
- * 2) 실패 시 목록에서 `user_id` + `kindergarten_id` 매칭 (백엔드 목록 API는 kindergarten 쿼리를 받지 않음)
- */
 export async function fetchTeacherDisplayNameForUser(
   userId: number,
   kindergartenId: number,
 ): Promise<string | null> {
-  if (!Number.isFinite(userId) || userId <= 0 || !Number.isFinite(kindergartenId) || kindergartenId <= 0) {
-    return null;
-  }
-  const inferredTeacherId = inferTeacherIdFromUserAndKindergarten(userId, kindergartenId);
-  if (inferredTeacherId != null) {
-    try {
-      const t = await getTeacher(inferredTeacherId);
-      const n = t.name?.trim();
-      if (n) return n;
-    } catch {
-      /* 목록 폴백 */
-    }
-  }
-  try {
-    const page = await searchTeachers({
-      keyword: '',
-      page: 0,
-      size: 200,
-    });
-    const hit = page.content.find(
-      (row) => row.userId === userId && row.kindergartenId === kindergartenId,
-    );
-    const n = hit?.name?.trim();
-    return n || null;
-  } catch {
-    return null;
-  }
+  void userId;
+  void kindergartenId;
+  return null;
 }

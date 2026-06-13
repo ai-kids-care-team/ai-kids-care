@@ -36,7 +36,7 @@
 
 ## 审计
 
-- ✅ 有 `audit_logs` 表与对应 API。
+- ✅ 有 `audit_logs` 表；公共 API 当前关闭，内部 append writer 与授权查询仍待实现。
 - ❓ 各写操作是否实际写审计未确认（未见统一切面）。见 [security-architecture](../architecture/security-architecture.md#7-审计)。
 
 ## 待确认（汇总于 open-questions）

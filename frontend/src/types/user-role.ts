@@ -9,6 +9,18 @@ export type UserRole =
   | 'PLATFORM_IT_ADMIN'
   | 'SUPERADMIN';
 
+const USER_ROLES: readonly UserRole[] = [
+  'GUARDIAN',
+  'TEACHER',
+  'KINDERGARTEN_ADMIN',
+  'PLATFORM_IT_ADMIN',
+  'SUPERADMIN',
+];
+
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === 'string' && (USER_ROLES as readonly string[]).includes(value);
+}
+
 /** 공지사항 글쓰기·수정·삭제 UI (GUARDIAN 제외) */
 export const ANNOUNCEMENT_EDITOR_ROLES: readonly UserRole[] = [
   'TEACHER',

@@ -1,53 +1,52 @@
 package com.ai_kids_care.v1.contract;
 
-import com.ai_kids_care.v1.controller.ChildrenController;
 import com.ai_kids_care.v1.controller.CameraStreamController;
+import com.ai_kids_care.v1.controller.ChildrenController;
+import com.ai_kids_care.v1.controller.CctvCameraController;
+import com.ai_kids_care.v1.controller.DetectionEventController;
+import com.ai_kids_care.v1.controller.DetectionSessionController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
 import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.TeacherController;
 import com.ai_kids_care.v1.controller.UserController;
-import com.ai_kids_care.v1.dto.ChildCreateDTO;
-import com.ai_kids_care.v1.dto.ChildUpdateDTO;
-import com.ai_kids_care.v1.dto.GuardianCreateDTO;
-import com.ai_kids_care.v1.dto.GuardianUpdateDTO;
-import com.ai_kids_care.v1.dto.TeacherCreateDTO;
-import com.ai_kids_care.v1.dto.TeacherUpdateDTO;
-import com.ai_kids_care.v1.dto.UserCreateDTO;
-import com.ai_kids_care.v1.dto.UserUpdateDTO;
-import com.ai_kids_care.v1.entity.Child;
-import com.ai_kids_care.v1.entity.Guardian;
-import com.ai_kids_care.v1.entity.Teacher;
-import com.ai_kids_care.v1.entity.User;
+import com.ai_kids_care.v1.mapper.AppreciationLetterMapper;
 import com.ai_kids_care.v1.mapper.CameraStreamMapper;
+import com.ai_kids_care.v1.mapper.CctvCameraMapper;
 import com.ai_kids_care.v1.mapper.ChildMapper;
+import com.ai_kids_care.v1.mapper.DetectionEventMapper;
+import com.ai_kids_care.v1.mapper.DetectionSessionMapper;
 import com.ai_kids_care.v1.mapper.DeviceTokenMapper;
 import com.ai_kids_care.v1.mapper.EventEvidenceFileMapper;
+import com.ai_kids_care.v1.mapper.EventReviewMapper;
 import com.ai_kids_care.v1.mapper.GuardianMapper;
+import com.ai_kids_care.v1.mapper.NotificationRuleMapper;
+import com.ai_kids_care.v1.mapper.SuperadminMapper;
 import com.ai_kids_care.v1.mapper.TeacherMapper;
 import com.ai_kids_care.v1.mapper.UserMapper;
+import com.ai_kids_care.v1.service.AppreciationLetterService;
 import com.ai_kids_care.v1.service.CameraStreamService;
 import com.ai_kids_care.v1.service.ChildrenService;
+import com.ai_kids_care.v1.service.CctvCameraService;
+import com.ai_kids_care.v1.service.DetectionEventService;
+import com.ai_kids_care.v1.service.DetectionSessionService;
 import com.ai_kids_care.v1.service.DeviceTokenService;
 import com.ai_kids_care.v1.service.EventEvidenceFileService;
+import com.ai_kids_care.v1.service.EventReviewService;
 import com.ai_kids_care.v1.service.GuardianService;
+import com.ai_kids_care.v1.service.NotificationRuleService;
+import com.ai_kids_care.v1.service.SuperadminService;
 import com.ai_kids_care.v1.service.TeacherService;
 import com.ai_kids_care.v1.service.UserService;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.lang.reflect.Method;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,40 +54,40 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 class SensitiveWriteContractTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     @Test
-    void genericDtosDoNotAcceptOrExposeSensitiveStorageProperties() {
-        assertJacksonPropertyAbsent(UserCreateDTO.class, "passwordHash");
-        assertJacksonPropertyAbsent(UserUpdateDTO.class, "passwordHash");
-        assertJacksonPropertyAbsent(ChildCreateDTO.class, "rrnEncrypted");
-        assertJacksonPropertyAbsent(ChildUpdateDTO.class, "rrnEncrypted");
-        assertJacksonPropertyAbsent(GuardianCreateDTO.class, "rrnEncrypted");
-        assertJacksonPropertyAbsent(GuardianUpdateDTO.class, "rrnEncrypted");
-        assertJacksonPropertyAbsent(TeacherCreateDTO.class, "rrnEncrypted");
-        assertJacksonPropertyAbsent(TeacherUpdateDTO.class, "rrnEncrypted");
-    }
-
-    @Test
-    void eventEvidenceFilePublicWriteDtosAreRemoved() {
-        assertClassAbsent("com.ai_kids_care.v1.dto.EventEvidenceFileCreateDTO");
-        assertClassAbsent("com.ai_kids_care.v1.dto.EventEvidenceFileUpdateDTO");
-    }
-
-    @Test
-    void deviceTokenPublicWriteDtosAreRemoved() {
+    void closedPublicWriteDtosAreRemovedFromPublishedContract() {
+        assertClassAbsent("com.ai_kids_care.v1.dto.UserCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.UserUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.ChildCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.ChildUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.GuardianCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.GuardianUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.TeacherCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.TeacherUpdateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.DeviceTokenCreateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.DeviceTokenUpdateDTO");
-    }
-
-    @Test
-    void cameraStreamPublicWriteDtosAreRemoved() {
+        assertClassAbsent("com.ai_kids_care.v1.dto.EventEvidenceFileCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.EventEvidenceFileUpdateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.CameraStreamCreateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.CameraStreamUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.DetectionEventCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.DetectionEventUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.DetectionSessionCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.DetectionSessionUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.EventReviewCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.EventReviewUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.CctvCameraCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.CctvCameraUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.NotificationRuleCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminUpdateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO");
+        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO");
     }
 
     @Test
-    void genericCreateEndpointsAndSensitiveWriteEndpointsAreClosedWithoutCallingServices() throws Exception {
+    void closedPublicWriteEndpointsDoNotCallServices() throws Exception {
         UserService userService = mock(UserService.class);
         ChildrenService childrenService = mock(ChildrenService.class);
         GuardianService guardianService = mock(GuardianService.class);
@@ -96,35 +95,90 @@ class SensitiveWriteContractTest {
         DeviceTokenService deviceTokenService = mock(DeviceTokenService.class);
         EventEvidenceFileService eventEvidenceFileService = mock(EventEvidenceFileService.class);
         CameraStreamService cameraStreamService = mock(CameraStreamService.class);
+        DetectionEventService detectionEventService = mock(DetectionEventService.class);
+        DetectionSessionService detectionSessionService = mock(DetectionSessionService.class);
+        CctvCameraService cctvCameraService = mock(CctvCameraService.class);
         MockMvc mockMvc = standaloneSetup(
-                new UserController(userService),
-                new ChildrenController(childrenService),
-                new GuardianController(guardianService),
-                new TeacherController(teacherService),
-                new DeviceTokenController(deviceTokenService),
-                new EventEvidenceFileController(eventEvidenceFileService),
-                new CameraStreamController(cameraStreamService)
+                new UserController(),
+                new ChildrenController(),
+                new GuardianController(),
+                new TeacherController(),
+                new DeviceTokenController(),
+                new EventEvidenceFileController(),
+                new CameraStreamController(cameraStreamService),
+                new DetectionEventController(),
+                new DetectionSessionController(detectionSessionService),
+                new CctvCameraController(cctvCameraService)
         ).build();
 
         mockMvc.perform(post("/api/v1/users").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/users/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/users/1"))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(post("/api/v1/children").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/children/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/children/1"))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(post("/api/v1/guardians").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/guardians/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/guardians/1"))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(post("/api/v1/teachers").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
-        mockMvc.perform(post("/api/v1/event_evidence_files").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
-        mockMvc.perform(put("/api/v1/event_evidence_files/1").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/teachers/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/teachers/1"))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(post("/api/v1/device_tokens").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
         mockMvc.perform(put("/api/v1/device_tokens/1").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/device_tokens/1"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/v1/event_evidence_files").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/event_evidence_files/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/event_evidence_files/1"))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(post("/api/v1/camera_streams").contentType("application/json").content("{}"))
                 .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(put("/api/v1/camera_streams/1").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(delete("/api/v1/camera_streams/1"))
+                .andExpect(status().isMethodNotAllowed());
+
+        mockMvc.perform(post("/api/v1/detection_events").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/api/v1/detection_events/1").contentType("application/json").content("{}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/detection_events/1"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/v1/detection_sessions").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(put("/api/v1/detection_sessions/1").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(delete("/api/v1/detection_sessions/1"))
+                .andExpect(status().isMethodNotAllowed());
+
+        mockMvc.perform(post("/api/v1/cctv_cameras").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(put("/api/v1/cctv_cameras/1").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(delete("/api/v1/cctv_cameras/1"))
                 .andExpect(status().isMethodNotAllowed());
 
         verifyNoInteractions(
@@ -134,92 +188,122 @@ class SensitiveWriteContractTest {
                 teacherService,
                 deviceTokenService,
                 eventEvidenceFileService,
-                cameraStreamService
+                cameraStreamService,
+                detectionEventService,
+                detectionSessionService,
+                cctvCameraService
         );
     }
 
     @Test
-    void genericCreateServicesAndSensitiveWriteMappersAreNoLongerExposed() {
-        assertMethodAbsent(UserService.class, "createUser");
-        assertMethodAbsent(ChildrenService.class, "createChildren");
-        assertMethodAbsent(GuardianService.class, "createGuardian");
-        assertMethodAbsent(TeacherService.class, "createTeacher");
+    void detectionEventReadsAreClosedBeforeCallingService() throws Exception {
+        DetectionEventService detectionEventService = mock(DetectionEventService.class);
+        MockMvc mockMvc = standaloneSetup(new DetectionEventController()).build();
+
+        mockMvc.perform(get("/api/v1/detection_events"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/detection_events/1"))
+                .andExpect(status().isNotFound());
+
+        verifyNoInteractions(detectionEventService);
+    }
+
+    @Test
+    void genericWriteControllersServicesAndMappersAreNoLongerExposed() {
+        assertMethodNameAbsent(UserController.class, "updateUser");
+        assertMethodNameAbsent(UserController.class, "deleteUser");
+        assertMethodNameAbsent(ChildrenController.class, "getChildByRRN");
+        assertMethodNameAbsent(ChildrenController.class, "updateChildren");
+        assertMethodNameAbsent(ChildrenController.class, "deleteChildren");
+        assertMethodNameAbsent(GuardianController.class, "updateGuardian");
+        assertMethodNameAbsent(GuardianController.class, "deleteGuardian");
+        assertMethodNameAbsent(TeacherController.class, "updateTeacher");
+        assertMethodNameAbsent(TeacherController.class, "deleteTeacher");
+        assertMethodNameAbsent(DeviceTokenController.class, "deleteDeviceToken");
+        assertMethodNameAbsent(EventEvidenceFileController.class, "deleteEventEvidenceFile");
+        assertMethodNameAbsent(CameraStreamController.class, "deleteCameraStream");
+        assertMethodNameAbsent(DetectionEventController.class, "createDetectionEvent");
+        assertMethodNameAbsent(DetectionEventController.class, "updateDetectionEvent");
+        assertMethodNameAbsent(DetectionEventController.class, "deleteDetectionEvent");
+        assertMethodNameAbsent(DetectionSessionController.class, "createDetectionSession");
+        assertMethodNameAbsent(DetectionSessionController.class, "updateDetectionSession");
+        assertMethodNameAbsent(DetectionSessionController.class, "deleteDetectionSession");
+        assertMethodNameAbsent(CctvCameraController.class, "createCctvCamera");
+        assertMethodNameAbsent(CctvCameraController.class, "updateCctvCamera");
+        assertMethodNameAbsent(CctvCameraController.class, "deleteCctvCamera");
+
+        assertMethodNameAbsent(UserService.class, "createUser");
+        assertMethodNameAbsent(UserService.class, "updateUser");
+        assertMethodNameAbsent(UserService.class, "deleteUser");
+        assertMethodNameAbsent(ChildrenService.class, "createChildren");
+        assertMethodNameAbsent(ChildrenService.class, "getChildByRRN");
+        assertMethodNameAbsent(ChildrenService.class, "updateChildren");
+        assertMethodNameAbsent(ChildrenService.class, "deleteChildren");
+        assertMethodNameAbsent(GuardianService.class, "createGuardian");
+        assertMethodNameAbsent(GuardianService.class, "updateGuardian");
+        assertMethodNameAbsent(GuardianService.class, "deleteGuardian");
+        assertMethodNameAbsent(TeacherService.class, "createTeacher");
+        assertMethodNameAbsent(TeacherService.class, "updateTeacher");
+        assertMethodNameAbsent(TeacherService.class, "deleteTeacher");
         assertMethodNameAbsent(DeviceTokenService.class, "createDeviceToken");
         assertMethodNameAbsent(DeviceTokenService.class, "updateDeviceToken");
+        assertMethodNameAbsent(DeviceTokenService.class, "deleteDeviceToken");
         assertMethodNameAbsent(EventEvidenceFileService.class, "createEventEvidenceFile");
         assertMethodNameAbsent(EventEvidenceFileService.class, "updateEventEvidenceFile");
+        assertMethodNameAbsent(EventEvidenceFileService.class, "deleteEventEvidenceFile");
         assertMethodNameAbsent(CameraStreamService.class, "createCameraStream");
         assertMethodNameAbsent(CameraStreamService.class, "updateCameraStream");
+        assertMethodNameAbsent(CameraStreamService.class, "deleteCameraStream");
+        assertMethodNameAbsent(DetectionEventService.class, "createDetectionEvent");
+        assertMethodNameAbsent(DetectionEventService.class, "updateDetectionEvent");
+        assertMethodNameAbsent(DetectionEventService.class, "deleteDetectionEvent");
+        assertMethodNameAbsent(DetectionSessionService.class, "createDetectionSession");
+        assertMethodNameAbsent(DetectionSessionService.class, "updateDetectionSession");
+        assertMethodNameAbsent(DetectionSessionService.class, "deleteDetectionSession");
+        assertMethodNameAbsent(EventReviewService.class, "createEventReview");
+        assertMethodNameAbsent(EventReviewService.class, "updateEventReview");
+        assertMethodNameAbsent(EventReviewService.class, "deleteEventReview");
+        assertMethodNameAbsent(CctvCameraService.class, "createCctvCamera");
+        assertMethodNameAbsent(CctvCameraService.class, "updateCctvCamera");
+        assertMethodNameAbsent(CctvCameraService.class, "deleteCctvCamera");
+        assertMethodNameAbsent(NotificationRuleService.class, "createNotificationRule");
+        assertMethodNameAbsent(NotificationRuleService.class, "updateNotificationRule");
+        assertMethodNameAbsent(NotificationRuleService.class, "deleteNotificationRule");
+        assertMethodNameAbsent(SuperadminService.class, "createSuperadmin");
+        assertMethodNameAbsent(SuperadminService.class, "updateSuperadmin");
+        assertMethodNameAbsent(SuperadminService.class, "deleteSuperadmin");
+        assertMethodNameAbsent(AppreciationLetterService.class, "createAppreciationLetter");
+        assertMethodNameAbsent(AppreciationLetterService.class, "updateAppreciationLetter");
+        assertMethodNameAbsent(AppreciationLetterService.class, "deleteAppreciationLetter");
 
-        assertMethodAbsent(UserMapper.class, "toEntity", UserCreateDTO.class);
-        assertMethodAbsent(ChildMapper.class, "toEntity", ChildCreateDTO.class);
-        assertMethodAbsent(GuardianMapper.class, "toEntity", GuardianCreateDTO.class);
-        assertMethodAbsent(TeacherMapper.class, "toEntity", TeacherCreateDTO.class);
+        assertMethodNameAbsent(UserMapper.class, "toEntity");
+        assertMethodNameAbsent(UserMapper.class, "updateEntity");
+        assertMethodNameAbsent(ChildMapper.class, "toEntity");
+        assertMethodNameAbsent(ChildMapper.class, "updateEntity");
+        assertMethodNameAbsent(GuardianMapper.class, "toEntity");
+        assertMethodNameAbsent(GuardianMapper.class, "updateEntity");
+        assertMethodNameAbsent(TeacherMapper.class, "toEntity");
+        assertMethodNameAbsent(TeacherMapper.class, "updateEntity");
         assertMethodNameAbsent(DeviceTokenMapper.class, "toEntity");
         assertMethodNameAbsent(DeviceTokenMapper.class, "updateEntity");
         assertMethodNameAbsent(EventEvidenceFileMapper.class, "toEntity");
         assertMethodNameAbsent(EventEvidenceFileMapper.class, "updateEntity");
         assertMethodNameAbsent(CameraStreamMapper.class, "toEntity");
         assertMethodNameAbsent(CameraStreamMapper.class, "updateEntity");
-    }
-
-    @Test
-    void genericUpdateMappersPreserveSensitiveStorageValues() {
-        User user = new User();
-        user.setEmail("before@example.com");
-        user.setPasswordHash("existing-password-hash");
-        UserUpdateDTO userUpdate = new UserUpdateDTO();
-        userUpdate.setEmail("after@example.com");
-        Mappers.getMapper(UserMapper.class).updateEntity(userUpdate, user);
-
-        Child child = new Child();
-        child.setName("before");
-        child.setRrnEncrypted("existing-child-rrn");
-        ChildUpdateDTO childUpdate = new ChildUpdateDTO();
-        childUpdate.setName("after");
-        Mappers.getMapper(ChildMapper.class).updateEntity(childUpdate, child);
-
-        Guardian guardian = new Guardian();
-        guardian.setName("before");
-        guardian.setRrnEncrypted("existing-guardian-rrn");
-        GuardianUpdateDTO guardianUpdate = new GuardianUpdateDTO();
-        guardianUpdate.setName("after");
-        Mappers.getMapper(GuardianMapper.class).updateEntity(guardianUpdate, guardian);
-
-        Teacher teacher = new Teacher();
-        teacher.setName("before");
-        teacher.setRrnEncrypted("existing-teacher-rrn");
-        TeacherUpdateDTO teacherUpdate = new TeacherUpdateDTO();
-        teacherUpdate.setName("after");
-        Mappers.getMapper(TeacherMapper.class).updateEntity(teacherUpdate, teacher);
-
-        assertThat(user.getEmail()).isEqualTo("after@example.com");
-        assertThat(user.getPasswordHash()).isEqualTo("existing-password-hash");
-        assertThat(child.getName()).isEqualTo("after");
-        assertThat(child.getRrnEncrypted()).isEqualTo("existing-child-rrn");
-        assertThat(guardian.getName()).isEqualTo("after");
-        assertThat(guardian.getRrnEncrypted()).isEqualTo("existing-guardian-rrn");
-        assertThat(teacher.getName()).isEqualTo("after");
-        assertThat(teacher.getRrnEncrypted()).isEqualTo("existing-teacher-rrn");
-    }
-
-    private void assertJacksonPropertyAbsent(Class<?> dtoType, String propertyName) {
-        assertThat(propertyNames(objectMapper.getSerializationConfig().introspect(
-                objectMapper.constructType(dtoType)))).doesNotContain(propertyName);
-        assertThat(propertyNames(objectMapper.getDeserializationConfig().introspect(
-                objectMapper.constructType(dtoType)))).doesNotContain(propertyName);
-    }
-
-    private Set<String> propertyNames(BeanDescription description) {
-        return description.findProperties().stream()
-                .map(BeanPropertyDefinition::getName)
-                .collect(Collectors.toSet());
-    }
-
-    private void assertMethodAbsent(Class<?> ownerType, String methodName, Class<?>... parameterTypes) {
-        assertThat(findMethod(ownerType, methodName, parameterTypes))
-                .as("%s must not expose %s", ownerType.getSimpleName(), methodName)
-                .isEmpty();
+        assertMethodNameAbsent(DetectionEventMapper.class, "toEntity");
+        assertMethodNameAbsent(DetectionEventMapper.class, "updateEntity");
+        assertMethodNameAbsent(DetectionSessionMapper.class, "toEntity");
+        assertMethodNameAbsent(DetectionSessionMapper.class, "updateEntity");
+        assertMethodNameAbsent(EventReviewMapper.class, "toEntity");
+        assertMethodNameAbsent(EventReviewMapper.class, "updateEntity");
+        assertMethodNameAbsent(CctvCameraMapper.class, "toEntity");
+        assertMethodNameAbsent(CctvCameraMapper.class, "updateEntity");
+        assertMethodNameAbsent(NotificationRuleMapper.class, "toEntity");
+        assertMethodNameAbsent(NotificationRuleMapper.class, "updateEntity");
+        assertMethodNameAbsent(SuperadminMapper.class, "toEntity");
+        assertMethodNameAbsent(SuperadminMapper.class, "updateEntity");
+        assertMethodNameAbsent(AppreciationLetterMapper.class, "toEntity");
+        assertMethodNameAbsent(AppreciationLetterMapper.class, "updateEntity");
     }
 
     private void assertMethodNameAbsent(Class<?> ownerType, String methodName) {
@@ -232,13 +316,5 @@ class SensitiveWriteContractTest {
         assertThatCode(() -> Class.forName(className))
                 .as("%s must not exist in the published generic write contract", className)
                 .isInstanceOf(ClassNotFoundException.class);
-    }
-
-    private java.util.Optional<Method> findMethod(Class<?> ownerType, String methodName, Class<?>... parameterTypes) {
-        try {
-            return java.util.Optional.of(ownerType.getDeclaredMethod(methodName, parameterTypes));
-        } catch (NoSuchMethodException ignored) {
-            return java.util.Optional.empty();
-        }
     }
 }

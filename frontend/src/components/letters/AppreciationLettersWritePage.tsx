@@ -52,8 +52,8 @@ export function AppreciationLettersWritePage() {
 
   const guardianLockKg = useMemo(() => {
     if (!user || !canWriteAppreciationLetters(user.role)) return null;
-    return resolveViewerSessionKindergartenId(user, token);
-  }, [user, token]);
+    return resolveViewerSessionKindergartenId(user);
+  }, [user]);
 
   const hasTarget = kindergartenId != null && targetId != null && targetLabel !== '';
 

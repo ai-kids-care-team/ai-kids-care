@@ -36,11 +36,11 @@
 
 1. **安全未强制** ✅：鉴权关闭（OQ-SEC-1，已决 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)）、access/refresh 无别（OQ-SEC-2）、默认密钥（OQ-SEC-3/5）、RRN 命名/注释误导（OQ-SEC-4，已决：单向哈希，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、DEBUG 日志（OQ-SEC-6）、审计落地存疑（OQ-SEC-7）、运行时租户隔离存疑（OQ-SEC-8）。
 2. **AI 与业务断链** ✅：检测不落库，闭环未通（OQ-AI-1）；训练配置/数据集未文档化（OQ-AI-2）。
-3. **无测试基线** ✅：三端均无自动化测试（OQ-TEST-1）——任何改动缺回归保护。
+3. **测试覆盖仍不均衡** ✅：后端已建立 Testcontainers 集成、单元和契约测试，并接入 GitHub Actions/Jenkins；前端与 AI 仍无自动化测试（OQ-TEST-1）。
 4. **运维不成熟** ✅：CI 删卷（OQ-OPS-1）、无 TLS（OQ-OPS-3）、可观测性弱、无系统告警。
 5. **一致性/完整性小问题**：`relationship_enum` 取值不足（OQ-DATA-2）、`notifications` NOT NULL 过严（OQ-DATA-3）、无统一异常处理（OQ-ARCH-2）、密码重置未实现（OQ-PROD-3）、角色档案复用（OQ-PROD-4）。
 6. **派生数据新鲜度** ✅：Neo4j 一次性加载，无增量同步（OQ-DATA-1）。
-7. **列表 `keyword` 过滤多为空操作** ✅（2026-06-07 复核）：17 个列表端点暴露 `keyword` 参数，其中 **14 个静默忽略**（service 直接 `repository.findAll(pageable)` + 统一注释 `// TODO: filter X by keyword`），仅 3 个真正实现（Kindergarten/Announcement/Teacher）。属「伪实现」——Swagger 宣称可搜索但实际不过滤、返回 HTTP 200 无报错（OQ-ARCH-4）。
+7. **列表 `keyword` 过滤多为空操作** ✅（2026-06-12 复核）：15 个公开列表端点暴露 `keyword` 参数，其中 **12 个静默忽略**（service 直接 `repository.findAll(pageable)` + 统一注释 `// TODO: filter X by keyword`），仅 3 个真正实现（Kindergarten/Announcement/Teacher）。属「伪实现」——Swagger 宣称可搜索但实际不过滤、返回 HTTP 200 无报错（OQ-ARCH-4）。
 
 ## 风险摘要
 

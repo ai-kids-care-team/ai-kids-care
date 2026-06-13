@@ -41,7 +41,7 @@
 - **观察**：是否应按环境区分日志级别？
 
 ### OQ-SEC-7 ｜审计日志是否真正落地？
-- **证据** ✅：有 `audit_logs` 表与 API；❓ 未见各写操作统一写审计（无切面/拦截器）。
+- **证据** ✅：有 `audit_logs` 表与内部 service；Phase 1A 后公共 controller 不发布 operation。❓ 未见各写操作统一写审计（无切面/拦截器）。
 - **为何重要**：合规/取证依赖审计完整性。
 - **观察**：审计写入是手工散落还是未实现？
 
@@ -122,10 +122,10 @@
 - **观察**：是否应放宽为可空？（事实记录，不下结论）
 - **结论（2026-06-07）** ✅：纳入 [ADR-0018 通知子系统](../decisions/adr/ADR-0018-notification-subsystem.md)（Proposed）——"待发"态应允许 `sent_at`/`fail_reason`/`retry_count` 为空/默认；放宽 NOT NULL 的 schema 变更走 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) 迁移。本项归 ADR-0018 跟踪。
 
-### OQ-DATA-4 ｜`menu` / `common_codes` 两张平台字典表的设计复审
+### OQ-DATA-4 ｜`menu` / `common_codes` 字典表治理落地
 - **证据** ✅：`02_menu.sql` 建 `menu`（单数）、`03_CommonCode.sql` 建 `common_codes`（复数）；二者命名风格与核心 28 表不一致；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**；本知识库此前误写为 `common_code`（单数）。
 - **背景（2026-05-29，团队确认）**：这两张表**非原作者设计**，其结构/逻辑/命名可能存在潜在问题。
-- **观察**：是否需要重新设计、统一命名规范、补齐缺失实体？「是否有更改设计的必要性」待评估——提案见 [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md)。
+- **状态**：设计问题已决策，不再处于“是否删除”的评估阶段；剩余工作是按 ADR-0013 执行迁移。
 - **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md)（2026-05-29 签署）。`menu` → **C 静态方案**（移至前端配置 / 移除 DB 表+Controller+seed / 文案改 i18n 键）；`common_codes` → **β 后端枚举元数据端点 + 前端 i18n**（新增极小 `GET /api/v1/enums/{name}` 反射 Java enum / 移除 `common_codes` 表 + 全部 CRUD 栈 / 前端用 labelKey 解 i18n / 加 CI 校验"PG enum = Java enum"）；落地待 Implementation。
 
 ---
@@ -141,10 +141,10 @@
 - **证据** ✅：班级/教室/保护者等完整 CRUD 在前端无对应页面。
 - **观察**：是按场景裁剪，还是前端未完成？
 
-### OQ-PROD-3 ｜密码重置未实现（及其余 `Not implemented` 占位端点）
-- **证据** ✅：`AuthService.passwordResets` 抛 `Not implemented`；`AuthController` 中 `logout`、`changePassword`、`password-resets/{token}`、两个 `verification-codes` 端点同样 `throw "Not implemented"`。
+### OQ-PROD-3 ｜密码重置、验证码与安全登出未实现
+- **证据** ✅：遗留 `AuthService.passwordResets` 仍未实现；`AuthController` 已撤下 `logout`、修改密码、密码重置和验证码 mapping，OpenAPI 不再发布这些占位契约，前端对应入口显示暂不可用。
 - **观察**：是否为待开发功能？
-- **结论（2026-05-29，团队确认）** ✅：上述全部 `Not implemented` 端点均为**「待开发」占位**（非废弃）。已连通 service 的认证端点仅 `login`/`refresh`/`register`/`register/availability`。
+- **结论（2026-05-29，团队确认）** ✅：这些能力仍为待开发而非废弃，但只有满足限速、一次性 token、防枚举和 server-side session 等安全条件后才重新发布。当前已连通 service 的认证端点为 `login`/`refresh`/`register`/`register/availability`/`guardian-child-verifications`。
 
 ### OQ-PROD-4 ｜角色档案复用（KINDERGARTEN_ADMIN↔TEACHER、PLATFORM_IT_ADMIN↔SUPERADMIN）
 - **证据** ✅：注册逻辑复用同一档案，代码注释 `// 관리자는 없어서 같이 공유함`。
@@ -168,14 +168,14 @@
 - **观察**：拆分时机/边界/产物归属待定；属 module-boundary 变更，提案见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
 - **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)（`pg-spring-crud-codegen` = `scripts/codegen` 同一 Python 工具的预留迁址位置，非重写；执行方案 A 仓内迁址 + 软指针，日后 `git filter-repo` 带史拆出）。**实施记录（2026-05-29）**：迁址完成；docker-compose 相对路径已修正；两处 README 就位；CODEOWNERS 已补条目；13 处内部引用已切换。
 
-### OQ-ARCH-4 ｜列表端点 `keyword` 过滤：14/17 为「静默空操作」
-- **证据** ✅（2026-06-07 复核）：17 个列表 Controller 暴露 `@RequestParam(required = false) String keyword`（出现在 Swagger 中），但其中 **14 个对应 Service 直接 `repository.findAll(pageable)` 忽略该参数**（统一注释 `// TODO: filter X by keyword`：`AiModel`/`AppreciationLetter`/`AuditLog`/`Class`/`DetectionEvent`/`DetectionSession`/`DeviceToken`/`EventEvidenceFile`/`Guardian`/`Notification`/`NotificationRule`/`Room`/`Superadmin`/`User`）；仅 **3 个真正实现过滤**：`KindergartenService`（`findByNameContains`）、`AnnouncementService`（`listActiveAnnouncements`）、`TeacherService`（`findByNameContains*`）。
-- **为何重要**：API 契约对外宣称支持 `keyword` 搜索（Swagger 可见、调用方返回 HTTP 200），但 14 个端点**静默返回未过滤结果且无任何报错**——属「伪实现」，比 `Not implemented`（会显式抛错）更隐蔽，最易在演示中被误判为已完成。根因为 codegen 模板统一生成参数后未回填实现（关联 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）。
-- **观察**：这 14 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 14 未实现的持续漂移。
+### OQ-ARCH-4 ｜列表端点 `keyword` 过滤：12/15 为「静默空操作」
+- **证据** ✅（2026-06-12 复核）：15 个公开列表 Controller 暴露 `@RequestParam(required = false) String keyword`（出现在 Swagger 中），但其中 **12 个对应 Service 直接 `repository.findAll(pageable)` 忽略该参数**（统一注释 `// TODO: filter X by keyword`：`AiModel`/`AppreciationLetter`/`Class`/`DetectionEvent`/`DetectionSession`/`DeviceToken`/`EventEvidenceFile`/`Guardian`/`NotificationRule`/`Room`/`Superadmin`/`User`）；仅 **3 个真正实现过滤**：`KindergartenService`（`findByNameContains`）、`AnnouncementService`（`listActiveAnnouncements`）、`TeacherService`（`findByNameContains*`）。Audit Log 与 Notification 公共列表已关闭，不再计入公开契约。
+- **为何重要**：API 契约对外宣称支持 `keyword` 搜索（Swagger 可见、调用方返回 HTTP 200），但 12 个端点**静默返回未过滤结果且无任何报错**——属「伪实现」，比 `Not implemented`（会显式抛错）更隐蔽，最易在演示中被误判为已完成。根因为 codegen 模板统一生成参数后未回填实现（关联 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）。
+- **观察**：这 12 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 12 未实现的持续漂移。
 
 ### OQ-TEST-1 ｜测试策略
-- **证据（更新 2026-06-10）** ✅：后端已有 Testcontainers 集成测试基线（4 个 Java 测试文件，ADR-0014）；前端/AI 仍无自动化测试。Jenkins 只运行后端测试。
-- **本次验证** 🔶：本机 Docker engine 不可用，`./gradlew test` 在 Testcontainers 初始化阶段被阻断，未执行断言；前端 clean build 通过，但 lint 有 22 errors / 25 warnings。
+- **证据（更新 2026-06-12）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，并由 GitHub Actions 与 Jenkins 执行 `./gradlew test`；前端/AI 仍无自动化测试。
+- **本次验证** ✅：本机 Docker engine 启动后，Java 完整套件 43 项中 41 通过、2 项按 ADR-0013 过渡约定跳过；前端 production build 通过并生成 20 个静态页面。全量 lint 仍有既有基线问题；本轮非 CCTV 改动文件的定向 lint 为零问题，CCTV 文件仍报告历史 effect/unused 规则问题。
 - **为何重要**：当前回归保护只覆盖少量后端路径，且 CI 未守护前端/API 客户端/AI。
 - **剩余问题**：前端、AI、契约/E2E 的目标策略与 CI 门禁仍待确定。
 

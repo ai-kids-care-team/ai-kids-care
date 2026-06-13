@@ -1,7 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.UserUpdateDTO;
-import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.mapper.UserMapper;
 import com.ai_kids_care.v1.repository.UserRepository;
 import com.ai_kids_care.v1.vo.UserVO;
@@ -26,18 +24,5 @@ public class UserService {
     public UserVO getUser(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
-    }
-
-    public UserVO updateUser(Long id, UserUpdateDTO updateDTO) {
-        User entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("User not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteUser(Long id) {
-        User entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("User not found"));
-        repository.delete(entity);
     }
 }

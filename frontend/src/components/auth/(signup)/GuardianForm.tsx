@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-type ChildLookupItem = {
-  childId: number;
-  className: string | null;
-  name: string;
-};
-
 type CommonCodeItem = {
   code: string;
   codeName: string;
@@ -26,8 +20,10 @@ type GuardianFormProps = {
   setChildSearchFirst6: (value: string) => void;
   childSearchBack7: string;
   setChildSearchBack7: (value: string) => void;
-  selectedChild: ChildLookupItem | null;
-  openChildPopup: () => void;
+  isChildVerified: boolean;
+  isChildVerifying: boolean;
+  childVerificationMessage: string;
+  verifyChild: () => void;
   rrnFirst6: string;
   setRrnFirst6: (value: string) => void;
   rrnBack7: string;
@@ -58,8 +54,10 @@ export function GuardianForm({
   setChildSearchFirst6,
   childSearchBack7,
   setChildSearchBack7,
-  selectedChild,
-  openChildPopup,
+  isChildVerified,
+  isChildVerifying,
+  childVerificationMessage,
+  verifyChild,
   rrnFirst6,
   setRrnFirst6,
   rrnBack7,
@@ -83,7 +81,7 @@ export function GuardianForm({
   const handleChildRrnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      openChildPopup();
+      verifyChild();
     }
   };
 
@@ -202,7 +200,7 @@ export function GuardianForm({
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">아이 찾기</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">아이 정보 확인</h2>
         <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
           <div className="flex w-full items-center gap-2 md:w-[85%]">
             <input
@@ -242,19 +240,20 @@ export function GuardianForm({
           </div>
           <button
             type="button"
-            onClick={openChildPopup}
+            onClick={verifyChild}
+            disabled={isChildVerifying}
             className="rounded-lg border border-emerald-500 px-4 py-2 text-emerald-700 hover:bg-emerald-50 md:w-[15%] md:min-w-[96px] whitespace-nowrap"
           >
-            아이 찾기
+            {isChildVerifying ? '확인 중...' : '정보 확인'}
           </button>
         </div>
-        <input type="hidden" name="childId" value={selectedChild?.childId ?? ''} />
-        {selectedChild ? (
-          <p className="mt-2 text-xs text-emerald-700">
-            선택됨: {selectedChild.name} (ID: {selectedChild.childId}, 반: {selectedChild.className ?? '미지정'})
+        {childVerificationMessage && (
+          <p className={`mt-2 text-xs ${isChildVerified ? 'text-emerald-700' : 'text-amber-600'}`}>
+            {childVerificationMessage}
           </p>
-        ) : (
-          <p className="mt-2 text-xs text-slate-500">아직 선택된 아이가 없습니다.</p>
+        )}
+        {!childVerificationMessage && (
+          <p className="mt-2 text-xs text-slate-500">확인 결과는 개인정보 없이 성공 여부만 표시됩니다.</p>
         )}
         {fieldErrors.child && <p className="mt-1 text-xs text-red-500">{fieldErrors.child}</p>}
       </section>

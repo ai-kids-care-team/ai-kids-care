@@ -50,9 +50,20 @@ class SensitiveResponseContractTest {
     @Test
     void publicResponseTypesDoNotExposeSensitiveStorageFields() {
         assertJacksonPropertyAbsent(UserVO.class, "passwordHash");
+        assertJacksonPropertyAbsent(UserVO.class, "email");
+        assertJacksonPropertyAbsent(UserVO.class, "phone");
         assertJacksonPropertyAbsent(ChildVO.class, "rrnEncrypted");
+        assertJacksonPropertyAbsent(ChildVO.class, "rrnFirst6");
+        assertJacksonPropertyAbsent(ChildVO.class, "birthDate");
+        assertJacksonPropertyAbsent(ChildVO.class, "address");
         assertJacksonPropertyAbsent(GuardianVO.class, "rrnEncrypted");
+        assertJacksonPropertyAbsent(GuardianVO.class, "rrnFirst6");
+        assertJacksonPropertyAbsent(GuardianVO.class, "address");
         assertJacksonPropertyAbsent(TeacherVO.class, "rrnEncrypted");
+        assertJacksonPropertyAbsent(TeacherVO.class, "staffNo");
+        assertJacksonPropertyAbsent(TeacherVO.class, "rrnFirst6");
+        assertJacksonPropertyAbsent(TeacherVO.class, "emergencyContactName");
+        assertJacksonPropertyAbsent(TeacherVO.class, "emergencyContactPhone");
         assertJacksonPropertyAbsent(DeviceTokenVO.class, "pushToken");
         assertJacksonPropertyAbsent(EventEvidenceFileVO.class, "storageUri");
         assertJacksonPropertyAbsent(CameraStreamVO.class, "sourceUrl");
@@ -62,9 +73,9 @@ class SensitiveResponseContractTest {
         assertJacksonPropertyAbsent(CameraStreamVO.class, "streamPasswordCiphertext");
         assertJacksonPropertyAbsent(CameraStreamVO.class, "streamPasswordIv");
         assertJacksonPropertyAbsent(CameraStreamVO.class, "streamPasswordKeyVersion");
+        assertJacksonPropertyAbsent(CameraStreamVO.class, "playbackUrl");
         assertJacksonPropertyPresent(CameraStreamVO.class, "hasPassword");
         assertJacksonPropertyPresent(CameraStreamVO.class, "sourceProtocol");
-        assertJacksonPropertyPresent(CameraStreamVO.class, "playbackUrl");
         assertJacksonPropertyPresent(CameraStreamVO.class, "playbackProtocol");
     }
 
@@ -81,8 +92,6 @@ class SensitiveResponseContractTest {
         when(userService.getUser(1L)).thenReturn(new UserVO(
                 1L,
                 "guardian01",
-                "guardian01@example.com",
-                "010-1111-2222",
                 "ACTIVE",
                 OffsetDateTime.parse("2026-06-10T00:00:00Z"),
                 OffsetDateTime.parse("2026-06-01T00:00:00Z"),
@@ -93,10 +102,7 @@ class SensitiveResponseContractTest {
                 10L,
                 "Child One",
                 "C-001",
-                "200101",
-                LocalDate.parse("2020-01-01"),
                 "F",
-                "Seoul",
                 LocalDate.parse("2024-03-01"),
                 null,
                 "ACTIVE",
@@ -108,9 +114,7 @@ class SensitiveResponseContractTest {
                 10L,
                 20L,
                 "Guardian One",
-                "850101",
                 "F",
-                "Seoul",
                 "ACTIVE",
                 OffsetDateTime.parse("2026-06-01T00:00:00Z"),
                 OffsetDateTime.parse("2026-06-09T00:00:00Z")
@@ -119,12 +123,8 @@ class SensitiveResponseContractTest {
                 1L,
                 10L,
                 30L,
-                "T-001",
                 "Teacher One",
                 "M",
-                "Emergency Contact",
-                "010-3333-4444",
-                "880101",
                 "DIRECTOR",
                 LocalDate.parse("2024-03-01"),
                 null,
@@ -158,7 +158,6 @@ class SensitiveResponseContractTest {
                 "MAIN",
                 Boolean.TRUE,
                 "RTSP",
-                "https://stream.example/live.m3u8",
                 "HTTPS",
                 30,
                 "1920x1080",
@@ -170,38 +169,32 @@ class SensitiveResponseContractTest {
         ));
 
         MockMvc mockMvc = standaloneSetup(
-                new UserController(userService),
-                new ChildrenController(childrenService),
-                new GuardianController(guardianService),
-                new TeacherController(teacherService),
-                new DeviceTokenController(deviceTokenService),
-                new EventEvidenceFileController(eventEvidenceFileService),
+                new UserController(),
+                new ChildrenController(),
+                new GuardianController(),
+                new TeacherController(),
+                new DeviceTokenController(),
+                new EventEvidenceFileController(),
                 new CameraStreamController(cameraStreamService)
         ).build();
 
         mockMvc.perform(get("/api/v1/users/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/children/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rrnEncrypted").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/guardians/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rrnEncrypted").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/teachers/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rrnEncrypted").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/device_tokens/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pushToken").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/event_evidence_files/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.storageUri").doesNotExist());
+                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/camera_streams/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasPassword").value(true))
                 .andExpect(jsonPath("$.sourceProtocol").value("RTSP"))
-                .andExpect(jsonPath("$.playbackUrl").value("https://stream.example/live.m3u8"))
+                .andExpect(jsonPath("$.playbackUrl").doesNotExist())
                 .andExpect(jsonPath("$.playbackProtocol").value("HTTPS"))
                 .andExpect(jsonPath("$.sourceUrl").doesNotExist())
                 .andExpect(jsonPath("$.streamUser").doesNotExist())
@@ -215,9 +208,20 @@ class SensitiveResponseContractTest {
     @Test
     void generatedOpenApiSchemasDoNotExposeSensitiveStorageFields() {
         assertOpenApiPropertyAbsent(UserVO.class, "passwordHash");
+        assertOpenApiPropertyAbsent(UserVO.class, "email");
+        assertOpenApiPropertyAbsent(UserVO.class, "phone");
         assertOpenApiPropertyAbsent(ChildVO.class, "rrnEncrypted");
+        assertOpenApiPropertyAbsent(ChildVO.class, "rrnFirst6");
+        assertOpenApiPropertyAbsent(ChildVO.class, "birthDate");
+        assertOpenApiPropertyAbsent(ChildVO.class, "address");
         assertOpenApiPropertyAbsent(GuardianVO.class, "rrnEncrypted");
+        assertOpenApiPropertyAbsent(GuardianVO.class, "rrnFirst6");
+        assertOpenApiPropertyAbsent(GuardianVO.class, "address");
         assertOpenApiPropertyAbsent(TeacherVO.class, "rrnEncrypted");
+        assertOpenApiPropertyAbsent(TeacherVO.class, "staffNo");
+        assertOpenApiPropertyAbsent(TeacherVO.class, "rrnFirst6");
+        assertOpenApiPropertyAbsent(TeacherVO.class, "emergencyContactName");
+        assertOpenApiPropertyAbsent(TeacherVO.class, "emergencyContactPhone");
         assertOpenApiPropertyAbsent(DeviceTokenVO.class, "pushToken");
         assertOpenApiPropertyAbsent(EventEvidenceFileVO.class, "storageUri");
         assertOpenApiPropertyAbsent(CameraStreamVO.class, "sourceUrl");
@@ -227,9 +231,9 @@ class SensitiveResponseContractTest {
         assertOpenApiPropertyAbsent(CameraStreamVO.class, "streamPasswordCiphertext");
         assertOpenApiPropertyAbsent(CameraStreamVO.class, "streamPasswordIv");
         assertOpenApiPropertyAbsent(CameraStreamVO.class, "streamPasswordKeyVersion");
+        assertOpenApiPropertyAbsent(CameraStreamVO.class, "playbackUrl");
         assertOpenApiPropertyPresent(CameraStreamVO.class, "hasPassword");
         assertOpenApiPropertyPresent(CameraStreamVO.class, "sourceProtocol");
-        assertOpenApiPropertyPresent(CameraStreamVO.class, "playbackUrl");
         assertOpenApiPropertyPresent(CameraStreamVO.class, "playbackProtocol");
     }
 

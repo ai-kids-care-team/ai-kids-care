@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.entity.EventEvidenceFile;
 import com.ai_kids_care.v1.mapper.EventEvidenceFileMapper;
 import com.ai_kids_care.v1.repository.EventEvidenceFileRepository;
 import com.ai_kids_care.v1.vo.EventEvidenceFileVO;
@@ -25,11 +24,5 @@ public class EventEvidenceFileService {
     public EventEvidenceFileVO getEventEvidenceFile(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventEvidenceFile not found"));
-    }
-
-    public void deleteEventEvidenceFile(Long id) {
-        EventEvidenceFile entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("EventEvidenceFile not found"));
-        repository.delete(entity);
     }
 }

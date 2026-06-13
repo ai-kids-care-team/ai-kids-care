@@ -9,19 +9,7 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: defaultApiBaseUrl,
     prepareHeaders: (headers: Headers, { getState }: { getState: () => unknown }) => {
-      // 1. 먼저 Redux 스토어에서 토큰을 찾습니다.
-      let token = (getState() as RootState).user.token;
-
-      // 2. 💡 새로고침으로 인해 Redux가 날아갔다면? 브라우저 저장소에서 찾아옵니다.
-      // (Next.js의 SSR 환경 에러를 방지하기 위해 typeof window !== 'undefined' 체크 추가)
-      if (!token && typeof window !== 'undefined') {
-        token =
-          localStorage.getItem('accessToken') ??
-          localStorage.getItem('token') ??
-          null;
-      }
-
-      // 3. 토큰이 존재하면 헤더에 주입합니다.
+      const token = (getState() as RootState).user.token;
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
