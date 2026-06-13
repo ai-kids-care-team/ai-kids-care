@@ -79,6 +79,7 @@ nbdist/
 ######################################################################
 # Optional: ignore local-only tool configs
 # .tool-versions
+.ai/CHECKPOINT.local.md
 
 ######################################################################
 # Python (AI) - keep your existing section (original content)
