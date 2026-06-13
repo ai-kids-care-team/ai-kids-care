@@ -9,8 +9,6 @@ import java.time.OffsetDateTime;
 public record UserVO(
         Long userId,
         String loginId,
-        String email,
-        String phone,
         String status,
         OffsetDateTime lastLoginAt,
         OffsetDateTime createdAt,

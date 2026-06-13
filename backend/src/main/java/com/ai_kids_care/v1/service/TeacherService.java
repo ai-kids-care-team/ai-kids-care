@@ -1,7 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.TeacherUpdateDTO;
-import com.ai_kids_care.v1.entity.Teacher;
 import com.ai_kids_care.v1.mapper.TeacherMapper;
 import com.ai_kids_care.v1.repository.TeacherRepository;
 import com.ai_kids_care.v1.vo.TeacherVO;
@@ -39,18 +37,5 @@ public class TeacherService {
     public TeacherVO getTeacher(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
-    }
-
-    public TeacherVO updateTeacher(Long id, TeacherUpdateDTO updateDTO) {
-        Teacher entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteTeacher(Long id) {
-        Teacher entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Teacher not found"));
-        repository.delete(entity);
     }
 }

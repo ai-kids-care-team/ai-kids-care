@@ -1,5 +1,3 @@
-import { apiClient } from './apiClient';
-
 export type ChildGraph = {
   child: {
     childId: number;
@@ -18,14 +16,12 @@ export type ChildGraph = {
   teacher: {
     teacherId: number;
     name: string;
-    staffNo: string | null;
     level: string | null;
     status: string | null;
   } | null;
   kindergarten: {
     kindergartenId: number;
     name: string;
-    address: string | null;
     status: string | null;
   } | null;
   guardians: Array<{
@@ -38,13 +34,4 @@ export type ChildGraph = {
     priority: number | null;
   }>;
 };
-
-export async function getChildGraph(childId: number): Promise<ChildGraph> {
-  if (!Number.isFinite(childId) || childId <= 0) {
-    throw new Error('유효하지 않은 childId 입니다.');
-  }
-
-  const response = await apiClient.get<ChildGraph>(`/graph/children/${childId}`);
-  return response.data;
-}
 

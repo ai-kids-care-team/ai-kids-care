@@ -1,40 +1,11 @@
 package com.ai_kids_care.v1.controller;
 
-import com.ai_kids_care.v1.service.EventEvidenceFileService;
-import com.ai_kids_care.v1.vo.EventEvidenceFileVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name="EventEvidenceFile")
 @RestController
 @RequestMapping("/api/v1/event_evidence_files")
-@RequiredArgsConstructor
 public class EventEvidenceFileController {
-
-    private final EventEvidenceFileService service;
-
-    @GetMapping
-    public ResponseEntity<Page<EventEvidenceFileVO>> listEventEvidenceFile(
-            @RequestParam(required = false) String keyword,
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable
-    ) {
-        return ResponseEntity.ok(service.listEventEvidenceFiles(keyword, pageable));
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<EventEvidenceFileVO> getEventEvidenceFile(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getEventEvidenceFile(id));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEventEvidenceFile(@PathVariable Long id) {
-        service.deleteEventEvidenceFile(id);
-        return ResponseEntity.noContent().build();
-    }
 }

@@ -38,6 +38,7 @@ import java.lang.reflect.Constructor;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,6 +85,49 @@ class PublishedOpenApiContractTest {
             "keyversion"
     );
 
+    private static final Set<String> NORMALIZED_RESTRICTED_S1_SCHEMA_PROPERTIES = Set.of(
+            "email",
+            "phone",
+            "address",
+            "birthdate",
+            "rrnfirst6",
+            "rrnback7",
+            "childrrnfirst6",
+            "childrrnback7",
+            "emergencycontactname",
+            "emergencycontactphone",
+            "staffno",
+            "relationship",
+            "businessregistrationno",
+            "contactname",
+            "contactphone",
+            "contactemail",
+            "ip",
+            "useragent",
+            "dedupekey",
+            "failreason"
+    );
+
+    private static final Map<String, Set<String>> RESTRICTED_S1_COMMAND_ALLOWLIST = Map.of(
+            "AuthRegisterDTO", Set.of(
+                    "email",
+                    "phone",
+                    "address",
+                    "rrnfirst6",
+                    "rrnback7",
+                    "childrrnfirst6",
+                    "childrrnback7",
+                    "emergencycontactname",
+                    "emergencycontactphone",
+                    "staffno",
+                    "relationship"
+            ),
+            "GuardianChildVerificationRequest", Set.of(
+                    "childrrnfirst6",
+                    "childrrnback7"
+            )
+    );
+
     @org.springframework.beans.factory.annotation.Autowired
     private MockMvc mockMvc;
 
@@ -100,12 +144,19 @@ class PublishedOpenApiContractTest {
     void publishedOpenApiDoesNotExposeRemovedSensitiveFieldsOrClosedEndpoints() throws Exception {
         JsonNode apiDocs = readApiDocs();
 
-        assertComponentPropertyAbsent(apiDocs, "UserVO", "passwordHash");
-        assertComponentPropertyAbsent(apiDocs, "ChildVO", "rrnEncrypted");
-        assertComponentPropertyAbsent(apiDocs, "GuardianVO", "rrnEncrypted");
-        assertComponentPropertyAbsent(apiDocs, "TeacherVO", "rrnEncrypted");
-        assertComponentPropertyAbsent(apiDocs, "DeviceTokenVO", "pushToken");
-        assertComponentPropertyAbsent(apiDocs, "EventEvidenceFileVO", "storageUri");
+        assertComponentAbsent(apiDocs, "UserVO");
+        assertComponentAbsent(apiDocs, "ChildVO");
+        assertComponentAbsent(apiDocs, "GuardianVO");
+        assertComponentAbsent(apiDocs, "TeacherVO");
+        assertComponentHasOnlyProperties(apiDocs, "KindergartenVO", Set.of(
+                "kindergartenId", "name", "regionCode", "code", "status", "createdAt", "updatedAt"
+        ));
+        assertComponentHasOnlyProperties(apiDocs, "KindergartenLookupResponse", Set.of(
+                "kindergartenId", "name", "regionCode", "code", "status"
+        ));
+        assertComponentAbsent(apiDocs, "DeviceTokenVO");
+        assertComponentAbsent(apiDocs, "EventEvidenceFileVO");
+        assertComponentAbsent(apiDocs, "DetectionEventVO");
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "sourceUrl");
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "streamUser");
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "streamPassword");
@@ -113,9 +164,64 @@ class PublishedOpenApiContractTest {
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "streamPasswordCiphertext");
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "streamPasswordIv");
         assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "streamPasswordKeyVersion");
+        assertComponentPropertyAbsent(apiDocs, "CameraStreamVO", "playbackUrl");
         assertComponentPropertyPresent(apiDocs, "CameraStreamVO", "hasPassword");
-        assertComponentPropertyPresent(apiDocs, "CameraStreamVO", "playbackUrl");
         assertComponentPropertyPresent(apiDocs, "CameraStreamVO", "playbackProtocol");
+        assertComponentPropertyAbsent(apiDocs, "AuthRegisterDTO", "status");
+        assertComponentPropertyAbsent(apiDocs, "AuthRegisterDTO", "scopeType");
+        assertComponentPropertyAbsent(apiDocs, "AuthRegisterDTO", "scopeId");
+        assertComponentPropertyAbsent(apiDocs, "AuthRegisterDTO", "childId");
+        assertComponentHasOnlyProperties(apiDocs, "AuthRegisterDTO", Set.of(
+                "userRole",
+                "loginId",
+                "email",
+                "phone",
+                "password",
+                "kindergartenId",
+                "name",
+                "rrnFirst6",
+                "rrnBack7",
+                "gender",
+                "address",
+                "childRrnFirst6",
+                "childRrnBack7",
+                "relationship",
+                "primaryGuardian",
+                "emergencyContactName",
+                "emergencyContactPhone",
+                "level",
+                "staffNo",
+                "department"
+        ));
+        assertComponentPropertyPresent(apiDocs, "AuthRegisterDTO", "userRole");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "userRole");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "loginId");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "email");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "phone");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "password");
+        assertComponentRequiredProperty(apiDocs, "AuthRegisterDTO", "name");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "kindergartenId");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "rrnFirst6");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "rrnBack7");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "gender");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "address");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "childRrnFirst6");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "childRrnBack7");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "relationship");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "primaryGuardian");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "emergencyContactName");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "emergencyContactPhone");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "level");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "staffNo");
+        assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "department");
+        assertComponentRequiredProperty(apiDocs, "GuardianChildVerificationRequest", "childRrnFirst6");
+        assertComponentRequiredProperty(apiDocs, "GuardianChildVerificationRequest", "childRrnBack7");
+        assertComponentHasOnlyProperties(apiDocs, "GuardianChildVerificationRequest", Set.of(
+                "childRrnFirst6",
+                "childRrnBack7"
+        ));
+        assertComponentPropertyPresent(apiDocs, "GuardianChildVerificationResponse", "verified");
+        assertComponentHasOnlyProperties(apiDocs, "GuardianChildVerificationResponse", Set.of("verified"));
 
         assertComponentAbsent(apiDocs, "DeviceTokenCreateDTO");
         assertComponentAbsent(apiDocs, "DeviceTokenUpdateDTO");
@@ -123,36 +229,111 @@ class PublishedOpenApiContractTest {
         assertComponentAbsent(apiDocs, "EventEvidenceFileUpdateDTO");
         assertComponentAbsent(apiDocs, "CameraStreamCreateDTO");
         assertComponentAbsent(apiDocs, "CameraStreamUpdateDTO");
+        assertComponentAbsent(apiDocs, "UserCreateDTO");
+        assertComponentAbsent(apiDocs, "UserUpdateDTO");
+        assertComponentAbsent(apiDocs, "ChildCreateDTO");
+        assertComponentAbsent(apiDocs, "ChildUpdateDTO");
+        assertComponentAbsent(apiDocs, "GuardianCreateDTO");
+        assertComponentAbsent(apiDocs, "GuardianUpdateDTO");
+        assertComponentAbsent(apiDocs, "TeacherCreateDTO");
+        assertComponentAbsent(apiDocs, "TeacherUpdateDTO");
+        assertComponentAbsent(apiDocs, "DetectionEventCreateDTO");
+        assertComponentAbsent(apiDocs, "DetectionEventUpdateDTO");
+        assertComponentAbsent(apiDocs, "DetectionSessionCreateDTO");
+        assertComponentAbsent(apiDocs, "DetectionSessionUpdateDTO");
+        assertComponentAbsent(apiDocs, "EventReviewCreateDTO");
+        assertComponentAbsent(apiDocs, "EventReviewUpdateDTO");
+        assertComponentAbsent(apiDocs, "CctvCameraCreateDTO");
+        assertComponentAbsent(apiDocs, "CctvCameraUpdateDTO");
+        assertComponentAbsent(apiDocs, "NotificationRuleCreateDTO");
+        assertComponentAbsent(apiDocs, "NotificationRuleUpdateDTO");
+        assertComponentAbsent(apiDocs, "SuperadminCreateDTO");
+        assertComponentAbsent(apiDocs, "SuperadminUpdateDTO");
+        assertComponentAbsent(apiDocs, "AppreciationLetterCreateDTO");
+        assertComponentAbsent(apiDocs, "AppreciationLetterUpdateDTO");
+        assertComponentAbsent(apiDocs, "KindergartenCreateDTO");
+        assertComponentAbsent(apiDocs, "KindergartenUpdateDTO");
+        assertComponentAbsent(apiDocs, "ChildGraphVO");
+        assertComponentAbsent(apiDocs, "AuditLogVO");
+        assertComponentAbsent(apiDocs, "NotificationVO");
+        assertComponentAbsent(apiDocs, "NotificationCreateDTO");
+        assertComponentAbsent(apiDocs, "NotificationUpdateDTO");
+        assertComponentAbsent(apiDocs, "AuthLogoutDTO");
+        assertComponentAbsent(apiDocs, "ChangePasswordRequest");
+        assertComponentAbsent(apiDocs, "AuthPasswordResetDTO");
+        assertComponentAbsent(apiDocs, "AuthPasswordResetsVO");
+        assertComponentAbsent(apiDocs, "ResetPasswordRequest");
+        assertComponentAbsent(apiDocs, "VerificationCodeCreateRequest");
+        assertComponentAbsent(apiDocs, "VerificationCodeCreateVO");
+        assertComponentAbsent(apiDocs, "VerifyVerificationCodeRequest");
+        assertComponentAbsent(apiDocs, "VerifyVerificationCodeVO");
 
-        assertOperationAbsent(apiDocs, "/api/v1/users", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/children", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/guardians", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/teachers", "post");
+        assertPathAbsent(apiDocs, "/api/v1/users");
+        assertPathAbsent(apiDocs, "/api/v1/users/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/children");
+        assertPathAbsent(apiDocs, "/api/v1/children/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/guardians");
+        assertPathAbsent(apiDocs, "/api/v1/guardians/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/teachers");
+        assertPathAbsent(apiDocs, "/api/v1/teachers/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/children/rrn");
+        assertOperationPresent(apiDocs, "/api/v1/auth/guardian-child-verifications", "post");
+        assertPathAbsent(apiDocs, "/api/v1/auth/logout");
+        assertPathAbsent(apiDocs, "/api/v1/auth/password");
+        assertPathAbsent(apiDocs, "/api/v1/auth/password-resets");
+        assertPathAbsent(apiDocs, "/api/v1/auth/password-resets/{resetToken}");
+        assertPathAbsent(apiDocs, "/api/v1/auth/verification-codes");
+        assertPathAbsent(apiDocs, "/api/v1/auth/verification-codes/{challengeId}/verifications");
 
-        assertOperationPresent(apiDocs, "/api/v1/device_tokens", "get");
-        assertOperationPresent(apiDocs, "/api/v1/device_tokens/{id}", "get");
-        assertOperationPresent(apiDocs, "/api/v1/device_tokens/{id}", "delete");
-        assertOperationAbsent(apiDocs, "/api/v1/device_tokens", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/device_tokens/{id}", "put");
-
-        assertOperationPresent(apiDocs, "/api/v1/event_evidence_files", "get");
-        assertOperationPresent(apiDocs, "/api/v1/event_evidence_files/{id}", "get");
-        assertOperationPresent(apiDocs, "/api/v1/event_evidence_files/{id}", "delete");
-        assertOperationAbsent(apiDocs, "/api/v1/event_evidence_files", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/event_evidence_files/{id}", "put");
+        assertPathAbsent(apiDocs, "/api/v1/device_tokens");
+        assertPathAbsent(apiDocs, "/api/v1/device_tokens/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/event_evidence_files");
+        assertPathAbsent(apiDocs, "/api/v1/event_evidence_files/{id}");
 
         assertOperationPresent(apiDocs, "/api/v1/camera_streams", "get");
         assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "get");
-        assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "delete");
         assertOperationAbsent(apiDocs, "/api/v1/camera_streams", "post");
         assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "put");
+        assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "delete");
 
-        assertOperationPresent(apiDocs, "/api/v1/audit_logs", "get");
-        assertOperationPresent(apiDocs, "/api/v1/audit_logs/{id}", "get");
-        assertOperationAbsent(apiDocs, "/api/v1/audit_logs", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/audit_logs/{id}", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/audit_logs/{id}", "put");
-        assertOperationAbsent(apiDocs, "/api/v1/audit_logs/{id}", "delete");
+        assertPathAbsent(apiDocs, "/api/v1/detection_events");
+        assertPathAbsent(apiDocs, "/api/v1/detection_events/{id}");
+
+        assertOperationPresent(apiDocs, "/api/v1/detection_sessions", "get");
+        assertOperationPresent(apiDocs, "/api/v1/detection_sessions/{id}", "get");
+        assertOperationAbsent(apiDocs, "/api/v1/detection_sessions", "post");
+        assertOperationAbsent(apiDocs, "/api/v1/detection_sessions/{id}", "put");
+        assertOperationAbsent(apiDocs, "/api/v1/detection_sessions/{id}", "delete");
+
+        assertOperationPresent(apiDocs, "/api/v1/cctv_cameras", "get");
+        assertOperationPresent(apiDocs, "/api/v1/cctv_cameras/{id}", "get");
+        assertOperationAbsent(apiDocs, "/api/v1/cctv_cameras", "post");
+        assertOperationAbsent(apiDocs, "/api/v1/cctv_cameras/{id}", "put");
+        assertOperationAbsent(apiDocs, "/api/v1/cctv_cameras/{id}", "delete");
+
+        assertOperationPresent(apiDocs, "/api/v1/kindergartens", "get");
+        assertOperationPresent(apiDocs, "/api/v1/kindergartens/{id}", "get");
+        assertOperationPresent(apiDocs,
+                "/api/v1/kindergartens/business-registration-no/{businessRegistrationNo}",
+                "get");
+        assertOperationAbsent(apiDocs, "/api/v1/kindergartens", "post");
+        assertOperationAbsent(apiDocs, "/api/v1/kindergartens/{id}", "put");
+        assertOperationAbsent(apiDocs, "/api/v1/kindergartens/{id}", "delete");
+
+        assertPathAbsent(apiDocs, "/api/v1/graph/children/{childId}");
+        assertPathAbsent(apiDocs, "/api/v1/audit_logs");
+        assertPathAbsent(apiDocs, "/api/v1/audit_logs/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/notifications");
+        assertPathAbsent(apiDocs, "/api/v1/notifications/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/event_reviews");
+        assertPathAbsent(apiDocs, "/api/v1/event_reviews/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/event_reviews/{eventId}/latest");
+        assertPathAbsent(apiDocs, "/api/v1/notification_rules");
+        assertPathAbsent(apiDocs, "/api/v1/notification_rules/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/superadmins");
+        assertPathAbsent(apiDocs, "/api/v1/superadmins/{id}");
+        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters");
+        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters/{id}");
     }
 
     @Test
@@ -177,6 +358,32 @@ class PublishedOpenApiContractTest {
         assertThat(collectPropertyNames(apiDocs))
                 .as("Published component and inline schemas must not expose denied sensitive properties")
                 .noneMatch(this::isDeniedSensitiveProperty);
+    }
+
+    @Test
+    void restrictedS1PropertiesOnlyAppearInApprovedDedicatedCommandSchemas() throws Exception {
+        JsonNode schemas = readApiDocs().path("components").path("schemas");
+
+        schemas.fields().forEachRemaining(schemaEntry -> {
+            String schemaName = schemaEntry.getKey();
+            Set<String> allowedProperties = RESTRICTED_S1_COMMAND_ALLOWLIST
+                    .getOrDefault(schemaName, Set.of());
+            JsonNode properties = schemaEntry.getValue().path("properties");
+            if (!properties.isObject()) {
+                return;
+            }
+
+            properties.fieldNames().forEachRemaining(propertyName -> {
+                String normalized = normalizePropertyName(propertyName);
+                if (!NORMALIZED_RESTRICTED_S1_SCHEMA_PROPERTIES.contains(normalized)) {
+                    return;
+                }
+
+                assertThat(allowedProperties)
+                        .as("%s must not publish restricted S1 property %s", schemaName, propertyName)
+                        .contains(normalized);
+            });
+        });
     }
 
     @Test
@@ -299,6 +506,38 @@ class PublishedOpenApiContractTest {
                 .isTrue();
     }
 
+    private void assertComponentRequiredProperty(JsonNode apiDocs, String schemaName, String propertyName) {
+        JsonNode requiredProperties = apiDocs.path("components").path("schemas").path(schemaName).path("required");
+        assertThat(requiredProperties.isArray())
+                .as("Expected component schema %s to publish required properties", schemaName)
+                .isTrue();
+        assertThat(requiredProperties)
+                .extracting(JsonNode::asText)
+                .as("%s schema must require %s", schemaName, propertyName)
+                .contains(propertyName);
+    }
+
+    private void assertComponentOptionalProperty(JsonNode apiDocs, String schemaName, String propertyName) {
+        assertComponentPropertyPresent(apiDocs, schemaName, propertyName);
+        JsonNode requiredProperties = apiDocs.path("components").path("schemas").path(schemaName).path("required");
+        assertThat(requiredProperties)
+                .extracting(JsonNode::asText)
+                .as("%s schema must not globally require role-specific property %s", schemaName, propertyName)
+                .doesNotContain(propertyName);
+    }
+
+    private void assertComponentHasOnlyProperties(JsonNode apiDocs, String schemaName, Set<String> expectedProperties) {
+        JsonNode properties = apiDocs.path("components").path("schemas").path(schemaName).path("properties");
+        assertThat(properties.isObject())
+                .as("Expected component schema %s to publish properties", schemaName)
+                .isTrue();
+        Set<String> actualProperties = new LinkedHashSet<>();
+        properties.fieldNames().forEachRemaining(actualProperties::add);
+        assertThat(actualProperties)
+                .as("%s schema must expose only the approved properties", schemaName)
+                .isEqualTo(expectedProperties);
+    }
+
     private void assertComponentAbsent(JsonNode apiDocs, String schemaName) {
         JsonNode schemas = apiDocs.path("components").path("schemas");
         assertThat(schemas.isObject())
@@ -329,6 +568,30 @@ class PublishedOpenApiContractTest {
                 .isFalse();
     }
 
+    private void assertRequiredQueryParameter(
+            JsonNode apiDocs,
+            String path,
+            String httpMethod,
+            String parameterName
+    ) {
+        JsonNode parameters = apiDocs.path("paths").path(path).path(httpMethod).path("parameters");
+        assertThat(parameters.isArray())
+                .as("Expected %s %s to publish parameters", httpMethod.toUpperCase(), path)
+                .isTrue();
+        assertThat(parameters)
+                .as("%s %s must require query parameter %s", httpMethod.toUpperCase(), path, parameterName)
+                .anyMatch(parameter ->
+                        parameterName.equals(parameter.path("name").asText())
+                                && "query".equals(parameter.path("in").asText())
+                                && parameter.path("required").asBoolean());
+    }
+
+    private void assertPathAbsent(JsonNode apiDocs, String path) {
+        assertThat(apiDocs.path("paths").has(path))
+                .as("OpenAPI path %s must not be published", path)
+                .isFalse();
+    }
+
     private Set<String> collectPropertyNames(JsonNode schemaNode) {
         Set<String> propertyNames = new LinkedHashSet<>();
         collectPropertyNames(schemaNode, propertyNames);
@@ -336,8 +599,7 @@ class PublishedOpenApiContractTest {
     }
 
     private boolean isDeniedSensitiveProperty(String propertyName) {
-        String normalized = propertyName.replaceAll("[^A-Za-z0-9]", "")
-                .toLowerCase(Locale.ROOT);
+        String normalized = normalizePropertyName(propertyName);
         if (NORMALIZED_SENSITIVE_SCHEMA_PROPERTY_DENYLIST.contains(normalized)) {
             return true;
         }
@@ -349,6 +611,11 @@ class PublishedOpenApiContractTest {
                 && (normalized.contains("ciphertext")
                 || normalized.endsWith("iv")
                 || normalized.contains("keyversion"));
+    }
+
+    private String normalizePropertyName(String propertyName) {
+        return propertyName.replaceAll("[^A-Za-z0-9]", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private void collectPropertyNames(JsonNode schemaNode, Set<String> propertyNames) {

@@ -1,5 +1,3 @@
-import { apiClient } from './apiClient';
-
 export type DetectionEventListItem = {
   eventId: number;
   kindergartenId: number | null;
@@ -57,6 +55,7 @@ export type PageResponse<T> = {
 export const DETECTION_EVENTS_LIST_PAGE_SIZE = 4;
 
 export type GetDetectionEventsParams = {
+  kindergartenId: number;
   keyword?: string;
   page?: number;
   size?: number;
@@ -64,66 +63,20 @@ export type GetDetectionEventsParams = {
 };
 
 export type DetectionEventDetail = DetectionEventListItem;
-export type DetectionEventUpdateDTO = {
-  status: 'OPEN' | 'ACKNOWLEDGED' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED';
-};
 
 export async function getDetectionEvents(
-  params?: GetDetectionEventsParams,
+  params: GetDetectionEventsParams,
 ): Promise<PageResponse<DetectionEventListItem>> {
-  const page = params?.page ?? 0;
-  const size = params?.size ?? DETECTION_EVENTS_LIST_PAGE_SIZE;
-  const keyword = params?.keyword?.trim();
-  const sort = params?.sort;
-
-  const response = await apiClient.get<PageResponse<DetectionEventListItem>>('/detection_events', {
-    params: {
-      page,
-      size,
-      ...(keyword ? { keyword } : {}),
-      ...(sort ? { sort } : {}),
-    },
-  });
-
-  return response.data;
+  void params;
+  throw new Error('Detection event reads are unavailable until tenant authorization exists');
 }
 
-const detectionEventDetailInFlight = new Map<number, Promise<DetectionEventDetail>>();
-
-export async function getDetectionEventDetail(id: number): Promise<DetectionEventDetail> {
-  const inFlight = detectionEventDetailInFlight.get(id);
-  if (inFlight) return inFlight;
-
-  const request = apiClient
-    .get<DetectionEventDetail>(`/detection_events/${id}`)
-    .then((response) => response.data)
-    .finally(() => {
-      detectionEventDetailInFlight.delete(id);
-    });
-
-  detectionEventDetailInFlight.set(id, request);
-  return request;
-}
-
-export async function updateDetectionEvent(
+export async function getDetectionEventDetail(
   id: number,
-  dto: DetectionEventUpdateDTO,
+  kindergartenId: number,
 ): Promise<DetectionEventDetail> {
-  if (!Number.isFinite(id) || id <= 0) {
-    throw new Error('유효하지 않은 이벤트 ID입니다.');
-  }
-
-  const payload = {
-    status: dto.status,
-  };
-
-  const response = await apiClient.put<DetectionEventDetail | { data?: DetectionEventDetail }>(
-    `/detection_events/${id}`,
-    payload,
-  );
-
-  const body: any = response.data;
-  const candidate = body?.data ?? body;
-  return candidate as DetectionEventDetail;
+  void id;
+  void kindergartenId;
+  throw new Error('Detection event reads are unavailable until tenant authorization exists');
 }
 

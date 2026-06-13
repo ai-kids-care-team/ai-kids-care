@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT } from '@/components/auth/(signup)/PlatformItAdminForm';
-import { fetchRegisterFieldAvailability, useLoginMutation } from '@/services/apis/auth.api';
-import { useAppDispatch } from '@/store/hook';
-import { setCredentials } from '@/store/slices/userSlice';
-import type { UserRole } from '@/types/user-role';
+import { fetchRegisterFieldAvailability, type RegisterRequest } from '@/services/apis/auth.api';
 import { API_BASE_URL } from '@/config/api';
-import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
-type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN' | 'PLATFORM_IT_ADMIN';
+type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN';
 type FieldErrorKey =
   | 'name'
   | 'loginId'
@@ -26,30 +20,6 @@ type FieldErrorKey =
   | 'rrn'
   | 'relationship'
   | 'agreeTerms';
-type ChildLookupItem = {
-  childId: number;
-  kindergartenId: number;
-  classId: number | null;
-  className: string | null;
-  name: string;
-  childNo: string | null;
-  birthDate: string | null;
-  gender: string | null;
-};
-
-type ChildApiItem = {
-  childId?: number;
-  id?: number;
-  kindergartenId?: number;
-  classId?: number | null;
-  className?: string | null;
-  name?: string;
-  childNo?: string | null;
-  birthDate?: string | null;
-  gender?: string | null;
-  kindergarten?: { id?: number };
-  class?: { id?: number; name?: string | null };
-};
 type GenderChoice = 'MALE' | 'FEMALE' | '';
 type CommonCodeItem = {
   codeGroup: string;
@@ -63,12 +33,7 @@ type KindergartenLookupItem = {
   kindergartenId: number;
   name: string;
   code: string | null;
-  address: string | null;
   regionCode: string | null;
-  businessRegistrationNo: string | null;
-  contactName: string | null;
-  contactPhone: string | null;
-  contactEmail: string | null;
   status: string | null;
 };
 
@@ -187,7 +152,7 @@ function buildSignupFieldErrors(args: {
   form: SignupFormState;
   memberType: MemberType;
   agreeTerms: boolean;
-  selectedChild: ChildLookupItem | null;
+  isChildVerified: boolean;
   selectedKindergarten: KindergartenLookupItem | null;
   rrnFirst6: string;
   rrnBack7: string;
@@ -198,7 +163,7 @@ function buildSignupFieldErrors(args: {
     form,
     memberType,
     agreeTerms,
-    selectedChild,
+    isChildVerified,
     selectedKindergarten,
     rrnFirst6,
     rrnBack7,
@@ -227,7 +192,7 @@ function buildSignupFieldErrors(args: {
   }
 
   if (memberType === 'GUARDIAN') {
-    if (!selectedChild) e.child = '아이 찾기에서 아이를 선택해주세요.';
+    if (!isChildVerified) e.child = '아이 주민등록번호를 먼저 확인해주세요.';
     if (rrnFirst6.length !== 6 || rrnBack7.length !== 7) e.rrn = '주민등록번호를 정확히 입력해주세요.';
     if (!relationship) e.relationship = '관계를 선택해주세요.';
     else if (relationship === 'OTHER' && !customRelationship.trim()) {
@@ -298,33 +263,24 @@ async function fetchAccountFieldDuplicatesOnSubmit(
   return out;
 }
 
-/** 원장(DIRECTOR) → 백엔드 KINDERGARTEN_ADMIN, 그 외 직급 → TEACHER 역할 */
+/** 원장/부원장 → 백엔드 KINDERGARTEN_ADMIN, 그 외 직급 → TEACHER 역할 */
 const mapKindergartenSignupUserRole = (levelCode: string): 'KINDERGARTEN_ADMIN' | 'TEACHER' =>
-  levelCode === 'DIRECTOR' || levelCode === 'PRINCIPAL' ? 'KINDERGARTEN_ADMIN' : 'TEACHER';
+  levelCode === 'DIRECTOR' ||
+  levelCode === 'VICE_DIRECTOR' ||
+  levelCode === 'PRINCIPAL' ||
+  levelCode === 'VICE_PRINCIPAL'
+    ? 'KINDERGARTEN_ADMIN'
+    : 'TEACHER';
 
 export function useSignupForm() {
-  const router = useRouter();
-  const dispatch = useAppDispatch();
-  const [loginApi] = useLoginMutation();
-
   const [form, setForm] = useState(INITIAL_FORM_STATE);
 
-  // 인증 관련 추가 상태 (현재는 UI에서 숨겨둠)
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isCodeSent, setIsCodeSent] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-  const [verificationMessage, setVerificationMessage] = useState('');
-
   const [memberType, setMemberType] = useState<MemberType>('GUARDIAN');
-  const [childNameKeyword, setChildNameKeyword] = useState('');
-  const [selectedChild, setSelectedChild] = useState<ChildLookupItem | null>(null);
-  const [isChildPopupOpen, setIsChildPopupOpen] = useState(false);
   const [childSearchFirst6, setChildSearchFirst6] = useState('');
   const [childSearchBack7, setChildSearchBack7] = useState('');
-  const [childSearchResults, setChildSearchResults] = useState<ChildLookupItem[]>([]);
-  const [isChildSearching, setIsChildSearching] = useState(false);
-  const [childSearchError, setChildSearchError] = useState('');
+  const [isChildVerified, setIsChildVerified] = useState(false);
+  const [isChildVerifying, setIsChildVerifying] = useState(false);
+  const [childVerificationMessage, setChildVerificationMessage] = useState('');
   /** 사업자등록번호 10자리 — 화면은 3-2-5 분할 입력 (예: 599-91-66110 ) */
   const [kindergartenBizPart1, setKindergartenBizPart1] = useState('');
   const [kindergartenBizPart2, setKindergartenBizPart2] = useState('');
@@ -347,6 +303,7 @@ export function useSignupForm() {
   const [teacherLevelOptions, setTeacherLevelOptions] = useState<CommonCodeItem[]>(FALLBACK_TEACHER_LEVEL_OPTIONS);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldErrorKey, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -425,7 +382,7 @@ export function useSignupForm() {
         gender &&
         relationship &&
         (relationship !== 'OTHER' || customRelationship.trim()) &&
-        selectedChild
+        isChildVerified
       );
     }
 
@@ -455,7 +412,7 @@ export function useSignupForm() {
     gender,
     relationship,
     customRelationship,
-    selectedChild,
+    isChildVerified,
     selectedKindergarten,
     agreeTerms,
     accountDuplicateBlocked,
@@ -466,12 +423,7 @@ export function useSignupForm() {
     setForm((prev) => ({ ...prev, [key]: nextValue }));
     setFieldErrors((prev) => ({ ...prev, [key]: '' }));
     setError('');
-    if (key === 'phone') {
-      setIsCodeSent(false);
-      setIsVerified(false);
-      setVerificationCode('');
-      setVerificationMessage('');
-    }
+    setSuccessMessage('');
   };
 
   const handleMemberTypeChange = (nextType: MemberType) => {
@@ -481,22 +433,14 @@ export function useSignupForm() {
     setForm(INITIAL_FORM_STATE);
     setFieldErrors({});
     setError('');
+    setSuccessMessage('');
     setAgreeTerms(false);
 
-    setVerificationCode('');
-    setIsCodeSent(false);
-    setIsVerifying(false);
-    setIsVerified(false);
-    setVerificationMessage('');
-
-    setChildNameKeyword('');
-    setSelectedChild(null);
-    setIsChildPopupOpen(false);
     setChildSearchFirst6('');
     setChildSearchBack7('');
-    setChildSearchResults([]);
-    setIsChildSearching(false);
-    setChildSearchError('');
+    setIsChildVerified(false);
+    setIsChildVerifying(false);
+    setChildVerificationMessage('');
 
     setKindergartenBizPart1('');
     setKindergartenBizPart2('');
@@ -513,59 +457,6 @@ export function useSignupForm() {
     setIsPrimaryGuardian(false);
     setRelationship('');
     setCustomRelationship('');
-  };
-
-  // 💡 인증코드 발송 로직 (추후 활성화를 위해 함수는 유지)
-  const handleSendVerificationCode = async () => {
-    if (!form.phone.trim()) {
-      setVerificationMessage('연락처를 입력해주세요.');
-      return;
-    }
-
-    setIsVerifying(true);
-    setVerificationMessage('');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verification-codes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'PHONE', target: digitsOnlyPhone(form.phone) }),
-      });
-
-      if (!response.ok) throw new Error('인증코드 발송에 실패했습니다.');
-
-      setIsCodeSent(true);
-      setVerificationMessage('인증코드가 발송되었습니다. (3분 이내 입력)');
-    } catch (err) {
-      setVerificationMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  // 💡 인증코드 확인 로직 (추후 활성화를 위해 함수는 유지)
-  const handleVerifyCode = async () => {
-    if (!verificationCode.trim()) return;
-
-    setIsVerifying(true);
-    setVerificationMessage('');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verification-codes/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: digitsOnlyPhone(form.phone), code: verificationCode }),
-      });
-
-      if (!response.ok) throw new Error('잘못된 인증코드이거나 만료되었습니다.');
-
-      setIsVerified(true);
-      setVerificationMessage('연락처 인증이 완료되었습니다.');
-    } catch (err) {
-      setVerificationMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
-    } finally {
-      setIsVerifying(false);
-    }
   };
 
   const onRrnBack7Change = (value: string) => {
@@ -624,89 +515,47 @@ export function useSignupForm() {
     }
   }, [filteredRelationshipOptions, relationship]);
 
-  const searchChildren = async (first6Input: string, back7Input: string) => {
+  const verifyChild = async (first6Input: string, back7Input: string) => {
     const first6 = first6Input.replace(/\D/g, '').slice(0, 6);
     const back7 = back7Input.replace(/\D/g, '').slice(0, 7);
 
     if (!first6 || !back7) {
-      setChildSearchError('주민등록번호 앞6자리와 뒷7자리를 모두 입력해주세요.');
-      setChildSearchResults([]);
+      setChildVerificationMessage('주민등록번호 앞6자리와 뒷7자리를 모두 입력해주세요.');
+      setIsChildVerified(false);
       return;
     }
 
     if (first6.length !== 6 || back7.length !== 7) {
-      setChildSearchError('형식이 올바르지 않습니다. 앞6자리 / 뒷7자리 숫자로 입력해주세요.');
-      setChildSearchResults([]);
+      setChildVerificationMessage('형식이 올바르지 않습니다. 앞6자리 / 뒷7자리 숫자로 입력해주세요.');
+      setIsChildVerified(false);
       return;
     }
-    setChildSearchError('');
-    setIsChildSearching(true);
+    setChildVerificationMessage('');
+    setIsChildVerifying(true);
     try {
-      const candidateUrls = [
-        `${API_BASE_URL}/children/rrn?rrn_First6=${encodeURIComponent(first6)}&rrn_Last7=${encodeURIComponent(back7)}`,
-      ];
-
-      let data: ChildLookupItem[] | null = null;
-
-      for (const url of candidateUrls) {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('아이 조회 권한이 없습니다. 로그인 상태 또는 백엔드 권한 설정을 확인해주세요.');
-          }
-          continue;
-        }
-
-        const payload = await response.json();
-        const rawItems: ChildApiItem[] = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.content)
-            ? payload.content
-            : (payload && typeof payload === 'object' ? [payload as ChildApiItem] : []);
-
-        data = rawItems
-          .map((item) => {
-            const childId = Number(item.childId ?? item.id ?? 0);
-            const kindergartenId = Number(item.kindergartenId ?? item.kindergarten?.id ?? 0);
-            const classId =
-              item.classId !== undefined
-                ? item.classId
-                : (item.class?.id ?? null);
-            const className =
-              item.className !== undefined
-                ? item.className
-                : (item.class?.name ?? null);
-
-            return {
-              childId,
-              kindergartenId,
-              classId,
-              className,
-              name: item.name ?? '',
-              childNo: item.childNo ?? null,
-              birthDate: item.birthDate ?? null,
-              gender: item.gender ?? null,
-            } satisfies ChildLookupItem;
-          })
-          .filter((item) => item.childId > 0 && item.name);
-        break;
+      const response = await fetch(`${API_BASE_URL}/auth/guardian-child-verifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          childRrnFirst6: first6,
+          childRrnBack7: back7,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('아이 정보 확인에 실패했습니다.');
       }
 
-      if (!data) {
-        throw new Error('아이 조회에 실패했습니다.');
-      }
-
-      setChildSearchResults(data);
-      if (data.length === 0) setChildSearchError('검색 결과가 없습니다.');
+      const payload = (await response.json()) as { verified?: boolean };
+      const verified = payload.verified === true;
+      setIsChildVerified(verified);
+      setChildVerificationMessage(
+        verified ? '아이 정보가 확인되었습니다.' : '입력한 정보와 일치하는 아이를 확인할 수 없습니다.'
+      );
     } catch (err) {
-      setChildSearchResults([]);
-      setChildSearchError(err instanceof Error ? err.message : '아이 조회에 실패했습니다.');
+      setIsChildVerified(false);
+      setChildVerificationMessage(err instanceof Error ? err.message : '아이 정보 확인에 실패했습니다.');
     } finally {
-      setIsChildSearching(false);
+      setIsChildVerifying(false);
     }
   };
 
@@ -745,19 +594,16 @@ export function useSignupForm() {
     }
   };
 
-  const openChildPopup = () => {
-    setChildSearchResults([]);
-    setChildSearchError('');
-    setIsChildPopupOpen(true);
-    if (childSearchFirst6.length === 6 && childSearchBack7.length === 7) {
-      void searchChildren(childSearchFirst6, childSearchBack7);
-    }
+  const updateChildSearchFirst6 = (value: string) => {
+    setChildSearchFirst6(value);
+    setIsChildVerified(false);
+    setChildVerificationMessage('');
   };
 
-  const selectChild = (child: ChildLookupItem) => {
-    setSelectedChild(child);
-    setChildNameKeyword(`${childSearchFirst6}-${childSearchBack7}`);
-    setIsChildPopupOpen(false);
+  const updateChildSearchBack7 = (value: string) => {
+    setChildSearchBack7(value);
+    setIsChildVerified(false);
+    setChildVerificationMessage('');
   };
 
   const openKindergartenPopup = () => {
@@ -770,12 +616,6 @@ export function useSignupForm() {
 
   const selectKindergarten = (kindergarten: KindergartenLookupItem) => {
     setSelectedKindergarten(kindergarten);
-    const digits = (kindergarten.businessRegistrationNo ?? '').replace(/\D/g, '');
-    if (digits.length === 10) {
-      setKindergartenBizPart1(digits.slice(0, 3));
-      setKindergartenBizPart2(digits.slice(3, 5));
-      setKindergartenBizPart3(digits.slice(5, 10));
-    }
     setIsKindergartenPopupOpen(false);
   };
 
@@ -795,7 +635,7 @@ export function useSignupForm() {
       form,
       memberType,
       agreeTerms,
-      selectedChild,
+      isChildVerified,
       selectedKindergarten,
       rrnFirst6,
       rrnBack7,
@@ -824,8 +664,7 @@ export function useSignupForm() {
     if (
       memberType !== 'GUARDIAN' &&
       memberType !== 'KINDERGARTEN' &&
-      memberType !== 'SUPERADMIN' &&
-      memberType !== 'PLATFORM_IT_ADMIN'
+      memberType !== 'SUPERADMIN'
     ) {
       setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
       return;
@@ -835,13 +674,11 @@ export function useSignupForm() {
 
     setIsSubmitting(true);
     try {
-      // 백엔드 AuthRegisterRequest 스펙에 맞춤 (status 는 서버에서 ACTIVE 고정, 히든으로만 전송)
-      let registerBody: Record<string, unknown>;
+      let registerBody: RegisterRequest;
 
       if (memberType === 'GUARDIAN') {
         registerBody = {
           userRole: 'GUARDIAN',
-          status: 'ACTIVE',
           loginId: form.loginId,
           password: form.password,
           email: form.email,
@@ -851,8 +688,6 @@ export function useSignupForm() {
           rrnBack7,
           gender,
           address: '',
-          kindergartenId: selectedChild!.kindergartenId,
-          childId: selectedChild!.childId,
           childRrnFirst6: childSearchFirst6,
           childRrnBack7: childSearchBack7,
           relationship,
@@ -861,7 +696,6 @@ export function useSignupForm() {
       } else if (memberType === 'KINDERGARTEN') {
         registerBody = {
           userRole: mapKindergartenSignupUserRole(form.level),
-          status: 'ACTIVE',
           loginId: form.loginId,
           password: form.password,
           email: form.email,
@@ -879,24 +713,12 @@ export function useSignupForm() {
       } else if (memberType === 'SUPERADMIN') {
         registerBody = {
           userRole: 'SUPERADMIN',
-          status: 'ACTIVE',
           loginId: form.loginId,
           password: form.password,
           email: form.email,
           phone: phoneDigits,
           name: form.name.trim(),
           department: form.department.trim(),
-        };
-      } else if (memberType === 'PLATFORM_IT_ADMIN') {
-        registerBody = {
-          userRole: 'PLATFORM_IT_ADMIN',
-          status: 'ACTIVE',
-          loginId: form.loginId,
-          password: form.password,
-          email: form.email,
-          phone: phoneDigits,
-          name: form.name.trim(),
-          department: PLATFORM_IT_ADMIN_DEFAULT_DEPARTMENT,
         };
       } else {
         setError('선택한 회원유형은 아직 회원가입을 지원하지 않습니다.');
@@ -917,58 +739,7 @@ export function useSignupForm() {
         throw new Error(backendError);
       }
 
-      // 회원가입 직후 자동 로그인 처리 (로그인 상태 유지)
-      const loginResponse = await loginApi({
-        identifier: form.loginId,
-        password: form.password,
-      }).unwrap();
-
-      const responseLoginId = loginResponse?.loginId ?? form.loginId;
-      const role = loginResponse?.role ?? 'GUARDIAN';
-      const token = loginResponse?.accessToken ?? loginResponse?.token ?? '';
-      const refreshToken = loginResponse?.refreshToken ?? '';
-      const name = loginResponse?.name;
-      const signupKindergartenId =
-        memberType === 'GUARDIAN' && selectedChild && selectedChild.kindergartenId > 0
-          ? selectedChild.kindergartenId
-          : memberType === 'KINDERGARTEN' && selectedKindergarten && selectedKindergarten.kindergartenId > 0
-            ? selectedKindergarten.kindergartenId
-            : undefined;
-      const responseIdRaw = loginResponse?.id;
-      const responseIdNum = Number(responseIdRaw);
-      const numericUserId =
-        Number.isFinite(responseIdNum) && responseIdNum > 0 ? Math.trunc(responseIdNum) : undefined;
-      const apiKg = Number(loginResponse?.kindergartenId);
-      const userBase = {
-        id: String(numericUserId ?? responseLoginId),
-        loginId: responseLoginId,
-        username: responseLoginId,
-        name: name || responseLoginId,
-        role: role as UserRole,
-        kindergartenId:
-          signupKindergartenId ??
-          (Number.isFinite(apiKg) && apiKg > 0 ? Math.trunc(apiKg) : undefined),
-      };
-      const kg = resolveViewerSessionKindergartenId(userBase, token);
-      const user = {
-        ...userBase,
-        ...(kg != null ? { kindergartenId: kg } : {}),
-      };
-
-      dispatch(setCredentials({ user, token }));
-      try {
-        localStorage.setItem('user', JSON.stringify(user));
-        if (token) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('accessToken', token);
-        }
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
-        }
-      } catch {
-        // 저장 실패 시에도 Redux 세션은 유지
-      }
-      router.push('/');
+      setSuccessMessage('가입 신청이 제출되었습니다. 승인 완료 안내를 받은 뒤 로그인해 주세요.');
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원가입에 실패했습니다.');
     } finally {
@@ -978,11 +749,10 @@ export function useSignupForm() {
 
   return {
     form, onChange, memberType, handleMemberTypeChange,
-    verificationCode, setVerificationCode, isCodeSent, isVerifying, isVerified, verificationMessage,
-    handleSendVerificationCode, handleVerifyCode,
-    childNameKeyword, setChildNameKeyword, selectedChild, isChildPopupOpen, setIsChildPopupOpen,
-    childSearchFirst6, setChildSearchFirst6, childSearchBack7, setChildSearchBack7, childSearchResults, isChildSearching, childSearchError,
-    searchChildren, openChildPopup, selectChild,
+    isChildVerified, isChildVerifying, childVerificationMessage,
+    childSearchFirst6, setChildSearchFirst6: updateChildSearchFirst6,
+    childSearchBack7, setChildSearchBack7: updateChildSearchBack7,
+    verifyChild,
     kindergartenBizPart1,
     setKindergartenBizPart1,
     kindergartenBizPart2,
@@ -1001,7 +771,7 @@ export function useSignupForm() {
     rrnFirst6, setRrnFirst6, rrnBack7, onRrnBack7Change, gender, genderOptions,
     teacherLevelOptions,
     isPrimaryGuardian, setIsPrimaryGuardian, relationship, setRelationship, customRelationship, setCustomRelationship,
-    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, fieldErrors, isSubmitting, isValid, handleSubmit,
+    filteredRelationshipOptions, agreeTerms, setAgreeTerms, error, successMessage, fieldErrors, isSubmitting, isValid, handleSubmit,
     handleAccountFieldBlur,
   };
 }

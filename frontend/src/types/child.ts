@@ -22,12 +22,7 @@ export interface Child {
     name: string;
     childNo: string;
 
-    rrnFirst6: string;
-
-    birthDate: string;       // YYYY-MM-DD
     gender: GenderEnum;
-
-    address: string;
 
     enrollDate: string;
     leaveDate?: string | null;
@@ -47,12 +42,7 @@ export interface ChildCreateRequest {
     name: string;
     childNo: string;
 
-    rrnFirst6: string;
-
-    birthDate: string;
     gender: GenderEnum;
-
-    address: string;
 
     enrollDate: string;
     leaveDate?: string | null;
@@ -67,10 +57,7 @@ export interface ChildUpdateRequest {
     name?: string;
     childNo?: string;
 
-    birthDate?: string;
     gender?: GenderEnum;
-
-    address?: string;
 
     enrollDate?: string;
     leaveDate?: string | null;

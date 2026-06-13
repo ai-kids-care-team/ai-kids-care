@@ -40,7 +40,7 @@ npm run build          # 产物为静态导出 /out
 
 ## 关系图可视化
 
-✅ 用 `reagraph`（WebGL）渲染后端 `/graph/children/{childId}` 返回的关系图；`next.config.ts` 已对 `reagraph`/`@react-three/*` 配置 `transpilePackages`。
+`reagraph`（WebGL）依赖和展示代码仍保留，但公共 `/graph/children/{childId}` 已因 S1 数据边界关闭；当前 UI 只显示待权限实现提示，不再发起关系图请求。`next.config.ts` 仍对 `reagraph`/`@react-three/*` 配置 `transpilePackages`。
 
 ## 状态管理
 

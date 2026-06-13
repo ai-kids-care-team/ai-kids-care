@@ -1,4 +1,3 @@
-import { apiClient } from './apiClient';
 import {PageResponse} from "@/services/apis/announcements.api";
 import {Child} from "@/types/child";
 
@@ -7,8 +6,8 @@ export async function searchChildrenByName(
     page = 0,
     size = 20,
 ): Promise<PageResponse<Child>> {
-    const response = await apiClient.get<PageResponse<Child>>('/children', {
-        params: { keyword: keyword.trim(), page, size },
-    });
-    return response.data;
+    void keyword;
+    void page;
+    void size;
+    throw new Error('Child profile search is unavailable until relationship authorization exists');
 }

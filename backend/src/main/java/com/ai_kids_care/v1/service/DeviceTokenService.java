@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.entity.DeviceToken;
 import com.ai_kids_care.v1.mapper.DeviceTokenMapper;
 import com.ai_kids_care.v1.repository.DeviceTokenRepository;
 import com.ai_kids_care.v1.vo.DeviceTokenVO;
@@ -25,11 +24,5 @@ public class DeviceTokenService {
     public DeviceTokenVO getDeviceToken(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("DeviceToken not found"));
-    }
-
-    public void deleteDeviceToken(Long id) {
-        DeviceToken entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("DeviceToken not found"));
-        repository.delete(entity);
     }
 }

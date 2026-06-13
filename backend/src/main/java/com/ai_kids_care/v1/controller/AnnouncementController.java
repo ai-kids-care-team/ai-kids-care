@@ -2,7 +2,6 @@ package com.ai_kids_care.v1.controller;
 
 import com.ai_kids_care.v1.dto.AnnouncementCreateDTO;
 import com.ai_kids_care.v1.dto.AnnouncementUpdateDTO;
-import com.ai_kids_care.v1.dto.UserCreateDTO;
 import com.ai_kids_care.v1.vo.AnnouncementVO;
 import com.ai_kids_care.v1.service.AnnouncementService;
 import io.swagger.v3.oas.annotations.tags.Tag;

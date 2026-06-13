@@ -34,10 +34,4 @@ public class CameraStreamController {
     public ResponseEntity<CameraStreamVO> getCameraStream(@PathVariable Long id) {
         return ResponseEntity.ok(service.getCameraStream(id));
     }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCameraStream(@PathVariable Long id) {
-        service.deleteCameraStream(id);
-        return ResponseEntity.noContent().build();
-    }
 }

@@ -1,8 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.CctvCameraCreateDTO;
-import com.ai_kids_care.v1.dto.CctvCameraUpdateDTO;
-import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.mapper.CctvCameraMapper;
 import com.ai_kids_care.v1.repository.CctvCameraRepository;
 import com.ai_kids_care.v1.vo.CctvCameraVO;
@@ -27,22 +24,5 @@ public class CctvCameraService {
     public CctvCameraVO getCctvCamera(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("CctvCamera not found"));
-    }
-
-    public CctvCameraVO createCctvCamera(CctvCameraCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    public CctvCameraVO updateCctvCamera(Long id, CctvCameraUpdateDTO updateDTO) {
-        CctvCamera entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("CctvCamera not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteCctvCamera(Long id) {
-        CctvCamera entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("CctvCamera not found"));
-        repository.delete(entity);
     }
 }

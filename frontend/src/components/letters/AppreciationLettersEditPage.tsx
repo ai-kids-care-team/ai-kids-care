@@ -74,8 +74,8 @@ export function AppreciationLettersEditPage() {
 
   const guardianLockKg = useMemo(() => {
     if (!user || !canWriteAppreciationLetters(user.role)) return null;
-    return resolveViewerSessionKindergartenId(user, token);
-  }, [user, token]);
+    return resolveViewerSessionKindergartenId(user);
+  }, [user]);
 
   const hasTarget = kindergartenId != null && targetId != null && targetLabel !== '';
 
@@ -109,19 +109,10 @@ export function AppreciationLettersEditPage() {
   };
 
   useEffect(() => {
-    /* Redux·localStorage 복원 전에 effect가 먼저 돌면 user가 비어 권한 오류가 난다 → user.id가 있을 때만 검증·폼 채움 */
     const currentUser = user;
     if (!currentUser?.id) {
       setStoredSenderUserId(null);
       setServerLetterId(null);
-      if (typeof window !== 'undefined') {
-        const stored = window.localStorage.getItem('user');
-        const tok =
-          window.localStorage.getItem('accessToken') ?? window.localStorage.getItem('token');
-        if (stored && tok) {
-          return;
-        }
-      }
       setLoading(false);
       setLoadError('');
       return;
@@ -301,7 +292,7 @@ export function AppreciationLettersEditPage() {
     };
 
     void load();
-  }, [id, clientSeq, user?.id, user?.role, token, isAuthenticated]);
+  }, [id, clientSeq, user, token, isAuthenticated]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

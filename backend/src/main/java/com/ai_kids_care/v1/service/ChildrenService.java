@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.ChildUpdateDTO;
 import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.mapper.ChildMapper;
 import com.ai_kids_care.v1.repository.ChildRepository;
@@ -30,25 +29,9 @@ public class ChildrenService {
         return repository.findById(id).map(mapper::toVO).orElseThrow(() -> new EntityNotFoundException("Children not found"));
     }
 
-    public ChildVO getChildByRRN(String rrn_First6, String rrn_Last7) {
-        Child child = getChildEntityByRRN(rrn_First6, rrn_Last7).orElseThrow(() -> new EntityNotFoundException("Child not found"));
-        return mapper.toVO(child);
-    }
-
-    public Optional<Child> getChildEntityByRRN(String rrn_First6, String rrn_Last7) {
+    Optional<Child> getChildEntityByRRN(String rrn_First6, String rrn_Last7) {
         return repository.findByRrnFirst6(rrn_First6).stream()
                 .filter(child -> passwordEncoder.matches(rrn_Last7, child.getRrnEncrypted()))
                 .findFirst();
-    }
-
-    public ChildVO updateChildren(Long id, ChildUpdateDTO updateDTO) {
-        Child entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Children not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteChildren(Long id) {
-        Child entity = repository.findById(id).orElseThrow(() -> new EntityNotFoundException("Children not found"));
-        repository.delete(entity);
     }
 }

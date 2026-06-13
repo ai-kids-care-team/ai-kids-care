@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getDetectionEventDetail, type DetectionEventDetail } from '@/services/apis/detectionEvents.api';
+import { useAppSelector } from '@/store/hook';
 
 type UseDetectionEventDetailResult = {
   id: number;
@@ -17,6 +17,12 @@ export function useDetectionEventDetail(): UseDetectionEventDetailResult {
   const searchParams = useSearchParams();
   const idParam = searchParams.get('id');
   const id = Number(idParam ?? 0);
+  const user = useAppSelector((state) => state.user.user);
+  const kindergartenId = Number(user?.kindergartenId ?? 0);
+  const canRead =
+    (user?.role === 'TEACHER' || user?.role === 'KINDERGARTEN_ADMIN') &&
+    Number.isFinite(kindergartenId) &&
+    kindergartenId > 0;
 
   const [detail, setDetail] = useState<DetectionEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,11 +35,17 @@ export function useDetectionEventDetail(): UseDetectionEventDetailResult {
       setLoading(false);
       return;
     }
+    if (!canRead) {
+      setDetail(null);
+      setError('소속 유치원이 확인된 교사 또는 유치원 관리자만 탐지 이벤트를 볼 수 있습니다.');
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError('');
     try {
-      const data = await getDetectionEventDetail(id);
+      const data = await getDetectionEventDetail(id, Math.trunc(kindergartenId));
       setDetail(data);
     } catch (e) {
       console.error('탐지 이벤트 상세 조회 실패:', e);
@@ -42,7 +54,7 @@ export function useDetectionEventDetail(): UseDetectionEventDetailResult {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [canRead, id, kindergartenId]);
 
   useEffect(() => {
     const resetToTop = () => {

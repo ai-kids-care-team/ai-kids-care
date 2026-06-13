@@ -1,7 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.GuardianUpdateDTO;
-import com.ai_kids_care.v1.entity.Guardian;
 import com.ai_kids_care.v1.mapper.GuardianMapper;
 import com.ai_kids_care.v1.repository.GuardianRepository;
 import com.ai_kids_care.v1.vo.GuardianVO;
@@ -26,18 +24,5 @@ public class GuardianService {
     public GuardianVO getGuardian(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("Guardian not found"));
-    }
-
-    public GuardianVO updateGuardian(Long id, GuardianUpdateDTO updateDTO) {
-        Guardian entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Guardian not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    public void deleteGuardian(Long id) {
-        Guardian entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("Guardian not found"));
-        repository.delete(entity);
     }
 }

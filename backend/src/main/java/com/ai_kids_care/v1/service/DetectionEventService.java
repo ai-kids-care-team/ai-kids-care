@@ -1,8 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.DetectionEventCreateDTO;
-import com.ai_kids_care.v1.dto.DetectionEventUpdateDTO;
-import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.mapper.DetectionEventMapper;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
@@ -21,34 +18,14 @@ public class DetectionEventService {
     private final DetectionEventMapper mapper;
 
     @Transactional(readOnly = true)
-    public Page<DetectionEventVO> listDetectionEvents(String keyword, Pageable pageable) {
+    public Page<DetectionEventVO> listDetectionEvents(Long kindergartenId, String keyword, Pageable pageable) {
         // TODO: filter DetectionEvent by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+        return repository.findByKindergarten_Id(kindergartenId, pageable).map(mapper::toVO);
     }
 
     @Transactional(readOnly = true)
-    public DetectionEventVO getDetectionEvent(Long id) {
-        return repository.findById(id).map(mapper::toVO)
+    public DetectionEventVO getDetectionEvent(Long id, Long kindergartenId) {
+        return repository.findByIdAndKindergarten_Id(id, kindergartenId).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("DetectionEvent not found"));
-    }
-
-    @Transactional
-    public DetectionEventVO createDetectionEvent(DetectionEventCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
-    }
-
-    @Transactional
-    public DetectionEventVO updateDetectionEvent(Long id, DetectionEventUpdateDTO updateDTO) {
-        DetectionEvent entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("DetectionEvent not found"));
-        mapper.updateEntity(updateDTO, entity);
-        return mapper.toVO(repository.save(entity));
-    }
-
-    @Transactional
-    public void deleteDetectionEvent(Long id) {
-        DetectionEvent entity = repository.findById(id).
-                orElseThrow(() -> new EntityNotFoundException("DetectionEvent not found"));
-        repository.delete(entity);
     }
 }

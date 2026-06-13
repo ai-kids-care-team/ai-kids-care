@@ -93,7 +93,7 @@ db/migration/VN__*.sql                  ← 后续变更...
 
 > ✅ **业务表总数 = 30**：上列 **28 张**由 `01_create_schema.sql`（DBML 派生，原作者设计）建立；另有 **2 张平台字典表**由独立脚本建立——`menu`（`02_menu.sql`，单数命名）与 `common_codes`（`03_CommonCode.sql`，复数命名）。
 >
-> ❓ **需复审（非原作者设计）**：`menu` 与 `common_codes` **不属于原作者的领域建模**，其结构、逻辑乃至命名风格与核心 28 表不一致：`menu` 用单数、`common_codes` 用复数（且文档此前一直误写为 `common_code` 单数）；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**，`common_codes` 则有 `CommonCode` 实体。是否需要重新设计/改名待评估，见 [open-questions](../modernization/open-questions.md) OQ-DATA-4。
+> ✅ [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) 已接受：`menu` 将迁移为前端静态配置，`common_codes` 将删除并以 backend enum metadata + frontend i18n 取代。当前表和遗留 CRUD 仍存在，等待独立 Implementation；不得通过补建 `common_codes` Flyway migration 固化过渡模型。
 
 完整 ERD 图见 [db/ERD/README.md](../db/ERD/README.md)（含 Mermaid `.mmd` 与渲染 PNG：全量 ERD、幼儿园域 ERD、AI 检测与事件流程 ERD）。
 

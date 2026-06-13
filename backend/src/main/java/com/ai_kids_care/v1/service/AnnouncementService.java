@@ -2,7 +2,6 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.AnnouncementCreateDTO;
 import com.ai_kids_care.v1.dto.AnnouncementUpdateDTO;
-import com.ai_kids_care.v1.dto.UserCreateDTO;
 import com.ai_kids_care.v1.entity.Announcement;
 import com.ai_kids_care.v1.mapper.AnnouncementMapper;
 import com.ai_kids_care.v1.repository.AnnouncementRepository;

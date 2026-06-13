@@ -11,12 +11,7 @@ type KindergartenLookupItem = {
   kindergartenId: number;
   name: string;
   code: string | null;
-  address: string | null;
   regionCode: string | null;
-  businessRegistrationNo: string | null;
-  contactName: string | null;
-  contactPhone: string | null;
-  contactEmail: string | null;
   status: string | null;
 };
 
@@ -302,7 +297,7 @@ export function KindergartenForm({
         {selectedKindergarten ? (
           <p className="mt-2 text-xs text-emerald-700">
             선택됨: {selectedKindergarten.name} (ID: {selectedKindergarten.kindergartenId}, 코드:{' '}
-            {selectedKindergarten.code ?? '미입력'}, 사업자번호: {selectedKindergarten.businessRegistrationNo ?? '미입력'})
+            {selectedKindergarten.code ?? '미입력'})
           </p>
         ) : (
           <p className="mt-2 text-xs text-slate-500">아직 선택된 유치원이 없습니다.</p>

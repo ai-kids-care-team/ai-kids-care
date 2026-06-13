@@ -18,8 +18,10 @@ deciders: 接手人起草（2026-06-07），维护者 Accept（2026-06-07）；I
 落地产物：
 - `backend/build.gradle`：Testcontainers BOM + `junit-jupiter` + `postgresql`；2026-06-11 通过 Spring Boot BOM 的 `testcontainers.version` property 将运行时依赖对齐至 `1.21.4`，并兼容近期 Docker Engine
 - `backend/src/test/java/com/ai_kids_care/BaseIntegrationTest.java`：基类（Testcontainers PG + initdb 挂载 + DynamicPropertySource）
-- `backend/src/test/java/com/ai_kids_care/v1/auth/AuthEndpointTest.java`：6 个认证端点 characterization 测试
-- `backend/src/test/java/com/ai_kids_care/v1/detection/DetectionEventEndpointTest.java`：3 个检测事件读路径测试
+- `backend/src/test/java/com/ai_kids_care/v1/auth/AuthEndpointTest.java`：19 个认证/公开注册集成测试（2026-06-13 增补显式 401 契约）
+- `backend/src/test/java/com/ai_kids_care/v1/detection/DetectionEventEndpointTest.java`：2 个检测事件关闭路径 404 测试
+- `backend/src/test/java/com/ai_kids_care/v1/contract/`：Phase 1A/1B 增补公共 JSON/OpenAPI、敏感字段和关闭端点契约门禁
+- `backend/src/test/java/com/ai_kids_care/v1/service/AuthServiceRegistrationTest.java`：7 个公开注册与认证失败契约单元测试
 - `backend/src/test/resources/application-test.yml`：测试 profile（排除 Neo4j 自动配置）
 - `Jenkinsfile`：`Test` stage 插入 `Docker Compose Up` 之前
 - `.github/workflows/backend-java-tests.yml`：2026-06-11 补充 GitHub Actions Java 21 + Gradle + Testcontainers 测试门禁

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -82,6 +81,12 @@ function buildListItem(
 
 export function useDetectionEvents() {
   const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const kindergartenId = Number(user?.kindergartenId ?? 0);
+  const canRead =
+    isAuthenticated &&
+    (user?.role === 'TEACHER' || user?.role === 'KINDERGARTEN_ADMIN') &&
+    Number.isFinite(kindergartenId) &&
+    kindergartenId > 0;
   const [events, setEvents] = useState<DetectionEventItem[]>([]);
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
@@ -139,8 +144,17 @@ export function useDetectionEvents() {
       setLoading(true);
       setError('');
 
+      if (!canRead) {
+        setEvents([]);
+        setTotalPages(0);
+        setError('소속 유치원이 확인된 교사 또는 유치원 관리자만 탐지 이벤트를 볼 수 있습니다.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const params: GetDetectionEventsParams = {
+          kindergartenId: Math.trunc(kindergartenId),
           keyword: appliedKeyword || undefined,
           page,
           size: DETECTION_EVENTS_LIST_PAGE_SIZE,
@@ -158,7 +172,7 @@ export function useDetectionEvents() {
     };
 
     void load();
-  }, [appliedKeyword, page, eventTypeCodeNameMap, statusCodeNameMap]);
+  }, [appliedKeyword, canRead, eventTypeCodeNameMap, kindergartenId, page, statusCodeNameMap]);
 
   const handleSearch = () => {
     setAppliedKeyword(keyword.trim());

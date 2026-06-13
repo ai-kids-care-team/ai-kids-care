@@ -21,23 +21,23 @@
 - `scope_type = PLATFORM` → 平台级权限，`scope_id` 为空。用于 `PLATFORM_IT_ADMIN`、`SUPERADMIN`。
 - `scope_type = KINDERGARTEN` → 限定在某个幼儿园，`scope_id = kindergarten_id`。用于 `GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN`。
 
-一个用户可拥有多条角色分配（唯一约束 `uq_ura_user_role_scope` 限定 `user_id+role+scope_type+scope_id` 不重复）。登录时，后端取**最近一条 ACTIVE 分配**作为"当前角色"返回给前端（`AuthService.login()` → `findFirstByUser_IdAndStatusOrderByGrantedAtDesc`，默认回退 `GUARDIAN`）。
+一个用户可拥有多条角色分配（唯一约束 `uq_ura_user_role_scope` 限定 `user_id+role+scope_type+scope_id` 不重复）。当前登录实现要求 user 本身为 `ACTIVE`，并取**最近一条 ACTIVE 分配**作为"当前角色"返回给前端；没有 ACTIVE 分配时返回通用 `401`，不再默认回退 `GUARDIAN`。
 
 ## 注册时的角色策略
 
-✅ **已确认**（`AuthService.roleRegisterStrategies`，`AuthService.java:49-55`）。注册（`POST /api/v1/auth/register`）会按角色创建不同的档案：
+✅ **已确认**（`AuthService.register()` 的服务端角色分支）。公开注册（`POST /api/v1/auth/register`）只接受四类申请，并把 user、角色分配、业务档案及园级 membership 统一写为 `PENDING`：
 
 | 角色 | 创建的档案 | 备注 |
 | --- | --- | --- |
-| `GUARDIAN` | `guardians` + `child_guardian_relationships` + `user_kindergarten_memberships` | 需提供儿童的 RRN（주민번호）前6+后7位定位儿童，自动绑定为其保护者 |
+| `GUARDIAN` | `guardians` + `child_guardian_relationships` + `user_kindergarten_memberships` | 专用验证命令只返回匹配布尔值；注册时再次按完整 RRN 定位儿童，scope 与 membership 只从该记录派生 |
 | `TEACHER` | `teachers` + `user_kindergarten_memberships` | 需 `kindergartenId` |
-| `KINDERGARTEN_ADMIN` | `teachers` + `user_kindergarten_memberships` | ✅ 与 TEACHER **复用同一注册函数** `registerTeacher` |
-| `PLATFORM_IT_ADMIN` | `superadmins` | ✅ 代码注释 `// TODO 관리자는 없어서 같이 공유함`（没有专门的管理员实体，故与 SUPERADMIN 共用 `superadmins`） |
+| `KINDERGARTEN_ADMIN` | `teachers` + `user_kindergarten_memberships` | 与 TEACHER 复用 `registerTeacher`；只接受 `DIRECTOR` / `VICE_DIRECTOR` level |
+| `PLATFORM_IT_ADMIN` | 不创建 | 不开放公开注册；请求在首次 persistence 前以 `400` 拒绝 |
 | `SUPERADMIN` | `superadmins` | department 字段记录行政机关+部门 |
 
 > ❓ **待确认**：
-> - `KINDERGARTEN_ADMIN` 与 `TEACHER` 共用 `teachers` 档案、`PLATFORM_IT_ADMIN` 与 `SUPERADMIN` 共用 `superadmins` 档案，是**有意的临时方案**（代码注释暗示如此）还是会演进出独立实体？
 > - 登录"当前角色"取最近一条 ACTIVE 分配，对**多角色用户**意味着什么？是否需要前端显式切换 scope？
+> - `child_guardian_relationships` 没有 PENDING 状态；当前靠 PENDING guardian/membership/role 阻断授权，审批阶段是否需要独立申请关系模型？
 
 ## 鉴权现状（必读）
 
@@ -45,7 +45,7 @@
 
 ## 典型场景（🔶 推断，来自前端路由与功能模块）
 
-- **保护者**：查看自己孩子相关的检测事件、公告、给教师写感谢信、接收告警通知。
+- **保护者**：目标能力包括查看关联儿童事件、公告、感谢信与通知；当前感谢信公共 API/页面操作已停用，且禁止 live CCTV、录像回放和 detection evidence。
 - **教师 / 园管理员**：管理班级/教室/儿童/摄像头，复核检测事件，发布公告。
-- **平台 IT（运维人员）**：平台运维、AI 模型与平台级配置。
-- **超级管理员（교육청 / 재단）**：跨园管理、行政监管视角、跨租户统计。
+- **平台 IT（运维人员）**：平台运维、AI 模型与平台级配置；当前前端不加载 live CCTV。
+- **超级管理员（교육청 / 재단）**：跨园管理、行政监管视角、跨租户统计；当前前端不加载 live CCTV。
