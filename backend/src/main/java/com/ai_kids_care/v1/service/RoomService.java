@@ -6,7 +6,9 @@ import com.ai_kids_care.v1.entity.Room;
 import com.ai_kids_care.v1.mapper.RoomMapper;
 import com.ai_kids_care.v1.repository.RoomRepository;
 import com.ai_kids_care.v1.repository.KindergartenRepository;
+import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
+import com.ai_kids_care.v1.security.TeacherAssignmentPolicy;
 import com.ai_kids_care.v1.vo.RoomVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class RoomService {
@@ -23,12 +29,20 @@ public class RoomService {
     private final RoomRepository repository;
     private final KindergartenRepository kindergartenRepository;
     private final RoomMapper mapper;
+    private final TeacherAssignmentPolicy teacherAssignmentPolicy;
 
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
     public Page<RoomVO> listRooms(String keyword, Pageable pageable) {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        if (teacherAssignmentPolicy.isAssignmentScoped(context)) {
+            return repository.findActivelyAssignedRoomsForTeacher(
+                            kindergartenId, context.userId(),
+                            OffsetDateTime.now(), LocalDate.now(), pageable)
+                    .map(mapper::toVO);
+        }
         return repository.findAllByKindergarten_Id(kindergartenId, pageable)
                 .map(mapper::toVO);
     }
@@ -36,9 +50,15 @@ public class RoomService {
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
     public RoomVO getRoom(Long id) {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        return repository.findByIdAndKindergarten_Id(id, kindergartenId).map(mapper::toVO)
+        Optional<Room> found = teacherAssignmentPolicy.isAssignmentScoped(context)
+                ? repository.findActivelyAssignedRoomForTeacher(
+                        id, kindergartenId, context.userId(),
+                        OffsetDateTime.now(), LocalDate.now())
+                : repository.findByIdAndKindergarten_Id(id, kindergartenId);
+        return found.map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("Room not found"));
     }
 

@@ -479,5 +479,13 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 改动：`ClassRepository` 新增两条 assignment-scoped JPQL（list/get）；新增 `TeacherAssignmentPolicy` bean（集中“谁是 assignment-scoped”的判定，role==TEACHER）；`ClassService` 的 list/get 按 policy 分流。create/update/delete 仍为 `KINDERGARTEN_ADMIN`-only（`TENANT_S2_WRITE`）、园级，不变。
 - Guardian 半：相关控制器仍关闭，无实时消费端，本切片未动（待开放 guardian 资源时再接 `GuardianChildPolicy`）。
 - 测试：新增 `TeacherAssignmentAuthorizationIntegrationTest`（3）——TEACHER 仅见有效 assignment 的班级（assigned get→200、unassigned get→隐藏 404、list 计数=1）；DISABLED 或过期 assignment → 见空（list=0、get→404）；`KINDERGARTEN_ADMIN` 园级全量（list=全部、unassigned get→200）。
-- 既有缺陷发现（不在本切片范围，已另开任务）：`ClassMapper.toVO` 用 `@Mapping(target="classId", ignore=true)` 永远忽略 `classId`，导致 `GET /classes` 返回的 `classId` 恒为 null；`AuthEndpointTest` 早先对 class `kindergartenId` 的断言因此是空泛通过。本切片测试改用 list 计数 + URL path id 规避，未修该 mapper。
+- 既有缺陷发现（不在本切片范围，已另开任务）：`ClassMapper.toVO` 用 `@Mapping(target="classId", ignore=true)` 永远忽略 `classId`，导致 `GET /classes` 返回的 `classId` 恒为 null。注意 `kindergartenId` 仍被正常映射（`source="kindergarten.id"`），不受影响；本切片测试改用 list 计数 + URL path id 规避了 null 的 `classId`，未修该 mapper。
 - 验证：先 RED（2 个 teacher 测试失败、admin 控制项通过）→ 实现后 GREEN；全量后端 `gradlew test` 70 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/classes`**（grep 确认），收紧对前端零影响，无需前端改动。`git diff --check` PASS。
+
+#### 切片 3 续（2026-06-15）：Teacher assignment-级 rooms（关系链第二跳）
+
+- 按 SPEC teacher 可见“교실/rooms”继续收紧：room 对 TEACHER 可见 = room ←(ACTIVE `class_room_assignment`，窗口含 now)← class ←(ACTIVE `class_teacher_assignment`，窗口含 today)← 该 teacher（teacher 档案与两段 assignment 均 ACTIVE）；`KINDERGARTEN_ADMIN` 仍园级。`GET /rooms` 的 list/get-by-id 同 classes 模式按 `TeacherAssignmentPolicy` 分流，未分配房间隐藏 `404`。
+- 实现：`RoomRepository` 两条 assignment-scoped JPQL（嵌套 EXISTS：room→class_room_assignment→class_teacher_assignment；两表时间窗类型不同——`class_teacher_assignments` 用 `date`、`class_room_assignments` 用 `timestamptz`，分别传 `today`/`nowTs`，关系条件全部写进 SQL）；复用 `TeacherAssignmentPolicy`；`RoomService` 的 list/get 分流，写操作仍 `KINDERGARTEN_ADMIN`-only 园级。
+- 测试：新增 `TeacherRoomAssignmentAuthorizationIntegrationTest`（3，造 fresh class+room+完整关系链）。并把切片 2 的 `TenantIsolationIntegrationTest` 主体由 `TEACHER` 改为 `KINDERGARTEN_ADMIN`——因 TEACHER 现为 assignment-级，纯租户隔离测试应以**园级主体**表达（其任一 `404` 来自租户边界而非 assignment 收紧）。
+- 未做（SPEC 边界判断，待维护者定）：`cctv_cameras`/`camera_streams`/`detection_sessions` 对 TEACHER 的可见性——SPEC actor 矩阵中 teacher 仅列“班级/교실/儿童/相关事件”，未明确列入 live CCTV/stream/session，是否沿 room-camera 链对 teacher 收紧（还是干脆不向 teacher 开放）需产品判断，本片不越界。
+- 验证：RED（2 teacher room 测试失败、admin 通过）→ GREEN；全量后端 `gradlew test` 73 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/rooms`**（grep 确认），零影响。`git diff --check` PASS。

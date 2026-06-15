@@ -28,13 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Cross-tenant isolation for the published tenant-scoped resources.
  *
- * The principal is scoped to kindergarten 2. Seed data places rooms/cameras/streams/
- * sessions in kindergarten 1 and rooms/cameras in kindergarten 2, so kindergarten 1 ids
- * are genuine-but-foreign for this principal. Foreign resources must be hidden: list
- * results exclude foreign rows, get-by-id returns a hidden {@code 404}, and a client
- * {@code kindergartenId} override on write is rejected with a hidden {@code 404} rather
- * than switching tenant. Reachable own-tenant reads prove the 404s are tenant scoping,
- * not a blanket deny.
+ * The principal is a KINDERGARTEN_ADMIN scoped to kindergarten 2 (kindergarten-wide
+ * within its tenant, so any 404 here is a tenant boundary rather than the teacher
+ * assignment narrowing covered by the TeacherAssignment* tests). Seed data places
+ * rooms/cameras/streams/sessions in kindergarten 1 and rooms/cameras in kindergarten 2,
+ * so kindergarten 1 ids are genuine-but-foreign for this principal. Foreign resources
+ * must be hidden: list results exclude foreign rows, get-by-id returns a hidden
+ * {@code 404}, and a client {@code kindergartenId} override on write is rejected with a
+ * hidden {@code 404} rather than switching tenant. Reachable own-tenant reads prove the
+ * 404s are tenant scoping, not a blanket deny.
  */
 @AutoConfigureMockMvc
 class TenantIsolationIntegrationTest extends BaseIntegrationTest {
@@ -50,7 +52,7 @@ class TenantIsolationIntegrationTest extends BaseIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     @BeforeEach
-    void setUpTeacherInOwnKindergarten() {
+    void setUpKindergartenAdminInOwnKindergarten() {
         jdbc.update("""
                 INSERT INTO users (login_id, email, phone, password_hash, status, created_at, updated_at)
                 VALUES (?, ?, ?, ?, 'ACTIVE', NOW(), NOW())
@@ -59,11 +61,11 @@ class TenantIsolationIntegrationTest extends BaseIntegrationTest {
                 """,
                 LOGIN_ID, LOGIN_ID + "@test-tenant.internal", "010-0000-9996",
                 passwordEncoder.encode(PASSWORD));
-        configureKindergartenRole("TEACHER", OWN_KG);
+        configureKindergartenRole("KINDERGARTEN_ADMIN", OWN_KG);
     }
 
     @Test
-    void teacherCannotReadForeignTenantResourcesByValidId() throws Exception {
+    void kindergartenAdminCannotReadForeignTenantResourcesByValidId() throws Exception {
         Cookie session = login();
         assertForeignHidden("/api/v1/rooms/{id}", foreignId("rooms", "room_id"), session);
         assertForeignHidden("/api/v1/cctv_cameras/{id}", foreignId("cctv_cameras", "camera_id"), session);
@@ -72,7 +74,7 @@ class TenantIsolationIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void teacherListSeesOnlyOwnTenantRoomsAndOwnRoomIsReachable() throws Exception {
+    void kindergartenAdminListSeesOnlyOwnTenantRoomsAndOwnRoomIsReachable() throws Exception {
         Cookie session = login();
 
         MvcResult list = mockMvc.perform(get("/api/v1/rooms").cookie(session))
