@@ -123,7 +123,7 @@ public class KindergartenAdminApprovalService {
         int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
                 targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE,
                 UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
-                context.userId());
+                userRepository.getReferenceById(context.userId()));
         if (roleRows == 0) {
             throw new EntityNotFoundException("Registration not found");
         }
@@ -157,15 +157,21 @@ public class KindergartenAdminApprovalService {
             throw new EntityNotFoundException("Registration not found");
         }
 
-        // 条件更新：membership PENDING→REJECTED（同园约束）
-        membershipRepository.conditionalUpdateStatus(
+        // 条件更新：membership PENDING→REJECTED（同园约束——租户隔离门，0 行则回滚 + 隐藏 404）
+        int memberRows = membershipRepository.conditionalUpdateStatus(
                 targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
+        if (memberRows == 0) {
+            throw new EntityNotFoundException("Registration not found");
+        }
 
-        // 条件更新：role assignment PENDING→REJECTED（同园约束；用 conditionalUpdateStatus 覆盖 REJECTED）
-        roleAssignmentRepository.conditionalUpdateStatus(
+        // 条件更新：role assignment PENDING→REJECTED（同园约束——租户隔离门）
+        int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
                 targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED,
                 UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
-                context.userId());
+                userRepository.getReferenceById(context.userId()));
+        if (roleRows == 0) {
+            throw new EntityNotFoundException("Registration not found");
+        }
 
         // 条件更新：业务档案 PENDING→REJECTED
         activateProfileIfExists(targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
@@ -197,7 +203,7 @@ public class KindergartenAdminApprovalService {
                 UserRoleAssignmentScopeType.KINDERGARTEN,
                 kindergartenId,
                 now,
-                context.userId(),
+                userRepository.getReferenceById(context.userId()),
                 StatusEnum.ACTIVE,
                 StatusEnum.DISABLED);
         if (roleRows == 0) {

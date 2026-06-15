@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.repository;
 
+import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.entity.UserRoleAssignment;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
@@ -33,7 +34,7 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
     @Query("""
             UPDATE UserRoleAssignment ura
             SET ura.status = :newStatus,
-                ura.grantedByUser = (SELECT u FROM User u WHERE u.id = :actorUserId)
+                ura.grantedByUser = :actor
             WHERE ura.user.id = :userId
               AND ura.status = :expectedStatus
               AND ura.scopeType = :scopeType
@@ -45,7 +46,7 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
             @Param("newStatus") StatusEnum newStatus,
             @Param("scopeType") UserRoleAssignmentScopeType scopeType,
             @Param("scopeId") Long scopeId,
-            @Param("actorUserId") Long actorUserId);
+            @Param("actor") User actor);
 
     // SPEC-0002 Slice A: 条件更新 ACTIVE→DISABLED（disable 端点，填 revokedAt / revokedByUser）
     @Modifying
@@ -53,7 +54,7 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
             UPDATE UserRoleAssignment ura
             SET ura.status = :disabledStatus,
                 ura.revokedAt = :revokedAt,
-                ura.revokedByUser = (SELECT u FROM User u WHERE u.id = :actorUserId)
+                ura.revokedByUser = :actor
             WHERE ura.user.id = :userId
               AND ura.status = :activeStatus
               AND ura.scopeType = :scopeType
@@ -64,7 +65,7 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
             @Param("scopeType") UserRoleAssignmentScopeType scopeType,
             @Param("scopeId") Long scopeId,
             @Param("revokedAt") OffsetDateTime revokedAt,
-            @Param("actorUserId") Long actorUserId,
+            @Param("actor") User actor,
             @Param("activeStatus") StatusEnum activeStatus,
             @Param("disabledStatus") StatusEnum disabledStatus);
 }
