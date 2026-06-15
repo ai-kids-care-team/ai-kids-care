@@ -1,0 +1,4 @@
+insert into event_reviews (review_id, event_id, kindergarten_id, user_id, from_status, result_status, comment, created_at) values (1, 1, 1, 111, 'ACKNOWLEDGED', 'DISMISSED', '오탐지로 확인됨.', '2026-02-25 23:12:34.000000 +00:00');
+insert into event_reviews (review_id, event_id, kindergarten_id, user_id, from_status, result_status, comment, created_at) values (2, 2, 1, 116, 'OPEN', 'DISMISSED', '오탐지로 확인됨.', '2026-02-25 16:52:35.000000 +00:00');
+insert into event_reviews (review_id, event_id, kindergarten_id, user_id, from_status, result_status, comment, created_at) values (3, 3, 1, 105, 'ACKNOWLEDGED', 'DISMISSED', '오탐지로 확인됨.', '2026-02-26 00:06:32.000000 +00:00');
+insert into event_reviews (review_id, event_id, kindergarten_id, user_id, from_status, result_status, comment, created_at) values (4, 4, 1, 102, 'RESOLVED', 'ESCALATED', '행정청으로 보고되었음.', '2026-02-25 06:45:11.000000 +00:00');

@@ -1,0 +1,171 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  createAnnouncement,
+  DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS,
+  validateAnnouncementCreateAuditFields,
+  type AnnouncementWritePayload,
+} from '@/services/apis/announcements.api';
+import { useAppSelector } from '@/store/hook';
+import { canManageAnnouncements } from '@/types/user-role';
+
+import { StatusCode } from '@/types/announcement';
+
+function toIsoOrNull(value: string) {
+  if (!value) return null;
+  return new Date(value).toISOString();
+}
+
+function toLocalDatetimeInputNow() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mi = String(now.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+export function useAnnouncementsWrite() {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
+  const authorIdHiddenValue = user?.id ?? '';
+  const authorId = useMemo(() => {
+    const parsed = Number(user?.id);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [user?.id]);
+  const canWrite = useMemo(
+    () => Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
+    [isAuthenticated, user],
+  );
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [isPinned, setIsPinned] = useState(true);
+  const [pinnedUntil, setPinnedUntil] = useState(() => toLocalDatetimeInputNow());
+  const [publishedAt, setPublishedAt] = useState(() => toLocalDatetimeInputNow());
+  const [startsAt, setStartsAt] = useState(() => toLocalDatetimeInputNow());
+  const [endsAt, setEndsAt] = useState('');
+  const [status, setStatus] = useState<StatusCode>('ACTIVE');
+  const statusOptions = DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS;
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [publishedAtError, setPublishedAtError] = useState('');
+
+  useEffect(() => {
+    if (publishedAt) {
+      setPublishedAtError('');
+    }
+  }, [publishedAt]);
+
+  const moveToAnnouncementsList = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('announcements:list:scrollY');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const container = document.getElementById('app-scroll-container');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+    router.push('/announcements', { scroll: true });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setPublishedAtError('');
+
+    if (!canWrite) {
+      setError('공지사항 작성 권한이 없습니다.');
+      return;
+    }
+    if (!title.trim()) {
+      setError('제목을 입력해주세요.');
+      return;
+    }
+    if (title.trim().length > 200) {
+      setError('제목은 200자 이하여야 합니다.');
+      return;
+    }
+    if (!content.trim()) {
+      setError('내용을 입력해주세요.');
+      return;
+    }
+    if (!publishedAt) {
+      setPublishedAtError('게시일시는 필수 입력입니다.');
+      return;
+    }
+    if (authorId == null) {
+      setError('로그인 사용자 ID를 확인할 수 없습니다.');
+      return;
+    }
+    if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
+      setError('게시 종료일은 게시 시작일보다 빠를 수 없습니다.');
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const createdAt = nowIso;
+    const updatedAt = nowIso;
+    const auditMsg = validateAnnouncementCreateAuditFields(createdAt, updatedAt);
+    if (auditMsg) {
+      setError(auditMsg);
+      return;
+    }
+
+    const payload: AnnouncementWritePayload = {
+      title: title.trim(),
+      body: content.trim(),
+      isPinned,
+      pinnedUntil: toIsoOrNull(pinnedUntil),
+      status,
+      publishedAt: toIsoOrNull(publishedAt),
+      startsAt: toIsoOrNull(startsAt),
+      endsAt: toIsoOrNull(endsAt),
+      createdAt,
+      updatedAt,
+      authorId,
+    };
+    try {
+      setSubmitting(true);
+      await createAnnouncement(payload);
+      moveToAnnouncementsList();
+    } catch (e) {
+      console.error('공지사항 등록 실패:', e);
+      setError('공지사항 등록에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return {
+    title,
+    setTitle,
+    content,
+    setContent,
+    isPinned,
+    setIsPinned,
+    pinnedUntil,
+    setPinnedUntil,
+    publishedAt,
+    setPublishedAt,
+    startsAt,
+    setStartsAt,
+    endsAt,
+    setEndsAt,
+    status,
+    setStatus,
+    statusOptions,
+    authorIdHiddenValue,
+    canWrite,
+    submitting,
+    error,
+    publishedAtError,
+    handleSubmit,
+    moveToAnnouncementsList,
+  };
+}

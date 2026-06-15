@@ -1,0 +1,20 @@
+package {{package_base}}.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+
+/**
+ * DTO for {@link {{package_base}}.entity.{{entity_name}}}
+ */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class {{entity_name}}UpdateDTO implements Serializable {
+    {{#fields}}
+    private {{java_type}} {{name}};
+    {{/fields}}
+}

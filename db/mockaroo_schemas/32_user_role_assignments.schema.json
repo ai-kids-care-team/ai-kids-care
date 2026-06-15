@@ -1,0 +1,247 @@
+{
+  "id": 723879,
+  "num_rows": 1000,
+  "file_format": "sql",
+  "name": "32_user_role_assignments",
+  "table_name": "user_role_assignments",
+  "include_create_sql": false,
+  "columns": [
+    {
+      "name": "role_assignment_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "21_users",
+      "column": "user_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "role",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "SUPERADMIN",
+        "PLATFORM_IT_ADMIN",
+        "KINDERGARTEN_ADMIN",
+        "TEACHER",
+        "GUARDIAN"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "user_id<=10",
+          "frequencies": {
+            "SUPERADMIN": "1",
+            "PLATFORM_IT_ADMIN": "0",
+            "KINDERGARTEN_ADMIN": "0",
+            "TEACHER": "0",
+            "GUARDIAN": "0"
+          }
+        },
+        {
+          "rule": "user_id<=15",
+          "frequencies": {
+            "SUPERADMIN": "0",
+            "PLATFORM_IT_ADMIN": "1",
+            "KINDERGARTEN_ADMIN": "0",
+            "TEACHER": "0",
+            "GUARDIAN": "0"
+          }
+        },
+        {
+          "rule": "user_id<=100",
+          "frequencies": {
+            "SUPERADMIN": "1",
+            "PLATFORM_IT_ADMIN": "0",
+            "KINDERGARTEN_ADMIN": "0",
+            "TEACHER": "0",
+            "GUARDIAN": "0"
+          }
+        },
+        {
+          "rule": "(user_id-100)%300==1",
+          "frequencies": {
+            "SUPERADMIN": "0",
+            "PLATFORM_IT_ADMIN": "0",
+            "KINDERGARTEN_ADMIN": "1",
+            "TEACHER": "0",
+            "GUARDIAN": "0"
+          }
+        },
+        {
+          "rule": "(user_id-100)%300<=20",
+          "frequencies": {
+            "SUPERADMIN": "0",
+            "PLATFORM_IT_ADMIN": "0",
+            "KINDERGARTEN_ADMIN": "0",
+            "TEACHER": "1",
+            "GUARDIAN": "0"
+          }
+        },
+        {
+          "rule": "(user_id-100)%300<300",
+          "frequencies": {
+            "SUPERADMIN": "0",
+            "PLATFORM_IT_ADMIN": "0",
+            "KINDERGARTEN_ADMIN": "0",
+            "TEACHER": "0",
+            "GUARDIAN": "1"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "scope_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "PLATFORM",
+        "KINDERGARTEN"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "role == \"SUPERADMIN\"",
+          "frequencies": {
+            "PLATFORM": "1",
+            "KINDERGARTEN": "0"
+          }
+        },
+        {
+          "rule": "role == \"PLATFORM_IT_ADMIN\"",
+          "frequencies": {
+            "PLATFORM": "1",
+            "KINDERGARTEN": "0"
+          }
+        },
+        {
+          "rule": "role == \"KINDERGARTEN_ADMIN\"",
+          "frequencies": {
+            "PLATFORM": "0",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "role == \"TEACHER\"",
+          "frequencies": {
+            "PLATFORM": "0",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "role == \"GUARDIAN\"",
+          "frequencies": {
+            "PLATFORM": "0",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "PLATFORM": "0",
+            "KINDERGARTEN": "0"
+          }
+        }
+      ],
+      "formula": null
+    },
+    {
+      "name": "scope_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "24_kindergartens",
+      "column": "kindergarten_id",
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "scope_type == \"PLATFORM\"",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "user_id<=100",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "user_id<=400",
+          "frequencies": {
+            "1": "1",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "user_id<=700",
+          "frequencies": {
+            "1": "0",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "user_id<=1000",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"21_users\",\"status\",user_id:user_id)"
+    },
+    {
+      "name": "granted_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": null
+    },
+    {
+      "name": "granted_by_user_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "if user_id <= 100 then nil\nelsif (user_id-100)%300==1 then nil\nelse ((user_id - 101) / 300) * 300 + 101\nend"
+    },
+    {
+      "name": "revoked_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2025",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "if status!=\"ACTIVE\" then [this, granted_at].max\nelse nil end"
+    },
+    {
+      "name": "revoked_by_user_id",
+      "null_percentage": 0,
+      "type": "Number",
+      "min": 1,
+      "max": 100,
+      "decimals": 0,
+      "formula": "if status==\"ACTIVE\" or user_id<=100 then nil\nelse ((user_id - 101) / 300) * 300 + 101\nend"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+insert into detection_sessions (session_id, kindergarten_id, camera_id, stream_id, model_id, started_at, status, ended_at, avg_latency_ms, inference_fps) values (1, 1, 1, 1, 3, '2026-02-25 00:59:29', 'ACTIVE', '2026-02-25 04:12:30', 194, 276);
+insert into detection_sessions (session_id, kindergarten_id, camera_id, stream_id, model_id, started_at, status, ended_at, avg_latency_ms, inference_fps) values (2, 1, 2, 2, 4, '2026-02-25 01:59:29', 'ACTIVE', '2026-02-25 03:32:01', 312, 269);
+insert into detection_sessions (session_id, kindergarten_id, camera_id, stream_id, model_id, started_at, status, ended_at, avg_latency_ms, inference_fps) values (3, 1, 3, 3, 2, '2026-02-25 02:59:29', 'ACTIVE', '2026-02-25 04:09:25', 299, 180);
+insert into detection_sessions (session_id, kindergarten_id, camera_id, stream_id, model_id, started_at, status, ended_at, avg_latency_ms, inference_fps) values (4, 1, 4, 4, 3, '2026-02-25 03:59:29', 'ACTIVE', '2026-02-25 05:19:28', 150, 171);

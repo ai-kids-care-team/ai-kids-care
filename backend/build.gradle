@@ -1,0 +1,83 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.dashboard'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '21'
+}
+
+ext {
+    set('testcontainers.version', '1.21.4')
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.session:spring-session-data-redis'
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+    implementation 'org.postgresql:postgresql:42.7.3'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    implementation 'org.neo4j.driver:neo4j-java-driver:5.19.0'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// ── database migration helpers (ADR-0012) ──────────────────────────────────────
+// Generates a Flyway migration draft by diffing the current schema (Flyway V*.sql
+// files) against the desired schema (db/dbml/schema.dbml).
+//
+// Prerequisites (one-time):
+//   npm install -g @dbml/cli
+//   pip install -r db/scripts/requirements-migra.txt
+//   Docker daemon running
+//
+// Usage:
+//   ./gradlew generateMigration -Pdesc=add_rrn_hash_to_children
+tasks.register('generateMigration') {
+    group = 'database'
+    description = 'Generate a Flyway migration draft from DBML schema changes. ' +
+                  'Requires: Docker, python3+migra, @dbml/cli. ' +
+                  'Usage: ./gradlew generateMigration -Pdesc=<description>'
+    doLast {
+        def desc = (project.findProperty('desc') ?: '').toString().trim()
+        if (desc.isEmpty()) {
+            throw new GradleException(
+                "Provide a migration description:\n" +
+                "  ./gradlew generateMigration -Pdesc=add_rrn_hash_to_children"
+            )
+        }
+        exec {
+            workingDir projectDir.parentFile   // repo root (parent of backend/)
+            commandLine 'python3', 'db/scripts/generate_migration.py', desc
+        }
+    }
+}

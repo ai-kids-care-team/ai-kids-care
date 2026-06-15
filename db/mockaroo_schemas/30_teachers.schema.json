@@ -1,0 +1,246 @@
+{
+  "id": 723844,
+  "num_rows": 60,
+  "file_format": "sql",
+  "name": "30_teachers",
+  "table_name": "teachers",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "teacher_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "24_kindergartens",
+      "column": "kindergarten_id",
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "teacher_id<=20",
+          "frequencies": {
+            "1": "1",
+            "2": "0",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "teacher_id<=40",
+          "frequencies": {
+            "1": "0",
+            "2": "1",
+            "3": "0"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "1": "0",
+            "2": "0",
+            "3": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": "100+(kindergarten_id-1) * 300 + (this - 1) % 20 + 1"
+    },
+    {
+      "name": "staff_no",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "'T' + random(1, 9999).to_s.rjust(4, '0')"
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "['김', '이', '박', '최', '정', '강', '조', '윤'].sample + ['지영', '은지', '수진', '현주', '민지', '수아', '지원', '유진'].sample"
+    },
+    {
+      "name": "gender",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "MALE",
+        "FEMALE"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "MALE": "2",
+            "FEMALE": "8"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "emergency_contact_name",
+      "null_percentage": 10,
+      "type": "Blank",
+      "formula": "['김', '이', '박', '최', '정'].sample + ['철수', '영희', '민수', '영숙', '동훈'].sample"
+    },
+    {
+      "name": "emergency_contact_phone",
+      "null_percentage": 0,
+      "type": "Regular Expression",
+      "value": "010-\\d{4}-\\d{4}",
+      "formula": "if emergency_contact_name.nil?\n\tnil\nelse\n\tthis\nend"
+    },
+    {
+      "name": "rrn_first6",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/1985",
+      "max": "12/31/2005",
+      "format": "%Y-%m-%d",
+      "formula": "this.strftime('%y%m%d')"
+    },
+    {
+      "name": "rrn_encrypted",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "bcrypt(\"1234567\")"
+    },
+    {
+      "name": "level",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "DIRECTOR",
+        "VICE_DIRECTOR",
+        "TEACHER",
+        "OTHER"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "teacher_id%20==1",
+          "frequencies": {
+            "DIRECTOR": "1",
+            "VICE_DIRECTOR": "0",
+            "TEACHER": "0",
+            "OTHER": "0"
+          }
+        },
+        {
+          "rule": "teacher_id%20==2",
+          "frequencies": {
+            "DIRECTOR": "0",
+            "VICE_DIRECTOR": "1",
+            "TEACHER": "0",
+            "OTHER": "0"
+          }
+        },
+        {
+          "rule": "teacher_id%20<=10",
+          "frequencies": {
+            "DIRECTOR": "0",
+            "VICE_DIRECTOR": "0",
+            "TEACHER": "1",
+            "OTHER": "0"
+          }
+        },
+        {
+          "rule": "",
+          "frequencies": {
+            "DIRECTOR": "0",
+            "VICE_DIRECTOR": "0",
+            "TEACHER": "0",
+            "OTHER": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "level == \"DIRECTOR\"",
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        },
+        {
+          "rule": "level == \"VICE_DIRECTOR\"",
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        },
+        {
+          "rule": "level == \"TEACHER\"",
+          "frequencies": {
+            "ACTIVE": "1",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        },
+        {
+          "rule": "level == \"OTHER\"",
+          "frequencies": {
+            "ACTIVE": "6",
+            "PENDING": "1",
+            "DISABLED": "3"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"21_users\",\"created_at\",user_id:user_id)"
+    },
+    {
+      "name": "start_date",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2020",
+      "max": "03/31/2023",
+      "format": "%Y-%m-%d",
+      "formula": "if this>created_at\n  created_at.strftime('%Y-%m-%d')\nelse\n  this\nend"
+    },
+    {
+      "name": "end_date",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "01/01/2024",
+      "max": "03/31/2026",
+      "format": "%Y-%m-%d",
+      "formula": "if status == 'DISABLED' \n  this\nelse\n  nil\nend"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "3/20/2026",
+      "max": "3/20/2025",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

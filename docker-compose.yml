@@ -1,0 +1,120 @@
+services:
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: ai-kids-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kids_postgres_db}
+      POSTGRES_USER: ${POSTGRES_USER:-kids_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-kids_user} -d ${POSTGRES_DB:-kids_postgres_db}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  neo4j:
+    image: neo4j:5.19
+    container_name: neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-rose100!}
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 1G
+      TZ: Asia/Seoul
+    ports:
+      - "7474:7474"   # Web UI
+      - "7687:7687"   # Bolt (Java Driver)
+    volumes:
+      - neo4j_data:/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-kids-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Python Data Loader
+  data-loader:
+    build:
+      context: ./db/ne4j_kindergartens
+      dockerfile: Dockerfile
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-rose100!}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
+      DB_USER: ${POSTGRES_USER:-kids_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+    depends_on:
+      db:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
+      DB_USER: ${POSTGRES_USER:-kids_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-rose100!}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TZ: Asia/Seoul
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    environment:
+      TZ: Asia/Seoul
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  redis_data:
