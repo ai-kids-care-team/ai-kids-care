@@ -248,6 +248,48 @@ class AuthEndpointTest extends BaseIntegrationTest {
     }
 
     @Test
+    void authenticatedRequest_afterUserDisabledReturns401() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
+        jdbc.update("UPDATE users SET status = 'DISABLED' WHERE login_id = ?", TEST_LOGIN_ID);
+
+        mockMvc.perform(get("/api/v1/ai_models").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void authenticatedRequest_afterMembershipEndedReturns401() throws Exception {
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+        jdbc.update("""
+                UPDATE user_kindergarten_memberships SET status = 'DISABLED'
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, TEST_LOGIN_ID);
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void logoutAll_revokesEverySessionForTheUser() throws Exception {
+        Cookie first = loginSessionCookie();
+        Cookie second = loginSessionCookie();
+        mockMvc.perform(get("/api/v1/auth/session").cookie(first))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/auth/session").cookie(second))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/logout-all")).cookie(first))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(first))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/auth/session").cookie(second))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void platformRole_selectsValidatedTenantContextWithoutChangingRole() throws Exception {
         Cookie sessionCookie = loginSessionCookie();
 

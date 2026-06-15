@@ -497,3 +497,11 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 前端：`CctvDashboardPage` 的 `canViewLiveStreams` 收紧为仅 `KINDERGARTEN_ADMIN`——教师走受限视图、不再请求已 `403` 的 camera/stream 接口（前端隐藏仅 UX，后端 `403` 才是安全控制）。
 - 测试：`AuthEndpointTest` 新增 `teacher_cannotReadSurveillanceResources`（teacher GET `cctv_cameras`/`camera_streams`/`detection_sessions` → `403`；前两者带 `kindergartenId` 以越过必填参数绑定 `400`、抵达 method authorization）；`cameraList_rejectsClientKindergartenOverride` 主体由 teacher 改为 `KINDERGARTEN_ADMIN`（teacher 已无 camera 权限）。
 - 验证：RED（teacher→403 测试失败；其间发现 cctv/streams 缺 `kindergartenId` 先返回 400，补参修正）→ GREEN；全量后端 `gradlew test` 74 通过 / 0 失败 / 2 预期 skip；前端 `CctvDashboardPage` scoped ESLint 0 error/warning，生产构建 20 页成功。`git diff --check` PASS。
+
+#### 切片 4（2026-06-15）：会话吊销机制（部分）
+
+- 实现 ADR-0019 §6 的 `SessionRevocationService`（Redis indexed）：按 principalName `user:{id}` 经 `FindByIndexNameSessionRepository.findByPrincipalName` 查出并删除该 user 的全部 session（principalName 与 `SessionPrincipal.getName()` 一致）。
+- 新增 `POST /api/v1/auth/logout-all`（authenticated + CSRF）：吊销当前 user 的全部 session（含当前会话），返回 `204`。这是该机制当前唯一可用的实时触发端点。
+- 强化吊销回退测试：除既有 role 撤销 → `401`，新增 **user 禁用 → 401**、**membership 结束 → 401**（均由 `EffectiveAuthorizationContextFilter` 每请求权威重解析兜底，覆盖对应验收项）；并验证 `logout-all` 后该 user 的两个会话都 `401`。
+- 已确认未做（阻断/超范围）：状态变更**主动触发**（角色撤销/用户禁用/membership 结束在管理操作的状态事务提交后调用 `SessionRevocationService`）暂无实时端点可挂——相关 admin 管理控制器仍关闭；每请求重解析已保证正确性（撤销后下一请求 `401`），待这些 admin 端点发布时再在事务提交后接入吊销快路径。**安全审计写入**受 `audit_logs.kindergarten_id NOT NULL`（无法表达平台级事件）的 schema 限制，需 ADR-0012 迁移，本片不做。前端暂无“全部登出”按钮（端点已就绪，UI 后续加）。
+- 验证：RED（`logout-all` 失败，user 禁用 / membership 结束通过）→ GREEN；全量后端 `gradlew test` 77 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。
