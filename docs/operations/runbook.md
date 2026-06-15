@@ -54,9 +54,9 @@ docker exec -it ai-kids-postgres psql -U kids_user -d kids_postgres_db
 
 ✅ 这是预期：`detection_events` 等由种子数据填充，AI 实时链路当前不写库（见 [ai-architecture](../architecture/ai-architecture.md)）。
 
-### 前端能登录但调用 API 仍 401（或反之能无凭证访问）
+### 前端能登录但调用 API 仍 401
 
-✅ 后端鉴权当前关闭（`permitAll` + 过滤器停用）。前端的 401/刷新逻辑可能与后端实际行为不符，见 [security-architecture](../architecture/security-architecture.md)。核对部署的后端 `SecurityConfig`。
+✅ 鉴权已启用（默认拒绝 + 服务端会话，PR #89）：会话过期/失效、user 禁用 / 角色撤销 / membership 结束会使**下一请求** `401`；CSRF 缺失/无效 `403`。排查：会话 cookie（`AI_KIDS_CARE_SESSION`）是否随请求带上、`X-XSRF-TOKEN` 头是否回显、生产 `SESSION_COOKIE_SECURE` 是否与 HTTPS 边缘一致（HTTP 下 `Secure` cookie 不发送）。见 [security-architecture](../architecture/security-architecture.md)。
 
 ### AI 推理服务启动报 `Model dir not found`
 

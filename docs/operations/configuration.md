@@ -40,8 +40,10 @@
 
 | 变量 | 用途 | 默认值 | 消费方 |
 | --- | --- | --- | --- |
-| `JWT_SECRET` | JWT 签名密钥 | `mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong` ⚠️ | backend |
-| `jwt.expiration`（yml 固定） | 令牌有效期 | `86400000`（值含义为毫秒=24h；字段名 `expireSecond` 有歧义） | backend |
+| `REDIS_HOST` / `REDIS_PORT` | Spring Session（Redis）会话存储 | `redis` / `6379` | backend |
+| `SESSION_COOKIE_SECURE` | 生产会话 cookie `Secure`（仅 HTTPS 下发送） | `false`（**生产须 `true`**） | backend |
+| `SESSION_TIMEOUT`（yml） | 会话超时 | `30m` | backend |
+| `DOMAIN` / `ACME_EMAIL` | Caddy 边缘 TLS 域名 / ACME 邮箱（生产） | —（**生产须设 `DOMAIN`**） | caddy（prod） |
 | `TZ` / `JAVA_TOOL_OPTIONS` | 时区 | `Asia/Seoul` / `-Duser.timezone=Asia/Seoul` | backend |
 | `server.port`（yml） | 端口 | `8080` | backend |
 | `logging.level.root`（yml） | 日志级别 | `DEBUG` ⚠️ | backend |
@@ -75,6 +77,8 @@
 | 8001 | AI 推理服务 |
 | 5432 | PostgreSQL |
 | 7474 / 7687 | Neo4j Web / Bolt |
+| 6379 | Redis（Spring Session 会话存储） |
+| 443 | 生产 Caddy 边缘 TLS（HTTPS；80→443 强制重定向，ADR-0017） |
 
 ## 配置加载机制
 
@@ -84,6 +88,6 @@
 
 ## ⚠️ 配置相关风险（已确认，事实陈述）
 
-- 所有数据库/Neo4j/JWT 密钥都有**硬编码明文默认值**，便于开发但生产必须覆盖。
+- 所有数据库/Neo4j 密钥都有**硬编码明文默认值**，便于开发但生产必须覆盖（原 `JWT_SECRET` 已随 ADR-0016 移除，JWT→服务端会话）。生产另须设 `SESSION_COOKIE_SECURE=true` 与 Caddy 的 `DOMAIN`。
 - 根目录存在 `.env`（89 字节）——其内容是否含真实密钥、是否被 git 忽略，见 [open-questions](../modernization/open-questions.md)（OQ-SEC-5）。
 - `.gitignore` 体积较大（5KB+），具体忽略项请核对。

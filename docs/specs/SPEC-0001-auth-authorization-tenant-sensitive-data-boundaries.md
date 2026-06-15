@@ -26,9 +26,11 @@ related_adrs:
 
 ## 当前事实（Current Facts）
 
-- `backend/.../config/SecurityConfig.java` 将 `/api/v1/**` 配置为 `permitAll()`，JWT filter 未加入过滤链，当前全部业务 API 可匿名访问。
-- [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 已决定使用 Spring Session + Redis + `httpOnly` cookie 取代 JWT，但尚未实现。
-- `user_role_assignments` 已表达 `PLATFORM` / `KINDERGARTEN` scope；`user_kindergarten_memberships` 已表达用户与幼儿园的成员关系，但业务查询没有统一使用这些数据做运行时隔离。
+> **基线快照（2026-06-10）+ as-built 更新（2026-06-15，PR #89）**：本节为 spec 创建时的基线事实快照。其中关于"鉴权未启用 / 无运行时隔离"的若干条**已被实现取代**——会话认证（去 JWT）、默认拒绝白名单、每请求 Effective Authorization Context、集中 `@PreAuthorize` policy 与 tenant-aware 查询隔离均已落地合并。**当前权威状态以下方「实施记录」与 ADR-0016/0019/0017 为准**；以下条目保留为历史基线，已在变化处就地标注。
+
+- `backend/.../config/SecurityConfig.java` 将 `/api/v1/**` 配置为 `permitAll()`，JWT filter 未加入过滤链，当前全部业务 API 可匿名访问。**（已变化 2026-06-15：现 `/api/v1/**` 默认 `authenticated`，移除 JWT filter/util，改 Spring Session + Redis。）**
+- [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 已决定使用 Spring Session + Redis + `httpOnly` cookie 取代 JWT，但尚未实现。**（已变化：已实现并合并。）**
+- `user_role_assignments` 已表达 `PLATFORM` / `KINDERGARTEN` scope；`user_kindergarten_memberships` 已表达用户与幼儿园的成员关系，但业务查询没有统一使用这些数据做运行时隔离。**（已变化：已发布租户资源由 EffectiveAuthorizationContext + tenant-aware 查询统一做运行时隔离。）**
 - 多个 Controller、DTO 和前端调用仍接受客户端提供的 `kindergartenId`，该值尚未统一与服务端授权上下文绑定。Phase 1A 补充止血已移除前端从 JWT、localStorage 或 demo user ID 推断园区的逻辑，登录/刷新改为从 ACTIVE role assignment 返回服务端派生的园区 ID。
 - Phase 1B 后，`POST /api/v1/auth/register` 对 `PLATFORM_IT_ADMIN` 在首次 persistence 前返回 `400`；`GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN`、`SUPERADMIN` 只创建 PENDING user、role assignment、业务档案和园级 membership。
 - `AuthRegisterDTO` 不再发布客户端 `status` 字段；未知 `status=ACTIVE` 输入会被忽略。PENDING user、没有 ACTIVE role assignment 或存在多条 ACTIVE role assignment 的 user 登录/刷新返回通用 `401`，不再默认回退 `GUARDIAN` 或取最近一条。
@@ -36,11 +38,11 @@ related_adrs:
 - Phase 1A 已从 `UserVO` 移除 `passwordHash`、email、phone，从 `ChildVO` 移除 `rrnEncrypted`、`rrnFirst6`、birth date、address，从 `GuardianVO` 移除 `rrnEncrypted`、`rrnFirst6`、address，从 `TeacherVO` 移除 `rrnEncrypted`、`rrnFirst6`、staff number 和 emergency contact；因人员/账户资料仍可被匿名枚举，四类 Controller 的公共读写 operation 现已全部关闭。
 - `DeviceTokenVO` 与 `EventEvidenceFileVO` 已分别移除完整 `pushToken` 和内部 `storageUri`；因设备注册与证据元数据仍属受限数据，两类 Controller 的公共读写 operation 现已全部关闭。`CameraStream` 的 entity 仍内部存储 `sourceUrl`、`streamUser`、`playbackUrl` 和加密凭据列，但公共 `CameraStreamVO` 不返回可播放地址或凭据，且通用写删链已关闭。
 - Kindergarten 公共 list/detail 和注册查找只返回最小目录字段；通用 `POST` / `PUT` / `DELETE` 与敏感 write DTO 已关闭。Graph、Audit Log、Notification controller 当前不发布公共 operation，等待资源授权或内部 command 架构后再开放。
-- 后端未见 `@PreAuthorize`、统一 Authorization Context 或集中式 tenant enforcement；多处 tenant-scoped entity 使用不带租户条件的 `findById`。
+- 后端未见 `@PreAuthorize`、统一 Authorization Context 或集中式 tenant enforcement；多处 tenant-scoped entity 使用不带租户条件的 `findById`。**（已变化 2026-06-15：已启用 `@EnableMethodSecurity` + 集中 `AuthorizationPolicy` + 每请求 `EffectiveAuthorizationContext`；已发布租户资源改用 `findByIdAndKindergarten_Id` 等带租户/关系条件的查询。）**
 - 数据库复合外键可阻止跨园关联写错，但不能阻止应用读取或修改另一幼儿园的合法记录。
 - `user_role_assignments` 允许 `PLATFORM` scope 使用 `scope_id=NULL`；当前普通 unique index 不足以阻止相同平台角色因 NULL 语义被重复授予，也未见约束强制 PLATFORM/KINDERGARTEN 与 `scope_id` 的合法组合。
 - `audit_logs` 表仍存在，但公共 controller 当前不发布读写 operation；未见安全敏感操作的统一内部审计写入。其 `kindergarten_id` 为 `NOT NULL`，无法自然表达不属于某个幼儿园的平台级安全事件。
-- 生产 TLS 已由 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) 规定，但仓库当前仍以 HTTP 运行。
+- 生产 TLS 已由 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) 规定，但仓库当前仍以 HTTP 运行。**（已变化 2026-06-15：已起草 Caddy 边缘 TLS 终结 + 生产 `SESSION_COOKIE_SECURE=true`；端到端 HTTPS 待部署时验证，demo 仍 HTTP。）**
 
 ## 信任模型与定义
 

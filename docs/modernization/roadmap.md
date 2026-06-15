@@ -17,16 +17,18 @@
 | 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway | ⚠️ **Partial**：迁移已落地，生产 loader 仍有竞态/快照问题 | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
 | 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
-| 6 | [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) | Effective Authorization Context、集中 tenant enforcement 与平台 tenant context | ✅ **Accepted (2026-06-14)，分阶段实施** | 高 |
-| 7 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
-| 8 | [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制（ADR-0016 `Secure` cookie 硬前置） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
-| 9 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（机制改为 **session**，见 ADR-0016） | 📋 Backlog | 高 |
+| 6 | [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) | Effective Authorization Context、集中 tenant enforcement 与平台 tenant context | 🔄 **In Progress (PR #89, 2026-06-15)**：phase 2-5 部分已合；Guardian 关系策略 / 审计 / 全量主动吊销 deferred | 高 |
+| 7 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Implemented (PR #89, 2026-06-15)** | 中 |
+| 8 | [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制（ADR-0016 `Secure` cookie 硬前置） | 🔄 **In Progress (PR #89)**：Caddy 边缘 TLS + 生产 Secure cookie 草案，端到端待部署验证 | 中 |
+| 9 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（机制改为 **session**，见 ADR-0016） | ✅ **Implemented (PR #89, 2026-06-15)**：默认拒绝 + 每请求授权强制 | 高 |
 | 10 | [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) | 通知子系统（后端发、**家长复核后**通知） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
 | 11 | [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) | AI 检测闭环集成契约（终态；V1 AI 直写 PG + 后端 LISTEN/NOTIFY） | ✅ **Accepted (2026-06-07)，终态（实现委派独立 session）** | 高 |
 
 ## 实施次序（2026-06-14 修订）
 
-**0011 ✅ → 0014 ✅ → 0012 ⚠️ Partial → 0013 → 0010 → 0019 ✅ → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；ADR-0019 决策门已解除，session principal/context 策略随 0016/0009 分阶段落地）
+**0011 ✅ → 0014 ✅ → 0012 ⚠️ Partial → 0013 → 0010 → 0019 🔄 → 0016 ✅ → 0017 🔄 → 0009 ✅ → 0018 → 0015**（按风险递增 + 依赖关系排序）
+
+> **进度更新（2026-06-15，PR #89 合入 develop）**：0016（服务端会话）与 0009（默认拒绝 + 每请求授权强制）已 **Implemented**；0019（Effective Authorization Context + 租户强制 + 平台 tenant-context + Teacher assignment 策略 + 会话吊销）与 0017（Caddy 边缘 TLS + 生产 Secure cookie 草案）为 **In Progress**。仍 deferred：Guardian 关系策略（待开放 guardian 资源）、状态变更主动吊销（待 admin 管理端点）、安全审计（待 ADR-0012 schema 迁移）、TLS 端到端（部署时）。
 
 > 原次序（2026-05-29 已确认）：`0011 → 0012 → 0013 → 0010 → 0009`。本次修订**前插 0014（测试基线）；在 0009 前插入 0016（会话机制）+ 0017（TLS）；在 0015 前插入 0018（通知子系统）；后接 0015（AI 闭环）**，未改动中间四篇的相对顺序。
 
@@ -144,6 +146,8 @@
 ### ✅ ADR-0016 会话机制（服务端 session）— 先于 0009（Accepted 2026-06-07，实现委派独立 session）
 
 > 详见 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)。取代 ADR-0007（JWT）；产品未上线，greenfield 零迁移。
+>
+> **✅ 已实现（PR #89，2026-06-15）**：下列各项均已落地——Redis Spring Session、`SecurityConfig` 会话鉴权（去 JWT）、cookie 安全属性 + CSRF token、前端去 token 化、characterization 测试、文档同步。
 
 - [ ] backend 加 `spring-session-data-redis`；Redis 并入主 `docker-compose.yml`（复用 `db/redis-docker-compose.yml`）
 - [ ] `SecurityConfig` 改 session 鉴权（弃用 `JwtAuthenticationFilter`/`JwtUtil`）；`AuthService` 登录建会话、登出 invalidate
@@ -157,6 +161,8 @@
 ### ✅ ADR-0017 TLS/HTTPS 终结 — 由 0016 触发（Accepted 2026-06-07，实现委派独立 session）
 
 > 详见 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)。`Secure` 会话 cookie 的硬前置 + 儿童 PII 传输加密；生产部署前置。
+>
+> **🔄 In Progress（PR #89）**：已选 **Caddy** + 起草边缘 TLS（ACME）+ HTTP→HTTPS + HSTS + 生产 `Secure` cookie + `compose-config` CI + 文档同步；真实证书签发与端到端 HTTPS 待部署时验证。
 
 - [ ] 选定边缘 TLS 终结：自动证书反代（Caddy/Traefik，ACME 自动签发）或扩展现有 frontend Nginx（443 + 证书）
 - [ ] HTTP→HTTPS 强制重定向 + HSTS
@@ -171,6 +177,8 @@
 > ⚠️ **机制更新（2026-06-07）**：鉴权"恢复"决策不变，但**机制由 JWT 改为 session**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）。下列 **JWT 专属项作废**（access/refresh 区分、role claim、JWT secret 外部化、`expireSecond` 改名），由 ADR-0016 session 等价项替代；本节保留的是"翻转 `permitAll`→`authenticated` + 公开端点白名单 + 授权集成测试"。
 
 > **必要前置（已部分满足）**：ADR-0014 已建立 Testcontainers 测试基础设施与认证 characterization；翻转鉴权前仍需补齐 session、CSRF、角色和租户边界测试。
+>
+> **✅ 已实现（PR #89，2026-06-15）**：核心目标"翻转 `permitAll`→`authenticated` + 公开端点白名单 + 授权集成测试"已落地（机制 = **会话**，见 ADR-0016）。下列 **JWT 专属项**（access/refresh、role claim、JWT secret 外部化、`expireSecond` 改名）随 JWT 移除而**作废**，不再适用；`/auth/refresh` 已移除、不在白名单。
 
 - [x] **配套**：搭建 Spring Boot Test + Testcontainers PostgreSQL + `spring-security-test`
 - [x] **配套**：为已实现认证端点补首批 characterization 测试

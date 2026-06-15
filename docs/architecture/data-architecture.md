@@ -78,7 +78,7 @@ db/migration/VN__*.sql                  ← 后续变更...
 
 🔶 **推断**：这是**按幼儿园隔离的多租户**设计。复合键确保跨表引用始终落在同一租户内，从 schema 层面防止跨园数据串联。
 
-> ❓ 但应用层**当前未强制租户过滤**（后端鉴权关闭，且未见 service 层统一注入 `kindergarten_id` 过滤）。schema 提供了隔离的**结构基础**，运行时的隔离强制是否到位需核对各 service（见 [open-questions](../modernization/open-questions.md)）。
+> ✅ **as-built 更新（2026-06-15，PR #89）**：应用层**已强制租户过滤**——每请求 `EffectiveAuthorizationContext` 派生 effective kindergarten，已发布租户资源的 list/get/write 在查询条件中包含租户/关系条件（`findByIdAndKindergarten_Id` 等），跨租户/无关系返回隐藏 `404`，禁止"先 `findById` 再内存过滤"。schema 复合外键作为纵深防御。详见 [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 与 [security-architecture](security-architecture.md) §2。（历史：此前后端鉴权关闭、无统一租户过滤。）
 
 ## 5. 实体域划分（核心域 28 表 + 平台字典 2 表 = 30）
 

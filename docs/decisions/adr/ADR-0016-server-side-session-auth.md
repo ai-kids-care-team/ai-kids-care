@@ -2,6 +2,7 @@
 ADR: ADR-0016
 title: "ADR-0016: 服务端会话鉴权（Server-Side Session，替代无状态 JWT）"
 status: Accepted
+implementation: Implemented
 date: 2026-06-07
 deciders: 接手人起草，维护者 Accept（2026-06-07）；取代 ADR-0007；实现委派独立 session
 ---

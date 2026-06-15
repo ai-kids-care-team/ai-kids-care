@@ -12,7 +12,8 @@
 - **证据** ✅：`SecurityConfig.java` 中 `/api/v1/**` 为 `permitAll()`，且 `addFilterBefore(jwtAuthFilter, ...)` 被注释。
 - **为何重要**：全部业务 API 对无凭证请求开放；角色/多租户模型未被强制执行。
 - **观察**：前端实现了完整 JWT/refresh 且注释提到遇到过 401 → 🔶 推断鉴权曾开启、当前为开发/演示临时放开。需确认目标态与开启时机。
-- **结论（2026-05-29，团队确认）** ✅：`permitAll` + 过滤器注释为**临时演示态**；计划在**第一轮重构完成后恢复**鉴权强制。→ 属安全态/架构决策，已 **Accept** [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)（2026-05-29 签署；落地待 Implementation）。
+- **结论（2026-05-29，团队确认）** ✅：`permitAll` + 过滤器注释为**临时演示态**；计划在**第一轮重构完成后恢复**鉴权强制。→ 属安全态/架构决策，已 **Accept** [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md)。
+- **✅ 已实现并关闭（2026-06-15，PR #89）**：鉴权恢复为**默认拒绝 + 服务端会话**（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) 取代 JWT）+ 每请求 Effective Authorization Context + 集中 policy + 租户隔离。OQ-SEC-1 关闭。
 
 ### OQ-SEC-2 ｜access 与 refresh 令牌为何无区分？
 - **证据** ✅：`AuthService.login()` 用同一 `generateToken(identifier)` 生成两者，无类型 claim、无独立过期。
@@ -23,6 +24,7 @@
 - **证据** ✅：`application.yml` 有硬编码默认 secret；`jwt.expiration: 86400000` 被 `AuthService` 读为 `Integer expireSecond` 又作为 `expiresIn` 返回，而 `JwtUtil` 当毫秒用。
 - **为何重要**：默认 secret 若进生产是严重风险；`expiresIn` 返回给前端的数值语义（秒？毫秒？）可能误导。
 - **观察**：需确认生产 secret 注入流程与 `expiresIn` 约定。
+- **✅ 已消解（2026-06-15，PR #89）**：JWT 机制移除（[ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)），OQ-SEC-2（access/refresh 无别）与 OQ-SEC-3（JWT secret 默认值/单位）随之关闭；改由 Redis 会话超时 + cookie 安全属性（`httpOnly`/`Secure`/`SameSite`）+ CSRF 承担。
 
 ### OQ-SEC-4 ｜RRN 应可逆加密还是单向哈希？
 - **证据** ✅：schema 注释称 `rrn_encrypted` 为"암호문/암호화 저장"（密文，暗示可逆）；但 `AuthService` 用 `passwordEncoder.encode()`（BCrypt 单向）。仓库另有可逆的 `AesGcmCryptoUtil`。
@@ -55,6 +57,7 @@
 - **为何重要**：本系统是**第一方 Web 应用 + 敏感儿童 PII + 多租户 + 需即时吊销权限**（如解雇教师须立即断访问）——纯无状态 JWT 无法在过期前吊销。会话机制直接影响安全态、前端复杂度与 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 的落地范围。
 - **观察（接手人，2026-06-07）**：宜在 **ADR-0009（鉴权恢复）落地之前**决断（此刻"恢复后"的代码尚未依赖 JWT，是切换成本最低的窗口）。两条候选均需 Redis：①**JWT-done-right**（httpOnly cookie + 短期 access + Redis 可吊销 refresh）；②**服务端 session**（Spring Session + Redis + httpOnly cookie，吊销天然、前端更简）。**待立 ADR**（若改变 ADR-0007 方向）。
 - **结论（2026-06-07，维护者 Accept）** ✅：选定**服务端会话**（Spring Session + Redis + httpOnly cookie）——因客户端恒为浏览器（响应式 Web、不上原生 App）+ 需即时吊销 + 产品未上线零迁移成本。已立 [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)（**取代 ADR-0007**），排在 [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) 之前落地。
+- **✅ 已实现（2026-06-15，PR #89）**：服务端会话已落地合并（含 `SessionRevocationService` 即时吊销 + 每请求重解析兜底）；JWT 移除。OQ-SEC-9 关闭。
 
 ---
 

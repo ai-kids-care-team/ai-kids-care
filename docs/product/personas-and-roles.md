@@ -41,7 +41,7 @@
 
 ## 鉴权现状（必读）
 
-> ❓ **重要待确认**：尽管定义了完整的角色/范围模型，但**后端当前未对 API 做任何鉴权**——`SecurityConfig.java` 把 `/api/v1/**` 全部 `permitAll()`，且 JWT 过滤器被注释停用。即角色模型目前**未被强制执行**。前端的 token/refresh 逻辑表明这与设计意图不符。详见 [security-architecture](../architecture/security-architecture.md) 与 [open-questions](../modernization/open-questions.md)。
+> ✅ **as-built（2026-06-15，PR #89）**：角色/范围模型已**被强制执行**——`/api/v1/**` 默认拒绝 + 服务端会话 + 每请求 `EffectiveAuthorizationContext`（ACTIVE user / 唯一 ACTIVE role / membership / scope）+ 集中 policy + 租户隔离；Teacher 收紧为有效 assignment 覆盖，cameras/streams/sessions 限 `KINDERGARTEN_ADMIN`。JWT 已移除。仍 deferred：Guardian 关系策略、安全审计。详见 [security-architecture](../architecture/security-architecture.md)。
 
 ## 典型场景（🔶 推断，来自前端路由与功能模块）
 
