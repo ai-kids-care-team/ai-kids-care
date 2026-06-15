@@ -6,7 +6,9 @@ import com.ai_kids_care.v1.entity.Class;
 import com.ai_kids_care.v1.mapper.ClassMapper;
 import com.ai_kids_care.v1.repository.ClassRepository;
 import com.ai_kids_care.v1.repository.KindergartenRepository;
+import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
+import com.ai_kids_care.v1.security.TeacherAssignmentPolicy;
 import com.ai_kids_care.v1.vo.ClassVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ClassService {
@@ -23,12 +28,19 @@ public class ClassService {
     private final ClassRepository repository;
     private final KindergartenRepository kindergartenRepository;
     private final ClassMapper mapper;
+    private final TeacherAssignmentPolicy teacherAssignmentPolicy;
 
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
     public Page<ClassVO> listClasses(String keyword, Pageable pageable) {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        if (teacherAssignmentPolicy.isAssignmentScoped(context)) {
+            return repository.findActivelyAssignedClassesForTeacher(
+                            kindergartenId, context.userId(), LocalDate.now(), pageable)
+                    .map(mapper::toVO);
+        }
         return repository.findAllByKindergarten_Id(kindergartenId, pageable)
                 .map(mapper::toVO);
     }
@@ -36,9 +48,14 @@ public class ClassService {
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
     public ClassVO getClass(Long id) {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        return repository.findByIdAndKindergarten_Id(id, kindergartenId).map(mapper::toVO)
+        Optional<Class> found = teacherAssignmentPolicy.isAssignmentScoped(context)
+                ? repository.findActivelyAssignedClassForTeacher(
+                        id, kindergartenId, context.userId(), LocalDate.now())
+                : repository.findByIdAndKindergarten_Id(id, kindergartenId);
+        return found.map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("Class not found"));
     }
 
