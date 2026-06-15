@@ -514,3 +514,10 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - CI：新增 `.github/workflows/compose-config.yml`，校验 base（demo）与 merged production compose 可解析（对应 SPEC 验收的 production compose config 门）。
 - 验证：`docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 通过；合并结果确认 frontend 无宿主端口、caddy 占 80/443、backend `SESSION_COOKIE_SECURE: "true"`。**仅 compose 结构性验证**——真实证书签发、端口绑定、HTTPS 端到端**须部署时验证**（本地/CI 无域名/证书，无法验证 TLS 本身）。
 - 未做（部署时/后续）：前端 lint/build CI gate（受全仓 4 个**既有** lint error 阻断，需先修或单独决定 gate 策略）；TLS 端到端与 HSTS preload 提交；生产 `.env`（`DOMAIN`/`ACME_EMAIL`）。负向测试矩阵（匿名 401、跨租户 404、角色 allow/deny、平台 tenant-context、吊销）已在切片 1-4 的测试类中基本覆盖。
+
+#### 修复（2026-06-15）：已发布 VO 主键 id（原 ClassMapper 缺陷扩展）
+
+- 切片 3 发现的 `ClassMapper.toVO` 忽略 `classId`，经扫描属 **codegen 通病**：13 个 mapper 的 `toVO` 都 `@Mapping(target="<x>Id", ignore=true)`。其中**已发布控制器**受影响 4 个——`AiModelMapper(modelId)` / `ClassMapper(classId)` / `RoomMapper(roomId)` / `DetectionSessionMapper(sessionId)`，导致其 GET 返回的 VO 主键 id 恒为 null（`kindergartenId` 等其它字段不受影响）。
+- 修复这 4 个（`ignore=true` → `source="id"`）。新增 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 断言四类 get-by-id 返回非空主键（RED → GREEN）。
+- 其余 9 个 mapper 属**关闭控制器**（User/Guardian/Teacher/AuditLog/DeviceToken/EventEvidenceFile/Notification/NotificationRule/Superadmin），是同源潜在问题，待其控制器重开时一并修，不在本次范围。
+- 验证：全量后端 `gradlew test` 78 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。

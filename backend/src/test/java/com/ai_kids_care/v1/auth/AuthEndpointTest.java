@@ -290,6 +290,36 @@ class AuthEndpointTest extends BaseIntegrationTest {
     }
 
     @Test
+    void publishedVos_includeTheirPrimaryId() throws Exception {
+        // Platform metadata: AiModelVO.modelId (default test user is SUPERADMIN).
+        Cookie platformSession = loginSessionCookie();
+        long modelId = jdbc.queryForObject(
+                "SELECT model_id FROM ai_models ORDER BY model_id LIMIT 1", Long.class);
+        mockMvc.perform(get("/api/v1/ai_models/{id}", modelId).cookie(platformSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.modelId").value((int) modelId));
+
+        // Tenant resources: ClassVO.classId / RoomVO.roomId / DetectionSessionVO.sessionId.
+        configureKindergartenAdminRole(1L);
+        Cookie adminSession = loginSessionCookie();
+        long classId = jdbc.queryForObject(
+                "SELECT class_id FROM classes WHERE kindergarten_id = 1 ORDER BY class_id LIMIT 1", Long.class);
+        long roomId = jdbc.queryForObject(
+                "SELECT room_id FROM rooms WHERE kindergarten_id = 1 ORDER BY room_id LIMIT 1", Long.class);
+        long sessionId = jdbc.queryForObject(
+                "SELECT session_id FROM detection_sessions WHERE kindergarten_id = 1 ORDER BY session_id LIMIT 1", Long.class);
+        mockMvc.perform(get("/api/v1/classes/{id}", classId).cookie(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.classId").value((int) classId));
+        mockMvc.perform(get("/api/v1/rooms/{id}", roomId).cookie(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roomId").value((int) roomId));
+        mockMvc.perform(get("/api/v1/detection_sessions/{id}", sessionId).cookie(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value((int) sessionId));
+    }
+
+    @Test
     void platformRole_selectsValidatedTenantContextWithoutChangingRole() throws Exception {
         Cookie sessionCookie = loginSessionCookie();
 
