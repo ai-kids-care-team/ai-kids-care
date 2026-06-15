@@ -68,7 +68,8 @@ Update it after each delivery gate, reviewer result, commit, or material change 
 
 1. **Scope Gate:** confirm the approved spec or task, acceptance criteria, non-goals, risk level, baseline, and allowed files before implementation.
 2. **Pre-review Gate:** run deterministic repository scans, focused tests, affected builds, `git diff --check`, and a targeted final-diff read. Resolve known issues before requesting final review.
-3. **Release Gate:** use a fresh read-only reviewer against the declared baseline and current worktree. Any P0-P3 finding blocks release. Only an explicit `FINAL REVIEW: PASS` permits the task's authorized commit, push, PR, or merge step.
+3. **Integration Gate (→ `develop`):** focused local checks pass (`git diff --check`, touched-area tests/build). Sub-agent branches get a fresh-context review (reviewer ≠ implementing session) before merging into `develop`; the Lead integrates trivial changes directly. GitHub Actions runs post-hoc on `develop`; a red build is fixed promptly, not left on the trunk.
+4. **Release Gate (`develop` → `main`):** open a `develop` → `main` PR. Passing GitHub Actions (`Backend Java Tests` + `Compose Config`) and code-owner approval are required. A fresh read-only reviewer evaluates against the declared baseline and current worktree; any P0-P3 finding blocks release. Only an explicit `FINAL REVIEW: PASS` plus the maintainer's merge decision releases to `main`.
 
 For SPEC-0001 security work, the pre-review gate must also:
 
@@ -80,11 +81,11 @@ For SPEC-0001 security work, the pre-review gate must also:
 
 ## Branch And CI Workflow
 
-- Start new implementation work on `codex/<task>` from a freshly checked `origin/develop` unless an existing dirty worktree requires an explicitly documented exception.
-- Keep each branch and PR centered on one objective. Do not mix unrelated files into a commit.
-- Run focused local checks before creating a checkpoint commit. A task-branch push may be used to run GitHub Actions only when the user or task authorizes it.
-- Open a PR into `develop` and use GitHub Actions as the shared full-test record. Do not merge, force-push, or push directly to `develop` before the release gate and human approval.
-- Direct commits to `develop` are reserved for an explicitly approved bootstrap or emergency workflow.
+- `develop` is the integration trunk; the Lead/Planner agent commits to `develop` directly. Sub-agents — and any isolated or higher-risk unit the Lead chooses to quarantine — work on `codex/<task>` branches cut from a freshly checked `origin/develop`, one objective per branch, then merge back into `develop`. Use worktree isolation for parallel file changes. See ADR-0020 (`docs/decisions/adr/ADR-0020-branch-protection-release-model.md`).
+- Before a sub-agent branch merges into `develop`, a fresh-context review (the Lead agent or a dedicated reviewer sub-agent, never the session that produced the implementation) resolves substantive or security-sensitive findings; the Lead integrates trivial changes directly. Keep each sub-agent branch short-lived and integrated promptly to avoid drift.
+- Run the narrowest reliable local checks before pushing to `develop` (`git diff --check`, focused tests/build for the touched area). `develop` is an integration line and may be transiently broken; GitHub Actions runs on every push as a post-hoc signal — it cannot block direct pushes, so fix a red trunk promptly rather than leaving it.
+- `main` is the protected release line. Ship `develop` → `main` via PR in small, frequent batches. The release PR requires passing GitHub Actions (`Backend Java Tests` + `Compose Config`), code-owner approval, a fresh independent reviewer's `FINAL REVIEW: PASS`, and the maintainer's merge decision.
+- Do not force-push or delete `develop` or `main`. Do not merge `develop` → `main` without the release gate and the maintainer's approval.
 
 Use compact Git evidence by default:
 
