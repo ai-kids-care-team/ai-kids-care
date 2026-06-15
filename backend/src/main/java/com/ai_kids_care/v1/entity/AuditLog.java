@@ -1,10 +1,12 @@
 package com.ai_kids_care.v1.entity;
 
+import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -21,14 +23,16 @@ public class AuditLog {
     @Column(name = "audit_id", nullable = false)
     private Long id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "kindergarten_id", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "scope_type", columnDefinition = "user_role_assignment_scope_type", nullable = false)
+    private UserRoleAssignmentScopeType scopeType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kindergarten_id")
     private Kindergarten kindergarten;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(name = "action", length = Integer.MAX_VALUE)
@@ -45,6 +49,15 @@ public class AuditLog {
 
     @Column(name = "user_agent", length = Integer.MAX_VALUE)
     private String userAgent;
+
+    @Column(name = "effective_role", length = Integer.MAX_VALUE)
+    private String effectiveRole;
+
+    @Column(name = "result", length = Integer.MAX_VALUE)
+    private String result;
+
+    @Column(name = "correlation_id", length = Integer.MAX_VALUE)
+    private String correlationId;
 
     @CreationTimestamp
     @ColumnDefault("now()")
