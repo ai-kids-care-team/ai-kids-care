@@ -163,3 +163,12 @@ related_adrs:
 - 测试：`AdminApprovalAuthorizationIntegrationTest`（25 项）——allow/deny/403/隐藏404/自审/跨园/状态前置/重复幂等/会话吊销/无 S1。
 - Lead 评审修复（`d539f8d`）：(1) `reject()` 原先只查 User 行数、未查 kg-scoped membership/role → 跨园拒绝漏洞，补行数检查（0 行→回滚→隐藏 404）；(2) URA 条件更新的关联赋值由 JPQL 子查询改实体引用参数 `:actor`（Hibernate bulk update 稳定性）。
 - 未做（切片 B）：平台级 SUPERADMIN approve/reject + 平台 user disable + `PlatformPolicy` + 平台 `AuthorizationAction`。审计 writer/通知/前端 UI 见 SPEC Out of Scope 与候选 #1。
+
+### 2026-06-16 切片 B：平台级 SUPERADMIN 审批/拒绝/停用端点（已合入 develop、CI 验证）
+
+- 提交：`7c0c545`（实现，Lead 评审未发现需修问题——子 agent 已落实切片 A 的两条教训）。在 develop 上三 workflow 全绿。
+- 实现：`AdminPlatformController`（`/api/v1/admin/platform/**`）、`PlatformAdminApprovalService`、`PlatformPolicy`（仅禁自审）、3 个平台 `AuthorizationAction` + `AuthorizationPolicy` 接线（`scopeType==PLATFORM && role==PLATFORM_IT_ADMIN`，非 tenantIdentity）；`SuperadminRepository` 补 `findByUser_Id`+条件更新；`UserRoleAssignmentRepository` 补平台专用查询/更新。
+- 平台特有：role assignment `scope_id` 为 NULL → 条件更新用 `scopeId IS NULL`（非 `= :scopeId`）+ `role=SUPERADMIN` 门；平台账户无 membership；`:actor` 实体引用赋值（非 JPQL 子查询）；行数门以 role assignment 条件更新为先，0 行→回滚→隐藏 404。disable 在事务提交后 `revokeAllForUser`。
+- 保守取舍：`disable` 限 `role=SUPERADMIN`（不停用其它 `PLATFORM_IT_ADMIN`——安全不越权；SPEC「平台账户」如需放宽留后续）。
+- 测试：`PlatformAdminApprovalAuthorizationIntegrationTest`（21 项）——同切片 A 的 allow/deny/403/隐藏404/自审/非SUPERADMIN目标/状态前置/重复幂等/会话吊销/无 S1。
+- **SPEC-0002 两切片（园级+平台级）至此全部实现并经 develop CI 验证**；正式 release-gate fresh independent review 在下次 `develop→main` 发布进行（ADR-0020）。审计写入接入属候选 #1（端点已留 `TODO(SPEC-0002 #1)` hook）。
