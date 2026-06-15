@@ -505,3 +505,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 强化吊销回退测试：除既有 role 撤销 → `401`，新增 **user 禁用 → 401**、**membership 结束 → 401**（均由 `EffectiveAuthorizationContextFilter` 每请求权威重解析兜底，覆盖对应验收项）；并验证 `logout-all` 后该 user 的两个会话都 `401`。
 - 已确认未做（阻断/超范围）：状态变更**主动触发**（角色撤销/用户禁用/membership 结束在管理操作的状态事务提交后调用 `SessionRevocationService`）暂无实时端点可挂——相关 admin 管理控制器仍关闭；每请求重解析已保证正确性（撤销后下一请求 `401`），待这些 admin 端点发布时再在事务提交后接入吊销快路径。**安全审计写入**受 `audit_logs.kindergarten_id NOT NULL`（无法表达平台级事件）的 schema 限制，需 ADR-0012 迁移，本片不做。前端暂无“全部登出”按钮（端点已就绪，UI 后续加）。
 - 验证：RED（`logout-all` 失败，user 禁用 / membership 结束通过）→ GREEN；全量后端 `gradlew test` 77 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。
+
+#### 切片 5（部分，2026-06-15）：生产 TLS（Caddy）+ Secure cookie + compose-config CI
+
+- 维护者裁定 **TLS 组件 = Caddy**（ADR-0017 决策第 1 条"二选一属实现"），并回溯更新 ADR-0017（implementation In Progress + 选型 + 部署时验证说明）。
+- 起草边缘 TLS 终结：`infra/caddy/Caddyfile`（自动 ACME 证书 + 强制 HTTP→HTTPS + HSTS + 反代现有 frontend nginx）。
+- `docker-compose.prod.yml`：新增 `caddy` 服务独占宿主 `80/443`；`frontend` 用 Compose `!reset` 取消基线宿主端口发布（生产仅经 Caddy 暴露）；`backend` 设 `SESSION_COOKIE_SECURE=true`（依赖 HTTPS 边缘）。
+- CI：新增 `.github/workflows/compose-config.yml`，校验 base（demo）与 merged production compose 可解析（对应 SPEC 验收的 production compose config 门）。
+- 验证：`docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 通过；合并结果确认 frontend 无宿主端口、caddy 占 80/443、backend `SESSION_COOKIE_SECURE: "true"`。**仅 compose 结构性验证**——真实证书签发、端口绑定、HTTPS 端到端**须部署时验证**（本地/CI 无域名/证书，无法验证 TLS 本身）。
+- 未做（部署时/后续）：前端 lint/build CI gate（受全仓 4 个**既有** lint error 阻断，需先修或单独决定 gate 策略）；TLS 端到端与 HSTS preload 提交；生产 `.env`（`DOMAIN`/`ACME_EMAIL`）。负向测试矩阵（匿名 401、跨租户 404、角色 allow/deny、平台 tenant-context、吊销）已在切片 1-4 的测试类中基本覆盖。

@@ -1,0 +1,26 @@
+# Edge TLS termination (ADR-0017).
+#
+# Caddy auto-provisions and renews certificates via ACME for $DOMAIN, forces
+# HTTP->HTTPS, sets HSTS, and reverse-proxies everything to the existing frontend
+# nginx (which serves the static export and proxies /api to the backend). The
+# session cookie is marked Secure in production (SESSION_COOKIE_SECURE=true), which
+# only works once TLS terminates here.
+#
+# NOT verifiable locally or in CI: issuing a real certificate requires a public DNS
+# name for $DOMAIN and a reachable ACME endpoint. Verify at deploy time. For an
+# internal/offline host, replace the automatic TLS with `tls internal` or a mounted
+# certificate.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# HSTS (ADR-0017). Only sent over HTTPS; remove `preload` until the domain is
+	# actually submitted to the preload list.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+	reverse_proxy frontend:80
+}
