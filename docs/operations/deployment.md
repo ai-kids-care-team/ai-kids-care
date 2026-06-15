@@ -58,11 +58,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 > 以下为**事实驱动的核对项**，处置方式由团队决定：
 
-- [ ] 用 `.env` 覆盖所有默认凭据（`POSTGRES_*`、`NEO4J_*`、`JWT_SECRET`）——默认值已硬编码在 compose/yml（OQ-SEC-3/5）。
+- [ ] 用 `.env` 覆盖所有默认凭据（`POSTGRES_*`、`NEO4J_*`）；设生产 `SESSION_COOKIE_SECURE=true` 与 Caddy `DOMAIN`/`ACME_EMAIL`（`JWT_SECRET` 已废，JWT→服务端会话）。
 - [ ] 确认 CI 删卷行为是否符合目标环境预期（OQ-OPS-1）。
-- [ ] 确认后端鉴权是否需开启（`SecurityConfig` 当前 permitAll + 过滤器停用，OQ-SEC-1）。
+- [x] 后端鉴权已开启（默认拒绝 + 服务端会话 + 每请求授权，PR #89）。
 - [ ] 确认日志级别（`root: DEBUG`，OQ-SEC-6）。
-- [ ] 确认 TLS/HTTPS 终结位置（仓库内无 TLS 配置）。
+- [ ] 部署 Caddy 边缘 TLS（`infra/caddy/Caddyfile`）：设公网 `DOMAIN`，验证 ACME 证书签发与 HTTP→HTTPS/HSTS（PR #89 草案，端到端待部署验证）。
 - [ ] 确认 AI 服务是否需部署、模型权重如何分发到 `outputs/`。
 
 ## 回滚

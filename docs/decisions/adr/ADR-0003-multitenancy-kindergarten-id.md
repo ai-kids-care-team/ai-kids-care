@@ -26,7 +26,7 @@ Accepted (Retrospective)
 
 - **正面**：单库单 schema 运维简单；强约束在数据库层防止跨租户引用错误。
 - **代价 / 风险**：
-  - ❓ **租户隔离的运行时强制依赖应用层**。当前后端鉴权关闭，且未见 service 层统一注入 `kindergarten_id` 过滤——schema 提供了隔离的结构基础，但运行时是否强制隔离待确认（见 [[ADR-0007]] 与 open-questions OQ-SEC-1）。
+  - ✅ **租户隔离的运行时强制依赖应用层**——已落地（2026-06-15，PR #89）：每请求 `EffectiveAuthorizationContext` 派生 effective kindergarten，已发布租户资源在查询条件中包含租户/关系条件，跨租户/无关系返回隐藏 `404`；schema 复合键作为纵深防御。详见 [ADR-0019](ADR-0019-effective-authorization-context-tenant-enforcement.md)。（历史：此前后端鉴权关闭、无统一租户过滤，见 [[ADR-0007]] / OQ-SEC-1。）
   - 复合键使 JPA 映射与查询更复杂。
 
 ## 考虑过的备选

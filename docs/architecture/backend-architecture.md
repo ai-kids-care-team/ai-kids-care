@@ -96,12 +96,12 @@ templates/*.mustache  →  生成 6 类文件：
 
 ✅ 组件：
 
-- `JwtUtil` — HMAC-SHA 签名，`subject` = 登录标识符，24h 过期。
-- `JwtAuthenticationFilter` — 从 `Authorization: Bearer` 解析并校验。
+- 会话：Spring Session + Redis、`SessionPrincipal`、`EffectiveAuthorizationContextFilter`（每请求权威重解析）。
+- 授权：`@EnableMethodSecurity` + 集中 `AuthorizationPolicy`；`SessionRevocationService`（按 principalName 吊销）。
 - `AesGcmCryptoUtil` — AES-256-GCM（32B 密钥/12B IV/128b tag），用于摄像头流凭证。
 - `BCryptPasswordEncoder` — 用户密码。
 
-> ❓ **关键现状**：`SecurityConfig` 中 `JwtAuthenticationFilter` 的注册被**注释掉**，且 `/api/v1/**` 为 `permitAll()`——**鉴权实际未启用**。完整分析见 [security-architecture](security-architecture.md)。
+> ✅ **as-built（2026-06-15，PR #89）**：`/api/v1/**` 默认 `authenticated`、默认拒绝；JWT（`JwtUtil`/`JwtAuthenticationFilter`）已**移除**，改服务端会话。完整见 [security-architecture](security-architecture.md)。
 
 ## 6. 双数据源
 
@@ -116,7 +116,7 @@ templates/*.mustache  →  生成 6 类文件：
 | --- | --- |
 | 测试覆盖薄 | ✅ 已有 Testcontainers 后端基线，但仅覆盖认证与检测事件少量路径；前端/AI 无测试 |
 | 无全局异常处理器 | 🔶 未见 `@ControllerAdvice`；service 多直接抛 `RuntimeException`/`IllegalArgumentException`，错误响应格式未统一 |
-| 鉴权关闭 | ✅ 见上 |
+| 鉴权 | ✅ 已恢复（默认拒绝 + 会话 + EAC + 集中 policy，PR #89）；Guardian 关系策略 / 审计 / 全量主动吊销 deferred |
 | 密码重置未实现 | ✅ `AuthService.passwordResets` 抛 `Not implemented` |
 
 详见 [modernization/current-state-assessment.md](../modernization/current-state-assessment.md)。

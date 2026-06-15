@@ -48,5 +48,5 @@ npm run build          # 产物为静态导出 /out
 
 ## 注意事项
 
-- ⚠️ 前端实现了完整 JWT 流程，但后端当前鉴权关闭——本地行为可能与"鉴权开启"时不同（见 [security-architecture](../architecture/security-architecture.md)）。
+- ✅ 前端已去 JWT/bearer/localStorage，改 `withCredentials` cookie 会话 + CSRF（`X-XSRF-TOKEN`）+ 会话 bootstrap；后端默认拒绝、每请求授权（见 [security-architecture](../architecture/security-architecture.md)）。
 - ⚠️ 无前端测试基线。

@@ -55,7 +55,7 @@
 > ❓ **待确认 / 重要现状**——这些会直接影响对"产品是否完整"的判断，详见 [open-questions](../modernization/open-questions.md)：
 
 1. **AI 实时检测未写回数据库**（当前态；**终态已定 → [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) V1，AI 直写 PG**）✅：`ai/` 目录中**没有任何**连接 PostgreSQL 或调用后端 API 的代码（仅有 Pushover/SMS 工具）。实时告警脚本 `stream_live_alert_service.py` 把告警发往 Pushover/SMS 并写本地 CSV，**不**落库到 `detection_events`。因此后端看到的检测事件目前来自**种子数据**（`db/initdb/42_detection_events_seed.sql`），而非线上 AI。根 README 也称实时链路为"실험"（实验）。
-2. **后端鉴权当前处于关闭状态** ✅：`SecurityConfig.java` 中 JWT 过滤器被注释、`/api/v1/**` 全部 `permitAll()`。即任何人可无凭证访问所有 API（见 [security-architecture](../architecture/security-architecture.md)）。这更像 demo/开发态而非生产态。
+2. **后端鉴权已启用**（2026-06-15，PR #89）✅：`/api/v1/**` 默认拒绝 + 服务端会话（Spring Session + Redis）+ 每请求授权 + 租户隔离；JWT 已移除。仍 deferred：Guardian 关系策略、安全审计（见 [security-architecture](../architecture/security-architecture.md)）。
 3. **密码重置未实现** ✅：`AuthService.passwordResets()` 直接抛出 `"Not implemented"`。
 
 ## 项目阶段与协作背景

@@ -26,5 +26,5 @@
 - ✅ 资源命名：`snake_case` 复数（如 `/cctv_cameras`、`/detection_events`）。
 - ✅ 列表接口支持分页（Spring `Pageable`：`page`/`size`/`sort`，默认 `size=20`）。
 - ✅ 入参用 DTO，出参用 VO（见 [backend-architecture](../architecture/backend-architecture.md)）。
-- ⚠️ **鉴权当前关闭**：尽管前端按 `Authorization: Bearer` 设计，后端当前 `permitAll` 且 JWT 过滤器停用（见 [security-architecture](../architecture/security-architecture.md)、OQ-SEC-1）。
+- ✅ **鉴权已启用**（PR #89）：服务端会话 + 默认拒绝 + 每请求授权；前端去 JWT、改 cookie + CSRF（见 [security-architecture](../architecture/security-architecture.md)）。
 - ⚠️ 无统一错误响应格式（OQ-ARCH-2）。

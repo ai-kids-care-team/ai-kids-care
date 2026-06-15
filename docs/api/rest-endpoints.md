@@ -91,4 +91,4 @@
 ## 特别说明
 
 - ✅ 检测域数据当前来自种子，非实时 AI（见 [open-questions](../modernization/open-questions.md) OQ-AI-1）；`detection_events` 与 `event_reviews` 当前均不发布公共 operation。
-- ⚠️ `/api/v1/**` 仍为 `permitAll` 演示态；本轮只做公开暴露止血，不等同于完成 Session、tenant 或资源关系授权。
+- ✅ `/api/v1/**` 默认 `authenticated`（默认拒绝；PR #89）：会话认证、tenant 隔离、Teacher assignment 策略已落地。仍 deferred：Guardian 关系策略、安全审计。

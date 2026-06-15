@@ -59,14 +59,11 @@ src/
 
 ## 5. 状态管理
 
-✅ Redux Toolkit，目前仅 `userSlice`（用户/令牌/角色）。`store/hook.ts` 提供类型化 hooks。前端权限/菜单 🔶 推断由登录返回的 `role` + 后端 `/menus` 驱动。
+✅ Redux Toolkit，目前仅 `userSlice`（用户/角色；会话态，**不再存 token**）。`store/hook.ts` 提供类型化 hooks。前端权限/菜单 🔶 推断由会话返回的 `role` + 后端 `/menus` 驱动。
 
-## 6. 前后端鉴权预期 vs 现状（必读）
+## 6. 前后端鉴权（as-built）
 
-> ❓ 前端实现了完整的 **JWT + 刷新 + 401 处理**，且代码注释证明前端开发者**遇到过 401**。但后端当前 `permitAll` 且过滤器停用（[security-architecture](security-architecture.md)）。两者存在张力：
-> - 可能后端鉴权是**近期被临时关闭**的（前端逻辑写于鉴权开启时期）；
-> - 也可能不同分支/部署的后端配置不同。
-> 这是需要与团队确认的重点之一，见 [open-questions](../modernization/open-questions.md)。
+> ✅ **2026-06-15（PR #89）**：已统一为**服务端会话**——前端去 JWT/bearer/localStorage，改 `withCredentials` cookie + CSRF（`X-XSRF-TOKEN`）+ 会话 bootstrap；后端默认拒绝 + 每请求授权。原"前端 JWT/刷新 vs 后端 `permitAll`"的张力已消除。详见 [security-architecture](security-architecture.md)。
 
 ## 7. 已知特征 / 缺口
 

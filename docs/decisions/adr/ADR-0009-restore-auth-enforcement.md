@@ -2,6 +2,7 @@
 ADR: ADR-0009
 title: "ADR-0009: 恢复后端鉴权强制"
 status: Accepted
+implementation: Implemented
 date: 2026-05-29
 deciders: 维护者（2026-05-29 Accept；落地时机：第一轮重构完成后）
 ---
