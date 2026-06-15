@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.security.AuthenticatedSession;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextService;
+import com.ai_kids_care.v1.security.SessionRevocationService;
 import com.ai_kids_care.v1.service.AuthService;
 import com.ai_kids_care.v1.vo.*;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +41,7 @@ public class AuthController {
     private final EffectiveAuthorizationContextService authorizationContextService;
     private final SecurityContextRepository securityContextRepository;
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
+    private final SessionRevocationService sessionRevocationService;
 
     @PostMapping("/login")
     public ResponseEntity<AuthSessionVO> login(
@@ -91,6 +93,15 @@ public class AuthController {
         if (request.getSession(false) != null) {
             request.getSession(false).invalidate();
         }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<Void> logoutAll() {
+        EffectiveAuthorizationContext context =
+                EffectiveAuthorizationContextHolder.require();
+        sessionRevocationService.revokeAllForUser(context.userId());
         SecurityContextHolder.clearContext();
         return ResponseEntity.noContent().build();
     }
