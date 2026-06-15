@@ -471,3 +471,13 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - DetectionEvent（事实修正）：`DetectionEventController` 不发布任何 operation，`DetectionEventService` 在生产代码中无任何注入/调用方，当前不可经 HTTP 触达；其信任客户端 `kindergartenId` 的问题留待控制器/AI-sink 重开时处理，不在本切片范围。
 - 验证：`TenantIsolationIntegrationTest` 3 项通过；全量后端 `gradlew test` 67 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。仅新增一个后端测试文件，前端未触碰。
 - 未完成 / 后续：tenant 实体的原始 `JpaRepository`（裸 `findAll`/`findById`）仍暴露给 service，ADR-0019 §4 的“repository port 边界收敛”属架构性改造，留后续切片；Guardian/Teacher 关系策略（切片 3）、会话吊销/审计（切片 4）未动。
+
+#### 切片 3（2026-06-15）：Teacher assignment-级资源策略（classes 首个资源）
+
+- 维护者决定（选项 1）：把 Teacher 的资源访问从“园级”收紧为“有效 assignment 级”。本切片落地**第一个资源 classes**（关系链最浅、教师核心资源）；rooms/cameras/detection_sessions 沿 class-room-camera 关系链的收紧留后续切片。
+- 实现 ADR-0019 §7 的 `TeacherAssignmentPolicy`：`GET /classes` 的 list 与 get-by-id 对 `TEACHER` 仅返回其**有效 assignment** 覆盖的班级（teacher 档案 ACTIVE + `class_teacher_assignments` ACTIVE 且 `start_date <= today < end_date/∞`）；`KINDERGARTEN_ADMIN` 保持园级全量。同租户但未分配的班级 → 隐藏 `404`（关系条件写进 JPQL EXISTS 子查询，不做加载后过滤）。
+- 改动：`ClassRepository` 新增两条 assignment-scoped JPQL（list/get）；新增 `TeacherAssignmentPolicy` bean（集中“谁是 assignment-scoped”的判定，role==TEACHER）；`ClassService` 的 list/get 按 policy 分流。create/update/delete 仍为 `KINDERGARTEN_ADMIN`-only（`TENANT_S2_WRITE`）、园级，不变。
+- Guardian 半：相关控制器仍关闭，无实时消费端，本切片未动（待开放 guardian 资源时再接 `GuardianChildPolicy`）。
+- 测试：新增 `TeacherAssignmentAuthorizationIntegrationTest`（3）——TEACHER 仅见有效 assignment 的班级（assigned get→200、unassigned get→隐藏 404、list 计数=1）；DISABLED 或过期 assignment → 见空（list=0、get→404）；`KINDERGARTEN_ADMIN` 园级全量（list=全部、unassigned get→200）。
+- 既有缺陷发现（不在本切片范围，已另开任务）：`ClassMapper.toVO` 用 `@Mapping(target="classId", ignore=true)` 永远忽略 `classId`，导致 `GET /classes` 返回的 `classId` 恒为 null；`AuthEndpointTest` 早先对 class `kindergartenId` 的断言因此是空泛通过。本切片测试改用 list 计数 + URL path id 规避，未修该 mapper。
+- 验证：先 RED（2 个 teacher 测试失败、admin 控制项通过）→ 实现后 GREEN；全量后端 `gradlew test` 70 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/classes`**（grep 确认），收紧对前端零影响，无需前端改动。`git diff --check` PASS。
