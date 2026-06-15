@@ -212,10 +212,12 @@ class AuthEndpointTest extends BaseIntegrationTest {
 
     @Test
     void refresh_isClosed() throws Exception {
+        // /auth/refresh no longer exists and is not whitelisted: default-deny returns
+        // 401 for an anonymous caller (with valid CSRF), not an anonymous 404.
         mockMvc.perform(withRealCsrf(post("/api/v1/auth/refresh"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"obsolete\"}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -373,7 +375,8 @@ class AuthEndpointTest extends BaseIntegrationTest {
         assertThat(verified.getBody()).containsOnlyKeys("verified").containsEntry("verified", true);
         assertThat(notVerified.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(notVerified.getBody()).containsOnlyKeys("verified").containsEntry("verified", false);
-        assertThat(legacyLookup.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        // Legacy /children/rrn lookup is closed and not whitelisted: anonymous default-deny 401.
+        assertThat(legacyLookup.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
