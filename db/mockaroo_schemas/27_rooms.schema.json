@@ -1,0 +1,257 @@
+{
+  "id": 723770,
+  "num_rows": 42,
+  "file_format": "sql",
+  "name": "27_rooms",
+  "table_name": "rooms",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "room_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "(room_id-1)/14+1"
+    },
+    {
+      "name": "name",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        " 교실1",
+        "교실2",
+        "교실3",
+        "교실4",
+        "교실5",
+        "교실6",
+        "교실7",
+        "복도1",
+        "복도2",
+        "놀이터",
+        "식당",
+        "현관",
+        "강당",
+        "경비실"
+      ],
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "room_code",
+      "null_percentage": 10,
+      "type": "Blank",
+      "formula": "'R' + room_id.to_s.rjust(4, '0')"
+    },
+    {
+      "name": "room_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "교실",
+        "복도",
+        "놀이터",
+        "식당",
+        "현관",
+        "기타"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "name[0,2] == \"교실\"",
+          "frequencies": {
+            "교실": "1",
+            "복도": "0",
+            "현관": "0",
+            "놀이터": "0",
+            "식당": "0",
+            "기타": "0"
+          }
+        },
+        {
+          "rule": "name == \"유희실\"",
+          "frequencies": {
+            "교실": "0",
+            "복도": "0",
+            "현관": "0",
+            "놀이터": "1",
+            "식당": "0",
+            "기타": "1"
+          }
+        },
+        {
+          "rule": "name == \"강당\"",
+          "frequencies": {
+            "교실": "0",
+            "복도": "0",
+            "현관": "0",
+            "놀이터": "0",
+            "식당": "0",
+            "기타": "1"
+          }
+        },
+        {
+          "rule": "name == \"식당\"",
+          "frequencies": {
+            "교실": "0",
+            "복도": "0",
+            "현관": "0",
+            "놀이터": "0",
+            "식당": "1",
+            "기타": "0"
+          }
+        },
+        {
+          "rule": "name == \"현관\"",
+          "frequencies": {
+            "교실": "0",
+            "복도": "0",
+            "현관": "1",
+            "놀이터": "0",
+            "식당": "0",
+            "기타": "0"
+          }
+        },
+        {
+          "rule": "name == \"놀이터\"",
+          "frequencies": {
+            "교실": "0",
+            "복도": "0",
+            "현관": "0",
+            "놀이터": "1",
+            "식당": "0",
+            "기타": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "location_note",
+      "null_percentage": 10,
+      "type": "Custom List",
+      "values": [
+        "1층",
+        "2층",
+        "3층",
+        "본관",
+        "별관",
+        "야외"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "room_type == \"교실\"",
+          "frequencies": {
+            "1층": "1",
+            "2층": "1",
+            "3층": "1",
+            "본관": "0",
+            "별관": "0",
+            "야외": "0"
+          }
+        },
+        {
+          "rule": "room_type == \"복도\"",
+          "frequencies": {
+            "1층": "1",
+            "2층": "1",
+            "3층": "1",
+            "본관": "1",
+            "별관": "1",
+            "야외": "0"
+          }
+        },
+        {
+          "rule": "room_type == \"현관\"",
+          "frequencies": {
+            "1층": "0",
+            "2층": "0",
+            "3층": "0",
+            "본관": "1",
+            "별관": "1",
+            "야외": "0"
+          }
+        },
+        {
+          "rule": "room_type == \"놀이터\"",
+          "frequencies": {
+            "1층": "0",
+            "2층": "0",
+            "3층": "0",
+            "본관": "0",
+            "별관": "0",
+            "야외": "1"
+          }
+        },
+        {
+          "rule": "room_type == \"식당\"",
+          "frequencies": {
+            "1층": "0",
+            "2층": "0",
+            "3층": "0",
+            "본관": "0",
+            "별관": "1",
+            "야외": "0"
+          }
+        },
+        {
+          "rule": "room_type == \"기타\"",
+          "frequencies": {
+            "1층": "1",
+            "2층": "1",
+            "3층": "1",
+            "본관": "1",
+            "별관": "1",
+            "야외": "1"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "status",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ACTIVE",
+        "PENDING",
+        "DISABLED"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": [
+        {
+          "frequencies": {
+            "ACTIVE": "10",
+            "PENDING": "0",
+            "DISABLED": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "3/20/2026",
+      "max": "3/20/2025",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "now - minutes(1000) + minutes(room_id.number)"
+    },
+    {
+      "name": "updated_at",
+      "null_percentage": 0,
+      "type": "Datetime",
+      "min": "3/20/2026",
+      "max": "3/20/2025",
+      "format": "%Y-%m-%d %H:%M:%S",
+      "formula": "[this, created_at].max"
+    }
+  ]
+}

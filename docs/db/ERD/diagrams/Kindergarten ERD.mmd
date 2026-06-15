@@ -3,7 +3,7 @@ config:
   layout: elk
 ---
 erDiagram
-  kindergarten {
+  kindergartens {
     bigint kindergarten_id PK "유치원 ID"
     varchar name "유치원명"
     varchar address "주소"
@@ -17,7 +17,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  class_entity {
+  classes {
     bigint class_id PK
     bigint kindergarten_id FK
     varchar name "반/학급 이름"
@@ -30,7 +30,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  child {
+  children {
     bigint child_id PK
     bigint kindergarten_id FK
     bigint class_id FK "현재 반 ID(캐시/현재상태). 변경 이력은 CHILD_CLASS_ASSIGNMENT를 기준으로 함"
@@ -48,7 +48,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  child_class_assignment {
+  child_class_assignments {
     bigint assignment_id PK
     bigint kindergarten_id FK
     bigint child_id FK
@@ -63,7 +63,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  user_account {
+  users {
     bigint user_id PK "사용자 계정 ID"
     varchar login_id "로그인 ID(사용자 식별자)"
     varchar password_hash "비밀번호 해시"
@@ -73,7 +73,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  teacher {
+  teachers {
     bigint teacher_id PK
     bigint kindergarten_id FK
     bigint user_id FK
@@ -94,7 +94,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  class_teacher_assignment {
+  class_teacher_assignments {
     bigint assignment_id PK
     bigint kindergarten_id FK
     bigint class_id FK
@@ -110,7 +110,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  guardian {
+  guardians {
     bigint guardian_id PK
     bigint kindergarten_id FK
     bigint user_id FK
@@ -126,7 +126,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  child_guardian_relationship {
+  child_guardian_relationships {
     bigint kindergarten_id FK
     bigint child_id FK
     bigint guardian_id FK
@@ -139,7 +139,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  room {
+  rooms {
     bigint room_id PK
     bigint kindergarten_id FK
     varchar name "공간/교실 이름"
@@ -151,7 +151,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  class_room_assignment {
+  class_room_assignments {
     bigint assignment_id PK "반-공간 배정 ID"
     bigint kindergarten_id FK "유치원 ID(테넌트/필터링용)"
     bigint class_id FK "반 ID"
@@ -166,7 +166,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  cctv_camera {
+  cctv_cameras {
     bigint camera_id PK "카메라 ID"
     bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
     varchar serial_no "카메라 시리얼 번호/제조사 식별자"
@@ -179,7 +179,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  room_camera_assignment {
+  room_camera_assignments {
     bigint assignment_id PK
     bigint kindergarten_id FK
     bigint camera_id FK
@@ -190,7 +190,7 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  camera_stream {
+  camera_streams {
     bigint camera_id PK "카메라 ID(CCTV_CAMERA.camera_id)"
     varchar stream_url "스트림 URL(예: RTSP/HTTP 엔드포인트)"
     varchar stream_user "스트림 인증 사용자명"
@@ -202,28 +202,66 @@ erDiagram
     timestamptz updated_at "수정 일시"
   }
 
-  kindergarten ||--o{ class_entity : has
-  kindergarten ||--o{ child : has
-  kindergarten ||--o{ teacher : employs
-  kindergarten ||--o{ guardian : registers
-  kindergarten ||--o{ room : owns
-  kindergarten ||--o{ cctv_camera : owns
+  superadmins {
+    bigint superadmin_id PK "슈퍼어드민 ID"
+    bigint user_id FK "사용자 ID"
+    varchar name "담당자 이름"
+    varchar department "행정청+부서 이름 e.g.서울시청 아동담당관"
+    varchar status "행정청 담당자 상태"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  class_entity ||--o{ child_class_assignment : assigns
-  child ||--o{ child_class_assignment : history
-  class_entity ||--o{ class_teacher_assignment : assigns
-  teacher ||--o{ class_teacher_assignment : history
+  user_kindergarten_memberships {
+    bigint membership_id PK "멤버십 ID"
+    bigint user_id FK "사용자 ID(USER_ACCOUNT.user_id)"
+    bigint kindergarten_id FK "유치원 ID(KINDERGARTEN.kindergarten_id)"
+    varchar status "멤버십 상태"
+    timestamptz joined_at "가입/승인 일시"
+    timestamptz left_at "탈퇴/종료 일시"
+    timestamptz created_at "생성 일시"
+    timestamptz updated_at "수정 일시"
+  }
 
-  child ||--o{ child_guardian_relationship : relates
-  guardian ||--o{ child_guardian_relationship : relates
+  user_role_assignments {
+    bigint role_assignment_id PK "권한 할당 ID"
+    bigint user_id FK "대상 사용자 ID(USER_ACCOUNT.user_id)"
+    varchar role "역할(GUARDIAN/TEACHER/KINDERGARTEN_ADMIN/PLATFORM_IT_ADMIN/SUPERADMIN)"
+    varchar scope_type "권한 범위 유형(PLATFORM/KINDERGARTEN)"
+    bigint scope_id "권한 범위 ID(NULL=PLATFORM; KINDERGARTEN일 때 kindergarten_id)"
+    varchar status "권한 상태"
+    timestamptz granted_at "권한 부여 일시"
+    bigint granted_by_user_id "권한 부여자 사용자 ID(USER_ACCOUNT.user_id)"
+    timestamptz revoked_at "권한 회수 일시"
+    bigint revoked_by_user_id "권한 회수자 사용자 ID(USER_ACCOUNT.user_id)"
+  }
 
-  class_entity ||--o{ class_room_assignment : uses
-  room ||--o{ class_room_assignment : allocated
+  kindergartens ||--o{ classes : has
+  kindergartens ||--o{ children : has
+  kindergartens ||--o{ teachers : employs
+  kindergartens ||--o{ guardians : registers
+  kindergartens ||--o{ rooms : owns
+  kindergartens ||--o{ cctv_cameras : owns
 
-  room ||--o{ room_camera_assignment : hosts
-  cctv_camera ||--o{ room_camera_assignment : deployed
+  classes ||--o{ child_class_assignments : assigns
+  children ||--o{ child_class_assignments : history
+  classes ||--o{ class_teacher_assignments : assigns
+  teachers ||--o{ class_teacher_assignments : history
 
-  cctv_camera ||--|| camera_stream : stream
+  children ||--o{ child_guardian_relationships : relates
+  guardians ||--o{ child_guardian_relationships : relates
 
-  user_account ||--o{ teacher : user
-  user_account ||--o{ guardian : user
+  classes ||--o{ class_room_assignments : uses
+  rooms ||--o{ class_room_assignments : allocated
+
+  rooms ||--o{ room_camera_assignments : hosts
+  cctv_cameras ||--o{ room_camera_assignments : deployed
+
+  cctv_cameras ||--|| camera_streams : stream
+
+  users ||--o{ teachers : user
+  users ||--o{ guardians : user
+  users ||--|| superadmins : identity
+  users ||--o{ user_kindergarten_memberships : joins
+  kindergartens ||--o{ user_kindergarten_memberships : has
+  users ||--o{ user_role_assignments : grants

@@ -1,0 +1,124 @@
+{
+  "id": 723955,
+  "num_rows": 1000,
+  "file_format": "sql",
+  "name": "33_notification_rules",
+  "table_name": "notification_rules",
+  "include_create_sql": null,
+  "columns": [
+    {
+      "name": "rule_id",
+      "null_percentage": 0,
+      "type": "Row Number",
+      "formula": null
+    },
+    {
+      "name": "user_id",
+      "null_percentage": 0,
+      "type": "Dataset Column",
+      "dataset": "21_users",
+      "column": "user_id",
+      "selectionStyle": "sequential",
+      "distribution": null,
+      "formula": "this.to_i"
+    },
+    {
+      "name": "kindergarten_id",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "if user_id<=100 then 1\nelsif user_id<=400 then 1\nelsif user_id<=700 then 2\nelse 3 end"
+    },
+    {
+      "name": "target_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "ROOM",
+        "CAMERA",
+        "KINDERGARTEN"
+      ],
+      "selectionStyle": "custom",
+      "distribution": [
+        {
+          "rule": "user_id<=100",
+          "frequencies": {
+            "ROOM": "0",
+            "CAMERA": "0",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "user_id%300==1",
+          "frequencies": {
+            "ROOM": "1",
+            "CAMERA": "1",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "user_id%300<=20",
+          "frequencies": {
+            "ROOM": "1",
+            "CAMERA": "0",
+            "KINDERGARTEN": "1"
+          }
+        },
+        {
+          "rule": "user_id%300<300",
+          "frequencies": {
+            "ROOM": "1",
+            "CAMERA": "0",
+            "KINDERGARTEN": "0"
+          }
+        }
+      ],
+      "formula": ""
+    },
+    {
+      "name": "target_id",
+      "null_percentage": 0,
+      "type": "Number",
+      "min": 1,
+      "max": 42,
+      "decimals": null,
+      "formula": "if target_type==\"KINDERGARTEN\" then \n  if user_id<=100 then random(1,3)\n  elsif user_id<=400 then 1\n  elsif user_id<=700 then 2\n  elsif user_id<=1000 then 3\n  else nil end\nelse\n  if user_id<=100 then nil\n  else (user_id-100-1)/20+1 end\nend"
+    },
+    {
+      "name": "event_type",
+      "null_percentage": 0,
+      "type": "Custom List",
+      "values": [
+        "FALL_DOWN",
+        "FIGHTING",
+        "WANDERING"
+      ],
+      "selectionStyle": "weighted",
+      "distribution": null,
+      "formula": ""
+    },
+    {
+      "name": "min_severity",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "random(1, 3)"
+    },
+    {
+      "name": "quiet_hours_json",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "'{ \"start\": \"22:00\", \"end\": \"07:00\" }'"
+    },
+    {
+      "name": "enabled",
+      "null_percentage": 0,
+      "type": "Boolean",
+      "formula": null
+    },
+    {
+      "name": "created_at",
+      "null_percentage": 0,
+      "type": "Blank",
+      "formula": "from_dataset(\"21_users\",\"created_at\",user_id:user_id)"
+    }
+  ]
+}

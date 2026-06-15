@@ -1,0 +1,8 @@
+# Requirements for db/scripts/generate_migration.py
+# Install: pip install -r db/scripts/requirements-migra.txt
+#
+# migra: PostgreSQL schema diff tool (github.com/djrobstep/migra)
+#   Compares two PG schemas and generates the SQL to transform one into the other.
+# psycopg2-binary: PostgreSQL adapter required by migra
+migra>=3.0.1
+psycopg2-binary>=2.9.9

@@ -1,0 +1,59 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kids_postgres_db}
+    username: ${DB_USER:kids_user}
+    password: ${DB_PASSWORD:kids_pass}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  session:
+    store-type: redis
+    redis:
+      repository-type: indexed
+
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:rose100!}
+
+  flyway:
+    enabled: true
+    # baseline-on-migrate: when schema exists but has no flyway_schema_history (demo/initdb path),
+    # Flyway creates the history table and records V1 as the baseline — no re-run of V1.
+    # On a fresh empty database (production first deploy), baseline is NOT triggered;
+    # V1 runs normally and creates the full schema.
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: ${SESSION_TIMEOUT:30m}
+      cookie:
+        name: AI_KIDS_CARE_SESSION
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
+
+logging:
+  level:
+    root: DEBUG
+    sun.rmi: INFO
+    javax.management.remote.rmi: INFO
+    sun.rmi.transport.tcp: INFO
+    sun.rmi.loader: INFO

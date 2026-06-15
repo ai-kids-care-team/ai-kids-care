@@ -8,3 +8,7 @@
 /ai/ @ai-kids-care-team/ai
 /frontend/ @ai-kids-care-team/frontend
 /backend/ @ai-kids-care-team/backend
+/db/ @ai-kids-care-team/db
+
+# build-time tools (relocated from scripts/codegen on 2026-05-29, see docs/decisions/adr/ADR-0011)
+/pg-spring-crud-codegen/ @ai-kids-care-team/leads
