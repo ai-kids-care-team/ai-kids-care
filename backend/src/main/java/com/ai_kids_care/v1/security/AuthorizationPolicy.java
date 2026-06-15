@@ -39,6 +39,12 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             case TENANT_SURVEILLANCE_READ ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // SPEC-0002 Slice A: 粗粒度门——仅确认 KINDERGARTEN_ADMIN + 有效 tenant identity。
+            // 细粒度（teachers.level / 同园 / 禁自审 / 目标状态）由 KindergartenAdminPolicy 在事务内完成（ADR-0019 §2）。
+            case KINDERGARTEN_ADMIN_APPROVAL_READ,
+                 KINDERGARTEN_ADMIN_APPROVAL_WRITE,
+                 KINDERGARTEN_ADMIN_MEMBER_WRITE ->
+                    tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
         };
     }
 }
