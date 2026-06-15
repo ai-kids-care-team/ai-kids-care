@@ -1,0 +1,37 @@
+name: Compose Config
+
+# Validates that the demo and merged production compose files resolve (SPEC-0001
+# release-gate check). This only checks structure — it does not start containers,
+# issue TLS certificates or bind host ports.
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: docker compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate base (demo) compose
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate merged production compose
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q

@@ -2,6 +2,7 @@
 ADR: ADR-0017
 title: "ADR-0017: TLS/HTTPS 终结与强制"
 status: Accepted
+implementation: In Progress
 date: 2026-06-07
 deciders: 接手人起草，维护者 Accept（2026-06-07）；实现委派独立 session
 ---
@@ -13,6 +14,8 @@ deciders: 接手人起草，维护者 Accept（2026-06-07）；实现委派独�
 ## 状态（Status）
 
 Accepted（2026-06-07）。**生产部署前置**，与 [ADR-0012](ADR-0012-production-data-lifecycle.md)（生产部署）、[ADR-0016](ADR-0016-server-side-session-auth.md)（Secure cookie）耦合。实现委派独立 session。
+
+> 实现状态（2026-06-15，分支 `codex/spec-0001-auth-context`，未合入）：决策第 1 条"二选一属实现"的组件选型**定为 Caddy**（自动 ACME，运维最轻）。已起草 `infra/caddy/Caddyfile`（边缘 TLS 终结 + HTTP→HTTPS + HSTS + 反代现有 frontend nginx）与 `docker-compose.prod.yml`（caddy 独占宿主 80/443、frontend 不再发布宿主端口、backend `SESSION_COOKIE_SECURE=true`），并新增 `.github/workflows/compose-config.yml` 校验 demo 与生产 compose 可解析。**本地/CI 仅验证 compose 结构可解析**；真实证书签发需公网域名与可达 ACME，须**部署时验证**。内网/离线可改用 `tls internal` 或挂载证书。
 
 ## 背景（Context）
 
