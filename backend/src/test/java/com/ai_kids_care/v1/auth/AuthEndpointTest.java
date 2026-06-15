@@ -2,24 +2,33 @@ package com.ai_kids_care.v1.auth;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -63,6 +72,10 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 "010-0000-9997",
                 hash);
         jdbc.update("""
+                DELETE FROM user_kindergarten_memberships
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, TEST_LOGIN_ID);
+        jdbc.update("""
                 DELETE FROM user_role_assignments
                 WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
                 """, TEST_LOGIN_ID);
@@ -78,36 +91,78 @@ class AuthEndpointTest extends BaseIntegrationTest {
     // ── POST /api/v1/auth/login ──────────────────────────────────────────────
 
     @Test
-    void login_validCredentials_returns200WithTokenFields() {
-        var resp = rest.postForEntity(
-                "/api/v1/auth/login",
-                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD),
-                Map.class);
-
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resp.getBody())
-                .containsKeys("accessToken", "refreshToken", "tokenType", "expiresIn");
-        assertThat((String) resp.getBody().get("accessToken")).isNotBlank();
-        assertThat((String) resp.getBody().get("refreshToken")).isNotBlank();
+    void login_validCredentials_returnsSessionProfileWithoutBearerTokens() throws Exception {
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/login"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD))))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("AI_KIDS_CARE_SESSION"))
+                .andExpect(jsonPath("$.loginId").value(TEST_LOGIN_ID))
+                .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
+                .andExpect(jsonPath("$.scopeType").value("PLATFORM"))
+                .andExpect(jsonPath("$.scopeId").doesNotExist())
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.token").doesNotExist());
     }
 
     @Test
-    void login_kindergartenScopedRole_returnsServerDerivedKindergartenId() {
+    void session_afterLogin_returnsServerDerivedProfile() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value(TEST_LOGIN_ID))
+                .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
+                .andExpect(jsonPath("$.scopeType").value("PLATFORM"));
+    }
+
+    @Test
+    void session_withoutLogin_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/session"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void login_kindergartenScopedRoleWithoutMembership_returns401() throws Exception {
         jdbc.update("""
                 UPDATE user_role_assignments
                 SET role = 'TEACHER', scope_type = 'KINDERGARTEN', scope_id = 1
                 WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
                 """, TEST_LOGIN_ID);
 
-        var resp = rest.postForEntity(
+        assertAuthenticationFailure(
                 "/api/v1/auth/login",
-                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD),
-                Map.class);
+                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD));
+    }
 
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resp.getBody())
-                .containsEntry("role", "TEACHER")
-                .containsEntry("kindergartenId", 1);
+    @Test
+    void login_kindergartenScopedRoleWithMatchingMembership_returnsServerDerivedScope() throws Exception {
+        jdbc.update("""
+                UPDATE user_role_assignments
+                SET role = 'TEACHER', scope_type = 'KINDERGARTEN', scope_id = 1
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, TEST_LOGIN_ID);
+        insertActiveMembership(1L);
+
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/login"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.effectiveRole").value("TEACHER"))
+                .andExpect(jsonPath("$.scopeType").value("KINDERGARTEN"))
+                .andExpect(jsonPath("$.scopeId").value(1));
+    }
+
+    @Test
+    void login_platformRoleWithActiveMembership_returns401() throws Exception {
+        insertActiveMembership(1L);
+
+        assertAuthenticationFailure(
+                "/api/v1/auth/login",
+                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD));
     }
 
     @Test
@@ -144,79 +199,172 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD));
     }
 
-    // ── POST /api/v1/auth/refresh ────────────────────────────────────────────
+    // ── Session lifecycle ────────────────────────────────────────────────────
 
     @Test
-    void refresh_validRefreshToken_returns200WithNewTokens() {
-        // Obtain a refresh token via login first.
-        var loginResp = rest.postForEntity(
-                "/api/v1/auth/login",
-                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD),
-                Map.class);
-        assertThat(loginResp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        String refreshToken = (String) loginResp.getBody().get("refreshToken");
-
-        var resp = rest.postForEntity(
-                "/api/v1/auth/refresh",
-                Map.of("refreshToken", refreshToken),
-                Map.class);
-
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resp.getBody()).containsKey("accessToken");
-        assertThat((String) resp.getBody().get("accessToken")).isNotBlank();
+    void csrfEndpoint_returnsReadableCookieAndHeaderContract() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("XSRF-TOKEN"))
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"));
     }
 
     @Test
-    void refresh_userWithoutActiveRole_returns401() throws Exception {
-        String refreshToken = loginRefreshToken();
+    void refresh_isClosed() throws Exception {
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/refresh"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"obsolete\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void logout_invalidatesCurrentSession() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/logout"))
+                        .cookie(sessionCookie))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void authenticatedRequest_afterRoleRevocationReturns401AndInvalidatesSession() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
         jdbc.update("""
                 UPDATE user_role_assignments
-                SET status = 'PENDING'
+                SET status = 'DISABLED', revoked_at = NOW()
                 WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
                 """, TEST_LOGIN_ID);
 
-        assertAuthenticationFailure(
-                "/api/v1/auth/refresh",
-                Map.of("refreshToken", refreshToken));
+        mockMvc.perform(get("/api/v1/ai_models").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void refresh_userWithMultipleActiveRoles_returns401() throws Exception {
-        String refreshToken = loginRefreshToken();
-        insertSecondActiveRole();
+    void platformRole_selectsValidatedTenantContextWithoutChangingRole() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
 
-        assertAuthenticationFailure(
-                "/api/v1/auth/refresh",
-                Map.of("refreshToken", refreshToken));
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/session/tenant-context"))
+                        .cookie(sessionCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kindergartenId\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.selectedKindergartenId").value(1));
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
+                .andExpect(jsonPath("$.scopeType").value("PLATFORM"));
     }
 
     @Test
-    void refresh_pendingUser_returns401() throws Exception {
-        String refreshToken = loginRefreshToken();
-        jdbc.update("UPDATE users SET status = 'PENDING' WHERE login_id = ?", TEST_LOGIN_ID);
+    void kindergartenRole_cannotSelectPlatformTenantContext() throws Exception {
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
 
-        assertAuthenticationFailure(
-                "/api/v1/auth/refresh",
-                Map.of("refreshToken", refreshToken));
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/session/tenant-context"))
+                        .cookie(sessionCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kindergartenId\":1}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
-    void refresh_invalidToken_returnsExplicit401() throws Exception {
-        assertAuthenticationFailure(
-                "/api/v1/auth/refresh",
-                Map.of("refreshToken", "not-a-valid-jwt"));
+    void platformTenantSelection_doesNotGrantCameraRead() throws Exception {
+        Cookie sessionCookie = loginSessionCookie();
+        mockMvc.perform(withRealCsrf(post("/api/v1/auth/session/tenant-context"))
+                        .cookie(sessionCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kindergartenId\":1}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/camera_streams?kindergartenId=1")
+                        .cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void kindergartenRole_cannotReadPlatformAiMetadata() throws Exception {
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/ai_models").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void tenantClassQueries_hideForeignTenantResources() throws Exception {
+        long foreignKindergartenId = insertActiveKindergarten();
+        long foreignClassId = insertActiveClass(foreignKindergartenId);
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+
+        MvcResult list = mockMvc.perform(get("/api/v1/classes").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andReturn();
+        boolean containsForeignTenant = StreamSupport.stream(
+                        objectMapper.readTree(list.getResponse().getContentAsString())
+                                .path("content")
+                                .spliterator(),
+                        false)
+                .anyMatch(item -> item.path("kindergartenId").asLong() == foreignKindergartenId);
+        assertThat(containsForeignTenant).isFalse();
+
+        mockMvc.perform(get("/api/v1/classes/{id}", foreignClassId)
+                        .cookie(sessionCookie))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Resource not found"));
+    }
+
+    @Test
+    void tenantWrite_rejectsClientKindergartenOverride() throws Exception {
+        long foreignKindergartenId = insertActiveKindergarten();
+        configureKindergartenAdminRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("kindergartenId", foreignKindergartenId);
+        body.put("name", "Foreign tenant class");
+        body.put("grade", "AGE_5");
+        body.put("academicYear", 2026);
+        body.put("startDate", "2026-03-01");
+        body.put("endDate", "2027-02-28");
+        body.put("status", "ACTIVE");
+
+        mockMvc.perform(withRealCsrf(post("/api/v1/classes"))
+                        .cookie(sessionCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Resource not found"));
+    }
+
+    @Test
+    void cameraList_rejectsClientKindergartenOverride() throws Exception {
+        long foreignKindergartenId = insertActiveKindergarten();
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/cctv_cameras")
+                        .param("kindergartenId", String.valueOf(foreignKindergartenId))
+                        .cookie(sessionCookie))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Resource not found"));
     }
 
     @Test
     void guardianChildVerification_returnsOnlyGenericMatchResultAndLegacyLookupIsClosed() {
-        ResponseEntity<Map> verified = rest.postForEntity(
+        ResponseEntity<Map> verified = postWithCsrf(
                 "/api/v1/auth/guardian-child-verifications",
-                Map.of("childRrnFirst6", "200921", "childRrnBack7", "4037926"),
-                Map.class);
-        ResponseEntity<Map> notVerified = rest.postForEntity(
+                Map.of("childRrnFirst6", "200921", "childRrnBack7", "4037926"));
+        ResponseEntity<Map> notVerified = postWithCsrf(
                 "/api/v1/auth/guardian-child-verifications",
-                Map.of("childRrnFirst6", "200921", "childRrnBack7", "0000000"),
-                Map.class);
+                Map.of("childRrnFirst6", "200921", "childRrnBack7", "0000000"));
         ResponseEntity<Map> legacyLookup = rest.getForEntity(
                 "/api/v1/children/rrn?rrn_First6=200921&rrn_Last7=4037926",
                 Map.class);
@@ -230,10 +378,9 @@ class AuthEndpointTest extends BaseIntegrationTest {
 
     @Test
     void guardianChildVerificationAndRegistration_rejectMalformedRrnBeforePersistence() {
-        ResponseEntity<Map> verification = rest.postForEntity(
+        ResponseEntity<Map> verification = postWithCsrf(
                 "/api/v1/auth/guardian-child-verifications",
-                Map.of("childRrnFirst6", "abcdef", "childRrnBack7", "zzzzzzz"),
-                Map.class);
+                Map.of("childRrnFirst6", "abcdef", "childRrnBack7", "zzzzzzz"));
 
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
         String loginId = "test-invalid-rrn-" + suffix;
@@ -246,7 +393,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("emergencyContactPhone", "01033334444");
         body.put("level", "TEACHER");
         body.put("staffNo", "INVALID-RRN-" + suffix);
-        ResponseEntity<Map> registration = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> registration = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(verification.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(registration.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -269,7 +416,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("scopeType", "KINDERGARTEN");
         body.put("scopeId", 999999);
 
-        ResponseEntity<Map> resp = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> resp = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resp.getBody()).containsEntry("status", "PENDING");
@@ -294,7 +441,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("department", "Platform Operations");
         body.put("status", "ACTIVE");
 
-        ResponseEntity<Map> resp = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> resp = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(jdbc.queryForObject(
@@ -331,7 +478,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("relationship", "FATHER");
         body.put("primaryGuardian", false);
 
-        ResponseEntity<Map> resp = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> resp = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resp.getBody()).containsEntry("status", "PENDING");
@@ -394,7 +541,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("level", level);
         body.put("staffNo", "TEST-" + suffix);
 
-        ResponseEntity<Map> resp = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> resp = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(resp.getBody()).containsEntry("status", "PENDING");
@@ -417,7 +564,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("level", level);
         body.put("staffNo", "INVALID-" + suffix);
 
-        ResponseEntity<Map> resp = rest.postForEntity("/api/v1/auth/register", body, Map.class);
+        ResponseEntity<Map> resp = postWithCsrf("/api/v1/auth/register", body);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(jdbc.queryForObject(
@@ -444,13 +591,72 @@ class AuthEndpointTest extends BaseIntegrationTest {
         body.put("gender", "MALE");
     }
 
-    private String loginRefreshToken() {
-        ResponseEntity<Map> loginResp = rest.postForEntity(
-                "/api/v1/auth/login",
-                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD),
-                Map.class);
-        assertThat(loginResp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        return (String) loginResp.getBody().get("refreshToken");
+    private Cookie loginSessionCookie() throws Exception {
+        MvcResult login = mockMvc.perform(withRealCsrf(post("/api/v1/auth/login"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD))))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("AI_KIDS_CARE_SESSION"))
+                .andReturn();
+        return login.getResponse().getCookie("AI_KIDS_CARE_SESSION");
+    }
+
+    private void insertActiveMembership(long kindergartenId) {
+        jdbc.update("""
+                INSERT INTO user_kindergarten_memberships
+                    (user_id, kindergarten_id, status, joined_at, created_at, updated_at)
+                SELECT user_id, ?, 'ACTIVE', NOW(), NOW(), NOW()
+                FROM users
+                WHERE login_id = ?
+                """, kindergartenId, TEST_LOGIN_ID);
+    }
+
+    private void configureTeacherRole(long kindergartenId) {
+        configureKindergartenRole("TEACHER", kindergartenId);
+    }
+
+    private void configureKindergartenAdminRole(long kindergartenId) {
+        configureKindergartenRole("KINDERGARTEN_ADMIN", kindergartenId);
+    }
+
+    private void configureKindergartenRole(String role, long kindergartenId) {
+        jdbc.update("""
+                UPDATE user_role_assignments
+                SET role = ?::user_role_enum, scope_type = 'KINDERGARTEN', scope_id = ?
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, role, kindergartenId, TEST_LOGIN_ID);
+        insertActiveMembership(kindergartenId);
+    }
+
+    private long insertActiveKindergarten() {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        return jdbc.queryForObject("""
+                INSERT INTO kindergartens
+                    (name, address, region_code, code, business_registration_no,
+                     contact_name, contact_phone, contact_email, status, created_at, updated_at)
+                VALUES (?, ?, 'TEST', ?, ?, 'Contact', '01000000000', ?, 'ACTIVE', NOW(), NOW())
+                RETURNING kindergarten_id
+                """,
+                Long.class,
+                "Foreign Kindergarten " + suffix,
+                "Foreign address",
+                "FOREIGN-" + suffix,
+                "BRN-" + suffix,
+                "foreign-" + suffix + "@test.internal");
+    }
+
+    private long insertActiveClass(long kindergartenId) {
+        return jdbc.queryForObject("""
+                INSERT INTO classes
+                    (kindergarten_id, name, grade, academic_year, start_date, end_date,
+                     status, created_at, updated_at)
+                VALUES (?, 'Foreign Class', 'AGE_5', 2026, '2026-03-01', '2027-02-28',
+                        'ACTIVE', NOW(), NOW())
+                RETURNING class_id
+                """,
+                Long.class,
+                kindergartenId);
     }
 
     private void insertSecondActiveRole() {
@@ -464,13 +670,45 @@ class AuthEndpointTest extends BaseIntegrationTest {
     }
 
     private void assertAuthenticationFailure(String path, Map<String, ?> requestBody) throws Exception {
-        mockMvc.perform(post(path)
+        mockMvc.perform(withRealCsrf(post(path))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value(AUTHENTICATION_FAILURE_MESSAGE))
                 .andExpect(jsonPath("$.timestamp").doesNotExist())
                 .andExpect(jsonPath("$.path").doesNotExist());
+    }
+
+    private MockHttpServletRequestBuilder withRealCsrf(
+            MockHttpServletRequestBuilder request
+    ) throws Exception {
+        MvcResult csrf = mockMvc.perform(get("/api/v1/auth/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("XSRF-TOKEN"))
+                .andReturn();
+        String token = objectMapper.readTree(csrf.getResponse().getContentAsString())
+                .get("token")
+                .asText();
+        return request
+                .cookie(csrf.getResponse().getCookie("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", token);
+    }
+
+    private ResponseEntity<Map> postWithCsrf(String path, Map<String, ?> requestBody) {
+        ResponseEntity<Map> csrf = rest.getForEntity("/api/v1/auth/csrf", Map.class);
+        assertThat(csrf.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String token = (String) csrf.getBody().get("token");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set(HttpHeaders.COOKIE, "XSRF-TOKEN=" + token);
+        headers.set("X-XSRF-TOKEN", token);
+        return rest.exchange(
+                path,
+                HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers),
+                Map.class
+        );
     }
 
     private String statusFor(String table, String userIdColumn, long userId) {

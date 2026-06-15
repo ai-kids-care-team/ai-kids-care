@@ -26,39 +26,25 @@ export function LoginForm() {
     e.preventDefault();
     setError('');
 
-    console.log('로그인 버튼 클릭됨!', loginId, password);
-
     try {
       // RTK Query를 통한 로그인 API 호출 (.unwrap()으로 에러 캐치)
       const response = await loginApi({ identifier: loginId, password }).unwrap();
 
-      const responseLoginId = response?.loginId ?? loginId;
-      const responseIdRaw = response?.id;
-      const responseIdNum = Number(responseIdRaw);
-      const responseUserId =
-        Number.isFinite(responseIdNum) && responseIdNum > 0
-          ? Math.trunc(responseIdNum)
-          : undefined;
-      const token = response?.accessToken ?? response?.token ?? '';
-      if (!isUserRole(response?.role) || token.trim() === '') {
+      if (!isUserRole(response.effectiveRole)) {
         throw new Error('Invalid login response');
       }
-      const role = response.role;
-      const apiName =
-        typeof response?.name === 'string' && response.name.trim() !== '' ? response.name.trim() : '';
       const user = {
-        id: String(responseUserId ?? responseLoginId),
-        username: responseLoginId,
-        loginId: responseLoginId,
-        name: apiName,
-        role,
+        id: String(response.userId),
+        username: response.loginId,
+        loginId: response.loginId,
+        name: response.loginId,
+        role: response.effectiveRole,
+        scopeType: response.scopeType,
+        scopeId: response.scopeId,
         kindergartenId:
-          typeof response?.kindergartenId === 'number' && Number.isFinite(response.kindergartenId)
-            ? response.kindergartenId
-            : undefined,
+          response.scopeType === 'KINDERGARTEN' ? response.scopeId : undefined,
       };
-      // Session/Redis 전환 전까지 bearer token은 Redux 메모리에만 보관합니다.
-      dispatch(setCredentials({ user, token }));
+      dispatch(setCredentials(user));
 
       router.push('/');
 

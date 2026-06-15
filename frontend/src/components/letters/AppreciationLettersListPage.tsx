@@ -96,7 +96,7 @@ function filterListForViewer(
 }
 
 export function AppreciationLettersListPage() {
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const searchParams = useSearchParams();
   const reloadToken = searchParams.get('reload');
   const [items, setItems] = useState<AppreciationLetterListItem[]>([]);
@@ -109,14 +109,14 @@ export function AppreciationLettersListPage() {
   const canWrite = useMemo(
     () =>
       Boolean(
-        isAuthenticated && user && token && canWriteAppreciationLetters(user.role),
+        isAuthenticated && user && canWriteAppreciationLetters(user.role),
       ),
-    [isAuthenticated, user, token],
+    [isAuthenticated, user],
   );
 
   const viewerCtx = useMemo(
-    () => buildAppreciationLetterViewerContext(user, token),
-    [user, token],
+    () => buildAppreciationLetterViewerContext(user),
+    [user],
   );
 
   const allVisibleItems = useMemo(

@@ -80,7 +80,7 @@ function buildListItem(
 }
 
 export function useDetectionEvents() {
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const kindergartenId = Number(user?.kindergartenId ?? 0);
   const canRead =
     isAuthenticated &&
@@ -98,10 +98,10 @@ export function useDetectionEvents() {
   const [statusCodeNameMap, setStatusCodeNameMap] = useState<Record<string, string>>({});
 
   const canWrite = useMemo(() => {
-    if (!isAuthenticated || !user || !token) return false;
+    if (!isAuthenticated || !user) return false;
     const perms = rolePermissions[user.role];
     return Boolean(perms?.canResolveAnomaly);
-  }, [isAuthenticated, user, token]);
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     const loadCodeMaps = async () => {

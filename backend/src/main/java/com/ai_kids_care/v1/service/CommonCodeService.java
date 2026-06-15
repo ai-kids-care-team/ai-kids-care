@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -66,11 +67,13 @@ public class CommonCodeService {
     }
 
     @Transactional
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public CommonCodeVO createCommonCode(CommonCodeCreateDTO createDTO) {
         return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
     @Transactional
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public CommonCodeVO updateCommonCode(Long id, CommonCodeUpdateDTO updateDTO) {
         CommonCode entity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("CommonCode not found"));
@@ -79,6 +82,7 @@ public class CommonCodeService {
     }
 
     @Transactional
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public void deleteCommonCode(Long id) {
         CommonCode entity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("CommonCode not found"));

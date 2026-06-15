@@ -34,15 +34,15 @@ export function useAnnouncementsEdit() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = Number(searchParams.get('id') ?? 0);
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const authorIdHiddenValue = user?.id ?? '';
   const authorId = useMemo(() => {
     const parsed = Number(user?.id);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }, [user?.id]);
   const canWrite = useMemo(
-    () => Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
-    [isAuthenticated, user, token],
+    () => Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
+    [isAuthenticated, user],
   );
   const statusOptions = DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS;
 

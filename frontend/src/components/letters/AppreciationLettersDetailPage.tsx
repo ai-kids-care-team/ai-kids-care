@@ -43,7 +43,7 @@ import { getApiErrorMessage } from './api-error-message';
 export function AppreciationLettersDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const clientSeq = parseClientLetterSeqParam(searchParams.get('cid'));
   const id = parseLetterIdQueryParam(searchParams.get('id')) ?? NaN;
   const sig = searchParams.get('sig')?.trim() ?? '';
@@ -94,14 +94,13 @@ export function AppreciationLettersDetailPage() {
     () =>
       Boolean(
         isAuthenticated &&
-          token &&
           letter &&
           user &&
           (resolvedClientSeq != null || apiLetterId != null) &&
           canWriteAppreciationLetters(user.role) &&
           isSameAppreciationLetterAuthor(user.id, letter.senderUserId),
       ),
-    [isAuthenticated, token, letter, user, resolvedClientSeq, apiLetterId],
+    [isAuthenticated, letter, user, resolvedClientSeq, apiLetterId],
   );
 
   const resolvedAuthorLoginLabel = useMemo(() => {
@@ -227,7 +226,7 @@ export function AppreciationLettersDetailPage() {
         if (
           !viewerMaySeeAppreciationLetter(
             cached,
-            buildAppreciationLetterViewerContext(user, token),
+            buildAppreciationLetterViewerContext(user),
             isAuthenticated,
           )
         ) {
@@ -305,7 +304,7 @@ export function AppreciationLettersDetailPage() {
           if (
             !viewerMaySeeAppreciationLetter(
               found.vo,
-              buildAppreciationLetterViewerContext(user, token),
+              buildAppreciationLetterViewerContext(user),
               isAuthenticated,
             )
           ) {
@@ -350,7 +349,7 @@ export function AppreciationLettersDetailPage() {
           if (
             !viewerMaySeeAppreciationLetter(
               detail,
-              buildAppreciationLetterViewerContext(user, token),
+              buildAppreciationLetterViewerContext(user),
               isAuthenticated,
             )
           ) {
@@ -390,7 +389,7 @@ export function AppreciationLettersDetailPage() {
         if (
           !viewerMaySeeAppreciationLetter(
             detail,
-            buildAppreciationLetterViewerContext(user, token),
+            buildAppreciationLetterViewerContext(user),
             isAuthenticated,
           )
         ) {
@@ -421,9 +420,7 @@ export function AppreciationLettersDetailPage() {
     isClientView,
     sig,
     isSigView,
-    user?.id,
-    user?.role,
-    token,
+    user,
     isAuthenticated,
   ]);
 
@@ -559,6 +556,14 @@ export function AppreciationLettersDetailPage() {
                           <span className="text-slate-400">—</span>
                         )}
                       </span>
+                      {resolvedAuthorLoginLabel && (
+                        <span>
+                          <span className="text-slate-600">로그인 ID</span>{' '}
+                          <span className="font-medium text-slate-900">
+                            {resolvedAuthorLoginLabel}
+                          </span>
+                        </span>
+                      )}
                     </p>
                     {hydrated &&
                       user &&
