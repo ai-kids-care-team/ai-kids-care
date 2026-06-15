@@ -21,7 +21,7 @@ function formatDate(value: string | null) {
 export function AnnouncementsDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const id = Number(searchParams.get('id') ?? 0);
   const [announcement, setAnnouncement] = useState<AnnouncementDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,8 +46,8 @@ export function AnnouncementsDetailPage() {
   }, [id]);
 
   const canWrite = useMemo(
-    () => Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
-    [isAuthenticated, user, token],
+    () => Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
+    [isAuthenticated, user],
   );
 
   useEffect(() => {

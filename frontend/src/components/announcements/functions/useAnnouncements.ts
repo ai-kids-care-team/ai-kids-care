@@ -49,7 +49,7 @@ async function getAllAnnouncements(keyword?: string) {
 }
 
 export function useAnnouncements() {
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
@@ -60,8 +60,8 @@ export function useAnnouncements() {
 
   const canWrite = useMemo(
     () =>
-      Boolean(isAuthenticated && user && token && canManageAnnouncements(user.role)),
-    [isAuthenticated, user, token],
+      Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
+    [isAuthenticated, user],
   );
 
   useEffect(() => {

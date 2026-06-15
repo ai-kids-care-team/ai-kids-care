@@ -45,7 +45,7 @@ export function AppreciationLettersEditPage() {
   const searchParams = useSearchParams();
   const clientSeq = parseClientLetterSeqParam(searchParams.get('cid'));
   const id = parseLetterIdQueryParam(searchParams.get('id')) ?? NaN;
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const senderNum = user?.id != null ? Number(user.id) : NaN;
 
   const [loading, setLoading] = useState(true);
@@ -68,8 +68,8 @@ export function AppreciationLettersEditPage() {
   const [serverLetterId, setServerLetterId] = useState<number | null>(null);
 
   const canEdit = useMemo(
-    () => Boolean(isAuthenticated && user && token && Number.isFinite(senderNum)),
-    [isAuthenticated, user, token, senderNum],
+    () => Boolean(isAuthenticated && user && Number.isFinite(senderNum)),
+    [isAuthenticated, user, senderNum],
   );
 
   const guardianLockKg = useMemo(() => {
@@ -139,7 +139,7 @@ export function AppreciationLettersEditPage() {
           setLoading(false);
           return;
         }
-        const viewerCtx = buildAppreciationLetterViewerContext(currentUser, token);
+        const viewerCtx = buildAppreciationLetterViewerContext(currentUser);
         if (!viewerMaySeeAppreciationLetter(row as AppreciationLetterVO, viewerCtx, isAuthenticated)) {
           setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
           setStoredSenderUserId(null);
@@ -220,7 +220,7 @@ export function AppreciationLettersEditPage() {
         const meSlice = appStore.getState().user;
         const me = meSlice.user;
         const meAuthed = meSlice.isAuthenticated;
-        const meCtx = buildAppreciationLetterViewerContext(me, meSlice.token);
+        const meCtx = buildAppreciationLetterViewerContext(me);
         if (!viewerMaySeeAppreciationLetter(row, meCtx, meAuthed)) {
           setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
           setStoredSenderUserId(null);
@@ -292,7 +292,7 @@ export function AppreciationLettersEditPage() {
     };
 
     void load();
-  }, [id, clientSeq, user, token, isAuthenticated]);
+  }, [id, clientSeq, user, isAuthenticated]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

@@ -5,7 +5,7 @@ status: Approved
 implementation: Partial
 owner: 维护者
 created: 2026-06-10
-updated: 2026-06-13
+updated: 2026-06-14
 related_adrs:
   - ADR-0003
   - ADR-0009
@@ -13,6 +13,7 @@ related_adrs:
   - ADR-0014
   - ADR-0016
   - ADR-0017
+  - ADR-0019
 ---
 
 # SPEC-0001: 认证、授权、租户与敏感数据边界
@@ -311,7 +312,7 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 ### 实施前决策门
 
-“服务端派生 Effective Authorization Context、集中 tenant enforcement、平台角色进入 tenant context 的方式”属于跨模块且安全敏感的长期决策。进入上述第 2/3 阶段前必须新增 ADR 固化实现策略，并关联 ADR-0003、ADR-0009 与 ADR-0016；不得通过改写既有 Accepted ADR 隐式改变历史。
+“服务端派生 Effective Authorization Context、集中 tenant enforcement、平台角色进入 tenant context 的方式”属于跨模块且安全敏感的长期决策。[ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 已于 2026-06-14 由维护者 Accept，并关联 ADR-0003、ADR-0009、ADR-0016 与 ADR-0017。第 2/3 阶段实现必须遵守该 ADR，不得通过改写既有 Accepted ADR 隐式改变历史。
 
 ## 验收标准（Acceptance Criteria）
 
@@ -415,7 +416,7 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 ### 2026-06-10 Phase 1A：敏感数据暴露止血
 
-- 状态：基础止血由提交 `3d00625` 完成；当前工作区继续补齐独立终审发现的公开 S1 契约。
+- 状态：已随提交 `478967d security: complete sensitive API stop-bleed` 进入远端 `develop`；独立终审结论为 `FINAL REVIEW: PASS`。
 - 公共 response 已移除 `passwordHash`、`rrnEncrypted`、完整 `pushToken`、内部 `storageUri`，并进一步从四类通用人员 response 移除公开环境下不应发布的 email、phone、RRN 前 6 位、儿童 birth date/address、Guardian address、Teacher staff number 和 emergency contact；前端类型已同步。
 - User、Child、Guardian、Teacher 的通用 Create/Update DTO、service/mapper generic 写链和全部公共 Controller operation 均已关闭；内部 VO 仍保持最小字段，供未来受控 contract 复用。
 - `DeviceToken`、`EventEvidenceFile` 的通用 DTO/service/mapper 写链和全部公共 Controller operation 已关闭。`CameraStream` 通用 create/update/delete 链关闭，但保留不含播放地址或凭据的 GET metadata。`pushToken`、`storageUri`、`sourceUrl`、`streamUser`、`playbackUrl` 与 camera credential 存储表示继续留在内部 entity。
@@ -432,7 +433,7 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 ### 2026-06-11 Phase 1B：公开注册权限收敛
 
-- 状态：工作区实现完成，待终审。
+- 状态：已随提交 `478967d security: complete sensitive API stop-bleed` 进入远端 `develop`；独立终审结论为 `FINAL REVIEW: PASS`。
 - 公开注册允许 `GUARDIAN`、`TEACHER`、`KINDERGARTEN_ADMIN`、`SUPERADMIN` 提交申请；user、role assignment、业务 profile 和园级 membership 统一写为 `PENDING`。客户端 `status=ACTIVE` 不属于公开 DTO，无法改变服务端结果。
 - `PLATFORM_IT_ADMIN` 公开注册在首次 persistence 前返回 `400`，不会创建 user/profile/role/membership。
 - Guardian 的 kindergarten scope 和 membership 只从服务端匹配到的儿童记录派生，客户端提交的 `kindergartenId` 不参与授权范围写入。
@@ -443,3 +444,80 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 前端移除 `PLATFORM_IT_ADMIN` 注册选项及专用表单，儿童验证只显示通用结果；注册 payload 使用按角色区分的显式 TypeScript 联合类型，不接受 `childId`、`status` 或 scope 字段。注册成功后只显示待审批提示，不再自动登录或写 token/localStorage。
 - `AuthEndpointTest` 覆盖四类允许角色的 PENDING persistence、平台角色零落库、客户端 ACTIVE 无效、Guardian 伪造园区无效、儿童验证最小响应与非法 RRN 拒绝、role/level 不一致拒绝、PENDING/无 ACTIVE role/多 ACTIVE role/无效 refresh token 的显式 401 契约，以及园级 ACTIVE role 的服务端 `kindergartenId` 返回；纯 Mockito service test 固定同一异常语义。`DetectionEventEndpointTest` 固定完整应用中的关闭路径 `404`，`PublishedOpenApiContractTest` 固定旧 RRN 与 DetectionEvent path absence、专用验证 path presence、最小响应 schema 和公开注册 DTO 完整字段集合。
 - 已知限制：审批 endpoint/激活事务尚未实现；`child_guardian_relationships` 无 status 列，Guardian 申请仍创建关系行，但 PENDING guardian/membership/role 使其当前不构成有效授权关系。`/api/v1/**` 仍处于 `permitAll` 演示态，因此“不能登录”尚不等于业务 API 已受保护；Session、Redis、tenant enforcement 和资源关系授权不在本阶段范围。
+
+### 2026-06-15 Phase 2/3（会话认证 + 有效授权上下文与默认拒绝）— 本地验证通过，未合入
+
+- 状态：实现于分支 `codex/spec-0001-auth-context`（基线 `478967d`），**未提交、未合入 `develop`**。遵循 [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 的分阶段边界（阶段 2、3 完成，阶段 4 部分完成）。本节为实施证据/as-built 记录；下方“验收标准”勾选保留给维护者评审，本阶段未自行翻转。
+- 会话认证（阶段 2）：引入 Redis 后端 Spring Session（`store-type=redis`、`repository-type=indexed`）、最小可序列化 `SessionPrincipal`（`user:{id}` + roleAssignmentId + membershipId）。`/auth/login` 建立服务端会话、只返回最小 `AuthSessionVO`（`@JsonInclude(NON_NULL)`，无 access/refresh token）；新增 `GET /auth/session`、`POST /auth/logout`（幂等 204）、`GET /auth/csrf`。启用 cookie CSRF（`XSRF-TOKEN` + `X-XSRF-TOKEN`）、`IF_REQUIRED` 会话、显式 SecurityContext 持久化、会话 cookie `AI_KIDS_CARE_SESSION`（httpOnly、`secure` 由 `SESSION_COOKIE_SECURE` 控制、`SameSite=Lax`）。删除 `JwtUtil`/`JwtAuthenticationFilter`/`TokenVO`/`TokenTypeEnum`/refresh、logout DTO 与 JJWT 依赖；前端去 bearer/localStorage、改 `withCredentials` + CSRF bootstrap + 会话 hydration（新增 `SessionBootstrap.tsx`、`csrf.ts`）。
+- 有效授权上下文与默认拒绝（阶段 3）：新增 `EffectiveAuthorizationContextFilter`（接在 `SecurityContextHolderFilter` 之后）每请求调用 `EffectiveAuthorizationContextService.resolve` 做权威投影——校验 ACTIVE user、恰一条 ACTIVE role assignment 且与 principal 一致、KINDERGARTEN scope 的唯一 ACTIVE membership、PLATFORM scope 无 membership；非法/漂移 invalidate 会话并返回通用 `401`。`@EnableMethodSecurity` + 集中 `AuthorizationPolicy`（`@PreAuthorize` 读取 request-scoped context，不读会话内陈旧 authority）。`SecurityConfig` 默认 `/api/v1/**` `authenticated()`。`POST /auth/session/tenant-context` 仅 PLATFORM 角色可选已验证 tenant，写入会话且不改 scope/role、不授予园级权限；园级角色调用 `403`。`ApiExceptionHandler` 将 `EntityNotFoundException` 统一为隐藏式 `404 {"error":"Resource not found"}`。
+- Tenant Repository Migration（阶段 4，部分）：Class/Room/CCTV/CameraStream/DetectionSession/Announcement 的部分 list/get/write 改为 tenant-aware 查询（`findByIdAndKindergarten_Id` 等）+ effective kindergarten 约束 + 客户端 `kindergartenId` 仅一致性校验、不一致按隐藏 `404`。**未完成**：DetectionEvent 仍信任客户端 `kindergartenId` 且未接集中 policy；全部发布 operation 的分类未完成。
+- 测试：`AuthEndpointTest` 扩展至 29 项，覆盖会话登录/无 token 401/园级有无 membership、平台角色有 membership 401、错误密码/无 ACTIVE role/多 ACTIVE role 的通用 401、CSRF 契约、refresh 关闭 404、logout 失效、role 撤销下一请求 401 并失效会话、平台 tenant-context 选择不改角色、园级角色禁选平台 tenant-context（403）、平台选 tenant 不获 camera 读（403）、园级角色禁读平台 AI 元数据（403）、跨租户 Class 隐藏（list 不含外租户 + detail 404）、写入拒绝客户端 kindergarten 覆盖（404）、camera list 拒绝 kindergarten 覆盖（404）。
+- 验证（2026-06-15，本地）：`cd backend; .\gradlew.bat test` → 8 类 / 61 tests / 0 failures / 0 errors / 2 预期 skip（`FlywayMigrationTest`，ADR-0013）。前端 21 改动文件 scoped ESLint 0 error / 0 warning；`npm run build` 成功生成 20 静态页。`git diff --check` PASS。全仓前端 lint 仍有既有 4 errors / 8 warnings（均在本阶段未修改文件）。
+- 环境备注：本机 JDK 21 wepoll selector 的 AF_UNIX wakeup pipe 因用户 Temp 路径含空格/撇号失败，须以 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=D:\tmp` 运行测试；与产品代码无关。
+- 已知限制 / 后续：阶段 4 未完（DetectionEvent + 半完成资源的 tenant repository migration）；阶段 5 Guardian/Teacher 关系策略、全会话吊销（`SessionRevocationService`）、状态事务衔接与安全审计未实现；阶段 6 TLS（ADR-0017）、生产 compose、CI 全套门禁与 fresh independent review 未完成。在全部验收标准完成并通过发布门前，本 Spec 不得标记 `Implemented`。
+
+#### 切片 1（2026-06-15）：默认拒绝白名单收敛 + operation 分类核验
+
+- 收敛 `SecurityConfig` 公开白名单：移除已删除/已关闭、违反「白名单外必须有身份」不变量的 3 个匹配项——`POST /api/v1/auth/refresh`（端点已删）、`GET /api/v1/children/rrn`（已关闭、前端改用 `/auth/guardian-child-verifications`）、`GET /api/v1/detection_events/**`（已关闭、前端仅经 `/common_codes?context=detection_events` 取枚举）。它们现落入默认拒绝：匿名 → `401`，不再是匿名 `404` 存在性 oracle。
+- 收敛后的公开白名单 = CSRF bootstrap、`register/availability`、`login`/`register`/`guardian-child-verifications`、以及注册流程登录前所需的 S3 只读目录/参考（`kindergartens`/`common_codes`/`menus` 的 GET；前端 `useSignupForm`/`TopBar` 登录前调用，无 S0/S1）。Swagger/api-docs 公开仅限非生产（生产关闭留 TLS/生产门禁切片）。
+- 核验：所有 active controller 的发布 operation 均已显式 policy 分类——`ai_models`(CRUD)/`common_codes`(写) = `PLATFORM_*`；`classes`/`rooms`/`announcements`(CRUD)、`detection_sessions`(读) = `TENANT_*`；`cctv_cameras`/`camera_streams`(读) = `TENANT_CAMERA_READ`；`kindergartens`/`menus`/`common_codes` 的 GET = 公开 S3 目录/参考。其余 14 个 controller 不发布任何 operation，统一默认拒绝。
+- 测试：新增 `SecurityBoundaryIntegrationTest`（匿名访问矩阵：发布业务端点 `401`、关闭 controller `401`、公开白名单 `200`）；`AuthEndpointTest` 的 `refresh_isClosed`/legacy 与 `DetectionEventEndpointTest` 的关闭路径断言由 `404` 改 `401`。两个 standalone 契约测试（`SensitivePublicApiClosureContractTest`/`SensitiveWriteContractTest`）不经安全链、仍验证「无 handler」契约，未受影响。
+- 验证：先以更新后的断言跑 RED（5 项失败精准定位过宽白名单），移除匹配项后跑 GREEN——后端 `gradlew test` 64 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。本切片仅改后端（`SecurityConfig` + 4 个测试文件），前端未触碰。
+
+#### 切片 2（2026-06-15）：跨租户隔离测试锁定（Tenant Repository Migration）
+
+- 核查结论（事实）：**所有已发布的租户控制器其服务层查询已完成 tenant-aware 迁移**——`ClassService`/`RoomService`（`findByIdAndKindergarten_Id`/`findAllByKindergarten_Id` + `requireSameKindergarten` 写覆盖校验）、`AnnouncementService`（`findByIdAndActiveAuthorMembership` + author 取自 context）、`CctvCameraService`/`CameraStreamService`/`DetectionSessionService`（经关系链 `findBy...CctvCameras_Kindergarten_Id`）。先前“部分”表述偏保守。
+- 故本切片为**纯测试锁定**（无生产代码改动）：新增 `TenantIsolationIntegrationTest`，以 kindergarten 2 的 TEACHER/KINDERGARTEN_ADMIN 为主体、kindergarten 1 既有 seed 资源为“真实但外租户”，断言：(1) `rooms`/`cctv_cameras`/`camera_streams`/`detection_sessions` 的 get-by-id 用合法外租户 id → 隐藏 `404 {"error":"Resource not found"}`；(2) `rooms` list 仅含本租户行且本租户 get-by-id 可达 `200`（证明 404 是租户限定而非一刀切）；(3) `KINDERGARTEN_ADMIN` 写入携带外租户 `kindergartenId` → 隐藏 `404`，不切换租户。
+- DetectionEvent（事实修正）：`DetectionEventController` 不发布任何 operation，`DetectionEventService` 在生产代码中无任何注入/调用方，当前不可经 HTTP 触达；其信任客户端 `kindergartenId` 的问题留待控制器/AI-sink 重开时处理，不在本切片范围。
+- 验证：`TenantIsolationIntegrationTest` 3 项通过；全量后端 `gradlew test` 67 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。仅新增一个后端测试文件，前端未触碰。
+- 未完成 / 后续：tenant 实体的原始 `JpaRepository`（裸 `findAll`/`findById`）仍暴露给 service，ADR-0019 §4 的“repository port 边界收敛”属架构性改造，留后续切片；Guardian/Teacher 关系策略（切片 3）、会话吊销/审计（切片 4）未动。
+
+#### 切片 3（2026-06-15）：Teacher assignment-级资源策略（classes 首个资源）
+
+- 维护者决定（选项 1）：把 Teacher 的资源访问从“园级”收紧为“有效 assignment 级”。本切片落地**第一个资源 classes**（关系链最浅、教师核心资源）；rooms/cameras/detection_sessions 沿 class-room-camera 关系链的收紧留后续切片。
+- 实现 ADR-0019 §7 的 `TeacherAssignmentPolicy`：`GET /classes` 的 list 与 get-by-id 对 `TEACHER` 仅返回其**有效 assignment** 覆盖的班级（teacher 档案 ACTIVE + `class_teacher_assignments` ACTIVE 且 `start_date <= today < end_date/∞`）；`KINDERGARTEN_ADMIN` 保持园级全量。同租户但未分配的班级 → 隐藏 `404`（关系条件写进 JPQL EXISTS 子查询，不做加载后过滤）。
+- 改动：`ClassRepository` 新增两条 assignment-scoped JPQL（list/get）；新增 `TeacherAssignmentPolicy` bean（集中“谁是 assignment-scoped”的判定，role==TEACHER）；`ClassService` 的 list/get 按 policy 分流。create/update/delete 仍为 `KINDERGARTEN_ADMIN`-only（`TENANT_S2_WRITE`）、园级，不变。
+- Guardian 半：相关控制器仍关闭，无实时消费端，本切片未动（待开放 guardian 资源时再接 `GuardianChildPolicy`）。
+- 测试：新增 `TeacherAssignmentAuthorizationIntegrationTest`（3）——TEACHER 仅见有效 assignment 的班级（assigned get→200、unassigned get→隐藏 404、list 计数=1）；DISABLED 或过期 assignment → 见空（list=0、get→404）；`KINDERGARTEN_ADMIN` 园级全量（list=全部、unassigned get→200）。
+- 既有缺陷发现（不在本切片范围，已另开任务）：`ClassMapper.toVO` 用 `@Mapping(target="classId", ignore=true)` 永远忽略 `classId`，导致 `GET /classes` 返回的 `classId` 恒为 null。注意 `kindergartenId` 仍被正常映射（`source="kindergarten.id"`），不受影响；本切片测试改用 list 计数 + URL path id 规避了 null 的 `classId`，未修该 mapper。
+- 验证：先 RED（2 个 teacher 测试失败、admin 控制项通过）→ 实现后 GREEN；全量后端 `gradlew test` 70 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/classes`**（grep 确认），收紧对前端零影响，无需前端改动。`git diff --check` PASS。
+
+#### 切片 3 续（2026-06-15）：Teacher assignment-级 rooms（关系链第二跳）
+
+- 按 SPEC teacher 可见“교실/rooms”继续收紧：room 对 TEACHER 可见 = room ←(ACTIVE `class_room_assignment`，窗口含 now)← class ←(ACTIVE `class_teacher_assignment`，窗口含 today)← 该 teacher（teacher 档案与两段 assignment 均 ACTIVE）；`KINDERGARTEN_ADMIN` 仍园级。`GET /rooms` 的 list/get-by-id 同 classes 模式按 `TeacherAssignmentPolicy` 分流，未分配房间隐藏 `404`。
+- 实现：`RoomRepository` 两条 assignment-scoped JPQL（嵌套 EXISTS：room→class_room_assignment→class_teacher_assignment；两表时间窗类型不同——`class_teacher_assignments` 用 `date`、`class_room_assignments` 用 `timestamptz`，分别传 `today`/`nowTs`，关系条件全部写进 SQL）；复用 `TeacherAssignmentPolicy`；`RoomService` 的 list/get 分流，写操作仍 `KINDERGARTEN_ADMIN`-only 园级。
+- 测试：新增 `TeacherRoomAssignmentAuthorizationIntegrationTest`（3，造 fresh class+room+完整关系链）。并把切片 2 的 `TenantIsolationIntegrationTest` 主体由 `TEACHER` 改为 `KINDERGARTEN_ADMIN`——因 TEACHER 现为 assignment-级，纯租户隔离测试应以**园级主体**表达（其任一 `404` 来自租户边界而非 assignment 收紧）。
+- 未做（SPEC 边界判断，待维护者定）：`cctv_cameras`/`camera_streams`/`detection_sessions` 对 TEACHER 的可见性——SPEC actor 矩阵中 teacher 仅列“班级/교실/儿童/相关事件”，未明确列入 live CCTV/stream/session，是否沿 room-camera 链对 teacher 收紧（还是干脆不向 teacher 开放）需产品判断，本片不越界。
+- 验证：RED（2 teacher room 测试失败、admin 通过）→ GREEN；全量后端 `gradlew test` 73 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/rooms`**（grep 确认），零影响。`git diff --check` PASS。
+
+#### 切片 3 续（2026-06-15）：Teacher 禁止访问 surveillance（cameras/streams/sessions）
+
+- 维护者裁定：**teacher 不能**看 cameras / streams / sessions（SPEC actor 矩阵中 teacher 仅列“班级/교실/儿童/相关事件”，未列 live CCTV/stream/session）。故把这三类收为 **`KINDERGARTEN_ADMIN`-only**，teacher 访问返回 `403`。
+- 实现：`AuthorizationAction.TENANT_CAMERA_READ` 改名为 `TENANT_SURVEILLANCE_READ` 并在 `AuthorizationPolicy` 收为 admin-only；`CctvCameraService`/`CameraStreamService` 改挂 `TENANT_SURVEILLANCE_READ`；`DetectionSessionService` 由 `TENANT_S2_READ`（teacher+admin）改挂 `TENANT_SURVEILLANCE_READ`。`TENANT_S2_READ`（classes/rooms，teacher assignment-级）保持 teacher+admin。
+- 前端：`CctvDashboardPage` 的 `canViewLiveStreams` 收紧为仅 `KINDERGARTEN_ADMIN`——教师走受限视图、不再请求已 `403` 的 camera/stream 接口（前端隐藏仅 UX，后端 `403` 才是安全控制）。
+- 测试：`AuthEndpointTest` 新增 `teacher_cannotReadSurveillanceResources`（teacher GET `cctv_cameras`/`camera_streams`/`detection_sessions` → `403`；前两者带 `kindergartenId` 以越过必填参数绑定 `400`、抵达 method authorization）；`cameraList_rejectsClientKindergartenOverride` 主体由 teacher 改为 `KINDERGARTEN_ADMIN`（teacher 已无 camera 权限）。
+- 验证：RED（teacher→403 测试失败；其间发现 cctv/streams 缺 `kindergartenId` 先返回 400，补参修正）→ GREEN；全量后端 `gradlew test` 74 通过 / 0 失败 / 2 预期 skip；前端 `CctvDashboardPage` scoped ESLint 0 error/warning，生产构建 20 页成功。`git diff --check` PASS。
+
+#### 切片 4（2026-06-15）：会话吊销机制（部分）
+
+- 实现 ADR-0019 §6 的 `SessionRevocationService`（Redis indexed）：按 principalName `user:{id}` 经 `FindByIndexNameSessionRepository.findByPrincipalName` 查出并删除该 user 的全部 session（principalName 与 `SessionPrincipal.getName()` 一致）。
+- 新增 `POST /api/v1/auth/logout-all`（authenticated + CSRF）：吊销当前 user 的全部 session（含当前会话），返回 `204`。这是该机制当前唯一可用的实时触发端点。
+- 强化吊销回退测试：除既有 role 撤销 → `401`，新增 **user 禁用 → 401**、**membership 结束 → 401**（均由 `EffectiveAuthorizationContextFilter` 每请求权威重解析兜底，覆盖对应验收项）；并验证 `logout-all` 后该 user 的两个会话都 `401`。
+- 已确认未做（阻断/超范围）：状态变更**主动触发**（角色撤销/用户禁用/membership 结束在管理操作的状态事务提交后调用 `SessionRevocationService`）暂无实时端点可挂——相关 admin 管理控制器仍关闭；每请求重解析已保证正确性（撤销后下一请求 `401`），待这些 admin 端点发布时再在事务提交后接入吊销快路径。**安全审计写入**受 `audit_logs.kindergarten_id NOT NULL`（无法表达平台级事件）的 schema 限制，需 ADR-0012 迁移，本片不做。前端暂无“全部登出”按钮（端点已就绪，UI 后续加）。
+- 验证：RED（`logout-all` 失败，user 禁用 / membership 结束通过）→ GREEN；全量后端 `gradlew test` 77 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。
+
+#### 切片 5（部分，2026-06-15）：生产 TLS（Caddy）+ Secure cookie + compose-config CI
+
+- 维护者裁定 **TLS 组件 = Caddy**（ADR-0017 决策第 1 条"二选一属实现"），并回溯更新 ADR-0017（implementation In Progress + 选型 + 部署时验证说明）。
+- 起草边缘 TLS 终结：`infra/caddy/Caddyfile`（自动 ACME 证书 + 强制 HTTP→HTTPS + HSTS + 反代现有 frontend nginx）。
+- `docker-compose.prod.yml`：新增 `caddy` 服务独占宿主 `80/443`；`frontend` 用 Compose `!reset` 取消基线宿主端口发布（生产仅经 Caddy 暴露）；`backend` 设 `SESSION_COOKIE_SECURE=true`（依赖 HTTPS 边缘）。
+- CI：新增 `.github/workflows/compose-config.yml`，校验 base（demo）与 merged production compose 可解析（对应 SPEC 验收的 production compose config 门）。
+- 验证：`docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 通过；合并结果确认 frontend 无宿主端口、caddy 占 80/443、backend `SESSION_COOKIE_SECURE: "true"`。**仅 compose 结构性验证**——真实证书签发、端口绑定、HTTPS 端到端**须部署时验证**（本地/CI 无域名/证书，无法验证 TLS 本身）。
+- 未做（部署时/后续）：前端 lint/build CI gate（受全仓 4 个**既有** lint error 阻断，需先修或单独决定 gate 策略）；TLS 端到端与 HSTS preload 提交；生产 `.env`（`DOMAIN`/`ACME_EMAIL`）。负向测试矩阵（匿名 401、跨租户 404、角色 allow/deny、平台 tenant-context、吊销）已在切片 1-4 的测试类中基本覆盖。
+
+#### 修复（2026-06-15）：已发布 VO 主键 id（原 ClassMapper 缺陷扩展）
+
+- 切片 3 发现的 `ClassMapper.toVO` 忽略 `classId`，经扫描属 **codegen 通病**：13 个 mapper 的 `toVO` 都 `@Mapping(target="<x>Id", ignore=true)`。其中**已发布控制器**受影响 4 个——`AiModelMapper(modelId)` / `ClassMapper(classId)` / `RoomMapper(roomId)` / `DetectionSessionMapper(sessionId)`，导致其 GET 返回的 VO 主键 id 恒为 null（`kindergartenId` 等其它字段不受影响）。
+- 修复这 4 个（`ignore=true` → `source="id"`）。新增 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 断言四类 get-by-id 返回非空主键（RED → GREEN）。
+- 其余 9 个 mapper 属**关闭控制器**（User/Guardian/Teacher/AuditLog/DeviceToken/EventEvidenceFile/Notification/NotificationRule/Superadmin），是同源潜在问题，待其控制器重开时一并修，不在本次范围。
+- 验证：全量后端 `gradlew test` 78 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。

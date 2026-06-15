@@ -1,0 +1,11 @@
+package com.ai_kids_care.v1.security;
+
+public enum AuthorizationAction {
+    PLATFORM_METADATA_READ,
+    PLATFORM_METADATA_WRITE,
+    TENANT_ANNOUNCEMENT_READ,
+    TENANT_ANNOUNCEMENT_WRITE,
+    TENANT_S2_READ,
+    TENANT_S2_WRITE,
+    TENANT_SURVEILLANCE_READ
+}

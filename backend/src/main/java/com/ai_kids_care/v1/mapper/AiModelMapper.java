@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface AiModelMapper {
 
-    @Mapping(target = "modelId", ignore = true)
+    @Mapping(source = "id", target = "modelId")
     AiModelVO toVO(AiModel entity);
 
     @Mapping(target = "id", ignore = true)

@@ -51,24 +51,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       }).unwrap();
 
 
-      const responseLoginId = response?.loginId ?? formData.loginId;
-      const responseId = response?.id ?? formData.id;
-      const token = response?.accessToken ?? response?.token ?? '';
-      if (!isUserRole(response?.role) || token.trim() === '') {
+      if (!isUserRole(response.effectiveRole)) {
         throw new Error('Invalid login response');
       }
-      const role = response.role;
-      const name = response?.name;
-      const apiKg = Number(response?.kindergartenId);
       const user = {
-        id: String(responseId ?? responseLoginId),
-        loginId: responseLoginId,
-        username: responseLoginId,
-        name: name || responseLoginId,
-        role,
-        kindergartenId: Number.isFinite(apiKg) && apiKg > 0 ? Math.trunc(apiKg) : undefined,
+        id: String(response.userId),
+        loginId: response.loginId,
+        username: response.loginId,
+        name: response.loginId,
+        role: response.effectiveRole,
+        scopeType: response.scopeType,
+        scopeId: response.scopeId,
+        kindergartenId:
+          response.scopeType === 'KINDERGARTEN' ? response.scopeId : undefined,
       };
-      dispatch(setCredentials({ user, token }));
+      dispatch(setCredentials(user));
       handleModalClose();
     } catch (err: unknown) {
       const apiError = err as { data?: { message?: string } };

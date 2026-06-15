@@ -2,23 +2,20 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
 import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
-import com.ai_kids_care.v1.dto.AuthRefreshRequest;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.dto.GuardianChildVerificationRequest;
 import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
-import com.ai_kids_care.v1.security.JwtUtil;
+import com.ai_kids_care.v1.security.AuthenticatedSession;
+import com.ai_kids_care.v1.security.EffectiveAuthorizationContextService;
 import com.ai_kids_care.v1.type.StatusEnum;
-import com.ai_kids_care.v1.type.TokenTypeEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
 import com.ai_kids_care.v1.type.LevelEnum;
 import com.ai_kids_care.v1.vo.AuthRegisterResponse;
 import com.ai_kids_care.v1.vo.AuthRegisterVO;
 import com.ai_kids_care.v1.vo.GuardianChildVerificationResponse;
-import com.ai_kids_care.v1.vo.TokenVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,7 +31,6 @@ import java.util.List;
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final UserRoleAssignmentRepository userRoleAssignmentRepository;
     private final KindergartenRepository kindergartenRepository;
@@ -44,10 +40,7 @@ public class AuthService {
     private final ChildrenService childrenService;
     private final ChildGuardianRelationshipRepository childGuardianRelationshipRepository;
     private final UserKindergartenMembershipRepository userKindergartenMembershipRepository;
-
-
-    @Value("${jwt.expiration}")
-    private Integer expireSecond;
+    private final EffectiveAuthorizationContextService authorizationContextService;
 
     @Transactional
     public AuthRegisterResponse register(AuthRegisterDTO request) {
@@ -97,7 +90,8 @@ public class AuthService {
                 .build();
     }
 
-    public TokenVO login(AuthLoginDTO request) {
+    @Transactional(readOnly = true)
+    public AuthenticatedSession login(AuthLoginDTO request) {
         User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
 
         if (user == null
@@ -107,56 +101,7 @@ public class AuthService {
             throw authenticationFailure();
         }
 
-        UserRoleAssignment activeRoleAssignment = resolveActiveRoleAssignment(user);
-        String accessToken = jwtUtil.generateToken(request.getIdentifier());
-        String refreshToken = jwtUtil.generateToken(request.getIdentifier());
-
-        return TokenVO.builder()
-                .accessToken(accessToken)
-                .tokenType(TokenTypeEnum.BEARER)
-                .expiresIn(expireSecond)
-                .refreshToken(refreshToken)
-                .refreshExpiresIn(expireSecond)
-                .role(activeRoleAssignment.getRole().name())
-                .kindergartenId(resolveKindergartenScope(activeRoleAssignment))
-                .id(user.getId())
-                .loginId(user.getLoginId())
-                .build();
-    }
-
-    public TokenVO refresh(AuthRefreshRequest request) {
-        String refreshToken = request.getRefreshToken();
-        String username;
-        boolean validToken;
-        try {
-            username = jwtUtil.extractIdentifier(refreshToken);
-            validToken = username != null && jwtUtil.validateToken(refreshToken, username);
-        } catch (RuntimeException exception) {
-            throw authenticationFailure();
-        }
-        if (!validToken) {
-            throw authenticationFailure();
-        }
-        User user = userRepository.findByLoginIdOrEmailOrPhone(username, username, username);
-        if (user == null || user.getStatus() != StatusEnum.ACTIVE) {
-            throw authenticationFailure();
-        }
-
-        UserRoleAssignment activeRoleAssignment = resolveActiveRoleAssignment(user);
-        String newAccessToken = jwtUtil.generateToken(username);
-        String newRefreshToken = jwtUtil.generateToken(username);
-
-        return TokenVO.builder()
-                .accessToken(newAccessToken)
-                .tokenType(TokenTypeEnum.BEARER)
-                .expiresIn(expireSecond)
-                .refreshToken(newRefreshToken)
-                .refreshExpiresIn(expireSecond)
-                .role(activeRoleAssignment.getRole().name())
-                .kindergartenId(resolveKindergartenScope(activeRoleAssignment))
-                .id(user.getId())
-                .loginId(user.getLoginId())
-                .build();
+        return authorizationContextService.establishSession(user);
     }
 
     @Transactional(readOnly = true)
@@ -270,21 +215,6 @@ public class AuthService {
                 .updatedAt(OffsetDateTime.now())
                 .build();
         superadminRepository.save(superadmin);
-    }
-
-    private UserRoleAssignment resolveActiveRoleAssignment(User user) {
-        List<UserRoleAssignment> activeAssignments = userRoleAssignmentRepository
-                .findAllByUser_IdAndStatusOrderByGrantedAtDesc(user.getId(), StatusEnum.ACTIVE);
-        if (activeAssignments.size() != 1) {
-            throw authenticationFailure();
-        }
-        return activeAssignments.get(0);
-    }
-
-    private Long resolveKindergartenScope(UserRoleAssignment activeRoleAssignment) {
-        return activeRoleAssignment.getScopeType() == UserRoleAssignmentScopeType.KINDERGARTEN
-                ? activeRoleAssignment.getScopeId()
-                : null;
     }
 
     private RegistrationContext prepareRegistrationContext(UserRoleEnum role, AuthRegisterDTO request) {

@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,20 +20,24 @@ public class AiModelService {
     private final AiModelRepository repository;
     private final AiModelMapper mapper;
 
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_READ)")
     public Page<AiModelVO> listAiModels(String keyword, Pageable pageable) {
         // TODO: filter AiModel by keyword
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_READ)")
     public AiModelVO getAiModel(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("AiModel not found"));
     }
 
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public AiModelVO createAiModel(AiModelCreateDTO createDTO) {
         return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public AiModelVO updateAiModel(Long id, AiModelUpdateDTO updateDTO) {
         AiModel entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("AiModel not found"));
@@ -40,6 +45,7 @@ public class AiModelService {
         return mapper.toVO(repository.save(entity));
     }
 
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_WRITE)")
     public void deleteAiModel(Long id) {
         AiModel entity = repository.findById(id).
                 orElseThrow(() -> new EntityNotFoundException("AiModel not found"));

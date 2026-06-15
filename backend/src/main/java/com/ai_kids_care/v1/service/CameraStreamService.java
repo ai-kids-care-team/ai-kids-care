@@ -2,11 +2,13 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.mapper.CameraStreamMapper;
 import com.ai_kids_care.v1.repository.CameraStreamRepository;
+import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.vo.CameraStreamVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ public class CameraStreamService {
     private final CameraStreamMapper mapper;
 
     @Transactional(readOnly = true)
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public Page<CameraStreamVO> listCameraStreams(
             Long kindergartenId,
             Long cameraId,
@@ -25,13 +28,32 @@ public class CameraStreamService {
             Boolean isPrimary,
             Pageable pageable
     ) {
-        return repository.findAllByFilters(kindergartenId, cameraId, enabled, isPrimary, pageable)
+        Long effectiveKindergartenId =
+                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        requireSameKindergarten(kindergartenId, effectiveKindergartenId);
+        return repository.findAllByFilters(
+                        effectiveKindergartenId,
+                        cameraId,
+                        enabled,
+                        isPrimary,
+                        pageable)
                 .map(mapper::toVO);
     }
 
     @Transactional(readOnly = true)
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public CameraStreamVO getCameraStream(Long id) {
-        return repository.findById(id).map(mapper::toVO)
+        Long kindergartenId =
+                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        return repository
+                .findByIdAndCctvCameras_Kindergarten_Id(id, kindergartenId)
+                .map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("CameraStream not found"));
+    }
+
+    private void requireSameKindergarten(Long requested, Long effective) {
+        if (requested != null && !requested.equals(effective)) {
+            throw new EntityNotFoundException("CameraStream not found");
+        }
     }
 }
