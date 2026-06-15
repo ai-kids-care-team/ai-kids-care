@@ -2,7 +2,7 @@
 ADR: ADR-0021
 title: "ADR-0021: Admin 审批与安全审计的 schema 迁移（REJECTED 状态、role/membership 唯一约束、audit_logs 平台 scope）"
 status: Accepted
-implementation: Not Started
+implementation: Complete
 date: 2026-06-15
 deciders: 接手人起草，维护者 Accept（2026-06-15）
 supersedes: []
@@ -19,9 +19,11 @@ related_specs:
 
 Decision: `Accepted`（2026-06-15 维护者 Accept）
 
-Implementation: `Not Started`
+Implementation: `Complete`
 
-> 维护者于 2026-06-15 拍板：(D1) **新增 `REJECTED`** 到 `status_enum`；(D2) **采纳混合形态 (b)**（`scope_type` + `kindergarten_id`/`user_id` 可空 + CHECK + 补 `effective_role`/`result`/`correlation_id`）。其余按推荐缺省。落地（DBML→V2 生成→评审→应用）委派后续高风险 Implementation。
+> 维护者于 2026-06-15 拍板：(D1) **新增 `REJECTED`** 到 `status_enum`；(D2) **采纳混合形态 (b)**（`scope_type` + `kindergarten_id`/`user_id` 可空 + CHECK + 补 `effective_role`/`result`/`correlation_id`）。其余按推荐缺省。
+
+> 实施状态（2026-06-16，已合入 develop）：V2 迁移落地于 `backend/src/main/resources/db/migration/V2__admin_audit_schema.sql`（commit `b9da5a6`）——含 `StatusEnum`+`REJECTED`、`user_role_assignments`/`user_kindergarten_memberships` 的单-ACTIVE 部分唯一索引 + scope CHECK、`audit_logs` 平台 scope + 补字段、`AuditLog` 实体、`db/dbml/schema.dbml` 更新、新增 `V2SchemaConstraintIntegrationTest`（5 项）。`db/initdb/01_create_schema.sql` 保持 V1 基线冻结（修正提交 `61e16ab`：先前误把 V2 写进 initdb 致 Flyway 重复应用失败，CI 捕获）。develop CI（Backend Java Tests + Compose Config + Frontend Lint & Build）全绿 → 约束/审计 schema 经 Testcontainers 端到端验证。残留：V2 文件的 Flyway 可应用性由手动 psql + 评审覆盖（CI 经 initdb 而非 Flyway，待 ADR-0013 解禁 `FlywayMigrationTest` 后自动化）；审计 writer / correlation-id filter / admin 端点属 #1/#2 后续。
 
 ## 背景（Context）
 
