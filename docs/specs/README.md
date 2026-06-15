@@ -7,6 +7,7 @@
 | ID | 标题 | 状态 | Implementation |
 | --- | --- | --- | --- |
 | [SPEC-0001](SPEC-0001-auth-authorization-tenant-sensitive-data-boundaries.md) | 认证、授权、租户与敏感数据边界 | Approved | Partial |
+| [SPEC-0002](SPEC-0002-admin-management-approval-endpoints.md) | Admin 管理与审批端点（角色/用户/membership 审批与状态变更） | Approved | Not Started |
 
 ## 生命周期
 
