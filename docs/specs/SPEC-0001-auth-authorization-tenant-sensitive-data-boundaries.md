@@ -463,3 +463,11 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 核验：所有 active controller 的发布 operation 均已显式 policy 分类——`ai_models`(CRUD)/`common_codes`(写) = `PLATFORM_*`；`classes`/`rooms`/`announcements`(CRUD)、`detection_sessions`(读) = `TENANT_*`；`cctv_cameras`/`camera_streams`(读) = `TENANT_CAMERA_READ`；`kindergartens`/`menus`/`common_codes` 的 GET = 公开 S3 目录/参考。其余 14 个 controller 不发布任何 operation，统一默认拒绝。
 - 测试：新增 `SecurityBoundaryIntegrationTest`（匿名访问矩阵：发布业务端点 `401`、关闭 controller `401`、公开白名单 `200`）；`AuthEndpointTest` 的 `refresh_isClosed`/legacy 与 `DetectionEventEndpointTest` 的关闭路径断言由 `404` 改 `401`。两个 standalone 契约测试（`SensitivePublicApiClosureContractTest`/`SensitiveWriteContractTest`）不经安全链、仍验证「无 handler」契约，未受影响。
 - 验证：先以更新后的断言跑 RED（5 项失败精准定位过宽白名单），移除匹配项后跑 GREEN——后端 `gradlew test` 64 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。本切片仅改后端（`SecurityConfig` + 4 个测试文件），前端未触碰。
+
+#### 切片 2（2026-06-15）：跨租户隔离测试锁定（Tenant Repository Migration）
+
+- 核查结论（事实）：**所有已发布的租户控制器其服务层查询已完成 tenant-aware 迁移**——`ClassService`/`RoomService`（`findByIdAndKindergarten_Id`/`findAllByKindergarten_Id` + `requireSameKindergarten` 写覆盖校验）、`AnnouncementService`（`findByIdAndActiveAuthorMembership` + author 取自 context）、`CctvCameraService`/`CameraStreamService`/`DetectionSessionService`（经关系链 `findBy...CctvCameras_Kindergarten_Id`）。先前“部分”表述偏保守。
+- 故本切片为**纯测试锁定**（无生产代码改动）：新增 `TenantIsolationIntegrationTest`，以 kindergarten 2 的 TEACHER/KINDERGARTEN_ADMIN 为主体、kindergarten 1 既有 seed 资源为“真实但外租户”，断言：(1) `rooms`/`cctv_cameras`/`camera_streams`/`detection_sessions` 的 get-by-id 用合法外租户 id → 隐藏 `404 {"error":"Resource not found"}`；(2) `rooms` list 仅含本租户行且本租户 get-by-id 可达 `200`（证明 404 是租户限定而非一刀切）；(3) `KINDERGARTEN_ADMIN` 写入携带外租户 `kindergartenId` → 隐藏 `404`，不切换租户。
+- DetectionEvent（事实修正）：`DetectionEventController` 不发布任何 operation，`DetectionEventService` 在生产代码中无任何注入/调用方，当前不可经 HTTP 触达；其信任客户端 `kindergartenId` 的问题留待控制器/AI-sink 重开时处理，不在本切片范围。
+- 验证：`TenantIsolationIntegrationTest` 3 项通过；全量后端 `gradlew test` 67 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。仅新增一个后端测试文件，前端未触碰。
+- 未完成 / 后续：tenant 实体的原始 `JpaRepository`（裸 `findAll`/`findById`）仍暴露给 service，ADR-0019 §4 的“repository port 边界收敛”属架构性改造，留后续切片；Guardian/Teacher 关系策略（切片 3）、会话吊销/审计（切片 4）未动。
