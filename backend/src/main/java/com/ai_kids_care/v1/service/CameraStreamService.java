@@ -20,7 +20,7 @@ public class CameraStreamService {
     private final CameraStreamMapper mapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_CAMERA_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public Page<CameraStreamVO> listCameraStreams(
             Long kindergartenId,
             Long cameraId,
@@ -41,7 +41,7 @@ public class CameraStreamService {
     }
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_CAMERA_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public CameraStreamVO getCameraStream(Long id) {
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();

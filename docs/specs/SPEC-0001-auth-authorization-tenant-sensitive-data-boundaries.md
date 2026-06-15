@@ -489,3 +489,11 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：新增 `TeacherRoomAssignmentAuthorizationIntegrationTest`（3，造 fresh class+room+完整关系链）。并把切片 2 的 `TenantIsolationIntegrationTest` 主体由 `TEACHER` 改为 `KINDERGARTEN_ADMIN`——因 TEACHER 现为 assignment-级，纯租户隔离测试应以**园级主体**表达（其任一 `404` 来自租户边界而非 assignment 收紧）。
 - 未做（SPEC 边界判断，待维护者定）：`cctv_cameras`/`camera_streams`/`detection_sessions` 对 TEACHER 的可见性——SPEC actor 矩阵中 teacher 仅列“班级/교실/儿童/相关事件”，未明确列入 live CCTV/stream/session，是否沿 room-camera 链对 teacher 收紧（还是干脆不向 teacher 开放）需产品判断，本片不越界。
 - 验证：RED（2 teacher room 测试失败、admin 通过）→ GREEN；全量后端 `gradlew test` 73 通过 / 0 失败 / 2 预期 skip。前端**不调用 `/rooms`**（grep 确认），零影响。`git diff --check` PASS。
+
+#### 切片 3 续（2026-06-15）：Teacher 禁止访问 surveillance（cameras/streams/sessions）
+
+- 维护者裁定：**teacher 不能**看 cameras / streams / sessions（SPEC actor 矩阵中 teacher 仅列“班级/교실/儿童/相关事件”，未列 live CCTV/stream/session）。故把这三类收为 **`KINDERGARTEN_ADMIN`-only**，teacher 访问返回 `403`。
+- 实现：`AuthorizationAction.TENANT_CAMERA_READ` 改名为 `TENANT_SURVEILLANCE_READ` 并在 `AuthorizationPolicy` 收为 admin-only；`CctvCameraService`/`CameraStreamService` 改挂 `TENANT_SURVEILLANCE_READ`；`DetectionSessionService` 由 `TENANT_S2_READ`（teacher+admin）改挂 `TENANT_SURVEILLANCE_READ`。`TENANT_S2_READ`（classes/rooms，teacher assignment-级）保持 teacher+admin。
+- 前端：`CctvDashboardPage` 的 `canViewLiveStreams` 收紧为仅 `KINDERGARTEN_ADMIN`——教师走受限视图、不再请求已 `403` 的 camera/stream 接口（前端隐藏仅 UX，后端 `403` 才是安全控制）。
+- 测试：`AuthEndpointTest` 新增 `teacher_cannotReadSurveillanceResources`（teacher GET `cctv_cameras`/`camera_streams`/`detection_sessions` → `403`；前两者带 `kindergartenId` 以越过必填参数绑定 `400`、抵达 method authorization）；`cameraList_rejectsClientKindergartenOverride` 主体由 teacher 改为 `KINDERGARTEN_ADMIN`（teacher 已无 camera 权限）。
+- 验证：RED（teacher→403 测试失败；其间发现 cctv/streams 缺 `kindergartenId` 先返回 400，补参修正）→ GREEN；全量后端 `gradlew test` 74 通过 / 0 失败 / 2 预期 skip；前端 `CctvDashboardPage` scoped ESLint 0 error/warning，生产构建 20 页成功。`git diff --check` PASS。

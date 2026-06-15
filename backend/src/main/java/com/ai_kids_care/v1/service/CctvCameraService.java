@@ -20,7 +20,7 @@ public class CctvCameraService {
     private final CctvCameraMapper mapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_CAMERA_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public Page<CctvCameraVO> listCctvCameras(Long kindergartenId, Pageable pageable) {
         Long effectiveKindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
@@ -30,7 +30,7 @@ public class CctvCameraService {
     }
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_CAMERA_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public CctvCameraVO getCctvCamera(Long id) {
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();

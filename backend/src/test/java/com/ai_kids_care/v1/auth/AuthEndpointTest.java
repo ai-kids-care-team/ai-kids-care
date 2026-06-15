@@ -349,7 +349,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
     @Test
     void cameraList_rejectsClientKindergartenOverride() throws Exception {
         long foreignKindergartenId = insertActiveKindergarten();
-        configureTeacherRole(1L);
+        configureKindergartenAdminRole(1L);
         Cookie sessionCookie = loginSessionCookie();
 
         mockMvc.perform(get("/api/v1/cctv_cameras")
@@ -357,6 +357,23 @@ class AuthEndpointTest extends BaseIntegrationTest {
                         .cookie(sessionCookie))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Resource not found"));
+    }
+
+    @Test
+    void teacher_cannotReadSurveillanceResources() throws Exception {
+        configureTeacherRole(1L);
+        Cookie sessionCookie = loginSessionCookie();
+
+        // CCTV cameras, stream config and detection sessions are not in the TEACHER
+        // actor matrix; only KINDERGARTEN_ADMIN may read them, so a teacher is denied.
+        // (cctv_cameras/camera_streams require a kindergartenId param; supply it so the
+        // request reaches method authorization instead of failing parameter binding.)
+        mockMvc.perform(get("/api/v1/cctv_cameras").param("kindergartenId", "1").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/camera_streams").param("kindergartenId", "1").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/detection_sessions").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
     }
 
     @Test

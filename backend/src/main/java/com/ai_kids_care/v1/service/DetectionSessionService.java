@@ -20,7 +20,7 @@ public class DetectionSessionService {
     private final DetectionSessionMapper mapper;
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public Page<DetectionSessionVO> listDetectionSessions(String keyword, Pageable pageable) {
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
@@ -32,7 +32,7 @@ public class DetectionSessionService {
     }
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_S2_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
     public DetectionSessionVO getDetectionSession(Long id) {
         Long kindergartenId =
                 EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
