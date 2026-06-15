@@ -45,6 +45,14 @@ public class AuthorizationPolicy {
                  KINDERGARTEN_ADMIN_APPROVAL_WRITE,
                  KINDERGARTEN_ADMIN_MEMBER_WRITE ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // SPEC-0002 Slice B: 平台级粗粒度门——仅确认 PLATFORM_IT_ADMIN + PLATFORM scope（scopeId 必须为 null）。
+            // 细粒度（禁自审 / 目标 role 为 SUPERADMIN / 目标状态）由 PlatformPolicy 在事务内完成（ADR-0019 §2）。
+            // 注意：PLATFORM scope 不使用 tenantIdentity（该布尔值为 KINDERGARTEN scope 专用）。
+            case PLATFORM_SUPERADMIN_APPROVAL_READ,
+                 PLATFORM_SUPERADMIN_APPROVAL_WRITE,
+                 PLATFORM_USER_WRITE ->
+                    context.scopeType() == UserRoleAssignmentScopeType.PLATFORM
+                            && role == UserRoleEnum.PLATFORM_IT_ADMIN;
         };
     }
 }
