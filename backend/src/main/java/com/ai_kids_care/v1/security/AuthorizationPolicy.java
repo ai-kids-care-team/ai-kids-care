@@ -34,9 +34,11 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             case TENANT_ANNOUNCEMENT_WRITE, TENANT_S2_WRITE ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
-            case TENANT_S2_READ, TENANT_CAMERA_READ ->
+            case TENANT_S2_READ ->
                     tenantIdentity && (role == UserRoleEnum.TEACHER
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            case TENANT_SURVEILLANCE_READ ->
+                    tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
         };
     }
 }
