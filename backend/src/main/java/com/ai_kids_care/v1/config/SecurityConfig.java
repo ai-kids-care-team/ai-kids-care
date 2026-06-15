@@ -67,18 +67,22 @@ public class SecurityConfig {
                                 "/v3/api-docs.yaml/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public surface required before a session exists: CSRF bootstrap,
+                        // registration availability, and S3 reference/directory reads used by
+                        // the signup forms (kindergarten directory, common codes, menus).
+                        // These carry no S0/S1; every mutating operation stays authenticated
+                        // and policy-gated. Closed/removed paths (e.g. /auth/refresh,
+                        // /children/rrn, /detection_events) are intentionally absent so they
+                        // fall through to default-deny instead of an anonymous existence oracle.
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/auth/csrf",
                                 "/api/v1/auth/register/availability",
-                                "/api/v1/children/rrn",
-                                "/api/v1/detection_events/**",
                                 "/api/v1/kindergartens/**",
                                 "/api/v1/common_codes/**",
                                 "/api/v1/menus/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/refresh",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/guardian-child-verifications"
                         ).permitAll()
