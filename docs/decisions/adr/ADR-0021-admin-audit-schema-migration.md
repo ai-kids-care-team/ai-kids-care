@@ -36,7 +36,7 @@ Implementation: `Not Started`
 - `audit_logs`：`kindergarten_id bigint NOT NULL` 且 `user_id bigint NOT NULL`（`01_create_schema.sql:472-482`，与 `V1__initial_baseline.sql:478-488` 字节一致）。缺 `effective_role`、`result`、`correlation_id`、`scope_type`。**全系统零写入方**（Grep 确认）。无法表达：平台级事件（无园）、actor 未知的登录失败/枚举尝试。SPEC `:284` 明确「可用 `scope_type+scope_id` 或等价的『平台事件允许 tenant id 为空』；**不得伪造 kindergarten id 代表平台**」。
 
 ### 治理约束
-- 迁移受 [ADR-0012](ADR-0012-production-data-lifecycle.md) 治理：`db/dbml/schema.dbml` 为 schema 设计单一真相，`V2` 起**不手写 SQL**，应改 DBML 后用 schema-diff 生成、人工评审入库；并**同步** `db/initdb/01_create_schema.sql` 演示基线（当前两者一致，须继续一致）；ERD `.mmd` 由 schema 重新派生。
+- 迁移受 [ADR-0012](ADR-0012-production-data-lifecycle.md) 治理：`db/dbml/schema.dbml` 为 schema 设计单一真相（反映当前**全量** schema，含 V2），应改 DBML 后生成迁移、人工评审入库；ERD `.mmd` 由 schema 重新派生。**关键（2026-06-16 勘误）**：`db/initdb/01_create_schema.sql` 是 **V1 基线快照、保持冻结不变**——schema 改动**只进 Flyway 迁移**（`V2+`）。测试/演示路径 = initdb 建 V1 → Flyway `baseline-on-migrate`（`baseline-version: 1`）在 V1 → 叠加 V2（见 `backend/src/main/resources/application.yml`）。**把 V2 改动也写进 initdb 会让 Flyway 重复应用同一 DDL 而报错**（CI 已验证此教训）。
 - `FlywayMigrationTest` 当前整类 `@Disabled`（前置是 [ADR-0013](ADR-0013-dictionary-tables-governance.md) 删除遗留 `CommonCode` 映射），即 [ADR-0014](ADR-0014-test-baseline.md) 所述「2 个预期 skip」。本迁移**不得**夹带解禁逻辑、不得用新表规避解禁（ADR-0014 明确禁止）。
 - 角色/scope 唯一约束修复，ADR-0019 §分阶段边界已指明「由后续 Implementation task 通过 ADR-0012 流程执行」——即本 ADR。
 
@@ -85,12 +85,12 @@ Implementation: `Not Started`
 ## 后果（Consequences）
 
 - **正面**：一次迁移同时解锁 #2（批准/拒绝流的状态与完整性约束）与 #1（平台级/匿名审计可写）；把 SPEC 的「单账号单角色/单园」「恰一条 ACTIVE」从应用层推进到 DB 层纵深防御；audit schema 一次补齐 SPEC 要求字段。
-- **负面 / 代价**：高风险 DB 迁移（schema + enum）；`ALTER TYPE ADD VALUE`（若选 D1-A）近不可逆；既有数据若违反新唯一约束/CHECK 需先清洗；DBML、`db/initdb`、ERD 三处须同步，遗漏即漂移。
+- **负面 / 代价**：高风险 DB 迁移（schema + enum）；`ALTER TYPE ADD VALUE`（若选 D1-A）近不可逆；既有数据若违反新唯一约束/CHECK 需先清洗；DBML 与 ERD 随当前 schema 更新，`db/initdb` 保持 V1 基线冻结（**不**随 V2 改，否则 Flyway 重复应用报错）。
 - **影响范围**：`db/dbml/schema.dbml`、`backend/.../db/migration/V2__*.sql`、`db/initdb/01_create_schema.sql`、相关 JPA 实体（`UserRoleAssignment`/`UserKindergartenMembership`/`AuditLog`）、`StatusEnum`、后续 #1/#2 实现、`FlywayMigrationTest` 的 `coreTablesCreatedByV1` spot-check（待 ADR-0013 解禁后补 `audit_logs` 校验）。
 
 ## 合规与验证（Compliance）
 
-- 迁移须走 DBML-first：改 `schema.dbml` → schema-diff 生成 `V2` → 人工评审 → 同步 `db/initdb/01_create_schema.sql`。
+- 迁移须走 DBML-first：改 `schema.dbml` → 生成 `V2` → 人工评审。`db/initdb/01_create_schema.sql` 保持 V1 基线冻结、**不**随 V2 更新（测试/演示经 Flyway 叠加 V2）。
 - `V2` 在空库 `V1` 之后干净执行；既有种子/演示数据不违反新约束（迁移前核查）。
 - 后端 `gradlew test`（含 Testcontainers）通过；新增针对约束（重复 ACTIVE role/membership 被拒）、audit 平台事件可写（`scope_type=PLATFORM` 且 `kindergarten_id=NULL`）的测试。
 - 不解禁 `FlywayMigrationTest`、不夹带 `CommonCode` 改动。
