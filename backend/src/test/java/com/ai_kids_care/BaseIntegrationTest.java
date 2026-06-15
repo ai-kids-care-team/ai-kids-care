@@ -5,7 +5,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.nio.file.Paths;
 
@@ -45,11 +47,17 @@ public abstract class BaseIntegrationTest {
                     .withFileSystemBind(INITDB_HOST_PATH, "/docker-entrypoint-initdb.d", BindMode.READ_ONLY)
                     .withReuse(true);  // requires testcontainers.reuse.enable=true in ~/.testcontainers.properties
 
+    private static final GenericContainer<?> redis =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379)
+                    .withReuse(true);
+
     static {
         // Keep one container alive for the full Gradle test JVM. JUnit's per-class
         // @Container lifecycle would stop this inherited container between subclasses
         // while Spring still reuses the cached application context.
         postgres.start();
+        redis.start();
     }
 
     @DynamicPropertySource
@@ -57,5 +65,7 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
     }
 }

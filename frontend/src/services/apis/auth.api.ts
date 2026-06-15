@@ -12,16 +12,12 @@ type LoginRequest = {
   id?: string;
 };
 
-type LoginResponse = {
-  id?: string;
-  loginId?: string;
-  role?: string;
-  accessToken?: string;
-  token?: string;
-  refreshToken?: string;
-  name?: string;
-  email?: string;
-  kindergartenId?: number;
+export type AuthSessionResponse = {
+  userId: number;
+  loginId: string;
+  effectiveRole: string;
+  scopeType: 'PLATFORM' | 'KINDERGARTEN';
+  scopeId?: number;
 };
 
 type CommonRegisterRequest = {
@@ -66,7 +62,9 @@ export async function fetchRegisterFieldAvailability(
   value: string
 ): Promise<RegisterFieldAvailability> {
   const params = new URLSearchParams({ field, value: value.trim() });
-  const res = await fetch(`${API_BASE_URL}/auth/register/availability?${params}`);
+  const res = await fetch(`${API_BASE_URL}/auth/register/availability?${params}`, {
+    credentials: 'include',
+  });
   if (!res.ok) {
     throw new Error(`availability ${res.status}`);
   }
@@ -91,12 +89,24 @@ type CommonCodePageResponse = {
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    login: build.mutation<LoginResponse, LoginRequest>({
+    login: build.mutation<AuthSessionResponse, LoginRequest>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
         body: credentials,
       }),
+      invalidatesTags: ['AuthSession'],
+    }),
+    session: build.query<AuthSessionResponse, void>({
+      query: () => '/auth/session',
+      providesTags: ['AuthSession'],
+    }),
+    logout: build.mutation<void, void>({
+      query: () => ({
+        url: '/auth/logout',
+        method: 'POST',
+      }),
+      invalidatesTags: ['AuthSession'],
     }),
     register: build.mutation<void, RegisterRequest>({
       query: (userData) => ({
@@ -124,6 +134,8 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginMutation,
+  useSessionQuery,
+  useLogoutMutation,
   useRegisterMutation,
   useGetCommonCodesQuery,
 } = authApi;

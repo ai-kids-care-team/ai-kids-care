@@ -9,19 +9,19 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface ClassMapper {
 
-    @Mapping(target = "classId", ignore = true)
+    @Mapping(source = "id", target = "classId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     ClassVO toVO(Class entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(source = "kindergartenId", target = "kindergarten.id")
+    @Mapping(target = "kindergarten", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Class toEntity(ClassCreateDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(source = "kindergartenId", target = "kindergarten.id")
+    @Mapping(target = "kindergarten", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(ClassUpdateDTO dto, @MappingTarget Class entity);

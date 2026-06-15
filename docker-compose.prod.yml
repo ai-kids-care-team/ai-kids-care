@@ -1,12 +1,21 @@
-# Production compose override (ADR-0012).
+# Production compose override (ADR-0012 + ADR-0017).
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   DOMAIN=app.example.com ACME_EMAIL=ops@example.com \
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # Key differences from the base docker-compose.yml:
 #   - db: uses Dockerfile.prod (vanilla postgres, NO initdb seed scripts)
 #     Schema is created by Flyway migration (backend spring.flyway) on first startup.
+#   - caddy: edge TLS termination (ADR-0017). Caddy owns host 80/443; the frontend
+#     nginx is no longer published to the host (only Caddy is reachable from outside).
+#   - backend: session cookie is marked Secure (requires the HTTPS edge above).
 #   - Do NOT run `docker compose down --volumes` before deploying.
 #     Preserving the data volume is the whole point of this track.
+#
+# Deploy-time verification required (NOT covered by CI): real ACME certificate
+# issuance needs a public DNS name for $DOMAIN and a reachable ACME endpoint, and the
+# host must have ports 80/443 free for Caddy. `docker compose config` only validates
+# structure, not certificate issuance or runtime port binding.
 #
 # Demo / CI reset (default docker-compose.yml + Jenkinsfile):
 #   docker compose down --remove-orphans --volumes --rmi local
@@ -18,3 +27,36 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile.prod
+
+  backend:
+    environment:
+      # Secure session cookie (ADR-0016/0017). Only delivered over HTTPS, which the
+      # Caddy edge below terminates.
+      SESSION_COOKIE_SECURE: "true"
+
+  frontend:
+    # Behind Caddy in production: do not publish the frontend nginx to the host.
+    # `!reset` clears the base ["80:80"] mapping instead of appending to it.
+    ports: !reset null
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ai-kids-caddy
+    restart: always
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

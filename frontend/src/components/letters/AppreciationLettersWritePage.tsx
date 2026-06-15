@@ -21,7 +21,7 @@ import { pushClientAppreciationLetter } from './appreciation-letter-client-cache
 
 export function AppreciationLettersWritePage() {
   const router = useRouter();
-  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const senderNum = user?.id != null ? Number(user.id) : NaN;
 
   const [targetType, setTargetType] = useState<AppreciationTargetType>('KINDERGARTEN');
@@ -43,11 +43,10 @@ export function AppreciationLettersWritePage() {
       Boolean(
         isAuthenticated &&
           user &&
-          token &&
           Number.isFinite(senderNum) &&
           canWriteAppreciationLetters(user.role),
       ),
-    [isAuthenticated, user, token, senderNum],
+    [isAuthenticated, user, senderNum],
   );
 
   const guardianLockKg = useMemo(() => {
@@ -165,7 +164,7 @@ export function AppreciationLettersWritePage() {
             >
               화면을 불러오는 중…
             </div>
-          ) : !isAuthenticated || !user || !token ? (
+          ) : !isAuthenticated || !user ? (
             <div className="rounded-md border border-amber-100 bg-amber-50 p-4 text-center text-xs text-amber-900 sm:text-sm">
               <p className="mb-3">로그인한 뒤 작성할 수 있습니다.</p>
               <button

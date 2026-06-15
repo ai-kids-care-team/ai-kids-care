@@ -249,7 +249,10 @@ export function CctvDashboardPage() {
   }, [sessionUser]);
   const shouldScopeToOwnKindergarten =
     effectiveRole === 'KINDERGARTEN_ADMIN' || effectiveRole === 'TEACHER';
-  const canViewLiveStreams = shouldScopeToOwnKindergarten;
+  // CCTV / live streams are restricted to KINDERGARTEN_ADMIN: the backend denies
+  // camera/stream/detection reads to TEACHER (and platform roles), so teachers get the
+  // restricted view here instead of issuing now-forbidden requests.
+  const canViewLiveStreams = effectiveRole === 'KINDERGARTEN_ADMIN';
 
   const [kindergartenNameResolved, setKindergartenNameResolved] = useState<{
     kindergartenId: number;

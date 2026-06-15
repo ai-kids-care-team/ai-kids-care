@@ -10,17 +10,17 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user } = useAppSelector((state) => state.user);
+  const { user, sessionChecked } = useAppSelector((state) => state.user);
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
+    if (sessionChecked && !user) {
       openLoginModal();
       router.replace('/');
     }
-  }, [user, router]);
+  }, [user, router, sessionChecked]);
 
-  if (!user) {
+  if (!sessionChecked || !user) {
     return null;
   }
 

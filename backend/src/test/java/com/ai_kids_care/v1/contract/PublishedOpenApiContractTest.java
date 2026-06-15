@@ -15,9 +15,12 @@ import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -213,6 +216,15 @@ class PublishedOpenApiContractTest {
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "emergencyContactPhone");
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "level");
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "staffNo");
+        assertComponentHasOnlyProperties(apiDocs, "AuthSessionVO", Set.of(
+                "userId", "loginId", "effectiveRole", "scopeType", "scopeId"
+        ));
+        assertComponentHasOnlyProperties(apiDocs, "TenantContextRequest", Set.of(
+                "kindergartenId"
+        ));
+        assertComponentHasOnlyProperties(apiDocs, "TenantContextVO", Set.of(
+                "selectedKindergartenId"
+        ));
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "department");
         assertComponentRequiredProperty(apiDocs, "GuardianChildVerificationRequest", "childRrnFirst6");
         assertComponentRequiredProperty(apiDocs, "GuardianChildVerificationRequest", "childRrnBack7");
@@ -278,7 +290,12 @@ class PublishedOpenApiContractTest {
         assertPathAbsent(apiDocs, "/api/v1/teachers/{id}");
         assertPathAbsent(apiDocs, "/api/v1/children/rrn");
         assertOperationPresent(apiDocs, "/api/v1/auth/guardian-child-verifications", "post");
-        assertPathAbsent(apiDocs, "/api/v1/auth/logout");
+        assertOperationPresent(apiDocs, "/api/v1/auth/login", "post");
+        assertOperationPresent(apiDocs, "/api/v1/auth/session", "get");
+        assertOperationPresent(apiDocs, "/api/v1/auth/session/tenant-context", "post");
+        assertOperationPresent(apiDocs, "/api/v1/auth/logout", "post");
+        assertOperationPresent(apiDocs, "/api/v1/auth/csrf", "get");
+        assertPathAbsent(apiDocs, "/api/v1/auth/refresh");
         assertPathAbsent(apiDocs, "/api/v1/auth/password");
         assertPathAbsent(apiDocs, "/api/v1/auth/password-resets");
         assertPathAbsent(apiDocs, "/api/v1/auth/password-resets/{resetToken}");
@@ -687,7 +704,10 @@ class PublishedOpenApiContractTest {
             DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class,
             HibernateJpaAutoConfiguration.class,
-            FlywayAutoConfiguration.class
+            FlywayAutoConfiguration.class,
+            RedisAutoConfiguration.class,
+            RedisRepositoriesAutoConfiguration.class,
+            SessionAutoConfiguration.class
     })
     @ComponentScan(
             basePackages = "com.ai_kids_care.v1.controller",
