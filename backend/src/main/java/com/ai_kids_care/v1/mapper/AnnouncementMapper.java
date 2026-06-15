@@ -14,7 +14,7 @@ public interface AnnouncementMapper {
     AnnouncementVO toVO(Announcement entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(source = "authorId", target = "author.id")
+    @Mapping(target = "author", ignore = true)
     @Mapping(target = "viewCount", constant = "0L")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

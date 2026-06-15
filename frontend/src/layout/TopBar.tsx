@@ -14,6 +14,8 @@ import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
 import { useGetMenusQuery } from '@/services/apis/menu.api';
 import { LoginModal } from '@/components/home/LoginModal';
+import { useLogoutMutation } from '@/services/apis/auth.api';
+import { clearCsrf } from '@/services/csrf';
 
 interface TopBarProps {
   currentRole: UserRole;
@@ -26,6 +28,7 @@ interface TopBarProps {
 export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopBarProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const [logoutSession] = useLogoutMutation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isGuest = !hasSession;
   const { data: menuItems = [] } = useGetMenusQuery(menuRoleType, {
@@ -46,24 +49,14 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
     return () => window.removeEventListener('open-login-modal', handler);
   }, []);
 
-  const handleLogout = () => {
-    // 전역 상태 초기화
-    dispatch(logout());
-
-    // 모든 인증 관련 로컬스토리지 키 정리 (예전/현재 키 모두)
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      } catch {
-        // 로컬스토리지가 막혀 있어도 무시
-      }
+  const handleLogout = async () => {
+    try {
+      await logoutSession().unwrap();
+    } finally {
+      clearCsrf();
+      dispatch(logout());
+      router.push('/');
     }
-
-    // AI Kids Care 홈페이지(메인 화면)로 이동
-    router.push('/');
   };
 
   return (
@@ -94,7 +87,7 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
                   variant="ghost"
                   size="lg"
                   className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
-                  onClick={isGuest ? () => setIsLoginModalOpen(true) : handleLogout}
+                  onClick={isGuest ? () => setIsLoginModalOpen(true) : () => void handleLogout()}
               >
                 {isGuest ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
                 <span className="hidden text-base font-medium sm:inline-block">

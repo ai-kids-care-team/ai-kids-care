@@ -14,14 +14,14 @@ public interface RoomMapper {
     RoomVO toVO(Room entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(source = "kindergartenId", target = "kindergarten.id")
+    @Mapping(target = "kindergarten", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Room toEntity(RoomCreateDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(source = "kindergartenId", target = "kindergarten.id")
+    @Mapping(target = "kindergarten", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(RoomUpdateDTO dto, @MappingTarget Room entity);

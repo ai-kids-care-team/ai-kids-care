@@ -1,8 +1,10 @@
 # 演进路线（Roadmap）
 
-> 本文档跟踪**已 Accept 的 ADR 的实施进度**，并把每篇 ADR 的「落地范围」展开为可勾选清单。每篇 ADR 落地遵循 [`CLAUDE.md`](../../CLAUDE.md) 的会话规则——**单一目标、改动小、可独立评审、仓库始终可工作**。
+> 本文档跟踪**已 Accept 的 ADR 的实施进度**，并显式列出会阻断后续实施的 Proposed 决策门；已接受 ADR 的「落地范围」展开为可勾选清单。每篇 ADR 落地遵循 [`CLAUDE.md`](../../CLAUDE.md) 的会话规则——**单一目标、改动小、可独立评审、仓库始终可工作**。
 >
 > 基线：2026-05-29（5 篇前瞻 ADR Accept 当日）。本文从 placeholder 升级为实际路线图。
+>
+> **修订（2026-06-14）**：[ADR-0019 服务端有效授权上下文与租户强制边界](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 已由维护者 Accept，SPEC-0001 Phase 2/3 决策门解除。后续 session principal、Effective Authorization Context、平台 tenant context 与 tenant enforcement 必须按该 ADR 分阶段落地。
 >
 > **修订（2026-06-07，接手复核后）**：新增 [ADR-0014 测试基线](../decisions/adr/ADR-0014-test-baseline.md) 与 [ADR-0015 AI 检测闭环](../decisions/adr/ADR-0015-ai-detection-closed-loop.md)，**均于 2026-06-07 Accept、实现委派独立 session**（0015 = V1：AI 直写 PG + 后端 LISTEN/NOTIFY，通知复核后发家长，并勘误 ADR-0002/0006 中"后端唯一写入者/AI 不连库"的误记）；并把"全局异常处理（OQ-ARCH-2）""keyword 空操作（OQ-ARCH-4）"两项低成本高杠杆改动排入次序。另：**ADR-0016 服务端会话鉴权**（Spring Session + Redis，取代 ADR-0007）亦于 2026-06-07 Accept、**排在 ADR-0009 之前**、实现委派独立 session。**ADR-0017（TLS/HTTPS，由 0016 硬触发）与 ADR-0018（通知子系统）** 亦于 2026-06-07 Accept、实现委派独立 session。状态列已标明。
 
@@ -15,15 +17,16 @@
 | 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway | ⚠️ **Partial**：迁移已落地，生产 loader 仍有竞态/快照问题 | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
 | 5 | [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) | RRN HMAC-SHA-256 + pepper（替代 BCrypt+候选集） | 📋 Backlog | 中-高 |
-| 6 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
-| 7 | [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制（ADR-0016 `Secure` cookie 硬前置） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
-| 8 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（机制改为 **session**，见 ADR-0016） | 📋 Backlog | 高 |
-| 9 | [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) | 通知子系统（后端发、**家长复核后**通知） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
-| 10 | [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) | AI 检测闭环集成契约（终态；V1 AI 直写 PG + 后端 LISTEN/NOTIFY） | ✅ **Accepted (2026-06-07)，终态（实现委派独立 session）** | 高 |
+| 6 | [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) | Effective Authorization Context、集中 tenant enforcement 与平台 tenant context | ✅ **Accepted (2026-06-14)，分阶段实施** | 高 |
+| 7 | [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md) | 服务端会话鉴权（Spring Session + Redis，**取代 ADR-0007**） | ✅ **Accepted (2026-06-07)，排在 0009 前（实现委派独立 session）** | 中 |
+| 8 | [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md) | TLS/HTTPS 终结与强制（ADR-0016 `Secure` cookie 硬前置） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
+| 9 | [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) | 恢复鉴权强制（机制改为 **session**，见 ADR-0016） | 📋 Backlog | 高 |
+| 10 | [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) | 通知子系统（后端发、**家长复核后**通知） | ✅ **Accepted (2026-06-07)（实现委派独立 session）** | 中 |
+| 11 | [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) | AI 检测闭环集成契约（终态；V1 AI 直写 PG + 后端 LISTEN/NOTIFY） | ✅ **Accepted (2026-06-07)，终态（实现委派独立 session）** | 高 |
 
-## 实施次序（2026-06-07 修订）
+## 实施次序（2026-06-14 修订）
 
-**0011 ✅ → 0014 ✅ → 0012 ⚠️ Partial → 0013 → 0010 → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；测试基线横切前置，会话机制 0016 + 其 TLS 前置 0017 先于鉴权恢复 0009，通知子系统 0018 先于 AI 闭环终态 0015）
+**0011 ✅ → 0014 ✅ → 0012 ⚠️ Partial → 0013 → 0010 → 0019 ✅ → 0016 → 0017 → 0009 → 0018 → 0015**（按风险递增 + 依赖关系排序；ADR-0019 决策门已解除，session principal/context 策略随 0016/0009 分阶段落地）
 
 > 原次序（2026-05-29 已确认）：`0011 → 0012 → 0013 → 0010 → 0009`。本次修订**前插 0014（测试基线）；在 0009 前插入 0016（会话机制）+ 0017（TLS）；在 0015 前插入 0018（通知子系统）；后接 0015（AI 闭环）**，未改动中间四篇的相对顺序。
 
@@ -33,6 +36,7 @@
 | **0014 测试基线是横切前置** | 改为**第二**：0012/0013/0010/0009 均为高 blast-radius 变更，须在有回归保护下进行（[ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) 背景） |
 | 0013 / 0010 涉及 schema 变更 | 必须排在 0012（迁移基础设施）之后 |
 | 0010 引入 pepper 密钥管理范式 | 0009 复用同一路径，故 0010 在前 |
+| **0019 是 0016/0009 的授权上下文决策门** | 已于 2026-06-14 Accept；session principal、role/scope 解析、平台 tenant context、tenant-aware repository 与 401/403/404 按该 ADR 实施 |
 | **0016 会话机制（session）先于 0009** | 0009 直接按 session 落地，避免"先恢复 JWT 再返工"；0016 引入 Redis（已有 compose）、不改 schema、不依赖 0012 |
 | **0017 TLS（由 0016 触发）** | `Secure` cookie 需 HTTPS → 生产部署前置；与 0012 生产部署、0016 耦合，排 0016 后 |
 | 0009 翻转鉴权（最高风险） | 紧随 0016/0017；其测试前置已由 0014 提前满足 |
