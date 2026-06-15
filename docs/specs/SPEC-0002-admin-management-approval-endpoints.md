@@ -155,3 +155,11 @@ related_adrs:
 ## 实施记录（Implementation Notes）
 
 仅在本 spec `Approved` 后填写：对应提交与改动文件、新增/更新测试、数据/兼容策略、验证命令与结果、已知风险与后续。
+
+### 2026-06-16 切片 A：园级审批/拒绝/停用端点（已合入 develop、CI 验证）
+
+- 提交：`703e8b7`（实现）+ `d539f8d`（Lead 评审修复）。在 develop 上 `Backend Java Tests` + `Compose Config` + `Frontend Lint & Build` 全绿。
+- 实现：`AdminKindergartenController`（`/api/v1/admin/kindergarten/**`，新建独立控制器、未触碰关闭的人员控制器）、`KindergartenAdminApprovalService`、`KindergartenAdminPolicy`（level DIRECTOR/VICE + 禁自审，事务内细判）、`PendingRegistrationVO`（最小字段无 S1）；新增 3 个园级 `AuthorizationAction` + `AuthorizationPolicy` 接线；补 tenant-aware repository 查询与条件更新（防 TOCTOU，`WHERE status=... AND scope_id=kg`）。四端点：list/approve/reject/disable，disable 在事务提交后 `SessionRevocationService.revokeAllForUser`；条件更新 0 行 → 隐藏 `404`（OQ-4）；审计 hook 以 `TODO(SPEC-0002 #1)` 预留。
+- 测试：`AdminApprovalAuthorizationIntegrationTest`（25 项）——allow/deny/403/隐藏404/自审/跨园/状态前置/重复幂等/会话吊销/无 S1。
+- Lead 评审修复（`d539f8d`）：(1) `reject()` 原先只查 User 行数、未查 kg-scoped membership/role → 跨园拒绝漏洞，补行数检查（0 行→回滚→隐藏 404）；(2) URA 条件更新的关联赋值由 JPQL 子查询改实体引用参数 `:actor`（Hibernate bulk update 稳定性）。
+- 未做（切片 B）：平台级 SUPERADMIN approve/reject + 平台 user disable + `PlatformPolicy` + 平台 `AuthorizationAction`。审计 writer/通知/前端 UI 见 SPEC Out of Scope 与候选 #1。
