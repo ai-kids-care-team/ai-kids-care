@@ -37,6 +37,9 @@ Two operating principles:
 | **Test-fixture phone uniqueness** | Sensor · computational | backend test `TestFixturePhoneUniquenessTest` | a full phone literal reused across test classes (the shared-container UNIQUE collision) |
 | **Spec acceptance coverage map** | Guide+Sensor · mixed | backend test `SpecAcceptanceCoverageTest` | §372/§390 coverage claims silently rotting when a covering test is deleted/renamed |
 | **Incident ledger** | Guide · inferential | `docs/engineering/incidents.md` | re-deriving already-fixed mistakes; losing the "issue → control" loop |
+| **§365 loader projection guard** | Sensor · computational | backend test `LoaderSensitiveProjectionGuardTest` | a Neo4j loader projecting an S0/PII field into the graph (INC-003) |
+| **MapStruct unmapped = ERROR** | Guide · computational | `backend/build.gradle` | a forgotten MapStruct target mapping (now fails compile, was a WARN — INC-005) |
+| **Guard self-tests** | Sensor · computational | backend test `HarnessGuardsSelfTest` | a *dead* guard — proves each detector fires on a planted violation |
 | CI (Backend Java Tests · Compose Config · Frontend lint/build) | Sensor · computational | GitHub Actions | full-suite + compose + frontend, on every push to `develop` |
 | Release gate | Sensor · mixed | develop→main PR | 3 required checks + fresh reviewer + maintainer merge |
 | Fresh independent reviewer (`FINAL REVIEW`) | Sensor · inferential | release gate; sub-agent merges | semantic defects a fresh context catches |
@@ -92,20 +95,24 @@ Honest backlog, roughly highest-leverage first:
   (`.claude/settings.json`). The protected-push guard is left to server-side branch protection
   (the real control); the migration→schema-digest reminder is enforced in CI instead. A richer
   PreToolUse/Stop suite would need a PowerShell (Windows-only) or guaranteed-`node` rewrite.
-- **No agent-behaviour eval runner.** The incident ledger ([`incidents.md`](incidents.md)) plus
-  the runnable guardrail tests it links (`TestFixturePhoneUniquenessTest`, the contract tests, the
-  schema-digest drift check) give deterministic pass/fail coverage of the failure *classes* we've
-  actually hit — but there's no harness that replays scenario prompts against an agent with an
-  LLM-as-judge verdict. That's a separate, larger effort.
-- **Spec acceptance is only partly machine-anchored.** §372/§390 now have a version-controlled
-  coverage map (`SpecAcceptanceCoverageTest`) whose referenced tests must exist, so a deleted or
-  renamed covering test breaks the build instead of rotting silently. Still human-judged: whether
-  the mapped tests *semantically* cover each dimension (the spec retains maintainer sign-off).
+The high-leverage computational gaps are now closed (see the table). What remains is either a
+deliberate non-goal or inherently human-judged:
 
-Recently closed: the **`/authz-read-slice` skill** codifies the authz read-slice pattern; the
-schema digest is enforced in CI (**`schema-digest-drift.yml`**); the shared-container UNIQUE
-collision and the "issue → control" discipline are now a runnable guard + ledger
-(**`TestFixturePhoneUniquenessTest`**, **`incidents.md`**).
+- **No LLM-judge agent-behaviour eval runner — by decision
+  ([ADR-0023](../decisions/adr/ADR-0023-harness-behaviour-eval-scope.md)).** The deterministic core
+  exists: the incident ledger ([`incidents.md`](incidents.md)) plus guardrail tests that are
+  themselves proven to fire on planted violations (`HarnessGuardsSelfTest`). A runner that replays
+  scenario prompts against an agent with an LLM verdict is a separate, larger effort and
+  intentionally not built; revisit if agent-behaviour regressions recur.
+- **§372/§390 semantic completeness stays human-judged.** `SpecAcceptanceCoverageTest` anchors that
+  the coverage map references only existing tests, but *whether* those tests fully cover each
+  dimension remains a maintainer sign-off (per SPEC-0001) — not mechanizable without an oracle.
+
+Recently closed: the **`/authz-read-slice` skill**; CI **schema-digest drift**
+(`schema-digest-drift.yml`); the shared-container UNIQUE collision, the §365 loader projection, and
+the forgotten-MapStruct-mapping classes are now build-failing guards
+(`TestFixturePhoneUniquenessTest`, `LoaderSensitiveProjectionGuardTest`, `unmappedTargetPolicy=ERROR`);
+and the guards are self-verified (`HarnessGuardsSelfTest`) with an incident ledger (`incidents.md`).
 
 ---
 
