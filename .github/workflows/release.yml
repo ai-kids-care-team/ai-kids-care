@@ -158,64 +158,15 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml down -v --remove-orphans
 
-      # ── 6. Push both tags to GHCR (only if smoke passed) ────────────────────
-      # Re-push with the GHCR-native push flag; local images already exist.
-      - name: Push versioned tag (<version>) to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: ./db
-          file: ./db/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}/db:${{ github.ref_name }}
-          cache-from: type=gha,scope=db
-
-      - name: Push db :prod tag to GHCR
+      # ── 6. Push to GHCR — the EXACT images that passed smoke (no rebuild) ────
+      # Steps 3–4 already built (load: true) and tagged :<version> + :prod into the
+      # local daemon; the smoke test ran against those images. `docker compose down -v`
+      # removes containers/networks/volumes but NOT images, so the local tags survive.
+      # We simply push them. This guarantees the pushed image == the smoke-tested image
+      # and avoids a second, cache-dependent build (which could diverge on a cache miss).
+      - name: Push images to GHCR (only after smoke passed)
         run: |
-          docker tag "${{ env.IMAGE_PREFIX }}/db:${{ github.ref_name }}" \
-                     "${{ env.IMAGE_PREFIX }}/db:prod"
-          docker push "${{ env.IMAGE_PREFIX }}/db:prod"
-
-      - name: Push data-loader to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: ./db/ne4j_kindergartens
-          file: ./db/ne4j_kindergartens/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}/data-loader:${{ github.ref_name }}
-          cache-from: type=gha,scope=data-loader
-
-      - name: Push data-loader :prod tag to GHCR
-        run: |
-          docker tag "${{ env.IMAGE_PREFIX }}/data-loader:${{ github.ref_name }}" \
-                     "${{ env.IMAGE_PREFIX }}/data-loader:prod"
-          docker push "${{ env.IMAGE_PREFIX }}/data-loader:prod"
-
-      - name: Push backend to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}/backend:${{ github.ref_name }}
-          cache-from: type=gha,scope=backend
-
-      - name: Push backend :prod tag to GHCR
-        run: |
-          docker tag "${{ env.IMAGE_PREFIX }}/backend:${{ github.ref_name }}" \
-                     "${{ env.IMAGE_PREFIX }}/backend:prod"
-          docker push "${{ env.IMAGE_PREFIX }}/backend:prod"
-
-      - name: Push frontend to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}/frontend:${{ github.ref_name }}
-          cache-from: type=gha,scope=frontend
-
-      - name: Push frontend :prod tag to GHCR
-        run: |
-          docker tag "${{ env.IMAGE_PREFIX }}/frontend:${{ github.ref_name }}" \
-                     "${{ env.IMAGE_PREFIX }}/frontend:prod"
-          docker push "${{ env.IMAGE_PREFIX }}/frontend:prod"
+          for svc in db data-loader backend frontend; do
+            docker push "${{ env.IMAGE_PREFIX }}/${svc}:${{ github.ref_name }}"
+            docker push "${{ env.IMAGE_PREFIX }}/${svc}:prod"
+          done
