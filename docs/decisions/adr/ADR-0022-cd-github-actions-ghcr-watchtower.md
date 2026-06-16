@@ -22,11 +22,11 @@ Implementation: `Implemented`（2026-06-16；仓库侧 + 端到端首发均已�
 
 > 维护者于 2026-06-16 拍板：OQ-1 演示数据 = **持久**（initdb 首次灌种子一次 + 持久卷 + Flyway 增量；watchtower 重建容器不清卷；与未来 prod 路一致）。
 >
-> **仓库侧已完成并合入 develop**（CI compose-config 三条校验通过）：`.github/workflows/release.yml`（`v*` tag 触发：构建 → 冒烟门 → `docker push` 冒烟测过的同一批本地镜像，双 tag `:<版本>`+`:prod`，**不二次构建**）、`docker-compose.cd.yml`（清 `build:` + watchtower）、base compose 加 `image:` 键、`compose-config.yml` 加 cd override 校验、退役 `Jenkinsfile`/`jenkins/`、`deployment.md` 同步。
+> **仓库侧已完成并合入 develop**（CI compose-config 三条校验通过）：`.github/workflows/release.yml`（`v*` tag 触发：构建 → 冒烟门 → 推冒烟测过的同一批镜像，**不二次构建**；OQ-3 后拆两 job——`build-smoke` 自动推 `:<版本>`，`deploy-prod` 经 `environment: production` 门控推 `:prod`）、`docker-compose.cd.yml`（清 `build:` + watchtower）、base compose 加 `image:` 键、`compose-config.yml` 加 cd override 校验、退役 `Jenkinsfile`/`jenkins/`、`deployment.md` 同步。
 >
 > **端到端首发已验证（2026-06-16）**：首个 `v*` tag `v0.1.0`（→ main `8be3c42`）触发 `release.yml` run `27589919632`，**构建 → 冒烟门 → 推 GHCR 私有 `:0.1.0`+`:prod` 全绿（8m38s）**；演示机已部署含 watchtower 的 `docker-compose.cd.yml` 栈，修复 watchtower `DOCKER_API_VERSION`（containrrr 默认 1.25 被 daemon 拒，固定 `1.41`，PR #94）后自动拉取正常。**核心 CD 路径「在 main 打 tag = 发布 → 演示机自动部署」已端到端打通。**
 >
-> **剩余为运营级后续（非阻断）**：OQ-2（GHCR token 发放/轮换）、OQ-3（临近真上线加 Environments 人工审批门）、OQ-4（演示站对外暴露/TLS，与 ADR-0017 协同）；真上 prod 另需先完成 ADR-0012（loader 竞态/备份）与 ADR-0017（Caddy TLS）的生产就绪项。
+> **剩余为运营级后续（非阻断）**：OQ-2（GHCR token 发放/轮换）、~~OQ-3~~（**✅ 已实现 2026-06-16**：`release.yml` 拆 `deploy-prod` job 经 `environment: production` 门控推 `:prod`，待配 required reviewers 激活）、OQ-4（演示站对外暴露/TLS，与 ADR-0017 协同）；真上 prod 另需先完成 ADR-0012（loader 竞态/备份）与 ADR-0017（Caddy TLS）的生产就绪项。
 
 ## 背景（Context）
 
@@ -56,7 +56,7 @@ Implementation: `Implemented`（2026-06-16；仓库侧 + 端到端首发均已�
 5. **目标机自动部署 = watchtower**：演示机（Windows Docker Desktop）上 compose 含一个 `watchtower` 容器（`restart: unless-stopped`，随 Docker Desktop 起；非独立 Windows 服务），盯 `:prod` digest 变化 → 自动 `pull` + 重建容器。**数据策略（待确认 OQ-1）：推荐持久**——`db` 用含 initdb 的镜像首次灌种子一次，之后**持久卷**，schema 由 Flyway 增量（与未来 prod 路一致；watchtower 不清卷）。若要"每次清卷重灌 always-fresh 演示"则改用 Windows Task Scheduler 脚本（`pull && down --volumes && up`）。
 6. **compose 改造**：部署用 compose（prod override）把相关服务 `build:` 换为 `image: ghcr.io/ai-kids-care-team/<svc>:prod`，并加 `watchtower` 服务 + 持久卷。
 7. **退役 Jenkins**：测试已由 Actions 覆盖；演示由本管线承担；移除根 `Jenkinsfile` 与 `jenkins/`。
-8. **可选人工门（GitHub Environments）**：可在"推 `:prod` tag"步标 `environment: production` + required reviewers——该 job 在 Actions 运行页**暂停等维护者点 Approve** 才继续（部署历史可审计；亦可作用域化生产密钥）。**当前 greenfield 未上线，先不加**（冒烟门已挡坏镜像），临近真上线再加。
+8. **人工门（GitHub Environments）✅ 已实现（2026-06-16，OQ-3）**：`release.yml` 拆为 `build-smoke`（构建+冒烟+自动推 `:<版本>`）与 `deploy-prod`（`needs: build-smoke` + `environment: production`，pull `:<版本>`→retag→推 `:prod`）；`:prod` 推送（→ watchtower 部署）落在该门后，job 在 Actions 运行页**暂停等维护者 Approve**。**激活需在 Settings → Environments → production 配 required reviewers**（未配则门 inert，冒烟门仍挡坏镜像）。
 9. **单机即 demo/future-prod**：同一条管线。真上生产时切到 `db/Dockerfile.prod`（无 initdb 种子）+ 生产 `.env`（凭据/`SESSION_COOKIE_SECURE`/Caddy `DOMAIN`/`ACME_EMAIL`）+ 备份，先解决 §背景 的生产就绪项。
 
 ## 方案比较（Options）
@@ -86,7 +86,7 @@ Implementation: `Implemented`（2026-06-16；仓库侧 + 端到端首发均已�
 
 - ~~**OQ-1**~~（**已定 2026-06-16：持久**）：initdb 首次灌种子一次 + 持久卷 + Flyway 增量；需全新种子时手动重置一次。
 - **OQ-2**：GHCR pull token 的发放与轮换方式（host 上如何安全存放）。
-- **OQ-3**：何时加 Environments 人工审批门（建议临近真上线）。
+- ~~**OQ-3**~~（**✅ 已实现 2026-06-16**）：`release.yml` `deploy-prod` job 标 `environment: production`（`:prod` 推送在门后，`:<版本>` 自动）；待维护者在 Settings → Environments → production 配 required reviewers 激活。
 - **OQ-4**：常驻演示站的对外暴露/访问方式（端口/Caddy/域名）——与 ADR-0017 TLS 协同。
 
 ## 关联（References）

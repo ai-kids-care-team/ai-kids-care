@@ -7,7 +7,6 @@ import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.TeacherController;
 import com.ai_kids_care.v1.controller.UserController;
 import com.ai_kids_care.v1.service.CameraStreamService;
-import com.ai_kids_care.v1.service.ChildrenService;
 import com.ai_kids_care.v1.service.DeviceTokenService;
 import com.ai_kids_care.v1.service.EventEvidenceFileService;
 import com.ai_kids_care.v1.service.GuardianService;
@@ -81,7 +80,6 @@ class SensitiveResponseContractTest {
     @Test
     void representativeSpringMvcResponsesDoNotSerializeSensitiveStorageFields() throws Exception {
         UserService userService = mock(UserService.class);
-        ChildrenService childrenService = mock(ChildrenService.class);
         GuardianService guardianService = mock(GuardianService.class);
         TeacherService teacherService = mock(TeacherService.class);
         DeviceTokenService deviceTokenService = mock(DeviceTokenService.class);
@@ -93,18 +91,6 @@ class SensitiveResponseContractTest {
                 "guardian01",
                 "ACTIVE",
                 OffsetDateTime.parse("2026-06-10T00:00:00Z"),
-                OffsetDateTime.parse("2026-06-01T00:00:00Z"),
-                OffsetDateTime.parse("2026-06-09T00:00:00Z")
-        ));
-        when(childrenService.getChild(1L)).thenReturn(new ChildVO(
-                1L,
-                10L,
-                "Child One",
-                "C-001",
-                "F",
-                LocalDate.parse("2024-03-01"),
-                null,
-                "ACTIVE",
                 OffsetDateTime.parse("2026-06-01T00:00:00Z"),
                 OffsetDateTime.parse("2026-06-09T00:00:00Z")
         ));

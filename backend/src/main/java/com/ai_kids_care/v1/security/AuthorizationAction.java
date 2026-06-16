@@ -18,5 +18,8 @@ public enum AuthorizationAction {
     // SPEC-0002 Slice B: 平台级审批 / 平台账户状态变更（粗粒度 role 门；细粒度在 PlatformPolicy 内完成）
     PLATFORM_SUPERADMIN_APPROVAL_READ,
     PLATFORM_SUPERADMIN_APPROVAL_WRITE,
-    PLATFORM_USER_WRITE
+    PLATFORM_USER_WRITE,
+    // SPEC-0001 / ADR-0018 A3d：通知读取粗粒度门——GUARDIAN / TEACHER / KINDERGARTEN_ADMIN + 有效 tenant identity；
+    // 细粒度「受体仅读自己 / Admin 读其园」由 NotificationRepository SQL 强制（recipient-scoped vs. kindergarten-scoped）。
+    NOTIFICATION_READ
 }
