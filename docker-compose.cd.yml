@@ -66,3 +66,7 @@ services:
       # GHCR 私有镜像拉取凭据（从演示机 .env 注入；见 .env.example）
       REPO_USER: ${GHCR_USER:-}
       REPO_PASS: ${GHCR_PAT:-}
+      # containrrr/watchtower 的内置 Docker API client 默认协商版本过旧（1.25），
+      # 新 Docker daemon（Docker Desktop/Engine 较新版）最低要求 API 1.40，会拒绝并报
+      # "client version 1.25 is too old"。强制用 1.41（≥1.40 且广泛支持）即可。
+      DOCKER_API_VERSION: "1.41"
