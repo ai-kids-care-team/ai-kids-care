@@ -8,6 +8,10 @@ import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.security.PlatformPolicy;
 import com.ai_kids_care.v1.security.SessionRevocationService;
+import com.ai_kids_care.v1.security.audit.AuditAction;
+import com.ai_kids_care.v1.security.audit.AuditEvent;
+import com.ai_kids_care.v1.security.audit.AuditResult;
+import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -56,6 +61,7 @@ public class PlatformAdminApprovalService {
     private final UserRoleAssignmentRepository roleAssignmentRepository;
     private final SuperadminRepository superadminRepository;
     private final SessionRevocationService sessionRevocationService;
+    private final SecurityAuditWriter auditWriter;
 
     // ─── LIST ────────────────────────────────────────────────────────────────
 
@@ -94,39 +100,43 @@ public class PlatformAdminApprovalService {
     public void approve(Long targetUserId) {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
 
-        // 细粒度校验：禁自审
-        platformPolicy.requireNotSelf(context, targetUserId);
+        try {
+            // 细粒度校验：禁自审
+            platformPolicy.requireNotSelf(context, targetUserId);
 
-        // 授权门：条件更新 PLATFORM role assignment PENDING→ACTIVE（scopeId IS NULL + role=SUPERADMIN）
-        // 0 行 → 目标不存在 / 非 SUPERADMIN / 已被处理 / 状态不符 → 隐藏 404（OQ-4）
-        int roleRows = roleAssignmentRepository.platformConditionalUpdateStatus(
-                targetUserId,
-                StatusEnum.PENDING,
-                StatusEnum.ACTIVE,
-                UserRoleAssignmentScopeType.PLATFORM,
-                UserRoleEnum.SUPERADMIN,
-                userRepository.getReferenceById(context.userId()));
-        if (roleRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
+            // 授权门：条件更新 PLATFORM role assignment PENDING→ACTIVE（scopeId IS NULL + role=SUPERADMIN）
+            // 0 行 → 目标不存在 / 非 SUPERADMIN / 已被处理 / 状态不符 → 隐藏 404（OQ-4）
+            int roleRows = roleAssignmentRepository.platformConditionalUpdateStatus(
+                    targetUserId,
+                    StatusEnum.PENDING,
+                    StatusEnum.ACTIVE,
+                    UserRoleAssignmentScopeType.PLATFORM,
+                    UserRoleEnum.SUPERADMIN,
+                    userRepository.getReferenceById(context.userId()));
+            if (roleRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：Superadmin 档案 PENDING→ACTIVE
+            int superadminRows = superadminRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
+            if (superadminRows == 0) {
+                // 档案数据不一致（数据库完整性漏洞）→ 回滚，隐藏 404
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：User PENDING→ACTIVE
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
+            if (userRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            audit(context, AuditAction.PLATFORM_SUPERADMIN_APPROVE, AuditResult.SUCCESS, targetUserId);
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            audit(context, AuditAction.PLATFORM_SUPERADMIN_APPROVE, AuditResult.DENIED, targetUserId);
+            throw e;
         }
-
-        // 条件更新：Superadmin 档案 PENDING→ACTIVE
-        int superadminRows = superadminRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
-        if (superadminRows == 0) {
-            // 档案数据不一致（数据库完整性漏洞）→ 回滚，隐藏 404
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：User PENDING→ACTIVE
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
-        if (userRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=PLATFORM_SUPERADMIN_APPROVE, scopeType=PLATFORM, result=SUCCESS)
     }
 
     // ─── REJECT ──────────────────────────────────────────────────────────────
@@ -140,37 +150,41 @@ public class PlatformAdminApprovalService {
     public void reject(Long targetUserId) {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
 
-        // 细粒度校验：禁自审
-        platformPolicy.requireNotSelf(context, targetUserId);
+        try {
+            // 细粒度校验：禁自审
+            platformPolicy.requireNotSelf(context, targetUserId);
 
-        // 授权门：条件更新 PLATFORM role assignment PENDING→REJECTED（scopeId IS NULL + role=SUPERADMIN）
-        int roleRows = roleAssignmentRepository.platformConditionalUpdateStatus(
-                targetUserId,
-                StatusEnum.PENDING,
-                StatusEnum.REJECTED,
-                UserRoleAssignmentScopeType.PLATFORM,
-                UserRoleEnum.SUPERADMIN,
-                userRepository.getReferenceById(context.userId()));
-        if (roleRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
+            // 授权门：条件更新 PLATFORM role assignment PENDING→REJECTED（scopeId IS NULL + role=SUPERADMIN）
+            int roleRows = roleAssignmentRepository.platformConditionalUpdateStatus(
+                    targetUserId,
+                    StatusEnum.PENDING,
+                    StatusEnum.REJECTED,
+                    UserRoleAssignmentScopeType.PLATFORM,
+                    UserRoleEnum.SUPERADMIN,
+                    userRepository.getReferenceById(context.userId()));
+            if (roleRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：Superadmin 档案 PENDING→REJECTED
+            int superadminRows = superadminRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
+            if (superadminRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：User PENDING→REJECTED
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
+            if (userRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            audit(context, AuditAction.PLATFORM_SUPERADMIN_REJECT, AuditResult.SUCCESS, targetUserId);
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            audit(context, AuditAction.PLATFORM_SUPERADMIN_REJECT, AuditResult.DENIED, targetUserId);
+            throw e;
         }
-
-        // 条件更新：Superadmin 档案 PENDING→REJECTED
-        int superadminRows = superadminRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
-        if (superadminRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：User PENDING→REJECTED
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
-        if (userRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=PLATFORM_SUPERADMIN_REJECT, scopeType=PLATFORM, result=SUCCESS)
     }
 
     // ─── DISABLE ─────────────────────────────────────────────────────────────
@@ -190,44 +204,67 @@ public class PlatformAdminApprovalService {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         OffsetDateTime now = OffsetDateTime.now();
 
-        // 细粒度校验：禁自审
-        platformPolicy.requireNotSelf(context, targetUserId);
+        try {
+            // 细粒度校验：禁自审
+            platformPolicy.requireNotSelf(context, targetUserId);
 
-        // 授权门：条件更新 PLATFORM role assignment ACTIVE→DISABLED（scopeId IS NULL + role=SUPERADMIN）
-        // 0 行 → 目标在平台无 ACTIVE SUPERADMIN role → 跨 scope / 不存在 / 已停用 → 隐藏 404（OQ-4）
-        int roleRows = roleAssignmentRepository.platformConditionalDisable(
-                targetUserId,
-                UserRoleAssignmentScopeType.PLATFORM,
-                UserRoleEnum.SUPERADMIN,
-                now,
-                userRepository.getReferenceById(context.userId()),
-                StatusEnum.ACTIVE,
-                StatusEnum.DISABLED);
-        if (roleRows == 0) {
-            throw new EntityNotFoundException("User not found");
-        }
-
-        // 条件更新：User ACTIVE→DISABLED
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
-        if (userRows == 0) {
-            throw new EntityNotFoundException("User not found");
-        }
-
-        // 条件更新：Superadmin 档案 ACTIVE→DISABLED（平台账户 superadmin 档案）
-        // disable 端点面向 SUPERADMIN；档案若存在则停用，不存在时忽略（PLATFORM_IT_ADMIN 无 superadmin 档案）
-        superadminRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=PLATFORM_USER_DISABLE, scopeType=PLATFORM, result=SUCCESS)
-
-        // ADR-0019 §6: 事务提交后吊销目标用户全部 session（快路径；每请求权威解析为正确性兜底）
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                sessionRevocationService.revokeAllForUser(targetUserId);
+            // 授权门：条件更新 PLATFORM role assignment ACTIVE→DISABLED（scopeId IS NULL + role=SUPERADMIN）
+            // 0 行 → 目标在平台无 ACTIVE SUPERADMIN role → 跨 scope / 不存在 / 已停用 → 隐藏 404（OQ-4）
+            int roleRows = roleAssignmentRepository.platformConditionalDisable(
+                    targetUserId,
+                    UserRoleAssignmentScopeType.PLATFORM,
+                    UserRoleEnum.SUPERADMIN,
+                    now,
+                    userRepository.getReferenceById(context.userId()),
+                    StatusEnum.ACTIVE,
+                    StatusEnum.DISABLED);
+            if (roleRows == 0) {
+                throw new EntityNotFoundException("User not found");
             }
-        });
+
+            // 条件更新：User ACTIVE→DISABLED
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
+            if (userRows == 0) {
+                throw new EntityNotFoundException("User not found");
+            }
+
+            // 条件更新：Superadmin 档案 ACTIVE→DISABLED（平台账户 superadmin 档案）
+            // disable 端点面向 SUPERADMIN；档案若存在则停用，不存在时忽略（PLATFORM_IT_ADMIN 无 superadmin 档案）
+            superadminRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
+
+            audit(context, AuditAction.PLATFORM_USER_DISABLE, AuditResult.SUCCESS, targetUserId);
+
+            // ADR-0019 §6: 事务提交后吊销目标用户全部 session（快路径；每请求权威解析为正确性兜底）
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sessionRevocationService.revokeAllForUser(targetUserId);
+                }
+            });
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            audit(context, AuditAction.PLATFORM_USER_DISABLE, AuditResult.DENIED, targetUserId);
+            throw e;
+        }
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    /**
+     * 平台级审计：scope=PLATFORM，kindergarten_id=NULL（不伪造——SPEC §284），
+     * actor=操作者，resource=目标 user。
+     */
+    private void audit(EffectiveAuthorizationContext context, AuditAction action,
+                       AuditResult result, Long targetUserId) {
+        auditWriter.record(AuditEvent.builder()
+                .action(action)
+                .result(result)
+                .actorUserId(context.userId())
+                .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                .effectiveRole(context.role().name())
+                .resourceType("USER")
+                .resourceId(targetUserId)
+                .build());
     }
 }

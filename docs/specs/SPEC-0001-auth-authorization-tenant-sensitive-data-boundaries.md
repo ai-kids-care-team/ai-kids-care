@@ -523,3 +523,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 修复这 4 个（`ignore=true` → `source="id"`）。新增 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 断言四类 get-by-id 返回非空主键（RED → GREEN）。
 - 其余 9 个 mapper 属**关闭控制器**（User/Guardian/Teacher/AuditLog/DeviceToken/EventEvidenceFile/Notification/NotificationRule/Superadmin），是同源潜在问题，待其控制器重开时一并修，不在本次范围。
 - 验证：全量后端 `gradlew test` 78 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。
+
+#### 切片 6（2026-06-16）：安全审计 writer（候选 #1，审计要求 §270-298）
+
+- 本节为实施证据 / as-built 记录；`### Audit And Verification` 验收勾选保留给维护者评审，本切片未自行翻转（且 §367 多项跨前端 / CI / 负向测试，非本切片可独立闭合）。schema 前置见 [ADR-0021](../decisions/adr/ADR-0021-admin-audit-schema-migration.md)（V2）。
+- 新增 `com.ai_kids_care.v1.security.audit` 包：`AuditAction` / `AuditResult` 枚举（应用层约束 `action`/`result` varchar）、`AuditEvent`（不可变载荷）、`SecurityAuditWriter`（**直写 `audit_logs`，不复用被关闭的 `AuditLogService` CRUD 栈**；独立事务 `REQUIRES_NEW` 使拒绝 / 失败在业务回滚路径上仍持久；best-effort 写入失败只记日志、不阻断业务；只落结构化字段，从 MDC 取 correlation id、从当前请求取 ip/user-agent；PLATFORM 强制 `kindergarten_id=NULL`）、`CorrelationIdFilter`（`HIGHEST_PRECEDENCE`，随机 / 净化入站 `X-Correlation-Id`→MDC + 响应头，不用 session id）、`SecurityAuditAccessDeniedHandler`（已认证 403 → `AUTHORIZATION_DENIED/DENIED` + 统一 JSON）。
+- 接入点：`AuthController`（登录成功 / 失败、登出、`logout-all`、tenant-context 切换成功 / 拒绝）；`KindergartenAdminApprovalService` / `PlatformAdminApprovalService` 6 处审批 hook（成功 `SUCCESS`，捕获 `EntityNotFoundException`/`ResponseStatusException` 写 `DENIED` 后重抛——覆盖细粒度 403 与跨租户隐藏 404）；`SecurityConfig` 接 `accessDeniedHandler`。平台事件 `scope_type=PLATFORM` 且 `kindergarten_id=NULL`（不伪造 kg id——§284），所选 tenant 落 `resource_id`。S1/evidence 读取预留 `AuditAction.S1_EVIDENCE_READ`（对应控制器空壳、无活动调用点）。as-built 同步 `security-architecture.md §7`。
+- 测试：新增 `SecurityAuditIntegrationTest`（按 `X-Correlation-Id` 精确定位本次请求审计行）——登录成功 / 失败 / 登出、tenant 切换平台 scope 无伪造 kg id、园级 approve 角色变更、错误角色 403 经 AccessDeniedHandler 写 DENIED、审计行不含 S0、审计 API 对业务用户不可读 / 写 / 删。
+- 验证：**本机无 Java/JAVA_HOME**，后端测试由 GitHub Actions「Backend Java Tests」（Testcontainers + initdb→Flyway V2）执行；本地 `git diff --check` PASS。
+- 已知限制 / 后续 OQ：拒绝洪泛限流 / 采样（每个 403 / CSRF 失败写一行）；可信 `X-Forwarded-For` 客户端 IP（待边缘反代定案 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)，现记 `remoteAddr`）；DB 级 append-only `REVOKE`/触发器（维护者另定，ADR-0021 §4）；残留极罕见孤儿 SUCCESS（业务 commit 阶段失败时，REQUIRES_NEW 审计已提交）。
