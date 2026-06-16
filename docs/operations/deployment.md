@@ -43,17 +43,27 @@ main 打 v* tag
 
 `:<version>` 不可变，用于回滚；`:prod` 是 watchtower 轮询的可变 tag。
 
-### 演示机首次配置（维护者操作一次）
+### 演示机首次配置（维护者操作一次，Windows PowerShell）
 
-```bash
-# 1. 用 read:packages scope 的 PAT 登录 GHCR
-docker login ghcr.io -u <github-username> --password-stdin
-# 2. 启动含 watchtower 的演示栈
+```powershell
+# 1. 让 Docker Desktop 登录 GHCR（供初次 docker compose pull）。
+#    Windows 上避免 --password-stdin（PowerShell 管道喂 stdin 易卡），改用交互式：
+#    提示 Password 时粘贴 read:packages PAT。
+docker login ghcr.io -u <github-username>
+
+# 2. 在演示机仓库目录建 .env（已 gitignore），填 watchtower 的 GHCR 拉取凭据（见 .env.example）：
+#    GHCR_USER=<github-username>
+#    GHCR_PAT=<read:packages PAT>
+
+# 3. 启动含 watchtower 的演示栈
 docker compose -f docker-compose.yml -f docker-compose.cd.yml up -d
 ```
 
-> ⚠️ **OQ-2（未决）**：GHCR PAT 的发放与轮换方式（host 上如何安全存放）。
-> 当前：维护者手动 `docker login`，凭据写入 `~/.docker/config.json`，watchtower 通过挂载复用。
+> **watchtower 认证（路 A，Windows 友好）**：watchtower 经 `REPO_USER`/`REPO_PASS` 从 `.env` 的
+> `GHCR_USER`/`GHCR_PAT` 读凭据拉私有镜像——避开 Windows Docker Desktop 把 `docker login` 凭据
+> 存进 credsStore（而非明文 `~/.docker/config.json`）导致挂载 config.json 失效的坑。第 1 步的
+> `docker login` 仅供初次 `docker compose pull`；watchtower 的**自动**拉取靠 `.env`。
+> **OQ-2（未决）**：GHCR PAT 的轮换方式。
 
 ### 演示数据策略（OQ-1 已定：持久）
 
