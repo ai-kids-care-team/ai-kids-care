@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.contract;
 
-import com.ai_kids_care.v1.controller.ChildrenController;
 import com.ai_kids_care.v1.controller.CameraStreamController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
@@ -170,7 +169,6 @@ class SensitiveResponseContractTest {
 
         MockMvc mockMvc = standaloneSetup(
                 new UserController(),
-                new ChildrenController(),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
@@ -179,8 +177,6 @@ class SensitiveResponseContractTest {
         ).build();
 
         mockMvc.perform(get("/api/v1/users/1"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/children/1"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/guardians/1"))
                 .andExpect(status().isNotFound());

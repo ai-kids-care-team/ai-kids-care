@@ -79,7 +79,8 @@ nbdist/
 ######################################################################
 # Optional: ignore local-only tool configs
 # .tool-versions
-.ai/CHECKPOINT.local.md
+# Local-only agent handoff/checkpoint artifacts (never tracked)
+.ai/*.local.md
 
 ######################################################################
 # Python (AI) - keep your existing section (original content)

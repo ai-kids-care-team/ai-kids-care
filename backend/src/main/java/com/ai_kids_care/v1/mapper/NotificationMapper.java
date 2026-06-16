@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring")
 public interface NotificationMapper {
 
-    @Mapping(target = "notificationId", ignore = true)
+    @Mapping(source = "id", target = "notificationId")
     @Mapping(source = "detectionEvents.cctvCameras.kindergarten.id", target = "kindergartenId")
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "recipientUser.id", target = "recipientUserId")

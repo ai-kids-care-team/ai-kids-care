@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface EventEvidenceFileMapper {
 
-    @Mapping(target = "evidenceId", ignore = true)
+    @Mapping(source = "id", target = "evidenceId")
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "detectionEvents.cctvCameras.kindergarten.id", target = "kindergartenId")
     EventEvidenceFileVO toVO(EventEvidenceFile entity);

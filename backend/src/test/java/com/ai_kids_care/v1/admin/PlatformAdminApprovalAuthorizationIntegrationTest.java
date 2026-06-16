@@ -541,6 +541,9 @@ class PlatformAdminApprovalAuthorizationIntegrationTest extends BaseIntegrationT
         jdbc.update("DELETE FROM guardians WHERE user_id = ?", userId);
         jdbc.update("DELETE FROM user_kindergarten_memberships WHERE user_id = ?", userId);
         jdbc.update("DELETE FROM user_role_assignments WHERE user_id = ?", userId);
+        // SPEC-0001 #1 安全审计：approve/disable 及目标登录会写 audit_logs（user_id FK → users）；
+        // 先清该 user 相关审计行（actor 或 resource）再删 user，避免 FK 违例。
+        jdbc.update("DELETE FROM audit_logs WHERE user_id = ? OR resource_id = ?", userId, userId);
         jdbc.update("DELETE FROM users WHERE user_id = ?", userId);
     }
 

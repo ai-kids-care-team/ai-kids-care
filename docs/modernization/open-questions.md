@@ -38,9 +38,10 @@
 - **观察**：需核对 `.gitignore` 是否覆盖 `.env`，以及生产密钥管理方式。
 
 ### OQ-SEC-6 ｜生产日志级别
-- **证据** ✅：`logging.level.root: DEBUG`。
+- **证据** ✅：~~`logging.level.root: DEBUG`~~ → 已改 `${LOG_LEVEL_ROOT:INFO}`。
 - **为何重要**：DEBUG 在生产产生海量日志且可能泄露敏感数据。
 - **观察**：是否应按环境区分日志级别？
+- **结论（2026-06-16）** ✅：`logging.level.root` 默认改为 `${LOG_LEVEL_ROOT:INFO}`——**安全默认 INFO**（含生产），开发可经环境变量 `LOG_LEVEL_ROOT=DEBUG` 临时调高。本项关闭。
 
 ### OQ-SEC-7 ｜审计日志是否真正落地？
 - **证据** ✅：有 `audit_logs` 表与内部 service；Phase 1A 后公共 controller 不发布 operation。❓ 未见各写操作统一写审计（无切面/拦截器）。
@@ -86,10 +87,11 @@
 ## 运维（OPS）
 
 ### OQ-OPS-1 ｜CI 每次部署删除数据卷是否符合预期？
-- **证据** ✅：`Jenkinsfile` 执行 `docker compose down --volumes`，清空 `postgres_data`/`neo4j_data`。
+- **证据** ✅（更新 2026-06-16）：原 `Jenkinsfile` 每次部署执行 `docker compose down --volumes` 清空 `postgres_data`/`neo4j_data`；**Jenkins 已退役（ADR-0022）**，演示数据策略改为**持久**（OQ-1 已定：initdb 首次灌种子 + 持久卷 + Flyway 增量，watchtower 重建不清卷），重置需手动 `down -v`。
 - **为何重要**：演示环境=每次重置（合理）；生产=数据丢失（严重）。
 - **观察**：目标部署环境是哪种？
 - **结论（2026-05-29，团队确认）** ✅：当前面向**演示重置**（每次清库重建），符合预期。**生产环境将一并去除「删卷」与「插入 seed」两步流程**（届时需独立的生产部署流水线）。已 **Accept** [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)（2026-05-29 签署；推荐 Flyway/Liquibase 作 schema 迁移；落地待 Implementation）。
+- **结论（2026-06-16，loader×Flyway 竞态方向已定）** ✅：取证确认仅 `db100_insert_users.py` 读 live PG、其余读 CSV；`data-loader` 只依赖 `db: service_healthy` 不依赖 Flyway 完成——**演示持久路径竞态良性**（V1 在 db-healthy 时已建好 `users`），**生产空库路径会破坏**（`users` 待 Flyway 建好）。已决定方向：**生产不跑 data-loader**（prod-override no-op，同时消除竞态与向生产 Neo4j 注入演示/敏感数据）；演示如将来需严格排序再加 backend healthcheck + `depends_on`。本轮仅文档化（compose/loader 改动属部署行为、须部署时验证），见 [deployment.md「data-loader × Flyway 首启竞态的缓解」](../operations/deployment.md)。另：loader 把 `password_hash`/`email`/`phone`/RRN/地址 投影进 Neo4j 违反 SPEC-0001 §365——**已修复**（实施记录「切片 9」：6 脚本去敏感字段投影 + `no000_scrub_sensitive.py` 幂等清理既有图）。
 
 ### OQ-OPS-2 ｜Redis 的角色
 - **证据** ✅：`db/redis-docker-compose.yml` 存在，且 `db/README.md` 开头提到"redis 으로 user 테이블…"；但根 compose 与后端依赖中**未见 Redis**。
@@ -106,6 +108,7 @@
 ### OQ-OPS-4 ｜回滚与发布策略
 - **证据** 🔶：CI 为全量重建，无显式回滚。
 - **观察**：正式发布/回滚策略未记录。
+- **结论（2026-06-16）** ✅：发布与回滚已记录——发布走 ADR-0022 CD（`main` 打 `v*` tag → release.yml → 推 GHCR `:prod` → watchtower 自动部署）；回滚 = `:prod` 重指旧版镜像（前向兼容时）/ 修复迁移 / 从备份恢复。**备份与恢复策略本轮补全**（PG=源真相必备份、Neo4j=派生投影重建、Redis=易失无需备份；`pg_dump -Fc` 基线 + 迁移前必做 + 异地存储 + 恢复演练），见 [deployment.md「备份与恢复策略」](../operations/deployment.md) 与 [runbook.md「备份与恢复」](../operations/runbook.md)。**自动化调度 / 异地加密存储 / 恢复演练**的真实环境落地仍待维护者执行（归 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。
 
 ---
 
@@ -177,7 +180,7 @@
 - **观察**：这 12 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 12 未实现的持续漂移。
 
 ### OQ-TEST-1 ｜测试策略
-- **证据（更新 2026-06-12）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，并由 GitHub Actions 与 Jenkins 执行 `./gradlew test`；前端/AI 仍无自动化测试。
+- **证据（更新 2026-06-16）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，由 GitHub Actions 执行 `./gradlew test`（Jenkins 已退役，ADR-0022）；前端已接入 `Frontend lint & build` CI（ADR-0020、#4）；AI 仍无自动化测试。
 - **本次验证** ✅：本机 Docker engine 启动后，Java 完整套件 43 项中 41 通过、2 项按 ADR-0013 过渡约定跳过；前端 production build 通过并生成 20 个静态页面。全量 lint 仍有既有基线问题；本轮非 CCTV 改动文件的定向 lint 为零问题，CCTV 文件仍报告历史 effect/unused 规则问题。
 - **为何重要**：当前回归保护只覆盖少量后端路径，且 CI 未守护前端/API 客户端/AI。
 - **剩余问题**：前端、AI、契约/E2E 的目标策略与 CI 门禁仍待确定。

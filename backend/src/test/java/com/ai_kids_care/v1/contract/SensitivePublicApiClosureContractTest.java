@@ -2,7 +2,6 @@ package com.ai_kids_care.v1.contract;
 
 import com.ai_kids_care.v1.controller.AuditLogController;
 import com.ai_kids_care.v1.controller.AppreciationLetterController;
-import com.ai_kids_care.v1.controller.ChildrenController;
 import com.ai_kids_care.v1.controller.DetectionEventController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventReviewController;
@@ -48,7 +47,8 @@ class SensitivePublicApiClosureContractTest {
         assertThat(SuperadminController.class.getDeclaredMethods()).isEmpty();
         assertThat(AppreciationLetterController.class.getDeclaredMethods()).isEmpty();
         assertThat(UserController.class.getDeclaredMethods()).isEmpty();
-        assertThat(ChildrenController.class.getDeclaredMethods()).isEmpty();
+        // ChildrenController 已重开 Guardian 关系-scoped GET（SPEC-0001 §349）——不再是空壳；
+        // 其授权 / 关系 / 隐藏 404 行为由 GuardianChildAuthorizationIntegrationTest 覆盖。
         assertThat(GuardianController.class.getDeclaredMethods()).isEmpty();
         assertThat(TeacherController.class.getDeclaredMethods()).isEmpty();
         assertThat(DeviceTokenController.class.getDeclaredMethods()).isEmpty();
@@ -67,7 +67,6 @@ class SensitivePublicApiClosureContractTest {
                 new SuperadminController(),
                 new AppreciationLetterController(),
                 new UserController(),
-                new ChildrenController(),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
@@ -94,10 +93,6 @@ class SensitivePublicApiClosureContractTest {
         mockMvc.perform(get("/api/v1/users"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/users/1"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/children"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/children/1"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/guardians"))
                 .andExpect(status().isNotFound());

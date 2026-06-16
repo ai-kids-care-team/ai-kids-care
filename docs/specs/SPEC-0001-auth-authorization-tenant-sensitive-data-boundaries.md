@@ -523,3 +523,54 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 修复这 4 个（`ignore=true` → `source="id"`）。新增 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 断言四类 get-by-id 返回非空主键（RED → GREEN）。
 - 其余 9 个 mapper 属**关闭控制器**（User/Guardian/Teacher/AuditLog/DeviceToken/EventEvidenceFile/Notification/NotificationRule/Superadmin），是同源潜在问题，待其控制器重开时一并修，不在本次范围。
 - 验证：全量后端 `gradlew test` 78 通过 / 0 失败 / 2 预期 skip。`git diff --check` PASS。
+
+#### 切片 6（2026-06-16）：安全审计 writer（候选 #1，审计要求 §270-298）
+
+- 本节为实施证据 / as-built 记录；`### Audit And Verification` 验收勾选保留给维护者评审，本切片未自行翻转（且 §367 多项跨前端 / CI / 负向测试，非本切片可独立闭合）。schema 前置见 [ADR-0021](../decisions/adr/ADR-0021-admin-audit-schema-migration.md)（V2）。
+- 新增 `com.ai_kids_care.v1.security.audit` 包：`AuditAction` / `AuditResult` 枚举（应用层约束 `action`/`result` varchar）、`AuditEvent`（不可变载荷）、`SecurityAuditWriter`（**直写 `audit_logs`，不复用被关闭的 `AuditLogService` CRUD 栈**；独立事务 `REQUIRES_NEW` 使拒绝 / 失败在业务回滚路径上仍持久；best-effort 写入失败只记日志、不阻断业务；只落结构化字段，从 MDC 取 correlation id、从当前请求取 ip/user-agent；PLATFORM 强制 `kindergarten_id=NULL`）、`CorrelationIdFilter`（`HIGHEST_PRECEDENCE`，随机 / 净化入站 `X-Correlation-Id`→MDC + 响应头，不用 session id）、`SecurityAuditAccessDeniedHandler`（已认证 403 → `AUTHORIZATION_DENIED/DENIED` + 统一 JSON）。
+- 接入点：`AuthController`（登录成功 / 失败、登出、`logout-all`、tenant-context 切换成功 / 拒绝）；`KindergartenAdminApprovalService` / `PlatformAdminApprovalService` 6 处审批 hook（成功 `SUCCESS`，捕获 `EntityNotFoundException`/`ResponseStatusException` 写 `DENIED` 后重抛——覆盖细粒度 403 与跨租户隐藏 404）；`SecurityConfig` 接 `accessDeniedHandler`。平台事件 `scope_type=PLATFORM` 且 `kindergarten_id=NULL`（不伪造 kg id——§284），所选 tenant 落 `resource_id`。S1/evidence 读取预留 `AuditAction.S1_EVIDENCE_READ`（对应控制器空壳、无活动调用点）。as-built 同步 `security-architecture.md §7`。
+- 测试：新增 `SecurityAuditIntegrationTest`（按 `X-Correlation-Id` 精确定位本次请求审计行）——登录成功 / 失败 / 登出、tenant 切换平台 scope 无伪造 kg id、园级 approve 角色变更、错误角色 403 经 AccessDeniedHandler 写 DENIED、审计行不含 S0、审计 API 对业务用户不可读 / 写 / 删。
+- 验证：**本机无 Java/JAVA_HOME**，后端测试由 GitHub Actions「Backend Java Tests」（Testcontainers + initdb→Flyway V2）执行；本地 `git diff --check` PASS。
+- 已知限制 / 后续 OQ：拒绝洪泛限流 / 采样（每个 403 / CSRF 失败写一行）；可信 `X-Forwarded-For` 客户端 IP（待边缘反代定案 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)，现记 `remoteAddr`）；DB 级 append-only `REVOKE`/触发器（维护者另定，ADR-0021 §4）；残留极罕见孤儿 SUCCESS（业务 commit 阶段失败时，REQUIRES_NEW 审计已提交）。
+
+#### 切片 7（2026-06-16）：Guardian→child 关系策略（资源关系 §3 / §349）
+
+- 维护者设计决策（2026-06-16）：① 关系活跃语义 = **`end_date` 窗**（`end_date IS NULL OR end_date >= today`），**不加 status 列、无 schema 迁移**（`child_guardian_relationships` 仍无 status 列；Guardian 审批前 membership/role 为 PENDING → 登录即被拒，批准后关系行已存在即活跃，故 end_date 窗充分）。② 首切片**仅 Guardian→child 读**（Teacher→child / 感谢信 / 通知作后续）。
+- 实现：新增最小 `GuardianChildVO(childId, name, status)`（不含 RRN/address/birth_date/childNo）；`AuthorizationAction.GUARDIAN_CHILD_READ` + `AuthorizationPolicy`（`tenantIdentity && role==GUARDIAN`）；`ChildRepository` 两条关系-scoped JPQL（活跃关系 EXISTS 子查询在 SQL 内强制：guardian 档案 ACTIVE + `Guardian.user_id` 匹配 + end_date 窗 + 同租户 + child ACTIVE）；`ChildrenService.listRelatedChildren`/`getRelatedChild`；`ChildrenController` 重开 `GET /children` 与 `GET /children/{id}`（仅 GUARDIAN）。无 ACTIVE 关系（跨租户 / 不存在 / 已结束）→ **审计 `AUTHORIZATION_DENIED`（复用切片 6 writer）+ 隐藏 404**（§3.4）。完整 `ChildVO`、通用 create/update/delete 仍关闭（写操作 → 405）。
+- 契约护栏更新（重开敏感资源的护栏，非移除）：`SensitivePublicApiClosureContractTest`（ChildrenController 不再空壳）、`SensitiveWriteContractTest`（children 写 → 405）、`PublishedOpenApiContractTest`（`/children`·`/children/{id}` GET 由 absent→present、锁 `GuardianChildVO` 仅 3 字段；`ChildVO` 仍 absent、`/children/rrn` 仍 absent）。`SensitiveResponseContractTest` 的 `ChildVO` 字段断言不变（`getChild`/`ChildVO` 保留未动）。
+- 测试：新增 `GuardianChildAuthorizationIntegrationTest`——仅 ACTIVE 关系儿童可见、无关系/已结束/跨租户 → 隐藏 404、无关系写 DENIED 审计行、TEACHER → 403、未认证 → 401、响应最小字段无 S0/S1。
+- 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。
+- defer（记录）：成功 S1 读取审计（跨切面，后续）；className/gender 字段；**Teacher→child / 事件**（§351 余项）；感谢信 / 通知 Guardian 资源。
+
+#### 切片 8（2026-06-16）：负向测试套件——错误响应敏感数据 absence（§390「error」腿）
+
+- Discovery 盘点（事实）：§372 负向矩阵（匿名/已认证、正确/错误角色、同租户/跨租户、关系存在/不存在、敏感字段 absence）五个维度均已被现有 9 个安全/契约测试类覆盖；§390「response、错误和审计中不存在 S0」的 **response 腿**（`SensitiveResponseContractTest`/`PublishedOpenApiContractTest`）与 **审计腿**（`SecurityAuditIntegrationTest.auditRecords_doNotContainS0`）已覆盖，唯 **error 腿**无测试。本切片只补此缺口，不重复造已覆盖项。
+- 事实核验：错误响应当前均为固定 `{"error":"..."}` 或空体——`ApiExceptionHandler`(EntityNotFound→隐藏 404 定值)、`AuthController` 局部 handler(`MethodArgumentNotValidException`→仅 `getDefaultMessage()`、不含 rejectedValue；`ResponseStatusException`→`getReason()`)、`HttpStatusEntryPoint`(401 空体)、`SecurityAuditAccessDeniedHandler`(403 `{"error":"Access denied"}`)。`application.yml` 未设 `server.error.*`，故 Spring Boot 默认 `include-message/binding-errors/stacktrace=never`。即错误腿**当前安全 by construction**，本测试为**回归护栏**。
+- 测试：新增 `ErrorResponseSensitiveDataIntegrationTest`（4 项，集成测试经真实安全链）——(1) 400 注册校验失败植入口令/RRN 金丝雀不回显；(2) 400 报文不可解析不回显原始字节、不带 stacktrace/exception；(3) 403 CSRF 缺失不回显提交口令；(4) 401 未认证不暴露 S0/内部。共享 `assertNoSensitiveLeakage` 扫描金丝雀明文 + S0/内部存储字段名（camel+snake：`passwordHash`/`rrnEncrypted`/`ciphertext`/`pushToken`/`storageUri`/`sourceUrl`/`streamUser` 等）+ 内部信息 JSON key（`"trace"`/`"exception"`/`"stackTrace"`）。隐藏 404 `{"error":"Resource not found"}` 契约已由 GuardianChild/AdminApproval 覆盖，不重复。
+- 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。仅新增一个后端测试文件，无生产代码改动，前端未触碰。
+- 未做 / 后续（ops 子项，与负向测试套件分离）：loader×Flyway 竞态（OQ-OPS-1）、备份（OQ-OPS-4）、生产 `.env`；以及 §372/§390 验收勾选保留维护者评审（多项跨前端/CI，非本切片可独立闭合）。
+
+#### 切片 9（2026-06-16）：Neo4j loader 去 S0/PII 投影（§365）
+
+- 取证：ops 排查（OQ-OPS-1）发现 `db/ne4j_kindergartens/` 的 loader 把 S0/PII 投影进 Neo4j 节点，违反 §365「Neo4j loader/projection 不写入 S0，且默认不写入地址、电话、email 或 RRN」。全量盘点 6 个含投影的脚本（User×2[CSV+PG]、Kindergarten、Teacher、Child、Guardian）；其余 no400/700/800/900/950/1000 仅结构/关系属性、无敏感字段。
+- 实现（sub-agent[sonnet] 落地，Lead fresh-context 复审后并入）：从每个脚本的**可执行投影**（Cypher `SET` + 参数；`db100_insert_users.py` 另含 SQL `SELECT` 与 `normalize_user_row`）移除 §365 禁止字段——User: `password_hash`(S0)/`email`/`phone`；Kindergarten: `address`/`contact_phone`/`contact_email`；Teacher: `rrn_encrypted`/`rrn_first6`/`emergency_contact_phone`/`emergency_contact_name`；Child: `rrn_first6`/`rrn_encrypted`/`birth_date`/`address`；Guardian: `rrn_encrypted`/`rrn_first6`/`address`。保留 id/姓名/`login_id`/`status`/结构/关系/时间戳字段。CSV 源快照不动（不在 Neo4j 内）。
+- 既有 demo 图清理：新增 `no000_scrub_sensitive.py`（幂等 `REMOVE` 五个 Label 的上述属性，因 MERGE+SET 不删旧属性），并接为 `run_all.sh` 首条；`SETUP_GUIDE.md` 同步。
+- 边界保留（Lead 决定，待维护者复核）：`business_registration_no`（法人登记号，非个人 PII）与 `contact_name`（联系人姓名；§365 禁止集为 地址/电话/email/RRN/S0，未含「姓名」）予以保留；如需更严最小化可后续收紧。
+- 验证（静态）：本机 Python 3.12 对 7 个变更脚本 `python -m py_compile` 全过；`git diff --check` PASS；SET↔参数一致性逐脚本核对无悬挂 `$param`。
+- 验证（运行时，2026-06-16，本机 Docker 起 db[含 initdb 种子]+neo4j 全栈）：跑全部 loader 后,Neo4j 五 Label 经 `sum(CASE … IS NOT NULL …)` 全量统计——**禁止字段计数全部为 0**（User 1000 节点 / Kindergarten 3 / Teacher 60 / Child 420 / Guardian 840），KEEP 字段（login_id/status/name/child_no）非空。`no000` scrub 另经「注入金丝雀 → 运行 scrub → 计数归 0 且节点总数 1000 不变」验证其清理既有图有效。CI 仍不覆盖 loader（运行时验证为本机 Docker 一次性手动执行）。
+- 已知（非本切片缺陷）：`run_all.sh` 在 **Windows 工作树**（`autocrlf=true`）签出为 CRLF，本机构建镜像后 `exec ./run_all.sh` 因 `#!/bin/bash\r` 失败（"no such file or directory"）；仓库内为 LF，故 GitHub Actions/CD（Linux 签出）与演示机（拉 GHCR 预构建镜像）不受影响。仅影响本机 Windows 构建。可加 `.gitattributes` `*.sh text eol=lf` 根治（待维护者定）。本次运行时验证以直接 `python <script>.py`（Python 容忍 CRLF）绕过。
+- 复审：实现=sub-agent，复审/集成+运行时验证=Lead（≠实现会话），符合 ADR-0020 sub-agent fresh-review 要求。
+
+#### 切片 10（2026-06-16）：关闭 controller mapper 主键修复（T6 #6，闭合「修复（2026-06-15）」遗留项）
+
+- 「修复（2026-06-15）：已发布 VO 主键 id」当时只修 4 个**已发布** mapper（AiModel/Class/Room/DetectionSession），并记「其余 9 个关闭 controller mapper 同源、待重开时一并修」。本切片提前清掉该债。
+- 修复 9 个关闭 controller mapper 的 `toVO`：`@Mapping(target="<x>Id", ignore=true)` → `@Mapping(source="id", target="<x>Id")`——UserMapper(userId)/GuardianMapper(guardianId)/TeacherMapper(teacherId)/AuditLogMapper(auditId)/DeviceTokenMapper(deviceId)/EventEvidenceFileMapper(evidenceId)/NotificationMapper(notificationId)/NotificationRuleMapper(ruleId)/SuperadminMapper(superadminId)。9 个 entity 主键 Java 字段均为 `id`（列名 `<x>_id`），故 `source="id"` 一致正确；其余 nested-id 映射不动。
+- 测试：这些 controller **仍关闭**（无发布端点可断言），改动与 4 个已发布、已被 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 运行时验证的 mapper **同范式**，由 MapStruct 编译（CI）校验 `source="id"` 合法。`SensitiveWriteContractTest` 仅断言这些 mapper 的 `toEntity`/`updateEntity` 缺席（不受 `toVO` 改动影响）；无测试断言旧的 null-id 行为。重开任一 controller 时按 ClassMapper 范式补端点级断言。
+
+#### 切片 11（2026-06-16）：Teacher assignment-scoped 儿童读取（§351，T2 余项之一）
+
+- §351 + 产品决策 #2：TEACHER 只能访问其有效 assignment 覆盖的儿童。复用 T2 的 `GET /children`·`/children/{id}` 端点与最小 `GuardianChildVO`（不新增公共面）。
+- 实现：`AuthorizationAction.GUARDIAN_CHILD_READ` 泛化为 `CHILD_READ`（粗粒度门 = `tenantIdentity && (GUARDIAN || TEACHER)`，KINDERGARTEN_ADMIN 不入门）；`ChildrenService` 两方法按 `context.role()` 分流（GUARDIAN→关系查询；TEACHER→assignment 查询；default→空）；`ChildRepository` 新增两条 teacher 嵌套 EXISTS JPQL（child → ACTIVE `child_class_assignment`（日期窗含 today）→ class → ACTIVE `class_teacher_assignment`（日期窗含 today）→ teacher 档案 ACTIVE + `teachers.user.id` 匹配；同租户 + child ACTIVE，关系条件全在 SQL 内强制）。无 assignment / 已结束 / 跨租户 → 审计 `AUTHORIZATION_DENIED` + 隐藏 404（与 guardian 同路径）。`ChildrenController` 与契约测试不动（发布的 path/VO 不变）。
+- 测试：`GuardianChildAuthorizationIntegrationTest` 删除已失效的 `children_teacherRole_returns403`（teacher 不再 403）；新增 `TeacherChildAuthorizationIntegrationTest`（仅 ACTIVE assignment 班级内儿童可见、无 assignment 同租户→404+DENIED 审计、CTA 已结束→404、跨租户→404、未认证→401、最小字段无 S0/S1）。
+- 实现=sub-agent[sonnet]，复审/集成=Lead（≠实现会话，ADR-0020）。本机无 Java → CI 唯一验证（JPQL 镜像 RoomRepository 嵌套 EXISTS + ChildRepository guardian 范式 + TeacherAssignmentAuthorizationIntegrationTest 的 enum/helper 范式，逐一核对）。
+- defer（§351 余项）：Teacher→detection_events（耦合 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) AI 闭环，需设计）、感谢信 / 通知（notifications = 实现 [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) Accepted + Flyway 迁移，独立 session）。

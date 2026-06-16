@@ -100,6 +100,29 @@ FlywayException: Validate failed: Migration checksum mismatch for migration vers
 
 若出现 `Found non-empty schema(s) ... and not configured to baseline on migrate`，说明目标库有表但 `baseline-on-migrate` 未生效（配置未传入）。确认 `spring.flyway.baseline-on-migrate=true` 生效。
 
+## 备份与恢复
+
+策略与分层（PG=源真相、Neo4j=派生投影、Redis=易失）见 [deployment](deployment.md#备份与恢复策略oq-ops-4)。下为可执行命令。
+
+```bash
+# ── PostgreSQL 逻辑备份（源真相；生产部署前 / 应用新迁移前必做）─────────────
+# custom 格式（-Fc）：含 schema + 数据 + flyway_schema_history，支持选择性恢复。
+docker exec ai-kids-postgres \
+  pg_dump -U kids_user -d kids_postgres_db -Fc -f /tmp/kids.dump
+docker cp ai-kids-postgres:/tmp/kids.dump ./backups/kids_$(date +%F).dump   # 存到数据卷之外
+
+# ── 恢复到 db 容器 ───────────────────────────────────────────────────────────
+# dump 已含 schema 与 flyway_schema_history；恢复后 Flyway 看到一致历史、只增量执行更新迁移。
+docker cp ./backups/kids_YYYY-MM-DD.dump ai-kids-postgres:/tmp/restore.dump
+docker exec ai-kids-postgres \
+  pg_restore -U kids_user -d kids_postgres_db --clean --if-exists /tmp/restore.dump
+
+# ── Neo4j = 派生投影：PG 恢复后重建图（无需单独备份）───────────────────────
+docker compose run --rm data-loader        # 或 db/ne4j_kindergartens/run_all.sh
+```
+
+> ⚠️ 备份须存到容器与数据卷之外（异地/对象存储），且**恢复流程定期在非生产演练**——未经恢复验证的备份不算备份。自动化调度与留存策略由维护者按 RPO 落地（OQ-OPS-4 / ADR-0012）。
+
 ## 数据重置到干净种子（演示/CI 专用）
 
 ```bash
@@ -107,4 +130,4 @@ docker compose down -v
 docker compose up -d --build   # 重新执行 initdb 全部种子
 ```
 
-> ⚠️ 这与 Jenkins CI 每次部署的行为一致（见 [deployment](deployment.md)）。**生产绝不能用**。
+> ⚠️ 这是**本地开发/演示**重灌种子的方式（见 [deployment](deployment.md)）；演示机的 CD 路径用 `docker compose -f docker-compose.yml -f docker-compose.cd.yml down -v` 做等价重置。**生产绝不能用**（演示数据策略已改为持久，OQ-1 / ADR-0022）。

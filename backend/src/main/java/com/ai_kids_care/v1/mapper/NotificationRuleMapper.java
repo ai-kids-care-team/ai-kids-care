@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface NotificationRuleMapper {
 
-    @Mapping(target = "ruleId", ignore = true)
+    @Mapping(source = "id", target = "ruleId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "user.id", target = "userId")
     NotificationRuleVO toVO(NotificationRule entity);

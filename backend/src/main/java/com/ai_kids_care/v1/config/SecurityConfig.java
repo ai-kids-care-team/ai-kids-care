@@ -2,6 +2,8 @@ package com.ai_kids_care.v1.config;
 
 import jakarta.servlet.DispatcherType;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextFilter;
+import com.ai_kids_care.v1.security.audit.CorrelationIdFilter;
+import com.ai_kids_care.v1.security.audit.SecurityAuditAccessDeniedHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -40,7 +42,9 @@ public class SecurityConfig {
             HttpSecurity http,
             SecurityContextRepository securityContextRepository,
             CookieCsrfTokenRepository csrfTokenRepository,
-            EffectiveAuthorizationContextFilter authorizationContextFilter
+            EffectiveAuthorizationContextFilter authorizationContextFilter,
+            SecurityAuditAccessDeniedHandler accessDeniedHandler,
+            CorrelationIdFilter correlationIdFilter
     ) throws Exception {
         CsrfTokenRequestAttributeHandler csrfTokenRequestHandler =
                 new CsrfTokenRequestAttributeHandler();
@@ -56,8 +60,10 @@ public class SecurityConfig {
                         .requireExplicitSave(true))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(
-                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(
@@ -88,6 +94,13 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().authenticated()
+                )
+                // correlation id 须最先设置（MDC + 响应头），使认证失败 / 授权拒绝路径也带 id。
+                // 同时以 @Component(HIGHEST_PRECEDENCE) 注册为顶层 servlet filter；OncePerRequestFilter
+                // 去重，保证在 MockMvc 与生产中都恰好执行一次且位于安全链之前。
+                .addFilterBefore(
+                        correlationIdFilter,
+                        SecurityContextHolderFilter.class
                 )
                 .addFilterAfter(
                         authorizationContextFilter,

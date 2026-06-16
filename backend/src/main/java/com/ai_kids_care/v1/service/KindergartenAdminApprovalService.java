@@ -10,6 +10,10 @@ import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.security.KindergartenAdminPolicy;
 import com.ai_kids_care.v1.security.SessionRevocationService;
+import com.ai_kids_care.v1.security.audit.AuditAction;
+import com.ai_kids_care.v1.security.audit.AuditEvent;
+import com.ai_kids_care.v1.security.audit.AuditResult;
+import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -52,6 +57,7 @@ public class KindergartenAdminApprovalService {
     private final TeacherRepository teacherRepository;
     private final GuardianRepository guardianRepository;
     private final SessionRevocationService sessionRevocationService;
+    private final SecurityAuditWriter auditWriter;
 
     // ─── LIST ────────────────────────────────────────────────────────────────
 
@@ -100,39 +106,45 @@ public class KindergartenAdminApprovalService {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId = context.activeKindergartenId();
 
-        // 细粒度校验：level + 禁自审
-        kinderAdminPolicy.requireEligibleLevel(context);
-        kinderAdminPolicy.requireNotSelf(context, targetUserId);
+        try {
+            // 细粒度校验：level + 禁自审
+            kinderAdminPolicy.requireEligibleLevel(context);
+            kinderAdminPolicy.requireNotSelf(context, targetUserId);
 
-        // 条件更新：User PENDING→ACTIVE
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
-        if (userRows == 0) {
-            // 目标不存在 / 已被处理 / 状态不符 → 隐藏 404（OQ-4）
-            throw new EntityNotFoundException("Registration not found");
+            // 条件更新：User PENDING→ACTIVE
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE);
+            if (userRows == 0) {
+                // 目标不存在 / 已被处理 / 状态不符 → 隐藏 404（OQ-4）
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：membership PENDING→ACTIVE（同园约束）
+            int memberRows = membershipRepository.conditionalUpdateStatus(
+                    targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.ACTIVE);
+            if (memberRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：role assignment PENDING→ACTIVE（同园约束）
+            int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE,
+                    UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
+                    userRepository.getReferenceById(context.userId()));
+            if (roleRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：业务档案（Teacher 或 Guardian，按 role assignment 类型）PENDING→ACTIVE
+            activateProfileIfExists(targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.ACTIVE);
+
+            // SPEC-0002 #1: 审计成功（与状态变更同一业务事务边界外，writer 独立 REQUIRES_NEW 提交）
+            audit(context, AuditAction.KINDERGARTEN_APPROVE, AuditResult.SUCCESS, targetUserId);
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            // 细粒度 403（自审 / level）与跨租户 / 重复隐藏 404：审计拒绝后重抛（DENIED 跨回滚仍持久）
+            audit(context, AuditAction.KINDERGARTEN_APPROVE, AuditResult.DENIED, targetUserId);
+            throw e;
         }
-
-        // 条件更新：membership PENDING→ACTIVE（同园约束）
-        int memberRows = membershipRepository.conditionalUpdateStatus(
-                targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.ACTIVE);
-        if (memberRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：role assignment PENDING→ACTIVE（同园约束）
-        int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.ACTIVE,
-                UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
-                userRepository.getReferenceById(context.userId()));
-        if (roleRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：业务档案（Teacher 或 Guardian，按 role assignment 类型）PENDING→ACTIVE
-        activateProfileIfExists(targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.ACTIVE);
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=KINDERGARTEN_APPROVE, kindergartenId=kindergartenId, result=SUCCESS)
     }
 
     // ─── REJECT ──────────────────────────────────────────────────────────────
@@ -147,37 +159,41 @@ public class KindergartenAdminApprovalService {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId = context.activeKindergartenId();
 
-        kinderAdminPolicy.requireEligibleLevel(context);
-        kinderAdminPolicy.requireNotSelf(context, targetUserId);
+        try {
+            kinderAdminPolicy.requireEligibleLevel(context);
+            kinderAdminPolicy.requireNotSelf(context, targetUserId);
 
-        // 条件更新：User PENDING→REJECTED
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
-        if (userRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
+            // 条件更新：User PENDING→REJECTED
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED);
+            if (userRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：membership PENDING→REJECTED（同园约束——租户隔离门，0 行则回滚 + 隐藏 404）
+            int memberRows = membershipRepository.conditionalUpdateStatus(
+                    targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
+            if (memberRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：role assignment PENDING→REJECTED（同园约束——租户隔离门）
+            int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED,
+                    UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
+                    userRepository.getReferenceById(context.userId()));
+            if (roleRows == 0) {
+                throw new EntityNotFoundException("Registration not found");
+            }
+
+            // 条件更新：业务档案 PENDING→REJECTED
+            activateProfileIfExists(targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
+
+            audit(context, AuditAction.KINDERGARTEN_REJECT, AuditResult.SUCCESS, targetUserId);
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            audit(context, AuditAction.KINDERGARTEN_REJECT, AuditResult.DENIED, targetUserId);
+            throw e;
         }
-
-        // 条件更新：membership PENDING→REJECTED（同园约束——租户隔离门，0 行则回滚 + 隐藏 404）
-        int memberRows = membershipRepository.conditionalUpdateStatus(
-                targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
-        if (memberRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：role assignment PENDING→REJECTED（同园约束——租户隔离门）
-        int roleRows = roleAssignmentRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.PENDING, StatusEnum.REJECTED,
-                UserRoleAssignmentScopeType.KINDERGARTEN, kindergartenId,
-                userRepository.getReferenceById(context.userId()));
-        if (roleRows == 0) {
-            throw new EntityNotFoundException("Registration not found");
-        }
-
-        // 条件更新：业务档案 PENDING→REJECTED
-        activateProfileIfExists(targetUserId, kindergartenId, StatusEnum.PENDING, StatusEnum.REJECTED);
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=KINDERGARTEN_REJECT, kindergartenId=kindergartenId, result=SUCCESS)
     }
 
     // ─── DISABLE ─────────────────────────────────────────────────────────────
@@ -194,54 +210,75 @@ public class KindergartenAdminApprovalService {
         Long kindergartenId = context.activeKindergartenId();
         OffsetDateTime now = OffsetDateTime.now();
 
-        kinderAdminPolicy.requireEligibleLevel(context);
-        kinderAdminPolicy.requireNotSelf(context, targetUserId);
+        try {
+            kinderAdminPolicy.requireEligibleLevel(context);
+            kinderAdminPolicy.requireNotSelf(context, targetUserId);
 
-        // 条件更新：role assignment ACTIVE→DISABLED（同园约束，填 revokedAt/revokedByUser）
-        int roleRows = roleAssignmentRepository.conditionalDisable(
-                targetUserId,
-                UserRoleAssignmentScopeType.KINDERGARTEN,
-                kindergartenId,
-                now,
-                userRepository.getReferenceById(context.userId()),
-                StatusEnum.ACTIVE,
-                StatusEnum.DISABLED);
-        if (roleRows == 0) {
-            // 目标在本园无 ACTIVE role → 跨园 or 不存在 → 隐藏 404（OQ-4）
-            throw new EntityNotFoundException("Member not found");
-        }
-
-        // 条件更新：membership ACTIVE→DISABLED（同园约束，填 leftAt）
-        int memberRows = membershipRepository.conditionalDisable(
-                targetUserId, kindergartenId, now,
-                StatusEnum.ACTIVE, StatusEnum.DISABLED);
-        if (memberRows == 0) {
-            throw new EntityNotFoundException("Member not found");
-        }
-
-        // 条件更新：User ACTIVE→DISABLED
-        int userRows = userRepository.conditionalUpdateStatus(
-                targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
-        if (userRows == 0) {
-            throw new EntityNotFoundException("Member not found");
-        }
-
-        // 业务档案 ACTIVE→DISABLED
-        disableProfileIfExists(targetUserId, kindergartenId);
-
-        // TODO(SPEC-0002 #1): SecurityAuditWriter.record(actor=context.userId(), target=targetUserId,
-        //     action=KINDERGARTEN_DISABLE_MEMBER, kindergartenId=kindergartenId, result=SUCCESS)
-
-        // ADR-0019 §6: 事务提交后吊销目标用户全部 session（快路径；每请求权威解析为正确性兜底）
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                sessionRevocationService.revokeAllForUser(targetUserId);
+            // 条件更新：role assignment ACTIVE→DISABLED（同园约束，填 revokedAt/revokedByUser）
+            int roleRows = roleAssignmentRepository.conditionalDisable(
+                    targetUserId,
+                    UserRoleAssignmentScopeType.KINDERGARTEN,
+                    kindergartenId,
+                    now,
+                    userRepository.getReferenceById(context.userId()),
+                    StatusEnum.ACTIVE,
+                    StatusEnum.DISABLED);
+            if (roleRows == 0) {
+                // 目标在本园无 ACTIVE role → 跨园 or 不存在 → 隐藏 404（OQ-4）
+                throw new EntityNotFoundException("Member not found");
             }
-        });
+
+            // 条件更新：membership ACTIVE→DISABLED（同园约束，填 leftAt）
+            int memberRows = membershipRepository.conditionalDisable(
+                    targetUserId, kindergartenId, now,
+                    StatusEnum.ACTIVE, StatusEnum.DISABLED);
+            if (memberRows == 0) {
+                throw new EntityNotFoundException("Member not found");
+            }
+
+            // 条件更新：User ACTIVE→DISABLED
+            int userRows = userRepository.conditionalUpdateStatus(
+                    targetUserId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
+            if (userRows == 0) {
+                throw new EntityNotFoundException("Member not found");
+            }
+
+            // 业务档案 ACTIVE→DISABLED
+            disableProfileIfExists(targetUserId, kindergartenId);
+
+            audit(context, AuditAction.KINDERGARTEN_DISABLE_MEMBER, AuditResult.SUCCESS, targetUserId);
+
+            // ADR-0019 §6: 事务提交后吊销目标用户全部 session（快路径；每请求权威解析为正确性兜底）
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sessionRevocationService.revokeAllForUser(targetUserId);
+                }
+            });
+        } catch (EntityNotFoundException | ResponseStatusException e) {
+            audit(context, AuditAction.KINDERGARTEN_DISABLE_MEMBER, AuditResult.DENIED, targetUserId);
+            throw e;
+        }
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────
+
+    /**
+     * 园级审计：scope=KINDERGARTEN，kindergarten_id=本园，actor=操作者，resource=目标 user。
+     */
+    private void audit(EffectiveAuthorizationContext context, AuditAction action,
+                       AuditResult result, Long targetUserId) {
+        auditWriter.record(AuditEvent.builder()
+                .action(action)
+                .result(result)
+                .actorUserId(context.userId())
+                .scopeType(UserRoleAssignmentScopeType.KINDERGARTEN)
+                .kindergartenId(context.activeKindergartenId())
+                .effectiveRole(context.role().name())
+                .resourceType("USER")
+                .resourceId(targetUserId)
+                .build());
+    }
 
     /**
      * 激活/拒绝业务档案（PENDING→newStatus）。

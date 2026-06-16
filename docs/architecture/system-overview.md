@@ -12,11 +12,10 @@ ai-kids-care/
 ├── db/                    # PostgreSQL 16 + Neo4j 5.19（schema/种子/加载器）
 ├── pg-spring-crud-codegen/# PG schema 内省 → Mustache → Java CRUD 代码生成器（2026-05-29 由 scripts/codegen/ 迁入，见 ADR-0011）
 ├── scripts/codegen/       # ⚠️ 仅留 README 软指针 → pg-spring-crud-codegen/
-├── jenkins/               # Jenkins 镜像与 compose
 ├── docs/                  # 本知识库 + ERD
 ├── docker-compose.yml     # 整栈编排（db/neo4j/data-loader/backend/frontend）
-├── .github/workflows/     # GitHub Actions：后端 Java/Testcontainers 自动化测试
-└── Jenkinsfile            # Jenkins：拉取→后端 Testcontainers 测试→演示环境重建
+├── docker-compose.cd.yml  # CD override：拉 GHCR 镜像 + watchtower 自动部署（ADR-0022）
+└── .github/workflows/     # GitHub Actions：后端测试 / 前端 lint+build / compose config / release（CD，ADR-0022）
 ```
 
 ✅ **代码归属**（`CODEOWNERS`）：`/ai/`、`/frontend/`、`/backend/`、`/db/` 分属四个团队，`/docs/` 与其他文件归 leads。
@@ -29,7 +28,7 @@ ai-kids-care/
 | Backend | Java 21、Spring Boot 3.2.5（Web/Security/Data JPA/Validation）、MapStruct 1.5.5、springdoc-openapi 2.6、jjwt 0.12.3、Neo4j Java Driver 5.19、Pushover client | `backend/build.gradle` |
 | Database | PostgreSQL 16、Neo4j 5.19 | `docker-compose.yml`、`db/` |
 | AI | Python、FastAPI、Uvicorn、PyTorch、HuggingFace Transformers（VideoMAE）、PyAV/FFmpeg | `ai/requirements.txt`、`ai/src/ai_app/` |
-| DevOps | Docker、Docker Compose、Nginx、Gradle、GitHub Actions、Jenkins | 各 `Dockerfile`、`.github/workflows/backend-java-tests.yml`、`Jenkinsfile` |
+| DevOps | Docker、Docker Compose、Nginx、Gradle、GitHub Actions（CI + CD）、GHCR 私有镜像、watchtower | 各 `Dockerfile`、`.github/workflows/*`、`docker-compose.cd.yml`（CD，ADR-0022） |
 
 ## 3. 运行时拓扑（整栈 docker-compose）
 
