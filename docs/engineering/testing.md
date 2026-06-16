@@ -30,7 +30,7 @@ open build/reports/tests/test/index.html
 CI 自动运行同一套 `./gradlew test`：
 
 - GitHub Actions：`.github/workflows/backend-java-tests.yml` 在推送或 Pull Request 到 `develop` / `main` 时运行，也支持手动触发。使用 GitHub hosted Ubuntu runner 的 Docker 执行 Testcontainers，并保留 7 天测试报告 artifact。
-- Jenkins：`Jenkinsfile` 在 `Docker Compose Up` stage **之前**运行测试；失败即阻断部署。
+- Jenkins 已退役（ADR-0022）：原先 `Jenkinsfile` 在部署 stage **之前**跑同一套测试，现完全由上面的 GitHub Actions 覆盖；CD 发布另由 `release.yml` 在推 GHCR 前做整栈冒烟门（healthcheck）。
 
 Testcontainers 通过 Spring Boot BOM 的 `testcontainers.version` property 固定为 `1.21.4`；该 1.x patch line 包含近期 Docker Engine 兼容修复。
 
@@ -137,5 +137,5 @@ availability_existingLoginId_returnsUnavailable
 ## 待确认
 
 > ❓ 是否存在仓库之外的测试（如手工测试用例、Postman 集合）？
-> ❓ Jenkins agent 的 Docker socket 已验证可用（Testcontainers 依赖）？详见 ADR-0014 "负面代价"。
+> ✅ ~~Jenkins agent 的 Docker socket~~ Jenkins 已退役（ADR-0022）；现由 GitHub Actions hosted runner 的 Docker 执行 Testcontainers，CI 绿即已验证可用。
 > ❓ GitHub 仓库 branch protection 是否已把 `Backend Java Tests / Gradle test (Java 21)` 设为 required status check？workflow 已提供门禁信号，但 required 规则需在 GitHub 仓库设置中启用。

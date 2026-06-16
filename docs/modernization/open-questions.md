@@ -86,7 +86,7 @@
 ## 运维（OPS）
 
 ### OQ-OPS-1 ｜CI 每次部署删除数据卷是否符合预期？
-- **证据** ✅：`Jenkinsfile` 执行 `docker compose down --volumes`，清空 `postgres_data`/`neo4j_data`。
+- **证据** ✅（更新 2026-06-16）：原 `Jenkinsfile` 每次部署执行 `docker compose down --volumes` 清空 `postgres_data`/`neo4j_data`；**Jenkins 已退役（ADR-0022）**，演示数据策略改为**持久**（OQ-1 已定：initdb 首次灌种子 + 持久卷 + Flyway 增量，watchtower 重建不清卷），重置需手动 `down -v`。
 - **为何重要**：演示环境=每次重置（合理）；生产=数据丢失（严重）。
 - **观察**：目标部署环境是哪种？
 - **结论（2026-05-29，团队确认）** ✅：当前面向**演示重置**（每次清库重建），符合预期。**生产环境将一并去除「删卷」与「插入 seed」两步流程**（届时需独立的生产部署流水线）。已 **Accept** [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)（2026-05-29 签署；推荐 Flyway/Liquibase 作 schema 迁移；落地待 Implementation）。
@@ -177,7 +177,7 @@
 - **观察**：这 12 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 12 未实现的持续漂移。
 
 ### OQ-TEST-1 ｜测试策略
-- **证据（更新 2026-06-12）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，并由 GitHub Actions 与 Jenkins 执行 `./gradlew test`；前端/AI 仍无自动化测试。
+- **证据（更新 2026-06-16）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，由 GitHub Actions 执行 `./gradlew test`（Jenkins 已退役，ADR-0022）；前端已接入 `Frontend lint & build` CI（ADR-0020、#4）；AI 仍无自动化测试。
 - **本次验证** ✅：本机 Docker engine 启动后，Java 完整套件 43 项中 41 通过、2 项按 ADR-0013 过渡约定跳过；前端 production build 通过并生成 20 个静态页面。全量 lint 仍有既有基线问题；本轮非 CCTV 改动文件的定向 lint 为零问题，CCTV 文件仍报告历史 effect/unused 规则问题。
 - **为何重要**：当前回归保护只覆盖少量后端路径，且 CI 未守护前端/API 客户端/AI。
 - **剩余问题**：前端、AI、契约/E2E 的目标策略与 CI 门禁仍待确定。

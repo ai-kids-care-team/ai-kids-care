@@ -107,4 +107,4 @@ docker compose down -v
 docker compose up -d --build   # 重新执行 initdb 全部种子
 ```
 
-> ⚠️ 这与 Jenkins CI 每次部署的行为一致（见 [deployment](deployment.md)）。**生产绝不能用**。
+> ⚠️ 这是**本地开发/演示**重灌种子的方式（见 [deployment](deployment.md)）；演示机的 CD 路径用 `docker compose -f docker-compose.yml -f docker-compose.cd.yml down -v` 做等价重置。**生产绝不能用**（演示数据策略已改为持久，OQ-1 / ADR-0022）。
