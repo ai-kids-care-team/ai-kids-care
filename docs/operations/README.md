@@ -10,7 +10,7 @@
 
 | 文档 | 内容 |
 | --- | --- |
-| [deployment.md](deployment.md) | Docker Compose 整栈、Jenkins CI 流水线、镜像构建 |
+| [deployment.md](deployment.md) | Docker Compose 整栈、CD 管线（GitHub Actions + GHCR + watchtower，ADR-0022）、镜像构建 |
 | [configuration.md](configuration.md) | 环境变量矩阵与默认值、端口、时区 |
 | [runbook.md](runbook.md) | 常见运维任务与故障排查 |
 | [observability.md](observability.md) | 日志、健康检查、监控现状 |

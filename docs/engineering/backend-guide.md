@@ -74,6 +74,6 @@ python main.py            # 生成到 OUT_JAVA
 ## 注意事项 / 陷阱
 
 - ⚠️ **鉴权已启用**（默认拒绝 + 服务端会话，[security-architecture](../architecture/security-architecture.md)）：调 `/api/v1/**` 需先 `/auth/login` 拿会话 cookie（`AI_KIDS_CARE_SESSION`）+ CSRF（`GET /auth/csrf` → `X-XSRF-TOKEN` 头）。后端测试需 Docker（Testcontainers：Postgres + Redis）。
-- ⚠️ `logging.level.root: DEBUG`：调试方便但日志量大，注意敏感信息。
+- `logging.level.root: ${LOG_LEVEL_ROOT:INFO}`：安全默认 INFO；调试设 `LOG_LEVEL_ROOT=DEBUG`。
 - ⚠️ 无统一异常处理器：service 抛 `RuntimeException`/`IllegalArgumentException`，错误响应格式不统一。
 - ⚠️ 无测试基线：改动后请手工验证关键流程。

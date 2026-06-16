@@ -12,6 +12,7 @@ projects/kids/
 │   ├── run_all.sh               # [생성됨] 모든 스크립트 실행
 │   ├── neo4j_connect.py         # [수정됨] Docker 네트워크 연결 주소 변경
 │   ├── requirements.txt         # neo4j 라이브러리
+│   ├── no000_scrub_sensitive.py # [SPEC-0001 §365] 민감 속성 제거 (항상 첫 번째로 실행)
 │   ├── no100_insert_users.py    # User 노드 생성
 │   ├── no200_insert_kindergarter.py
 │   ├── no300_insert_teachers.py

@@ -6,7 +6,12 @@ import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextService;
 import com.ai_kids_care.v1.security.SessionRevocationService;
+import com.ai_kids_care.v1.security.audit.AuditAction;
+import com.ai_kids_care.v1.security.audit.AuditEvent;
+import com.ai_kids_care.v1.security.audit.AuditResult;
+import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.service.AuthService;
+import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.vo.*;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +47,7 @@ public class AuthController {
     private final SecurityContextRepository securityContextRepository;
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final SessionRevocationService sessionRevocationService;
+    private final SecurityAuditWriter auditWriter;
 
     @PostMapping("/login")
     public ResponseEntity<AuthSessionVO> login(
@@ -49,7 +55,19 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        AuthenticatedSession authenticatedSession = authService.login(authLoginDTO);
+        AuthenticatedSession authenticatedSession;
+        try {
+            authenticatedSession = authService.login(authLoginDTO);
+        } catch (ResponseStatusException e) {
+            // 登录失败：actor 未知（平台级事件，kindergarten_id NULL）。
+            // 不记录 identifier——可能为 S1 email/phone（SPEC §282）。
+            auditWriter.record(AuditEvent.builder()
+                    .action(AuditAction.LOGIN_FAILURE)
+                    .result(AuditResult.FAILURE)
+                    .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                    .build());
+            throw e;
+        }
         Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
                 authenticatedSession.principal(),
                 null,
@@ -60,7 +78,20 @@ public class AuthController {
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
         securityContextRepository.saveContext(securityContext, request, response);
-        return ResponseEntity.ok(authenticatedSession.profile());
+
+        AuthSessionVO profile = authenticatedSession.profile();
+        auditWriter.record(AuditEvent.builder()
+                .action(AuditAction.LOGIN_SUCCESS)
+                .result(AuditResult.SUCCESS)
+                .actorUserId(profile.userId())
+                .scopeType(UserRoleAssignmentScopeType.valueOf(profile.scopeType()))
+                .kindergartenId(
+                        UserRoleAssignmentScopeType.KINDERGARTEN.name().equals(profile.scopeType())
+                                ? profile.scopeId()
+                                : null)
+                .effectiveRole(profile.effectiveRole())
+                .build());
+        return ResponseEntity.ok(profile);
     }
 
     @GetMapping("/session")
@@ -81,15 +112,45 @@ public class AuthController {
     ) {
         EffectiveAuthorizationContext context =
                 EffectiveAuthorizationContextHolder.require();
-        return ResponseEntity.ok(authorizationContextService.selectTenant(
-                context,
-                tenantContextRequest.kindergartenId(),
-                request.getSession()
-        ));
+        try {
+            TenantContextVO result = authorizationContextService.selectTenant(
+                    context,
+                    tenantContextRequest.kindergartenId(),
+                    request.getSession()
+            );
+            // 平台级事件：scope=PLATFORM，kindergarten_id NULL（不伪造），所选 tenant 落 resource_id（SPEC §284）。
+            auditWriter.record(AuditEvent.builder()
+                    .action(AuditAction.TENANT_CONTEXT_SELECT)
+                    .result(AuditResult.SUCCESS)
+                    .actorUserId(context.userId())
+                    .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                    .effectiveRole(context.role().name())
+                    .resourceType("KINDERGARTEN")
+                    .resourceId(result.selectedKindergartenId())
+                    .build());
+            return ResponseEntity.ok(result);
+        } catch (ResponseStatusException e) {
+            // 非平台账号尝试切换 tenant（403）等：审计拒绝后重抛。
+            auditWriter.record(AuditEvent.builder()
+                    .action(AuditAction.TENANT_CONTEXT_SELECT)
+                    .result(AuditResult.DENIED)
+                    .actorUserId(context.userId())
+                    .scopeType(context.scopeType())
+                    .kindergartenId(
+                            context.scopeType() == UserRoleAssignmentScopeType.KINDERGARTEN
+                                    ? context.activeKindergartenId()
+                                    : null)
+                    .effectiveRole(context.role().name())
+                    .build());
+            throw e;
+        }
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
+        // 失效前审计（context 仍有效）
+        EffectiveAuthorizationContextHolder.get().ifPresent(context ->
+                auditWriter.record(sessionEvent(context, AuditAction.LOGOUT)));
         if (request.getSession(false) != null) {
             request.getSession(false).invalidate();
         }
@@ -102,8 +163,24 @@ public class AuthController {
         EffectiveAuthorizationContext context =
                 EffectiveAuthorizationContextHolder.require();
         sessionRevocationService.revokeAllForUser(context.userId());
+        auditWriter.record(sessionEvent(context, AuditAction.SESSION_REVOKE_ALL));
         SecurityContextHolder.clearContext();
         return ResponseEntity.noContent().build();
+    }
+
+    /** 会话事件审计（登出 / 全量吊销）：actor=本人，scope/role 取自当前 context。 */
+    private AuditEvent sessionEvent(EffectiveAuthorizationContext context, AuditAction action) {
+        return AuditEvent.builder()
+                .action(action)
+                .result(AuditResult.SUCCESS)
+                .actorUserId(context.userId())
+                .scopeType(context.scopeType())
+                .kindergartenId(
+                        context.scopeType() == UserRoleAssignmentScopeType.KINDERGARTEN
+                                ? context.activeKindergartenId()
+                                : null)
+                .effectiveRole(context.role().name())
+                .build();
     }
 
     @GetMapping("/csrf")

@@ -2,7 +2,7 @@
 ADR: ADR-0022
 title: "ADR-0022: CD 改用 GitHub Actions（release-tag 构建 + GHCR 私有镜像 + watchtower 自动部署），退役 Jenkins"
 status: Accepted
-implementation: Partial
+implementation: Implemented
 date: 2026-06-16
 deciders: 接手人起草，维护者 Accept（2026-06-16）
 supersedes: []
@@ -18,13 +18,15 @@ related_specs: []
 
 Decision: `Accepted`（2026-06-16 维护者 Accept）
 
-Implementation: `Partial`（2026-06-16；**仓库侧完成**，host 侧 + 首个 release tag 端到端**未做**）
+Implementation: `Implemented`（2026-06-16；仓库侧 + 端到端首发均已验证；OQ-2/3/4 为运营级后续，非阻断）
 
 > 维护者于 2026-06-16 拍板：OQ-1 演示数据 = **持久**（initdb 首次灌种子一次 + 持久卷 + Flyway 增量；watchtower 重建容器不清卷；与未来 prod 路一致）。
 >
 > **仓库侧已完成并合入 develop**（CI compose-config 三条校验通过）：`.github/workflows/release.yml`（`v*` tag 触发：构建 → 冒烟门 → `docker push` 冒烟测过的同一批本地镜像，双 tag `:<版本>`+`:prod`，**不二次构建**）、`docker-compose.cd.yml`（清 `build:` + watchtower）、base compose 加 `image:` 键、`compose-config.yml` 加 cd override 校验、退役 `Jenkinsfile`/`jenkins/`、`deployment.md` 同步。
 >
-> **未完成（host 侧 + 端到端，维护者操作）**：建 GHCR 私有包 + `read:packages` token 放到演示机（OQ-2）；机上跑含 watchtower 的 `docker compose -f docker-compose.yml -f docker-compose.cd.yml up -d`；打第一个 `v*` tag 触发首发——`release.yml` 的真实端到端（构建/推送/watchtower 拉取）**尚未经一次真实 tag 验证**。OQ-3（Environments 审批门）/OQ-4（演示站对外暴露/TLS）待后续。
+> **端到端首发已验证（2026-06-16）**：首个 `v*` tag `v0.1.0`（→ main `8be3c42`）触发 `release.yml` run `27589919632`，**构建 → 冒烟门 → 推 GHCR 私有 `:0.1.0`+`:prod` 全绿（8m38s）**；演示机已部署含 watchtower 的 `docker-compose.cd.yml` 栈，修复 watchtower `DOCKER_API_VERSION`（containrrr 默认 1.25 被 daemon 拒，固定 `1.41`，PR #94）后自动拉取正常。**核心 CD 路径「在 main 打 tag = 发布 → 演示机自动部署」已端到端打通。**
+>
+> **剩余为运营级后续（非阻断）**：OQ-2（GHCR token 发放/轮换）、OQ-3（临近真上线加 Environments 人工审批门）、OQ-4（演示站对外暴露/TLS，与 ADR-0017 协同）；真上 prod 另需先完成 ADR-0012（loader 竞态/备份）与 ADR-0017（Caddy TLS）的生产就绪项。
 
 ## 背景（Context）
 

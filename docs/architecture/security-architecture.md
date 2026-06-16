@@ -72,11 +72,16 @@
 
 ## 7. 审计
 
-- ✅ 存在 `audit_logs` 表（action/resource_type/resource_id/ip/user_agent）与内部 `AuditLogService`；`AuditLogController` 当前不发布公共 operation。
-- ❓ 各写操作是否实际产生审计记录，需核对各 service 是否调用审计写入（未见统一切面/拦截器）。
+✅ **安全审计 writer 已实现**（SPEC-0001 #1，审计要求 §270-298；schema 见 [ADR-0021](../decisions/adr/ADR-0021-admin-audit-schema-migration.md) 的 V2 迁移）：
+
+- **correlation id**：`CorrelationIdFilter`（`HIGHEST_PRECEDENCE`，包裹整条安全链）为每个请求分配随机 correlation id（或净化后的入站 `X-Correlation-Id` 头，≤64 安全字符），写入 MDC + 响应头 `X-Correlation-Id`。**不使用 session id**（session id 属 S0）。
+- **写入器**：`SecurityAuditWriter` **直写 `audit_logs`**（不复用被关闭的 `AuditLogService` CRUD 栈），独立事务（`REQUIRES_NEW`，使拒绝/失败在业务回滚路径上仍持久），best-effort（写入失败只记日志、不阻断业务）。只落结构化字段（actor id / scope / action / result / resource type+id / ip / user-agent / correlation id），**绝不写**密码 / RRN / token / session id / 请求 body（§282/§296）。`action`/`result` 由应用层枚举 `AuditAction`/`AuditResult` 约束（DB 维持 varchar）。
+- **接入点**：登录成功 / 失败、登出、`/auth/logout-all` 会话吊销、平台 tenant context 切换（`scope_type=PLATFORM` 且 `kindergarten_id=NULL`，不伪造 kg id——§284）、园级 / 平台审批 approve/reject/disable（角色变更）、授权拒绝（`@PreAuthorize` 403 经 `SecurityAuditAccessDeniedHandler`；审批内细粒度 403 / 跨租户隐藏 404 经 service try/catch）。S1 / evidence 读取预留 `AuditAction.S1_EVIDENCE_READ`，当前对应控制器为空壳、无活动调用点。
+- **append-only**：应用层保证（writer 只 insert，无 update/delete）；`AuditLogController` 不发布公共写 / 删 operation。DB 级 `REVOKE UPDATE/DELETE` / 触发器属高风险权限，**维护者另行决定，不在本次**（ADR-0021 §4）。
+- ⏳ 待办（OQ）：拒绝洪泛限流 / 采样（每个 403 / CSRF 失败写一行，存在审计洪泛向量）；可信 `X-Forwarded-For` 客户端 IP 解析（待边缘反代定案，[ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)，现记 `remoteAddr`）；DB 级 append-only 强约束。
 
 ---
 
 ## 安全相关待确认项索引
 
-详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭，✅ 已实现 PR #89 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) / [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）、OQ-SEC-2/3（JWT access/refresh / secret，✅ 随 JWT 移除消解）、OQ-SEC-4（RRN 哈希策略 / 命名勘误，已决 → [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（DEBUG 日志）、OQ-SEC-7（审计落地，**仍 pending**：待 ADR-0012 schema 迁移）。
+详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭，✅ 已实现 PR #89 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) / [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）、OQ-SEC-2/3（JWT access/refresh / secret，✅ 随 JWT 移除消解）、OQ-SEC-4（RRN 哈希策略 / 命名勘误，已决 → [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（日志级别，✅ 已改 `${LOG_LEVEL_ROOT:INFO}` 安全默认）、OQ-SEC-7（审计落地，✅ 安全事件 writer 已实现，见 §7；残留拒绝洪泛限流 / 可信 forwarded IP / DB 级 append-only 为后续 OQ）。

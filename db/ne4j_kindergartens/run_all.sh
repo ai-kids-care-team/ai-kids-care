@@ -2,6 +2,7 @@
 
 echo "=== Neo4j 데이터 적재 시작 ==="
 
+python no000_scrub_sensitive.py
 python no100_insert_users.py
 python db100_insert_users.py
 python no200_insert_kindergarter.py

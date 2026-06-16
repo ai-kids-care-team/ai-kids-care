@@ -149,6 +149,10 @@ class PublishedOpenApiContractTest {
 
         assertComponentAbsent(apiDocs, "UserVO");
         assertComponentAbsent(apiDocs, "ChildVO");
+        // SPEC-0001 §349：Guardian 关系-scoped 读取只发布最小 GuardianChildVO（无 RRN/address/birth_date/childNo）。
+        assertComponentHasOnlyProperties(apiDocs, "GuardianChildVO", Set.of(
+                "childId", "name", "status"
+        ));
         assertComponentAbsent(apiDocs, "GuardianVO");
         assertComponentAbsent(apiDocs, "TeacherVO");
         assertComponentHasOnlyProperties(apiDocs, "KindergartenVO", Set.of(
@@ -282,8 +286,10 @@ class PublishedOpenApiContractTest {
 
         assertPathAbsent(apiDocs, "/api/v1/users");
         assertPathAbsent(apiDocs, "/api/v1/users/{id}");
-        assertPathAbsent(apiDocs, "/api/v1/children");
-        assertPathAbsent(apiDocs, "/api/v1/children/{id}");
+        // SPEC-0001 §349：children GET 已重开（Guardian 关系-scoped，返回最小 GuardianChildVO）。
+        // 完整 ChildVO 仍不发布（见上 assertComponentAbsent("ChildVO")）；/children/rrn 仍关闭（见下）。
+        assertOperationPresent(apiDocs, "/api/v1/children", "get");
+        assertOperationPresent(apiDocs, "/api/v1/children/{id}", "get");
         assertPathAbsent(apiDocs, "/api/v1/guardians");
         assertPathAbsent(apiDocs, "/api/v1/guardians/{id}");
         assertPathAbsent(apiDocs, "/api/v1/teachers");
