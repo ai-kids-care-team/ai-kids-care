@@ -8,6 +8,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    @Mapping(target = "userId", ignore = true)
+    @Mapping(source = "id", target = "userId")
     UserVO toVO(User entity);
 }

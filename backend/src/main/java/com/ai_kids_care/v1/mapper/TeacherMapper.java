@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface TeacherMapper {
 
-    @Mapping(target = "teacherId", ignore = true)
+    @Mapping(source = "id", target = "teacherId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "user.id", target = "userId")
     TeacherVO toVO(Teacher entity);
