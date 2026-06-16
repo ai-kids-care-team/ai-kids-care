@@ -40,7 +40,7 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
     private static final long OWN_KG = 1L;
 
     private static final String GUARDIAN_LOGIN = "gc-guardian";
-    private static final String TEACHER_LOGIN = "gc-teacher";
+    private static final String ADMIN_LOGIN = "gc-admin";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JdbcTemplate jdbc;
@@ -52,8 +52,8 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         upsertUser(GUARDIAN_LOGIN, "010-0700-0001");
         setGuardianIdentity(GUARDIAN_LOGIN, OWN_KG);
 
-        upsertUser(TEACHER_LOGIN, "010-0700-0002");
-        setTeacherIdentity(TEACHER_LOGIN, OWN_KG);
+        upsertUser(ADMIN_LOGIN, "010-0700-0002");
+        setKindergartenAdminIdentity(ADMIN_LOGIN, OWN_KG);
     }
 
     // ── 列表：仅 ACTIVE 关系儿童 ────────────────────────────────────────────────
@@ -161,6 +161,17 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         deleteChild(childId);
     }
 
+    // ── 角色门：KINDERGARTEN_ADMIN → 403（不在 CHILD_READ 门内，§351 非目标）──────────
+
+    @Test
+    void children_kindergartenAdminRole_returns403() throws Exception {
+        Cookie session = login(ADMIN_LOGIN);
+        mockMvc.perform(get("/api/v1/children").cookie(session))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/children/1").cookie(session))
+                .andExpect(status().isForbidden());
+    }
+
     // ── 未认证 → 401 ────────────────────────────────────────────────────────────
 
     @Test
@@ -209,11 +220,13 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 """, kindergartenId, "Guardian " + loginId, loginId);
     }
 
-    private void setTeacherIdentity(String loginId, long kindergartenId) {
+    // KINDERGARTEN_ADMIN 身份：角色 + membership + DIRECTOR level 档案（与 AdminApproval 测试同范式）。
+    // 用于断言 admin 不在 CHILD_READ 门内（GET /children → 403 在 @PreAuthorize 处即拒绝）。
+    private void setKindergartenAdminIdentity(String loginId, long kindergartenId) {
         clearRoleAndMembership(loginId);
         jdbc.update("""
                 INSERT INTO user_role_assignments (user_id, role, scope_type, scope_id, status, granted_at)
-                SELECT user_id, 'TEACHER'::user_role_enum, 'KINDERGARTEN', ?, 'ACTIVE', NOW()
+                SELECT user_id, 'KINDERGARTEN_ADMIN'::user_role_enum, 'KINDERGARTEN', ?, 'ACTIVE', NOW()
                 FROM users WHERE login_id = ?
                 """, kindergartenId, loginId);
         jdbc.update("""
@@ -229,10 +242,10 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 INSERT INTO teachers
                     (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6,
                      level, start_date, status, created_at, updated_at)
-                SELECT ?, user_id, ?, ?, 'MALE', 'ENC', '000101', 'TEACHER'::level_enum,
+                SELECT ?, user_id, ?, ?, 'MALE', 'ENC', '000101', 'DIRECTOR'::level_enum,
                        '2025-03-01', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
-                """, kindergartenId, "STAFF-" + suffix, "Teacher " + loginId, loginId);
+                """, kindergartenId, "STAFF-" + suffix, "Admin " + loginId, loginId);
     }
 
     private void clearRoleAndMembership(String loginId) {
