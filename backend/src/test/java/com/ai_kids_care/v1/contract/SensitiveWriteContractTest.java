@@ -8,6 +8,7 @@ import com.ai_kids_care.v1.controller.DetectionSessionController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
 import com.ai_kids_care.v1.controller.GuardianController;
+import com.ai_kids_care.v1.controller.NotificationController;
 import com.ai_kids_care.v1.controller.TeacherController;
 import com.ai_kids_care.v1.controller.UserController;
 import com.ai_kids_care.v1.mapper.AppreciationLetterMapper;
@@ -35,6 +36,7 @@ import com.ai_kids_care.v1.service.EventEvidenceFileService;
 import com.ai_kids_care.v1.service.EventReviewService;
 import com.ai_kids_care.v1.service.GuardianService;
 import com.ai_kids_care.v1.service.NotificationRuleService;
+import com.ai_kids_care.v1.service.NotificationService;
 import com.ai_kids_care.v1.service.SuperadminService;
 import com.ai_kids_care.v1.service.TeacherService;
 import com.ai_kids_care.v1.service.UserService;
@@ -98,6 +100,7 @@ class SensitiveWriteContractTest {
         DetectionEventService detectionEventService = mock(DetectionEventService.class);
         DetectionSessionService detectionSessionService = mock(DetectionSessionService.class);
         CctvCameraService cctvCameraService = mock(CctvCameraService.class);
+        NotificationService notificationService = mock(NotificationService.class);
         MockMvc mockMvc = standaloneSetup(
                 new UserController(),
                 new ChildrenController(childrenService),
@@ -108,7 +111,8 @@ class SensitiveWriteContractTest {
                 new CameraStreamController(cameraStreamService),
                 new DetectionEventController(),
                 new DetectionSessionController(detectionSessionService),
-                new CctvCameraController(cctvCameraService)
+                new CctvCameraController(cctvCameraService),
+                new NotificationController(notificationService)
         ).build();
 
         mockMvc.perform(post("/api/v1/users").contentType("application/json").content("{}"))
@@ -124,6 +128,14 @@ class SensitiveWriteContractTest {
         mockMvc.perform(put("/api/v1/children/1").contentType("application/json").content("{}"))
                 .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(delete("/api/v1/children/1"))
+                .andExpect(status().isMethodNotAllowed());
+
+        // notifications 已重开 GET（tenant-scoped，SPEC-0001 / ADR-0018 A3d）；写操作仍未发布 → 405（路径存在但无写 handler）。
+        mockMvc.perform(post("/api/v1/notifications").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(put("/api/v1/notifications/1").contentType("application/json").content("{}"))
+                .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(delete("/api/v1/notifications/1"))
                 .andExpect(status().isMethodNotAllowed());
 
         mockMvc.perform(post("/api/v1/guardians").contentType("application/json").content("{}"))
@@ -192,7 +204,8 @@ class SensitiveWriteContractTest {
                 cameraStreamService,
                 detectionEventService,
                 detectionSessionService,
-                cctvCameraService
+                cctvCameraService,
+                notificationService
         );
     }
 
