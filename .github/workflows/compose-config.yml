@@ -1,8 +1,8 @@
 name: Compose Config
 
-# Validates that the demo and merged production compose files resolve (SPEC-0001
-# release-gate check). This only checks structure — it does not start containers,
-# issue TLS certificates or bind host ports.
+# Validates that the demo, CD registry, and merged production compose files resolve
+# (SPEC-0001 / ADR-0022 release-gate check). This only checks structure — it does
+# not start containers, issue TLS certificates, or bind host ports.
 
 on:
   push:
@@ -32,6 +32,9 @@ jobs:
 
       - name: Validate base (demo) compose
         run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate CD registry compose (ADR-0022)
+        run: docker compose -f docker-compose.yml -f docker-compose.cd.yml config -q
 
       - name: Validate merged production compose
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q

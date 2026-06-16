@@ -2,7 +2,7 @@
 ADR: ADR-0022
 title: "ADR-0022: CD 改用 GitHub Actions（release-tag 构建 + GHCR 私有镜像 + watchtower 自动部署），退役 Jenkins"
 status: Accepted
-implementation: Not Started
+implementation: Implemented
 date: 2026-06-16
 deciders: 接手人起草，维护者 Accept（2026-06-16）
 supersedes: []
@@ -18,9 +18,9 @@ related_specs: []
 
 Decision: `Accepted`（2026-06-16 维护者 Accept）
 
-Implementation: `Not Started`
+Implementation: `Implemented`（2026-06-16）
 
-> 维护者于 2026-06-16 拍板：OQ-1 演示数据 = **持久**（initdb 首次灌种子一次 + 持久卷 + Flyway 增量；watchtower 重建容器不清卷；与未来 prod 路一致）。落地（`release.yml` + compose 改造 + 退 Jenkins + GHCR/host 配置）委派后续 Implementation。
+> 维护者于 2026-06-16 拍板：OQ-1 演示数据 = **持久**（initdb 首次灌种子一次 + 持久卷 + Flyway 增量；watchtower 重建容器不清卷；与未来 prod 路一致）。实施已完成：新增 `.github/workflows/release.yml`（构建 + 冒烟 + 推送）、`docker-compose.cd.yml`（registry overlay + watchtower）、base compose 加 `image:` 键；退役 `Jenkinsfile`/`jenkins/`；`docs/operations/deployment.md` 与 `.github/workflows/compose-config.yml` 已同步。OQ-2/3/4 待后续处理。
 
 ## 背景（Context）
 
