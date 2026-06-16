@@ -245,30 +245,36 @@ public class KindergartenAdminApprovalService {
 
     /**
      * 激活/拒绝业务档案（PENDING→newStatus）。
-     * Teacher 和 Guardian 各试一次；若均无匹配行（如 SUPERADMIN 注册无此档案）则忽略。
+     * 园级目标（GUARDIAN/TEACHER/KINDERGARTEN_ADMIN 注册）必有 Teacher 或 Guardian 档案；
+     * 二者均无匹配行 = 数据异常 → 抛 EntityNotFoundException 回滚（防御性，release-gate P2-1）。
      */
     private void activateProfileIfExists(Long targetUserId, Long kindergartenId,
                                          StatusEnum expected, StatusEnum newStatus) {
-        // 尝试 Teacher 档案
+        // 尝试 Teacher 档案（KINDERGARTEN_ADMIN 的 DIRECTOR/VICE_DIRECTOR 档案在 teachers 表）
         int tRows = teacherRepository.conditionalUpdateStatus(
                 targetUserId, kindergartenId, expected, newStatus);
         if (tRows > 0) return;
         // 尝试 Guardian 档案
-        guardianRepository.conditionalUpdateStatus(
+        int gRows = guardianRepository.conditionalUpdateStatus(
                 targetUserId, kindergartenId, expected, newStatus);
-        // 注：KINDERGARTEN_ADMIN 在 teachers 表有档案（level=DIRECTOR/VICE_DIRECTOR），无 guardian 档案，已被上一步覆盖。
+        if (gRows == 0) {
+            throw new EntityNotFoundException("Registration not found");
+        }
     }
 
     /**
      * 停用业务档案（ACTIVE→DISABLED）。
-     * Teacher 和 Guardian 各试一次。
+     * 园级在职成员必有 Teacher 或 Guardian 档案；二者均无 → 抛 EntityNotFoundException 回滚（防御性，release-gate P2-1）。
      */
     private void disableProfileIfExists(Long targetUserId, Long kindergartenId) {
         int tRows = teacherRepository.conditionalUpdateStatus(
                 targetUserId, kindergartenId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
         if (tRows > 0) return;
-        guardianRepository.conditionalUpdateStatus(
+        int gRows = guardianRepository.conditionalUpdateStatus(
                 targetUserId, kindergartenId, StatusEnum.ACTIVE, StatusEnum.DISABLED);
+        if (gRows == 0) {
+            throw new EntityNotFoundException("Member not found");
+        }
     }
 
     /**
