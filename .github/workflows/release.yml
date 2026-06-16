@@ -1,0 +1,172 @@
+name: Release – Build, Smoke, Push to GHCR
+
+# Triggers on semver tags pushed to any branch (typically main per ADR-0020/0022).
+# workflow_dispatch allows a manual one-shot run for testing purposes.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write   # required to push to GHCR
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false   # never cancel an in-progress release
+
+jobs:
+  build-smoke-push:
+    name: Build → Smoke → Push to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_PREFIX: ghcr.io/ai-kids-care-team/ai-kids-care
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # ── 1. Set up Docker Buildx ─────────────────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 2. Log in to GHCR ───────────────────────────────────────────────────
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 3. Build images (load into local daemon for smoke test) ─────────────
+      # db: uses seed Dockerfile (NOT Dockerfile.prod) so demo data is available.
+      - name: Build db image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./db
+          file: ./db/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}/db:${{ github.ref_name }}
+          cache-from: type=gha,scope=db
+          cache-to: type=gha,mode=max,scope=db
+
+      - name: Build data-loader image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./db/ne4j_kindergartens
+          file: ./db/ne4j_kindergartens/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}/data-loader:${{ github.ref_name }}
+          cache-from: type=gha,scope=data-loader
+          cache-to: type=gha,mode=max,scope=data-loader
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}/backend:${{ github.ref_name }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_PREFIX }}/frontend:${{ github.ref_name }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      # ── 4. Tag built images as :prod so docker compose picks them up ─────────
+      # The base docker-compose.yml declares image: .../svc:prod.
+      # We need local :prod aliases before `docker compose up` resolves them.
+      - name: Alias versioned images as :prod for smoke compose
+        run: |
+          for svc in db data-loader backend frontend; do
+            docker tag "${{ env.IMAGE_PREFIX }}/${svc}:${{ github.ref_name }}" \
+                       "${{ env.IMAGE_PREFIX }}/${svc}:prod"
+          done
+
+      # ── 5. Smoke test: bring the full stack up against the locally built images
+      # Strategy: use base docker-compose.yml (which has image: .../svc:prod).
+      # COMPOSE_HTTP_TIMEOUT avoids early give-up on slow DB init.
+      - name: Start stack for smoke test
+        env:
+          COMPOSE_HTTP_TIMEOUT: "300"
+        run: |
+          docker compose -f docker-compose.yml up -d --no-build
+
+      - name: Wait for db healthcheck (up to 3 min)
+        run: |
+          echo "Waiting for db to become healthy..."
+          for i in $(seq 1 36); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' ai-kids-postgres 2>/dev/null || echo "missing")
+            echo "  attempt $i: db health = $STATUS"
+            if [ "$STATUS" = "healthy" ]; then
+              echo "db is healthy"
+              break
+            fi
+            if [ "$i" -eq 36 ]; then
+              echo "ERROR: db did not become healthy within 3 minutes"
+              docker compose -f docker-compose.yml logs db
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Verify backend container is running (not crashed)
+        run: |
+          sleep 15
+          STATUS=$(docker inspect --format='{{.State.Status}}' backend 2>/dev/null || echo "missing")
+          echo "backend container status: $STATUS"
+          if [ "$STATUS" != "running" ]; then
+            echo "ERROR: backend container is not running (status=$STATUS)"
+            docker compose -f docker-compose.yml logs backend
+            exit 1
+          fi
+
+      - name: Smoke-test frontend HTTP response
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS --max-time 5 http://localhost:80 -o /dev/null; then
+              echo "frontend responded OK"
+              break
+            fi
+            echo "  attempt $i: frontend not ready yet..."
+            if [ "$i" -eq 12 ]; then
+              echo "ERROR: frontend did not respond within 60 seconds"
+              docker compose -f docker-compose.yml logs frontend
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Tear down smoke stack
+        if: always()
+        run: docker compose -f docker-compose.yml down -v --remove-orphans
+
+      # ── 6. Push to GHCR — the EXACT images that passed smoke (no rebuild) ────
+      # Steps 3–4 already built (load: true) and tagged :<version> + :prod into the
+      # local daemon; the smoke test ran against those images. `docker compose down -v`
+      # removes containers/networks/volumes but NOT images, so the local tags survive.
+      # We simply push them. This guarantees the pushed image == the smoke-tested image
+      # and avoids a second, cache-dependent build (which could diverge on a cache miss).
+      - name: Push images to GHCR (only after smoke passed)
+        run: |
+          for svc in db data-loader backend frontend; do
+            docker push "${{ env.IMAGE_PREFIX }}/${svc}:${{ github.ref_name }}"
+            docker push "${{ env.IMAGE_PREFIX }}/${svc}:prod"
+          done
