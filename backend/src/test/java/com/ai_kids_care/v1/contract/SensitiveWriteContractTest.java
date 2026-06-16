@@ -100,7 +100,7 @@ class SensitiveWriteContractTest {
         CctvCameraService cctvCameraService = mock(CctvCameraService.class);
         MockMvc mockMvc = standaloneSetup(
                 new UserController(),
-                new ChildrenController(),
+                new ChildrenController(childrenService),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
@@ -118,12 +118,13 @@ class SensitiveWriteContractTest {
         mockMvc.perform(delete("/api/v1/users/1"))
                 .andExpect(status().isNotFound());
 
+        // children 已重开 GET（Guardian 关系-scoped，SPEC-0001 §349）；写操作仍未发布 → 405（路径存在但无写 handler）。
         mockMvc.perform(post("/api/v1/children").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(put("/api/v1/children/1").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(delete("/api/v1/children/1"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed());
 
         mockMvc.perform(post("/api/v1/guardians").contentType("application/json").content("{}"))
                 .andExpect(status().isNotFound());

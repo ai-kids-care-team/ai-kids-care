@@ -37,11 +37,11 @@
 
 > ❓ **待确认**：
 > - 登录"当前角色"取最近一条 ACTIVE 分配，对**多角色用户**意味着什么？是否需要前端显式切换 scope？
-> - `child_guardian_relationships` 没有 PENDING 状态；当前靠 PENDING guardian/membership/role 阻断授权，审批阶段是否需要独立申请关系模型？
+> - ~~`child_guardian_relationships` 没有 PENDING 状态；当前靠 PENDING guardian/membership/role 阻断授权，审批阶段是否需要独立申请关系模型？~~ ✅ **已决（2026-06-16）**：关系活跃语义采用 **`end_date` 窗**（不加 status 列、无 schema 迁移）；Guardian 审批前 membership/role 为 PENDING → 登录即被拒，批准后既存关系行（`end_date` 空）即活跃。若未来审批需独立关系申请态，再以新 ADR/迁移引入。
 
 ## 鉴权现状（必读）
 
-> ✅ **as-built（2026-06-15，PR #89）**：角色/范围模型已**被强制执行**——`/api/v1/**` 默认拒绝 + 服务端会话 + 每请求 `EffectiveAuthorizationContext`（ACTIVE user / 唯一 ACTIVE role / membership / scope）+ 集中 policy + 租户隔离；Teacher 收紧为有效 assignment 覆盖，cameras/streams/sessions 限 `KINDERGARTEN_ADMIN`。JWT 已移除。仍 deferred：Guardian 关系策略、安全审计。详见 [security-architecture](../architecture/security-architecture.md)。
+> ✅ **as-built（2026-06-15 PR #89，2026-06-16 续）**：角色/范围模型已**被强制执行**——`/api/v1/**` 默认拒绝 + 服务端会话 + 每请求 `EffectiveAuthorizationContext`（ACTIVE user / 唯一 ACTIVE role / membership / scope）+ 集中 policy + 租户隔离；Teacher 收紧为有效 assignment 覆盖，cameras/streams/sessions 限 `KINDERGARTEN_ADMIN`。JWT 已移除。**安全审计 writer 已落地**（SPEC-0001 #1，登录/登出/会话/tenant 切换/审批/拒绝）。**Guardian→child 关系读取已落地**（SPEC-0001 §349：`GET /children` 仅返回有 ACTIVE 关系——`end_date` 窗——的儿童，无关系 → 隐藏 404 + 审计）。仍 deferred：Teacher→child / 事件资源、Guardian 感谢信/通知。详见 [security-architecture](../architecture/security-architecture.md)。
 
 ## 典型场景（🔶 推断，来自前端路由与功能模块）
 
