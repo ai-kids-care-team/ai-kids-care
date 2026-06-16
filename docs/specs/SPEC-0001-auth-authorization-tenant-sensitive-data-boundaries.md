@@ -560,3 +560,9 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 验证（运行时，2026-06-16，本机 Docker 起 db[含 initdb 种子]+neo4j 全栈）：跑全部 loader 后,Neo4j 五 Label 经 `sum(CASE … IS NOT NULL …)` 全量统计——**禁止字段计数全部为 0**（User 1000 节点 / Kindergarten 3 / Teacher 60 / Child 420 / Guardian 840），KEEP 字段（login_id/status/name/child_no）非空。`no000` scrub 另经「注入金丝雀 → 运行 scrub → 计数归 0 且节点总数 1000 不变」验证其清理既有图有效。CI 仍不覆盖 loader（运行时验证为本机 Docker 一次性手动执行）。
 - 已知（非本切片缺陷）：`run_all.sh` 在 **Windows 工作树**（`autocrlf=true`）签出为 CRLF，本机构建镜像后 `exec ./run_all.sh` 因 `#!/bin/bash\r` 失败（"no such file or directory"）；仓库内为 LF，故 GitHub Actions/CD（Linux 签出）与演示机（拉 GHCR 预构建镜像）不受影响。仅影响本机 Windows 构建。可加 `.gitattributes` `*.sh text eol=lf` 根治（待维护者定）。本次运行时验证以直接 `python <script>.py`（Python 容忍 CRLF）绕过。
 - 复审：实现=sub-agent，复审/集成+运行时验证=Lead（≠实现会话），符合 ADR-0020 sub-agent fresh-review 要求。
+
+#### 切片 10（2026-06-16）：关闭 controller mapper 主键修复（T6 #6，闭合「修复（2026-06-15）」遗留项）
+
+- 「修复（2026-06-15）：已发布 VO 主键 id」当时只修 4 个**已发布** mapper（AiModel/Class/Room/DetectionSession），并记「其余 9 个关闭 controller mapper 同源、待重开时一并修」。本切片提前清掉该债。
+- 修复 9 个关闭 controller mapper 的 `toVO`：`@Mapping(target="<x>Id", ignore=true)` → `@Mapping(source="id", target="<x>Id")`——UserMapper(userId)/GuardianMapper(guardianId)/TeacherMapper(teacherId)/AuditLogMapper(auditId)/DeviceTokenMapper(deviceId)/EventEvidenceFileMapper(evidenceId)/NotificationMapper(notificationId)/NotificationRuleMapper(ruleId)/SuperadminMapper(superadminId)。9 个 entity 主键 Java 字段均为 `id`（列名 `<x>_id`），故 `source="id"` 一致正确；其余 nested-id 映射不动。
+- 测试：这些 controller **仍关闭**（无发布端点可断言），改动与 4 个已发布、已被 `AuthEndpointTest.publishedVos_includeTheirPrimaryId` 运行时验证的 mapper **同范式**，由 MapStruct 编译（CI）校验 `source="id"` 合法。`SensitiveWriteContractTest` 仅断言这些 mapper 的 `toEntity`/`updateEntity` 缺席（不受 `toVO` 改动影响）；无测试断言旧的 null-id 行为。重开任一 controller 时按 ClassMapper 范式补端点级断言。

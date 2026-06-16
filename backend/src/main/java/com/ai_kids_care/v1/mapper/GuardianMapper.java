@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface GuardianMapper {
 
-    @Mapping(target = "guardianId", ignore = true)
+    @Mapping(source = "id", target = "guardianId")
     @Mapping(source = "kindergarten.id", target = "kindergartenId")
     @Mapping(source = "user.id", target = "userId")
     GuardianVO toVO(Guardian entity);
