@@ -42,9 +42,6 @@ def normalize_user_row(row: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "user_id": row["user_id"],
         "login_id": row["login_id"],
-        "email": row["email"],
-        "phone": row["phone"],
-        "password_hash": row["password_hash"],
         "status": str(row["status"]) if row["status"] is not None else None,
         "last_login_at": to_iso_string(row["last_login_at"]),
         "created_at": to_iso_string(row["created_at"]),
@@ -70,9 +67,6 @@ def fetch_all_users() -> List[Dict[str, Any]]:
         SELECT
             user_id,
             login_id,
-            email,
-            phone,
-            password_hash,
             status,
             last_login_at,
             created_at,
@@ -130,9 +124,6 @@ def insert_users_batch(tx, users: List[Dict[str, Any]]):
     MERGE (u:User {user_id: row.user_id})
     SET
         u.login_id = row.login_id,
-        u.email = row.email,
-        u.phone = row.phone,
-        u.password_hash = row.password_hash,
         u.status = row.status,
         u.last_login_at = row.last_login_at,
         u.created_at = row.created_at,

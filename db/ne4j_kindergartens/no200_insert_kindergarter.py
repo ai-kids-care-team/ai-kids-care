@@ -84,26 +84,20 @@ def create_kindergarten_node(tx, row):
         // 2. 속성 설정
         // ======================================================
         SET k.name = $name,
-            k.address = $address,
             k.region_code = $region_code,
             k.code = $code,
             k.business_registration_no = $business_registration_no,
             k.contact_name = $contact_name,
-            k.contact_phone = $contact_phone,
-            k.contact_email = $contact_email,
             k.status = $status,
             k.created_at = $created_at,
             k.updated_at = $updated_at
     """,
     kindergarten_id=kindergarten_id,
     name=clean_value(row.get("name")),
-    address=clean_value(row.get("address")),
     region_code=clean_value(row.get("region_code")),
     code=clean_value(row.get("code")),
     business_registration_no=clean_value(row.get("business_registration_no")),
     contact_name=clean_value(row.get("contact_name")),
-    contact_phone=clean_value(row.get("contact_phone")),
-    contact_email=clean_value(row.get("contact_email")),
     status=clean_value(row.get("status")),
     created_at=fix_datetime(row.get("created_at")),
     updated_at=fix_datetime(row.get("updated_at"))

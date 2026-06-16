@@ -55,9 +55,6 @@ def create_user_node(tx, row):
         // 2. 속성 설정
         // ======================================================
         SET u.login_id = $login_id,
-            u.email = $email,
-            u.phone = $phone,
-            u.password_hash = $password_hash,
             u.status = $status,
             u.last_login_at = $last_login_at,
             u.created_at = $created_at,
@@ -65,9 +62,6 @@ def create_user_node(tx, row):
     """,
     user_id=user_id,
     login_id=clean_value(row.get("login_id")),
-    email=clean_value(row.get("email")),
-    phone=clean_value(row.get("phone")),
-    password_hash=clean_value(row.get("password_hash")),
     status=clean_value(row.get("status")),
     last_login_at=fix_datetime(row.get("last_login_at")),
     created_at=fix_datetime(row.get("created_at")),
