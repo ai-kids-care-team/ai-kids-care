@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts must always check out with LF — even on Windows (autocrlf=true).
+# A CRLF shebang (#!/bin/bash\r) makes a Docker image built from a Windows
+# working tree fail at `exec ./run_all.sh` with "no such file or directory".
+*.sh text eol=lf
