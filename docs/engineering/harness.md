@@ -34,6 +34,9 @@ Two operating principles:
 | `git diff --check`, focused tests/build | Sensor · computational | run each change | whitespace, touched-area regressions |
 | **Stop hook** (`git diff --check`) | Sensor · computational | `.claude/settings.json` | whitespace / conflict-marker errors — automatically, at turn end |
 | **Schema-digest drift check** | Sensor · computational | `.github/workflows/schema-digest-drift.yml` | a stale schema digest after a migration (regenerates in CI, fails on diff) |
+| **Test-fixture phone uniqueness** | Sensor · computational | backend test `TestFixturePhoneUniquenessTest` | a full phone literal reused across test classes (the shared-container UNIQUE collision) |
+| **Spec acceptance coverage map** | Guide+Sensor · mixed | backend test `SpecAcceptanceCoverageTest` | §372/§390 coverage claims silently rotting when a covering test is deleted/renamed |
+| **Incident ledger** | Guide · inferential | `docs/engineering/incidents.md` | re-deriving already-fixed mistakes; losing the "issue → control" loop |
 | CI (Backend Java Tests · Compose Config · Frontend lint/build) | Sensor · computational | GitHub Actions | full-suite + compose + frontend, on every push to `develop` |
 | Release gate | Sensor · mixed | develop→main PR | 3 required checks + fresh reviewer + maintainer merge |
 | Fresh independent reviewer (`FINAL REVIEW`) | Sensor · inferential | release gate; sub-agent merges | semantic defects a fresh context catches |
@@ -89,16 +92,20 @@ Honest backlog, roughly highest-leverage first:
   (`.claude/settings.json`). The protected-push guard is left to server-side branch protection
   (the real control); the migration→schema-digest reminder is enforced in CI instead. A richer
   PreToolUse/Stop suite would need a PowerShell (Windows-only) or guaranteed-`node` rewrite.
-- **No behaviour-eval suite.** Beyond regression tests, there's no systematic eval set
-  (binary pass/fail; convert incidents to evals) for agent failure modes.
-- **Spec acceptance isn't machine-checkable.** Coverage matrices (e.g. §372/§390) are judged
-  by hand, not a `passes` checklist. (The `test-conventions.md` login/phone prefix table is
-  likewise hand-maintained — a CI grep asserting the prefixes are distinct would make it a
-  computational Sensor.)
+- **No agent-behaviour eval runner.** The incident ledger ([`incidents.md`](incidents.md)) plus
+  the runnable guardrail tests it links (`TestFixturePhoneUniquenessTest`, the contract tests, the
+  schema-digest drift check) give deterministic pass/fail coverage of the failure *classes* we've
+  actually hit — but there's no harness that replays scenario prompts against an agent with an
+  LLM-as-judge verdict. That's a separate, larger effort.
+- **Spec acceptance is only partly machine-anchored.** §372/§390 now have a version-controlled
+  coverage map (`SpecAcceptanceCoverageTest`) whose referenced tests must exist, so a deleted or
+  renamed covering test breaks the build instead of rotting silently. Still human-judged: whether
+  the mapped tests *semantically* cover each dimension (the spec retains maintainer sign-off).
 
-Recently closed: the **`/authz-read-slice` skill** now codifies the authz read-slice pattern
-(was "no reusable scaffolds/skills"); the schema digest is no longer on-demand —
-**`schema-digest-drift.yml`** regenerates it in CI and fails on drift.
+Recently closed: the **`/authz-read-slice` skill** codifies the authz read-slice pattern; the
+schema digest is enforced in CI (**`schema-digest-drift.yml`**); the shared-container UNIQUE
+collision and the "issue → control" discipline are now a runnable guard + ledger
+(**`TestFixturePhoneUniquenessTest`**, **`incidents.md`**).
 
 ---
 

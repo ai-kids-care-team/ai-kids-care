@@ -13,16 +13,27 @@ Each item below is a real failure that reached CI at least once — treat them a
 `email`/`phone` collision with a DIFFERENT login_id from ANOTHER test class → the insert
 fails with `DuplicateKeyException`.
 
-**Convention: each integration test class owns a unique `login_id` prefix AND a unique
-phone prefix.** Known assignments (grep `010-0` in `src/test` before picking a new one):
+**The real invariant: no two test classes may hold the SAME full `phone` (or `login_id` /
+`email`) live at once.** The easy way to guarantee it is to give each class its own number
+space. Reusing a *prefix* with DISTINCT suffixes is fine (`010-0000-9995` vs `010-0000-9996`,
+as several tenant tests do) — what bites is the SAME full value. Grep `010-0` in `src/test`
+before picking a new number space.
 
-| test class | login prefix | phone prefix |
-| --- | --- | --- |
-| GuardianChildAuthorizationIntegrationTest | `gc-*` | `010-0700-*` |
-| TeacherChildAuthorizationIntegrationTest | `tc-*` | `010-0800-*` |
-| NotificationReadAuthorizationIntegrationTest | `nr-*` | `010-0905-*` |
+**Enforced:** `TestFixturePhoneUniquenessTest` (package `v1.harness`) fails the build if any
+full phone literal is shared by two test classes (INC-001 in [`incidents.md`](incidents.md)).
 
-(This exact collision — NotificationRead reusing `010-0800-*` — broke 6 TeacherChild tests.)
+Current phone spaces (illustrative, not exhaustive):
+
+| phone space | test class(es) |
+| --- | --- |
+| `010-0000-*` | AuthEndpointTest, TeacherAssignment / TeacherRoomAssignment / TenantIsolation (distinct suffixes) |
+| `010-0001-*` | AdminApprovalAuthorizationIntegrationTest |
+| `010-0700-*` | GuardianChildAuthorizationIntegrationTest |
+| `010-0800-*` | TeacherChildAuthorizationIntegrationTest |
+| `010-0900-*` | SecurityAuditIntegrationTest |
+| `010-0905-*` | NotificationReadAuthorizationIntegrationTest |
+
+(The original collision — NotificationRead reusing TeacherChild's `010-0800-0001` — broke 6 tests.)
 
 ## 2. Composite tenant FKs — cross-tenant test data is not free
 
