@@ -1,0 +1,70 @@
+# CD / Registry deploy override  (ADR-0022)
+#
+# Usage (演示机):
+#   docker compose -f docker-compose.yml -f docker-compose.cd.yml up -d
+#
+# 这个 override 的作用：
+#   1. 清除 base compose 中 db/data-loader/backend/frontend 的 build 指令，
+#      强制 Docker Engine 直接拉取 GHCR 镜像（host 不构建）。
+#      image: 键已在 base docker-compose.yml 中声明，故此处无需重复。
+#   2. 新增 watchtower 服务，轮询 :prod 镜像 digest 变化后自动 pull + 重建容器。
+#
+# ─── 演示数据策略（OQ-1 已定：持久）──────────────────────────────────────────
+#   db 使用 GHCR 的 db:prod（含 initdb 种子），首次启动灌种子一次；
+#   之后持久卷（postgres_data）保留数据，Flyway 管理 schema 增量。
+#   watchtower 重建容器时不清卷，演示数据持续存在。
+#   若需强制重灌种子，手动执行：
+#     docker compose -f docker-compose.yml -f docker-compose.cd.yml down -v
+#     docker compose -f docker-compose.yml -f docker-compose.cd.yml up -d
+#
+# ─── host 侧前置条件（维护者操作一次）────────────────────────────────────────
+#   1. 在 host 上用 GHCR PAT（read:packages scope）登录：
+#        docker login ghcr.io -u <github-username> --password-stdin
+#      登录态保存在 ~/.docker/config.json；watchtower 挂载此文件自动复用。
+#   2. watchtower 环境变量 WATCHTOWER_POLL_INTERVAL=300 表示每 5 分钟检查一次。
+#      按需调整。参见 OQ-2（token 轮换方式待定）。
+#
+# ─── 不动 docker-compose.prod.yml ─────────────────────────────────────────────
+#   真 prod（Caddy TLS + Dockerfile.prod 无种子 + secure cookie）仍用：
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   本文件与 prod override 相互独立，不混用。
+
+services:
+  db:
+    build: !reset null    # 清除 base 的 build 指令；image: 键继承自 base
+
+  data-loader:
+    build: !reset null
+
+  backend:
+    build: !reset null
+
+  frontend:
+    build: !reset null
+
+  # ── watchtower：自动拉取并重建 :prod digest 变化的服务容器 ─────────────────
+  # 监控策略：WATCHTOWER_LABEL_ENABLE=false（默认），监控同 compose 项目的所有容器。
+  # 若只想监控本栈（非 host 上其他容器），可改为 label 模式：
+  #   WATCHTOWER_LABEL_ENABLE=true
+  #   并在各服务 labels: 下加 com.centurylinklabs.watchtower.enable=true
+  # 当前选择：监控同 Docker 守护进程下的全部容器（含本栈 + watchtower 自身除外）。
+  watchtower:
+    image: containrrr/watchtower
+    container_name: ai-kids-watchtower
+    restart: unless-stopped
+    volumes:
+      # Docker socket：watchtower 用它拉取镜像并重建容器
+      - /var/run/docker.sock:/var/run/docker.sock
+      # GHCR 登录凭据（host 侧先手动 docker login ghcr.io，见上方 OQ-2 说明）
+      # ${DOCKER_CONFIG:-$HOME/.docker} 允许通过环境变量覆盖路径
+      - ${DOCKER_CONFIG:-/root/.docker}/config.json:/config.json:ro
+    environment:
+      # 轮询间隔（秒）。300 = 每 5 分钟检查一次 :prod digest。
+      WATCHTOWER_POLL_INTERVAL: "300"
+      # 拉取新镜像后删除旧镜像，避免磁盘堆积
+      WATCHTOWER_CLEANUP: "true"
+      # 只处理有 watchtower enable label 的容器（改为 "false" 监控全部）
+      # 当前 = "false"：监控本 Docker daemon 下所有容器
+      WATCHTOWER_LABEL_ENABLE: "false"
+      # 拉取 GHCR 私有镜像时使用挂载的 config.json 凭据
+      DOCKER_CONFIG: /config.json

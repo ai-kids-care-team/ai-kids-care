@@ -1,5 +1,6 @@
 services:
   db:
+    image: ghcr.io/ai-kids-care-team/ai-kids-care/db:prod
     build:
       context: ./db
       dockerfile: Dockerfile
@@ -53,6 +54,7 @@ services:
 
   # Python Data Loader
   data-loader:
+    image: ghcr.io/ai-kids-care-team/ai-kids-care/data-loader:prod
     build:
       context: ./db/ne4j_kindergartens
       dockerfile: Dockerfile
@@ -73,6 +75,7 @@ services:
     restart: "no"
 
   backend:
+    image: ghcr.io/ai-kids-care-team/ai-kids-care/backend:prod
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -102,6 +105,7 @@ services:
         condition: service_healthy
 
   frontend:
+    image: ghcr.io/ai-kids-care-team/ai-kids-care/frontend:prod
     build:
       context: ./frontend
       dockerfile: Dockerfile
