@@ -17,6 +17,8 @@ public interface NotificationMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    // kindergarten は closed write パスでは不使用——tenant-scoped 読取は NotificationService の READ パスで処理
+    @Mapping(target = "kindergarten", ignore = true)
     @Mapping(source = "eventId", target = "detectionEvents.id")
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     Notification toEntity(NotificationCreateDTO dto);
@@ -26,5 +28,7 @@ public interface NotificationMapper {
     @Mapping(source = "eventId", target = "detectionEvents.id")
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     @Mapping(target = "createdAt", ignore = true)
+    // kindergarten は closed write パスでは不使用
+    @Mapping(target = "kindergarten", ignore = true)
     void updateEntity(NotificationUpdateDTO dto, @MappingTarget Notification entity);
 }

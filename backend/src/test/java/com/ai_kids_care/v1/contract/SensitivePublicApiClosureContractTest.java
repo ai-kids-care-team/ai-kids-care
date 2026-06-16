@@ -9,7 +9,6 @@ import com.ai_kids_care.v1.controller.EventEvidenceFileController;
 import com.ai_kids_care.v1.controller.GraphController;
 import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.KindergartenController;
-import com.ai_kids_care.v1.controller.NotificationController;
 import com.ai_kids_care.v1.controller.NotificationRuleController;
 import com.ai_kids_care.v1.controller.SuperadminController;
 import com.ai_kids_care.v1.controller.TeacherController;
@@ -41,7 +40,8 @@ class SensitivePublicApiClosureContractTest {
     void graphAuditLogNotificationAndSensitiveControllersPublishNoOperations() {
         assertThat(GraphController.class.getDeclaredMethods()).isEmpty();
         assertThat(AuditLogController.class.getDeclaredMethods()).isEmpty();
-        assertThat(NotificationController.class.getDeclaredMethods()).isEmpty();
+        // NotificationController 已重开 tenant-scoped GET（SPEC-0001 / ADR-0018 A3d）——不再是空壳；
+        // 其授权 / 作用域 / 隐藏 404 行为由 NotificationReadAuthorizationIntegrationTest 覆盖。
         assertThat(EventReviewController.class.getDeclaredMethods()).isEmpty();
         assertThat(NotificationRuleController.class.getDeclaredMethods()).isEmpty();
         assertThat(SuperadminController.class.getDeclaredMethods()).isEmpty();
@@ -61,7 +61,6 @@ class SensitivePublicApiClosureContractTest {
         MockMvc mockMvc = standaloneSetup(
                 new GraphController(),
                 new AuditLogController(),
-                new NotificationController(),
                 new EventReviewController(),
                 new NotificationRuleController(),
                 new SuperadminController(),
@@ -77,8 +76,6 @@ class SensitivePublicApiClosureContractTest {
         mockMvc.perform(get("/api/v1/graph/children/1"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/audit_logs"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/notifications"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/event_reviews"))
                 .andExpect(status().isNotFound());

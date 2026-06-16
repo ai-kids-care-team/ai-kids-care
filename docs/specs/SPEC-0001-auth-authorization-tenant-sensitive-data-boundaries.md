@@ -574,3 +574,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：`GuardianChildAuthorizationIntegrationTest` 删除已失效的 `children_teacherRole_returns403`（teacher 不再 403）；新增 `TeacherChildAuthorizationIntegrationTest`（仅 ACTIVE assignment 班级内儿童可见、无 assignment 同租户→404+DENIED 审计、CTA 已结束→404、跨租户→404、未认证→401、最小字段无 S0/S1）。
 - 实现=sub-agent[sonnet]，复审/集成=Lead（≠实现会话，ADR-0020）。本机无 Java → CI 唯一验证（JPQL 镜像 RoomRepository 嵌套 EXISTS + ChildRepository guardian 范式 + TeacherAssignmentAuthorizationIntegrationTest 的 enum/helper 范式，逐一核对）。
 - defer（§351 余项）：Teacher→detection_events（耦合 [ADR-0015](../decisions/adr/ADR-0015-ai-detection-closed-loop.md) AI 闭环，需设计）、感谢信 / 通知（notifications = 实现 [ADR-0018](../decisions/adr/ADR-0018-notification-subsystem.md) Accepted + Flyway 迁移，独立 session）。
+
+#### 切片 12（2026-06-16）：通知只读子系统 + V3 迁移（ADR-0018 A3d / OQ-DATA-3）
+
+- 前置 V3 迁移（OQ-DATA-3）：放宽 `notifications` 的 `sent_at`/`fail_reason` DROP NOT NULL + `retry_count` DEFAULT 0（待发态），`Notification` 实体同步可空性（见 commit `125d835`）。
+- A3d 通知**只读**：重开 `NotificationController` GET `/notifications`·`/notifications/{id}`，返回**最小** `NotificationReadVO`（notificationId/title/body/status/createdAt——排除 channel/dedupeKey/sentAt/failReason/retryCount/recipientUserId/kindergartenId）。`AuthorizationAction.NOTIFICATION_READ` 粗门 = `tenantIdentity && (GUARDIAN || TEACHER || KINDERGARTEN_ADMIN)`；`NotificationService` 按角色分流（KINDERGARTEN_ADMIN → 园级查询；其余受体 → recipient-scoped 自己的）；细粒度作用域由 `NotificationRepository` 4 条 JPQL 在 SQL 内强制（用 notifications 直连 `kindergarten_id` 列做租户）。无权限（他人通知/跨租户/不存在）→ 审计 AUTHORIZATION_DENIED + 隐藏 404。`Notification` 实体新增 `kindergarten` 关联映射既有 `kindergarten_id` 列；`NotificationMapper` 的 closed 写方法加 `@Mapping(target="kindergarten", ignore=true)`。完整 `NotificationVO`、写链仍关闭（写 → 405）。
+- 契约护栏（镜像 T2）：`SensitivePublicApiClosureContractTest`（NotificationController 移出空壳列表/404 representative）、`PublishedOpenApiContractTest`（`/notifications` GET present + 锁 `NotificationReadVO` 5 字段；完整 `NotificationVO` 仍 absent）、`SensitiveWriteContractTest`（notifications 写 → 405 + 传 service mock）。
+- 测试：新增 `NotificationReadAuthorizationIntegrationTest`（受体仅见自己、他人通知隐藏 404 + DENIED 审计、KINDERGARTEN_ADMIN 见全园、跨租户 404、未认证 401、最小字段无内部/S0）。
+- 实现=sub-agent[sonnet]，复审/集成=Lead（≠实现会话，ADR-0020）。本机无 Java → CI 唯一验证（Lead 复核：JPQL/契约镜像 T2、admin 无 profile 经 `EffectiveAuthorizationContextService.resolve` 确认可解析、membership ON CONFLICT 经 `uq_ukm_kg_user` 唯一索引确认有效、channel/status enum 值核对）。
+- defer 仍在：Teacher→detection_events / 感谢信 / 通知**写链与规则**（notification_rules）/ AI 闭环（ADR-0015）。

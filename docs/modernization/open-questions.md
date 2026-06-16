@@ -126,7 +126,8 @@
 ### OQ-DATA-3 ｜`notifications` 多个 NOT NULL 字段的合理性
 - **证据** ✅：`sent_at`、`fail_reason`、`retry_count` 等为 `NOT NULL`，但语义上新建通知时可能尚无值。
 - **观察**：是否应放宽为可空？（事实记录，不下结论）
-- **结论（2026-06-07）** ✅：纳入 [ADR-0018 通知子系统](../decisions/adr/ADR-0018-notification-subsystem.md)（Proposed）——"待发"态应允许 `sent_at`/`fail_reason`/`retry_count` 为空/默认；放宽 NOT NULL 的 schema 变更走 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) 迁移。本项归 ADR-0018 跟踪。
+- **结论（2026-06-07）** ✅：纳入 [ADR-0018 通知子系统](../decisions/adr/ADR-0018-notification-subsystem.md)（Accepted）——"待发"态应允许 `sent_at`/`fail_reason`/`retry_count` 为空/默认；放宽 NOT NULL 的 schema 变更走 Flyway 迁移。
+- **已实现（2026-06-16）** ✅：V3 迁移（`V3__relax_notifications_pending_columns.sql`）`sent_at`/`fail_reason` DROP NOT NULL + `retry_count` DEFAULT 0，`Notification` 实体可空性同步（见 SPEC-0001 实施记录「切片 12」，与 A3d 通知只读子系统配套）。本项关闭。
 
 ### OQ-DATA-4 ｜`menu` / `common_codes` 字典表治理落地
 - **证据** ✅：`02_menu.sql` 建 `menu`（单数）、`03_CommonCode.sql` 建 `common_codes`（复数）；二者命名风格与核心 28 表不一致；`menu` 有 `MenuController` 但后端**无 `Menu` 实体**；本知识库此前误写为 `common_code`（单数）。
