@@ -541,3 +541,11 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：新增 `GuardianChildAuthorizationIntegrationTest`——仅 ACTIVE 关系儿童可见、无关系/已结束/跨租户 → 隐藏 404、无关系写 DENIED 审计行、TEACHER → 403、未认证 → 401、响应最小字段无 S0/S1。
 - 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。
 - defer（记录）：成功 S1 读取审计（跨切面，后续）；className/gender 字段；**Teacher→child / 事件**（§351 余项）；感谢信 / 通知 Guardian 资源。
+
+#### 切片 8（2026-06-16）：负向测试套件——错误响应敏感数据 absence（§390「error」腿）
+
+- Discovery 盘点（事实）：§372 负向矩阵（匿名/已认证、正确/错误角色、同租户/跨租户、关系存在/不存在、敏感字段 absence）五个维度均已被现有 9 个安全/契约测试类覆盖；§390「response、错误和审计中不存在 S0」的 **response 腿**（`SensitiveResponseContractTest`/`PublishedOpenApiContractTest`）与 **审计腿**（`SecurityAuditIntegrationTest.auditRecords_doNotContainS0`）已覆盖，唯 **error 腿**无测试。本切片只补此缺口，不重复造已覆盖项。
+- 事实核验：错误响应当前均为固定 `{"error":"..."}` 或空体——`ApiExceptionHandler`(EntityNotFound→隐藏 404 定值)、`AuthController` 局部 handler(`MethodArgumentNotValidException`→仅 `getDefaultMessage()`、不含 rejectedValue；`ResponseStatusException`→`getReason()`)、`HttpStatusEntryPoint`(401 空体)、`SecurityAuditAccessDeniedHandler`(403 `{"error":"Access denied"}`)。`application.yml` 未设 `server.error.*`，故 Spring Boot 默认 `include-message/binding-errors/stacktrace=never`。即错误腿**当前安全 by construction**，本测试为**回归护栏**。
+- 测试：新增 `ErrorResponseSensitiveDataIntegrationTest`（4 项，集成测试经真实安全链）——(1) 400 注册校验失败植入口令/RRN 金丝雀不回显；(2) 400 报文不可解析不回显原始字节、不带 stacktrace/exception；(3) 403 CSRF 缺失不回显提交口令；(4) 401 未认证不暴露 S0/内部。共享 `assertNoSensitiveLeakage` 扫描金丝雀明文 + S0/内部存储字段名（camel+snake：`passwordHash`/`rrnEncrypted`/`ciphertext`/`pushToken`/`storageUri`/`sourceUrl`/`streamUser` 等）+ 内部信息 JSON key（`"trace"`/`"exception"`/`"stackTrace"`）。隐藏 404 `{"error":"Resource not found"}` 契约已由 GuardianChild/AdminApproval 覆盖，不重复。
+- 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。仅新增一个后端测试文件，无生产代码改动，前端未触碰。
+- 未做 / 后续（ops 子项，与负向测试套件分离）：loader×Flyway 竞态（OQ-OPS-1）、备份（OQ-OPS-4）、生产 `.env`；以及 §372/§390 验收勾选保留维护者评审（多项跨前端/CI，非本切片可独立闭合）。
