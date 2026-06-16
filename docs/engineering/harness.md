@@ -29,8 +29,11 @@ Two operating principles:
 | ADRs / specs | Guide · inferential | `docs/decisions/adr`, `docs/specs` | re-litigating decided choices; building without acceptance criteria |
 | **Schema digest** (every NOT NULL / UNIQUE / FK / enum) | Guide · computational | `docs/engineering/schema-digest.md` (generated) | blind fixtures/JPQL; the composite-FK / UNIQUE(phone) / enum-cast traps |
 | **Test conventions** | Guide · inferential | `docs/engineering/test-conventions.md` | the recurring integration-test fixture failures |
+| **Authz read-slice skill** | Guide · inferential | `.claude/skills/authz-read-slice/` | re-deriving the authz read-slice pattern (action+gate / scoped JPQL / VO / tests / 3 contract edits) |
 | **Local backend test loop** | Sensor · computational | `scripts/test-backend.sh` | compile/type/MapStruct + runtime test failures, *before push* |
 | `git diff --check`, focused tests/build | Sensor · computational | run each change | whitespace, touched-area regressions |
+| **Stop hook** (`git diff --check`) | Sensor · computational | `.claude/settings.json` | whitespace / conflict-marker errors — automatically, at turn end |
+| **Schema-digest drift check** | Sensor · computational | `.github/workflows/schema-digest-drift.yml` | a stale schema digest after a migration (regenerates in CI, fails on diff) |
 | CI (Backend Java Tests · Compose Config · Frontend lint/build) | Sensor · computational | GitHub Actions | full-suite + compose + frontend, on every push to `develop` |
 | Release gate | Sensor · mixed | develop→main PR | 3 required checks + fresh reviewer + maintainer merge |
 | Fresh independent reviewer (`FINAL REVIEW`) | Sensor · inferential | release gate; sub-agent merges | semantic defects a fresh context catches |
@@ -49,7 +52,7 @@ Two operating principles:
    - `bash scripts/test-backend.sh --compile` — fastest; catches compile/type/MapStruct.
    - `bash scripts/test-backend.sh '*YourTest*'` — run the affected class (~1.5 min).
    - `bash scripts/test-backend.sh` — full backend suite before a risky push.
-   - `git diff --check`; for compose, `docker compose ... config`; for frontend, lint/build.
+   - `git diff --check` (also auto-run as a Stop hook); compose `docker compose ... config`; frontend lint/build.
 4. **Push to `develop`** (the integration trunk). CI re-runs the suite as a post-hoc signal;
    fix a red trunk promptly. (Lead pushes `develop` directly; sub-agents use `codex/<task>`
    branches + a fresh-context review — see project.md.)
@@ -78,19 +81,24 @@ controls (review agents) for semantic judgement. Keep each control as far left a
 
 Honest backlog, roughly highest-leverage first:
 
-- **No enforced hooks.** Verification (`git diff --check`, affected tests) is manual
-  discipline, not a `.claude/settings.json` Stop/PreToolUse hook. A Stop hook that runs the
-  loop and blocks the turn on failure would make it deterministic.
-- **No reusable scaffolds/skills.** The authz read slices (T2 Guardian-child, A3a
-  Teacher-child, A3d notifications) are ~90% identical (action+gate / scoped JPQL / service
-  role-branch / minimal VO / integration test / 3 contract-test edits) but re-derived each
-  time. A `/authz-read-slice` skill would codify it.
+- **Local hooks are minimal by necessity.** On this Windows + packaged-desktop-app setup the
+  only interpreters reliably on a hook's PATH are `git` and `powershell` — `node` ships inside
+  the app (not on PATH) and `bash` resolves to WSL, so `node`/`bash` hook scripts are inert or
+  wrong (see [`.claude/hooks/README.md`](../../.claude/hooks/README.md)). The one enforced
+  local hook is therefore the portable, interpreter-free Stop hook `git diff --check`
+  (`.claude/settings.json`). The protected-push guard is left to server-side branch protection
+  (the real control); the migration→schema-digest reminder is enforced in CI instead. A richer
+  PreToolUse/Stop suite would need a PowerShell (Windows-only) or guaranteed-`node` rewrite.
 - **No behaviour-eval suite.** Beyond regression tests, there's no systematic eval set
   (binary pass/fail; convert incidents to evals) for agent failure modes.
 - **Spec acceptance isn't machine-checkable.** Coverage matrices (e.g. §372/§390) are judged
-  by hand, not a `passes` checklist.
-- **Schema digest is on-demand**, not auto-regenerated when a migration lands (could be a CI
-  step or a hook).
+  by hand, not a `passes` checklist. (The `test-conventions.md` login/phone prefix table is
+  likewise hand-maintained — a CI grep asserting the prefixes are distinct would make it a
+  computational Sensor.)
+
+Recently closed: the **`/authz-read-slice` skill** now codifies the authz read-slice pattern
+(was "no reusable scaffolds/skills"); the schema digest is no longer on-demand —
+**`schema-digest-drift.yml`** regenerates it in CI and fails on drift.
 
 ---
 
