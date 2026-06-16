@@ -1,4 +1,4 @@
-// version: v 1.2.0
+// version: v 1.3.0 (ADR-0021: REJECTED status, role/membership integrity constraints, audit_logs platform scope)
 
 //============================================================
 // Enums
@@ -8,6 +8,7 @@ Enum status_enum {
   ACTIVE [note: "활성화 상태"]
   PENDING [note: "대기 상태"]
   DISABLED [note: "비활성화 상태"]
+  REJECTED [note: "신청 거절 상태 (ADR-0021)"]
 }
 
 Enum gender_enum {
@@ -402,6 +403,7 @@ Table user_kindergarten_memberships {
 
   Indexes {
     (kindergarten_id, user_id) [unique, name: "uq_ukm_kg_user"]
+    (user_id) [unique, name: "uq_ukm_one_active_per_user", note: "partial: WHERE status='ACTIVE' (ADR-0021)"]
   }
 }
 
@@ -410,7 +412,7 @@ Table user_role_assignments {
   user_id bigint [not null, note: "대상 사용자 ID(USER_ACCOUNT.user_id)"]
   role user_role_enum [not null, note: "역할(GUARDIAN/TEACHER/KINDERGARTEN_ADMIN/PLATFORM_IT_ADMIN/SUPERADMIN)"]
   scope_type user_role_assignment_scope_type [not null, note: "권한 범위 유형(PLATFORM/KINDERGARTEN)"]
-  scope_id bigint [note: "권한 범위 ID(NULL=PLATFORM; KINDERGARTEN일 때 kindergarten_id)"]
+  scope_id bigint [note: "권한 범위 ID(NULL=PLATFORM; KINDERGARTEN일 때 kindergarten_id); CHECK: PLATFORM→NULL, KINDERGARTEN→NOT NULL (ADR-0021)"]
   status status_enum [not null, note: "권한 상태"]
   granted_at timestamptz [not null, default: "now()", note: "권한 부여 일시"]
   granted_by_user_id bigint [note: "권한 부여자 사용자 ID(USER_ACCOUNT.user_id)"]
@@ -419,6 +421,7 @@ Table user_role_assignments {
 
   Indexes {
     (user_id, role, scope_type, scope_id) [unique, name: "uq_ura_user_role_scope"]
+    (user_id) [unique, name: "uq_ura_one_active_per_user", note: "partial: WHERE status='ACTIVE' (ADR-0021)"]
     (scope_type, scope_id, status) [name: "idx_ura_scope_status"]
   }
 }
@@ -598,13 +601,17 @@ Table notifications {
 
 Table audit_logs {
   audit_id bigint [pk, increment, note: "감사/추적 로그 ID"]
-  kindergarten_id bigint [not null, note: "유치원 ID(KINDERGARTEN.kindergarten_id)"]
-  user_id bigint [not null, note: "행위 사용자 ID(USER_ACCOUNT.user_id)"]
+  scope_type user_role_assignment_scope_type [not null, note: "이벤트 범위(PLATFORM/KINDERGARTEN); CHECK: PLATFORM→kindergarten_id NULL, KINDERGARTEN→NOT NULL (ADR-0021)"]
+  kindergarten_id bigint [note: "유치원 ID(KINDERGARTEN.kindergarten_id); 가변(NULL=PLATFORM 이벤트 or actor 미상)"]
+  user_id bigint [note: "행위 사용자 ID(USER_ACCOUNT.user_id); 가변(NULL=actor 미상 이벤트)"]
   action varchar [note: "행위(예: CREATE/UPDATE/DELETE/LOGIN 등)"]
   resource_type varchar [note: "대상 리소스 유형(테이블/도메인명 등)"]
   resource_id bigint [note: "대상 리소스 ID"]
   ip varchar [note: "요청 IP"]
   user_agent varchar [note: "User-Agent"]
+  effective_role varchar [note: "이벤트 발생 시점 역할 스냅샷(ADR-0021)"]
+  result varchar [note: "처리 결과(SUCCESS/DENIED/FAILURE 등, 애플리케이션 열거형 적용; ADR-0021)"]
+  correlation_id varchar [note: "요청 상관 ID(X-Request-Id 등; ADR-0021)"]
   created_at timestamptz [default: "now()", note: "생성 일시"]
 }
 

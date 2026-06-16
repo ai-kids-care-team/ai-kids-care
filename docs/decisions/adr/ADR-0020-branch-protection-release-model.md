@@ -2,7 +2,7 @@
 ADR: ADR-0020
 title: "ADR-0020: 两层分支模型与发布门（develop 集成 trunk + main 人工发布）"
 status: Accepted
-implementation: Partial
+implementation: Complete
 date: 2026-06-15
 deciders: 接手人起草，维护者 Accept（2026-06-15）
 supersedes: []
@@ -17,11 +17,11 @@ related_specs:
 
 Decision: `Accepted`（2026-06-15 维护者 Accept）
 
-Implementation: `Partial`
+Implementation: `Complete`
 
 > 背景：维护者希望承担 Lead/Planner 的主 agent 能**长时间自主连续工作**，而现行"每个改动经 develop PR + 人工合并"的流程使主 agent 在每次合并处受阻。本 ADR 把发布门从 develop 迁移到 main，并固化 develop=集成 trunk、main=人工发布门的两层模型。
 
-> 实施状态（2026-06-15）：(1) `.ai/project.md` 的「Branch And CI Workflow」「Delivery Gates」已对齐本模型；(2) GitHub `develop` 分支保护已去掉 require-PR（放开主 agent 直推），保持禁 force-push/删除、push 限维护者；(3) GitHub `main` 已新增 required status checks = `Gradle test (Java 21)` + `docker compose config`（strict=false），保留 require-PR + code-owner 审批 + restrictions + block_creations；(4) main 复活以首次 `develop → main` 发布 PR 进行（**待维护者合并**）。**待办**：合并复活 PR 后 main = develop 基线；后续按本模型勤发布。
+> 实施状态（2026-06-15）：(1) `.ai/project.md` 的「Branch And CI Workflow」「Delivery Gates」已对齐本模型；(2) GitHub `develop` 分支保护已去掉 require-PR（放开主 agent 直推），保持禁 force-push/删除、push 限维护者；(3) GitHub `main` 已新增 required status checks = `Gradle test (Java 21)` + `docker compose config`（strict=false），保留 require-PR + code-owner 审批 + restrictions + block_creations；(4) main 复活的首次 `develop → main` 发布（[PR #90](https://github.com/ai-kids-care-team/ai-kids-care/pull/90)）已于 2026-06-15 由维护者合并（merge commit `747df2e`），`main` 现已对齐 `develop` 基线。后续按本模型小批量勤发布。遗留：`main` 含一张旧名 ERD png（`docs/db/ERD/pics/AI-detection&evenet-process.png`），属可选清理项，非阻断。
 
 > 注：`main` 上 required status check 的精确 context 名为 CI **job 名**（`Gradle test (Java 21)` / `docker compose config`），非 workflow 名（`Backend Java Tests` / `Compose Config`）；project.md 行文用 workflow 名指代，配置用 job 名。
 

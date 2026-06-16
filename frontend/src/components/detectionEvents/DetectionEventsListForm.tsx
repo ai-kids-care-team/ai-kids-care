@@ -99,6 +99,7 @@ export function DetectionEventsListForm({
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
