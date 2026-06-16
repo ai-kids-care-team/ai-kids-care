@@ -272,6 +272,10 @@ class PublishedOpenApiContractTest {
         assertComponentAbsent(apiDocs, "ChildGraphVO");
         assertComponentAbsent(apiDocs, "AuditLogVO");
         assertComponentAbsent(apiDocs, "NotificationVO");
+        // SPEC-0001 / ADR-0018 A3d：通知读取只发布最小 NotificationReadVO（无 channel/dedupeKey/sentAt/failReason/retryCount/recipientUserId/kindergartenId）。
+        assertComponentHasOnlyProperties(apiDocs, "NotificationReadVO", Set.of(
+                "notificationId", "title", "body", "status", "createdAt"
+        ));
         assertComponentAbsent(apiDocs, "NotificationCreateDTO");
         assertComponentAbsent(apiDocs, "NotificationUpdateDTO");
         assertComponentAbsent(apiDocs, "AuthLogoutDTO");
@@ -346,8 +350,10 @@ class PublishedOpenApiContractTest {
         assertPathAbsent(apiDocs, "/api/v1/graph/children/{childId}");
         assertPathAbsent(apiDocs, "/api/v1/audit_logs");
         assertPathAbsent(apiDocs, "/api/v1/audit_logs/{id}");
-        assertPathAbsent(apiDocs, "/api/v1/notifications");
-        assertPathAbsent(apiDocs, "/api/v1/notifications/{id}");
+        // SPEC-0001 / ADR-0018 A3d：notifications GET 已重开（tenant-scoped，返回最小 NotificationReadVO）。
+        // 完整 NotificationVO 仍不发布（见上 assertComponentAbsent("NotificationVO")）；写操作仍关闭 → 405。
+        assertOperationPresent(apiDocs, "/api/v1/notifications", "get");
+        assertOperationPresent(apiDocs, "/api/v1/notifications/{id}", "get");
         assertPathAbsent(apiDocs, "/api/v1/event_reviews");
         assertPathAbsent(apiDocs, "/api/v1/event_reviews/{id}");
         assertPathAbsent(apiDocs, "/api/v1/event_reviews/{eventId}/latest");

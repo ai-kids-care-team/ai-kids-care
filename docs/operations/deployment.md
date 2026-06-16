@@ -147,7 +147,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - [ ] 部署 Caddy 边缘 TLS（`infra/caddy/Caddyfile`）：设公网 `DOMAIN`，验证 ACME 证书签发与 HTTP→HTTPS/HSTS（PR #89 草案，端到端待部署验证）。
 - [ ] 确认 AI 服务是否需部署、模型权重如何分发到 `outputs/`。
 - [ ] 生产切换 `db` 镜像为 `Dockerfile.prod`（无 initdb 种子），通过 CD 管线打 release tag 发布。
-- [ ] 在 GHCR `release.yml` 中为"推 :prod"步添加 GitHub Environments 人工审批门（ADR-0022 OQ-3）。
+- [x] OQ-3 人工审批门已实现：`release.yml` 拆 `build-smoke`（自动推 `:<版本>`）+ `deploy-prod`（`environment: production` 门控推 `:prod`）；**激活需在 Settings → Environments → production 配 required reviewers**（未配则门 inert，冒烟门仍挡坏镜像）。
 - [ ] 配置生产机上的 GHCR PAT（OQ-2）及 watchtower 部署，或改用 `docker-compose.prod.yml` 手动部署路径。
 - [ ] 建立 PostgreSQL/Neo4j 备份与恢复策略（OQ-OPS-4，策略见下「备份与恢复策略」节；自动化与异地存储待部署时落地，见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。
 

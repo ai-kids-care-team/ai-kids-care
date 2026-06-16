@@ -58,6 +58,12 @@ public class AuthorizationPolicy {
                  PLATFORM_USER_WRITE ->
                     context.scopeType() == UserRoleAssignmentScopeType.PLATFORM
                             && role == UserRoleEnum.PLATFORM_IT_ADMIN;
+            // SPEC-0001 / ADR-0018 A3d：粗粒度门——有效 tenant identity + GUARDIAN / TEACHER / KINDERGARTEN_ADMIN；
+            // 细粒度「受体仅读自己 / Admin 读其园」由 NotificationRepository SQL（recipient vs. kindergarten-scoped）强制。
+            case NOTIFICATION_READ ->
+                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
+                            || role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
         };
     }
 }

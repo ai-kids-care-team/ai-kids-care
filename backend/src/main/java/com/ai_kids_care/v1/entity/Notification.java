@@ -32,6 +32,11 @@ public class Notification {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "kindergarten_id", nullable = false)
+    private Kindergarten kindergarten;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "event_id", nullable = false)
     private DetectionEvent detectionEvents;
 
@@ -61,17 +66,20 @@ public class Notification {
     @Column(name = "dedupe_key", nullable = false, length = Integer.MAX_VALUE)
     private String dedupeKey;
 
-    @NotNull
-    @Column(name = "sent_at", nullable = false)
+    // OQ-DATA-3 / ADR-0018：待发态在发送前为 NULL（见 V3 迁移）。
+    @Column(name = "sent_at")
     private OffsetDateTime sentAt;
 
-    @NotNull
-    @Column(name = "fail_reason", nullable = false, length = Integer.MAX_VALUE)
+    // OQ-DATA-3 / ADR-0018：无失败时为 NULL。
+    @Column(name = "fail_reason", length = Integer.MAX_VALUE)
     private String failReason;
 
+    // OQ-DATA-3 / ADR-0018：新建通知默认 0（保留 NOT NULL；DB DEFAULT 0 见 V3 迁移）。
     @NotNull
+    @ColumnDefault("0")
     @Column(name = "retry_count", nullable = false)
-    private Integer retryCount;
+    @Builder.Default
+    private Integer retryCount = 0;
 
     @CreationTimestamp
     @ColumnDefault("now()")
