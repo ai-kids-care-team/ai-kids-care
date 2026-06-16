@@ -72,12 +72,7 @@ class SpecAcceptanceCoverageTest {
         for (Path file : HarnessTestSupport.javaFiles()) {
             present.add(HarnessTestSupport.simpleClassName(file));
         }
-        Set<String> missing = new TreeSet<>();
-        COVERAGE.values().forEach(list -> list.forEach(name -> {
-            if (!present.contains(name)) {
-                missing.add(name);
-            }
-        }));
+        Set<String> missing = HarnessChecks.missingCoverageClasses(COVERAGE, present);
         assertThat(missing)
                 .as("the SPEC-0001 §372/§390 coverage map references test classes that no longer "
                         + "exist — restore them or update the map (and the spec). Missing: %s", missing)
