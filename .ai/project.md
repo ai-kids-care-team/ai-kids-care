@@ -120,6 +120,8 @@ npm.cmd run build
 docker compose -f docker-compose.yml -f docker-compose.prod.yml config
 ```
 
+Before writing backend tests, JPQL, or insert fixtures, read [`docs/engineering/schema-digest.md`](../docs/engineering/schema-digest.md) (generated: every NOT NULL / UNIQUE / FK / enum — regenerate with `bash scripts/schema-digest.sh` after a migration) and [`docs/engineering/test-conventions.md`](../docs/engineering/test-conventions.md) (fixture pitfalls: shared-container uniqueness, composite tenant FKs, enum casts) instead of grepping the DDL. Then verify locally with `bash scripts/test-backend.sh '<pattern>'`.
+
 AI scripts currently have no test suite. At minimum, syntax-check changed Python files and add focused tests for new behavior.
 
 ## Known Baseline
