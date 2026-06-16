@@ -4,10 +4,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.nio.file.Paths;
 
@@ -41,10 +41,16 @@ public abstract class BaseIntegrationTest {
                     .withDatabaseName("kids_postgres_db")
                     .withUsername("kids_user")
                     .withPassword("kids_pass")
-                    // Mount real initdb scripts; PG runs them in filename order at container start.
+                    // Copy real initdb scripts in; PG runs them in filename order at container start.
                     // This simultaneously initialises schema + seed data AND proves that
                     // ddl-auto=validate passes against the live schema (no drift).
-                    .withFileSystemBind(INITDB_HOST_PATH, "/docker-entrypoint-initdb.d", BindMode.READ_ONLY)
+                    // withCopyFileToContainer (not withFileSystemBind) so this works both on CI and
+                    // under Docker-out-of-Docker (running gradle in a container against the host
+                    // daemon), where a host bind path resolved inside the gradle container would not
+                    // exist on the host daemon.
+                    .withCopyFileToContainer(
+                            MountableFile.forHostPath(INITDB_HOST_PATH),
+                            "/docker-entrypoint-initdb.d")
                     .withReuse(true);  // requires testcontainers.reuse.enable=true in ~/.testcontainers.properties
 
     private static final GenericContainer<?> redis =
