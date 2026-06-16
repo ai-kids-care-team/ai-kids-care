@@ -102,9 +102,13 @@ Inspect targeted diff sections instead of printing the complete repository diff.
 ## Verification Commands
 
 ```powershell
-# backend (requires a running Docker engine for Testcontainers)
-cd backend
-.\gradlew.bat test
+# backend — LOCAL loop, no local Java/JDK needed: runs Gradle in a container against the
+# host Docker daemon (integration tests use Testcontainers; initdb is copied so it works
+# under Docker-out-of-Docker). Requires Docker. Run via Git Bash. First run caches deps.
+bash scripts/test-backend.sh                        # full backend suite
+bash scripts/test-backend.sh '*NotificationRead*'   # only matching test classes (fast iteration)
+bash scripts/test-backend.sh --compile              # compile main+test only (fastest; catches type/MapStruct errors)
+# (On a host WITH JDK 21 installed you can instead run:  cd backend ; .\gradlew.bat test )
 
 # frontend
 cd frontend
