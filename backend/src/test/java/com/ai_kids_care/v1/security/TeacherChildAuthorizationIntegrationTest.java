@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,22 +26,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * SPEC-0001 §3 / §349：Guardian 关系-scoped 儿童读取集成测试。
+ * SPEC-0001 §351：Teacher assignment-scoped 儿童读取集成测试。
  *
  * 验收：
- * - Guardian 只能看到与自己有 ACTIVE 关系（end_date 窗）的同租户儿童。
- * - 无关系 / 关系已结束 / 跨租户 → 隐藏 404，且写 AUTHORIZATION_DENIED 审计（§3.4）。
- * - 未认证 → 401。（Teacher assignment-scoped 访问由 TeacherChildAuthorizationIntegrationTest 覆盖）
- * - 响应只含最小字段（childId/name/status），不含 RRN/address/birthDate/childNo。
+ * - TEACHER 只能看到通过 ACTIVE class_teacher_assignment → ACTIVE child_class_assignment
+ *   链（两个窗口均含 today）可达的同租户 ACTIVE 儿童。
+ * - 无分配 / 分配已结束 / 跨租户儿童 → 隐藏 404，且写 AUTHORIZATION_DENIED 审计（§3.4）。
+ * - 未认证 → 401；响应只含最小字段（childId/name/status），不含 RRN/address/birthDate。
  */
 @AutoConfigureMockMvc
-class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
+class TeacherChildAuthorizationIntegrationTest extends BaseIntegrationTest {
 
-    private static final String PASSWORD = "Guardian@Test2026";
+    private static final String PASSWORD = "Teacher@Child2026";
     private static final long OWN_KG = 1L;
 
-    private static final String GUARDIAN_LOGIN = "gc-guardian";
-    private static final String TEACHER_LOGIN = "gc-teacher";
+    private static final String TEACHER_LOGIN = "tc-teacher";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JdbcTemplate jdbc;
@@ -48,31 +48,46 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     @BeforeEach
-    void setUpActors() {
-        upsertUser(GUARDIAN_LOGIN, "010-0700-0001");
-        setGuardianIdentity(GUARDIAN_LOGIN, OWN_KG);
-
-        upsertUser(TEACHER_LOGIN, "010-0700-0002");
+    void setUpTeacher() {
+        upsertUser(TEACHER_LOGIN, "010-0800-0001");
         setTeacherIdentity(TEACHER_LOGIN, OWN_KG);
     }
 
-    // ── 列表：仅 ACTIVE 关系儿童 ────────────────────────────────────────────────
+    // ── 列表：仅 ACTIVE assignment 班级内儿童 ─────────────────────────────────────
 
     @Test
-    void listRelatedChildren_returnsOnlyActiveRelationshipChildren() throws Exception {
-        long guardianId = guardianIdOf(GUARDIAN_LOGIN);
-        long relatedChild = insertChild(OWN_KG, "Related Child");
-        long unrelatedChild = insertChild(OWN_KG, "Unrelated Child");
-        long endedChild = insertChild(OWN_KG, "Ended Child");
-        linkGuardianChild(OWN_KG, relatedChild, guardianId, null);             // active
-        linkGuardianChild(OWN_KG, endedChild, guardianId, "2020-01-01");        // ended (past)
+    void listAssignedChildren_returnsOnlyChildrenInActivelyAssignedClasses() throws Exception {
+        long teacherUserId = userIdOf(TEACHER_LOGIN);
+        long teacherId = teacherIdOf(TEACHER_LOGIN);
 
-        Cookie session = login(GUARDIAN_LOGIN);
+        // Class A: teacher is actively assigned
+        long classA = insertClass(OWN_KG, "ClassA");
+        // Class B: teacher is NOT assigned
+        long classB = insertClass(OWN_KG, "ClassB");
+
+        assignTeacherToClass(teacherId, classA, "ACTIVE",
+                LocalDate.now().minusDays(1), null);
+
+        long child1 = insertChild(OWN_KG, "Child In ClassA");
+        long child2 = insertChild(OWN_KG, "Child In ClassB");
+        long child3 = insertChild(OWN_KG, "Child Ended Assignment ClassA");
+
+        // child1 in classA — visible
+        insertChildClassAssignment(OWN_KG, child1, classA, "ACTIVE",
+                LocalDate.now().minusDays(1), null, teacherUserId);
+        // child2 in classB — teacher not assigned to classB, not visible
+        insertChildClassAssignment(OWN_KG, child2, classB, "ACTIVE",
+                LocalDate.now().minusDays(1), null, teacherUserId);
+        // child3 in classA but assignment already ended — not visible
+        insertChildClassAssignment(OWN_KG, child3, classA, "ACTIVE",
+                LocalDate.now().minusDays(30), LocalDate.now().minusDays(1), teacherUserId);
+
+        Cookie session = login(TEACHER_LOGIN);
         mockMvc.perform(get("/api/v1/children").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].childId").value(relatedChild))
-                .andExpect(jsonPath("$[0].name").value("Related Child"))
+                .andExpect(jsonPath("$[0].childId").value(child1))
+                .andExpect(jsonPath("$[0].name").value("Child In ClassA"))
                 .andExpect(jsonPath("$[0].status").exists())
                 // 最小字段：不得出现 S0/S1
                 .andExpect(jsonPath("$[0].rrnFirst6").doesNotExist())
@@ -81,24 +96,34 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$[0].birthDate").doesNotExist())
                 .andExpect(jsonPath("$[0].childNo").doesNotExist());
 
-        deleteChild(relatedChild);
-        deleteChild(unrelatedChild);
-        deleteChild(endedChild);
+        deleteChildWithAssignments(child1);
+        deleteChildWithAssignments(child2);
+        deleteChildWithAssignments(child3);
+        deleteClassTeacherAssignments(teacherId);
+        deleteClass(classA);
+        deleteClass(classB);
     }
 
-    // ── 详情：ACTIVE 关系 → 200 最小字段 ───────────────────────────────────────
+    // ── 详情：ACTIVE assignment → 200 最小字段 ───────────────────────────────────
 
     @Test
-    void getRelatedChild_activeRelationship_returnsMinimalFields() throws Exception {
-        long guardianId = guardianIdOf(GUARDIAN_LOGIN);
-        long childId = insertChild(OWN_KG, "My Child");
-        linkGuardianChild(OWN_KG, childId, guardianId, null);
+    void getAssignedChild_returns200MinimalFields() throws Exception {
+        long teacherUserId = userIdOf(TEACHER_LOGIN);
+        long teacherId = teacherIdOf(TEACHER_LOGIN);
 
-        Cookie session = login(GUARDIAN_LOGIN);
+        long classA = insertClass(OWN_KG, "ClassA-Get");
+        assignTeacherToClass(teacherId, classA, "ACTIVE",
+                LocalDate.now().minusDays(1), null);
+
+        long childId = insertChild(OWN_KG, "My Assigned Child");
+        insertChildClassAssignment(OWN_KG, childId, classA, "ACTIVE",
+                LocalDate.now().minusDays(1), null, teacherUserId);
+
+        Cookie session = login(TEACHER_LOGIN);
         mockMvc.perform(get("/api/v1/children/{id}", childId).cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.childId").value(childId))
-                .andExpect(jsonPath("$.name").value("My Child"))
+                .andExpect(jsonPath("$.name").value("My Assigned Child"))
                 .andExpect(jsonPath("$.status").exists())
                 .andExpect(jsonPath("$.rrnFirst6").doesNotExist())
                 .andExpect(jsonPath("$.rrnEncrypted").doesNotExist())
@@ -106,16 +131,19 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.birthDate").doesNotExist())
                 .andExpect(jsonPath("$.kindergartenId").doesNotExist());
 
-        deleteChild(childId);
+        deleteChildWithAssignments(childId);
+        deleteClassTeacherAssignments(teacherId);
+        deleteClass(classA);
     }
 
-    // ── 详情：无关系 → 隐藏 404 + 审计 DENIED ──────────────────────────────────
+    // ── 详情：无 assignment（同租户）→ 隐藏 404 + 审计 DENIED ─────────────────────
 
     @Test
-    void getRelatedChild_noRelationship_returnsHidden404AndAuditsDenied() throws Exception {
-        long childId = insertChild(OWN_KG, "Stranger Child");  // 不建立关系
+    void getUnassignedChild_sameTenant_returnsHidden404AndAuditsDenied() throws Exception {
+        // No class assignment for this child — teacher cannot see it
+        long childId = insertChild(OWN_KG, "Unassigned Child");
 
-        Cookie session = login(GUARDIAN_LOGIN);
+        Cookie session = login(TEACHER_LOGIN);
         MvcResult result = mockMvc.perform(get("/api/v1/children/{id}", childId).cookie(session))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Resource not found"))
@@ -126,39 +154,49 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         Integer denied = jdbc.queryForObject(
                 "SELECT count(*) FROM audit_logs WHERE correlation_id = ? AND action = 'AUTHORIZATION_DENIED' "
                         + "AND result = 'DENIED' AND resource_type = 'CHILD' AND resource_id = ? AND user_id = ?",
-                Integer.class, correlationId, childId, userIdOf(GUARDIAN_LOGIN));
+                Integer.class, correlationId, childId, userIdOf(TEACHER_LOGIN));
         assertThat(denied).isEqualTo(1);
 
-        deleteChild(childId);
+        deleteChildWithAssignments(childId);
     }
 
-    // ── 详情：关系已结束 → 隐藏 404 ────────────────────────────────────────────
+    // ── 详情：class_teacher_assignment 已结束 → 隐藏 404 ─────────────────────────
 
     @Test
-    void getRelatedChild_endedRelationship_returnsHidden404() throws Exception {
-        long guardianId = guardianIdOf(GUARDIAN_LOGIN);
-        long childId = insertChild(OWN_KG, "Former Child");
-        linkGuardianChild(OWN_KG, childId, guardianId, "2020-01-01");  // end_date 过去
+    void getChild_endedClassTeacherAssignment_returnsHidden404() throws Exception {
+        long teacherUserId = userIdOf(TEACHER_LOGIN);
+        long teacherId = teacherIdOf(TEACHER_LOGIN);
 
-        Cookie session = login(GUARDIAN_LOGIN);
+        long classA = insertClass(OWN_KG, "ClassA-Ended-CTA");
+        // CTA ended in the past
+        assignTeacherToClass(teacherId, classA, "ACTIVE",
+                LocalDate.now().minusDays(30), LocalDate.now().minusDays(1));
+
+        long childId = insertChild(OWN_KG, "Child In Ended CTA Class");
+        insertChildClassAssignment(OWN_KG, childId, classA, "ACTIVE",
+                LocalDate.now().minusDays(30), null, teacherUserId);
+
+        Cookie session = login(TEACHER_LOGIN);
         mockMvc.perform(get("/api/v1/children/{id}", childId).cookie(session))
                 .andExpect(status().isNotFound());
 
-        deleteChild(childId);
+        deleteChildWithAssignments(childId);
+        deleteClassTeacherAssignments(teacherId);
+        deleteClass(classA);
     }
 
-    // ── 详情：跨租户儿童 → 隐藏 404 ────────────────────────────────────────────
+    // ── 详情：跨租户儿童 → 隐藏 404 ─────────────────────────────────────────────
 
     @Test
-    void getRelatedChild_crossTenantChild_returnsHidden404() throws Exception {
+    void getChild_crossTenantChild_returnsHidden404() throws Exception {
         long foreignKg = insertActiveKindergarten();
         long childId = insertChild(foreignKg, "Foreign Child");
 
-        Cookie session = login(GUARDIAN_LOGIN);  // scoped to OWN_KG
+        Cookie session = login(TEACHER_LOGIN);  // scoped to OWN_KG
         mockMvc.perform(get("/api/v1/children/{id}", childId).cookie(session))
                 .andExpect(status().isNotFound());
 
-        deleteChild(childId);
+        deleteChildWithAssignments(childId);
     }
 
     // ── 未认证 → 401 ────────────────────────────────────────────────────────────
@@ -180,33 +218,7 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 VALUES (?, ?, ?, ?, 'ACTIVE', NOW(), NOW())
                 ON CONFLICT (login_id) DO UPDATE
                     SET password_hash = EXCLUDED.password_hash, status = 'ACTIVE'
-                """, loginId, loginId + "@gc-test.internal", phone, hash);
-    }
-
-    private void setGuardianIdentity(String loginId, long kindergartenId) {
-        clearRoleAndMembership(loginId);
-        jdbc.update("""
-                INSERT INTO user_role_assignments (user_id, role, scope_type, scope_id, status, granted_at)
-                SELECT user_id, 'GUARDIAN'::user_role_enum, 'KINDERGARTEN', ?, 'ACTIVE', NOW()
-                FROM users WHERE login_id = ?
-                """, kindergartenId, loginId);
-        jdbc.update("""
-                INSERT INTO user_kindergarten_memberships
-                    (user_id, kindergarten_id, status, joined_at, created_at, updated_at)
-                SELECT user_id, ?, 'ACTIVE', NOW(), NOW(), NOW()
-                FROM users WHERE login_id = ?
-                """, kindergartenId, loginId);
-        // guardian 档案被 child_guardian_relationships FK 引用：upsert（不删）使 guardian_id 稳定，
-        // 避免残留关系导致 @BeforeEach 删除时 FK 失败级联。
-        jdbc.update("""
-                INSERT INTO guardians
-                    (kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address,
-                     status, created_at, updated_at)
-                SELECT ?, user_id, ?, 'ENC', '000101', 'MALE', 'Test address', 'ACTIVE', NOW(), NOW()
-                FROM users WHERE login_id = ?
-                ON CONFLICT (user_id) DO UPDATE
-                    SET status = 'ACTIVE', kindergarten_id = EXCLUDED.kindergarten_id
-                """, kindergartenId, "Guardian " + loginId, loginId);
+                """, loginId, loginId + "@tc-test.internal", phone, hash);
     }
 
     private void setTeacherIdentity(String loginId, long kindergartenId) {
@@ -222,8 +234,17 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 SELECT user_id, ?, 'ACTIVE', NOW(), NOW(), NOW()
                 FROM users WHERE login_id = ?
                 """, kindergartenId, loginId);
-        jdbc.update("DELETE FROM teachers WHERE user_id = "
-                + "(SELECT user_id FROM users WHERE login_id = ?)", loginId);
+        // Upsert teacher profile (stable teacher_id across @BeforeEach)
+        jdbc.update("""
+                DELETE FROM class_teacher_assignments
+                WHERE teacher_id IN (
+                    SELECT teacher_id FROM teachers
+                    WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?))
+                """, loginId);
+        jdbc.update("""
+                DELETE FROM teachers
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, loginId);
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("""
                 INSERT INTO teachers
@@ -242,6 +263,29 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 + "(SELECT user_id FROM users WHERE login_id = ?)", loginId);
     }
 
+    private long insertClass(long kindergartenId, String name) {
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        return jdbc.queryForObject("""
+                INSERT INTO classes
+                    (kindergarten_id, name, grade, academic_year, start_date, end_date, status,
+                     created_at, updated_at)
+                VALUES (?, ?, 'Grade1', 2026, '2026-03-01', '2026-12-31', 'ACTIVE', NOW(), NOW())
+                RETURNING class_id
+                """, Long.class, kindergartenId, name + "-" + suffix);
+    }
+
+    private void assignTeacherToClass(
+            long teacherId, long classId, String status, LocalDate start, LocalDate end) {
+        jdbc.update("""
+                INSERT INTO class_teacher_assignments
+                    (kindergarten_id, class_id, teacher_id, role, start_date, end_date,
+                     status, created_by_user_id, created_at, updated_at)
+                SELECT ?, ?, ?, 'HOMEROOM'::class_teacher_role_enum, ?, ?,
+                       ?::status_enum, user_id, NOW(), NOW()
+                FROM users WHERE login_id = ?
+                """, OWN_KG, classId, teacherId, start, end, status, TEACHER_LOGIN);
+    }
+
     private long insertChild(long kindergartenId, String name) {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         return jdbc.queryForObject("""
@@ -254,19 +298,29 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
                 """, Long.class, kindergartenId, name, "CNO-" + suffix);
     }
 
-    private void linkGuardianChild(long kindergartenId, long childId, long guardianId, String endDate) {
+    private void insertChildClassAssignment(
+            long kindergartenId, long childId, long classId, String status,
+            LocalDate start, LocalDate end, long createdByUserId) {
         jdbc.update("""
-                INSERT INTO child_guardian_relationships
-                    (kindergarten_id, child_id, guardian_id, relationship, is_primary, priority,
-                     start_date, end_date, created_at, updated_at)
-                VALUES (?, ?, ?, 'FATHER'::relationship_enum, true, 1, '2024-03-01', ?::date, NOW(), NOW())
-                """, kindergartenId, childId, guardianId, endDate);
+                INSERT INTO child_class_assignments
+                    (kindergarten_id, child_id, class_id, start_date, end_date, status,
+                     created_by_user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?::status_enum, ?, NOW(), NOW())
+                """, kindergartenId, childId, classId, start, end, status, createdByUserId);
     }
 
-    private void deleteChild(long childId) {
-        jdbc.update("DELETE FROM child_guardian_relationships WHERE child_id = ?", childId);
+    private void deleteChildWithAssignments(long childId) {
+        jdbc.update("DELETE FROM child_class_assignments WHERE child_id = ?", childId);
         jdbc.update("DELETE FROM audit_logs WHERE resource_id = ?", childId);
         jdbc.update("DELETE FROM children WHERE child_id = ?", childId);
+    }
+
+    private void deleteClassTeacherAssignments(long teacherId) {
+        jdbc.update("DELETE FROM class_teacher_assignments WHERE teacher_id = ?", teacherId);
+    }
+
+    private void deleteClass(long classId) {
+        jdbc.update("DELETE FROM classes WHERE class_id = ?", classId);
     }
 
     private long insertActiveKindergarten() {
@@ -282,12 +336,13 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
     }
 
     private long userIdOf(String loginId) {
-        return jdbc.queryForObject("SELECT user_id FROM users WHERE login_id = ?", Long.class, loginId);
+        return jdbc.queryForObject("SELECT user_id FROM users WHERE login_id = ?",
+                Long.class, loginId);
     }
 
-    private long guardianIdOf(String loginId) {
+    private long teacherIdOf(String loginId) {
         return jdbc.queryForObject(
-                "SELECT guardian_id FROM guardians WHERE user_id = "
+                "SELECT teacher_id FROM teachers WHERE user_id = "
                         + "(SELECT user_id FROM users WHERE login_id = ?)",
                 Long.class, loginId);
     }

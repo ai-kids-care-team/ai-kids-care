@@ -10,6 +10,7 @@ import com.ai_kids_care.v1.security.audit.AuditEvent;
 import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
+import com.ai_kids_care.v1.type.UserRoleEnum;
 import com.ai_kids_care.v1.vo.ChildVO;
 import com.ai_kids_care.v1.vo.GuardianChildVO;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,35 +35,53 @@ public class ChildrenService {
     private final PasswordEncoder passwordEncoder;
     private final SecurityAuditWriter auditWriter;
 
-    // ── SPEC-0001 §3 / §349：Guardian 关系-scoped 读取 ───────────────────────────
+    // ── SPEC-0001 §3 / §349 / §351：儿童读取（Guardian 关系-scoped + Teacher assignment-scoped）──
 
     /**
-     * GET /api/v1/children —— Guardian 列出与自己有 ACTIVE 关系的儿童（最小字段，无 S0/S1）。
-     * 关系条件在 ChildRepository 的 SQL 内强制；仅同租户 + 活跃关系 + 活跃儿童。
+     * GET /api/v1/children —— 列出当前用户可见儿童（最小字段，无 S0/S1）。
+     * GUARDIAN → 关系-scoped（ChildRepository guardian 查询）；
+     * TEACHER  → assignment-scoped（ChildRepository teacher 嵌套 EXISTS 查询）；
+     * 其他角色不应通过粗粒度门，兜底返回空列表。
      */
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).GUARDIAN_CHILD_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).CHILD_READ)")
     public List<GuardianChildVO> listRelatedChildren() {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        return repository.findRelatedChildrenForGuardian(
-                        kindergartenId, context.userId(), LocalDate.now())
-                .stream()
-                .map(this::toGuardianChildVO)
-                .toList();
+        LocalDate today = LocalDate.now();
+        return switch (context.role()) {
+            case GUARDIAN -> repository.findRelatedChildrenForGuardian(
+                            kindergartenId, context.userId(), today)
+                    .stream()
+                    .map(this::toGuardianChildVO)
+                    .toList();
+            case TEACHER -> repository.findActivelyAssignedChildrenForTeacher(
+                            kindergartenId, context.userId(), today)
+                    .stream()
+                    .map(this::toGuardianChildVO)
+                    .toList();
+            default -> List.of();
+        };
     }
 
     /**
-     * GET /api/v1/children/{id} —— Guardian 读取单个关联儿童。
-     * 无 ACTIVE 关系（跨租户 / 不存在 / 关系已结束）→ 审计拒绝 + 隐藏 404（SPEC §3.4 / §349）。
+     * GET /api/v1/children/{id} —— 读取单个儿童。
+     * GUARDIAN → 关系-scoped；TEACHER → assignment-scoped。
+     * 不可见（跨租户 / 无关系或分配 / 已结束）→ 审计拒绝 + 隐藏 404（SPEC §3.4 / §349 / §351）。
      */
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).GUARDIAN_CHILD_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).CHILD_READ)")
     public GuardianChildVO getRelatedChild(Long childId) {
         EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        Optional<Child> found = repository.findRelatedChildForGuardian(
-                childId, kindergartenId, context.userId(), LocalDate.now());
+        LocalDate today = LocalDate.now();
+        Optional<Child> found = switch (context.role()) {
+            case GUARDIAN -> repository.findRelatedChildForGuardian(
+                    childId, kindergartenId, context.userId(), today);
+            case TEACHER -> repository.findActivelyAssignedChildForTeacher(
+                    childId, kindergartenId, context.userId(), today);
+            default -> Optional.empty();
+        };
         if (found.isEmpty()) {
             auditWriter.record(AuditEvent.builder()
                     .action(AuditAction.AUTHORIZATION_DENIED)
