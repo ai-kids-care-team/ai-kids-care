@@ -6,7 +6,7 @@
 
 | 组件 | 现状 | 证据 |
 | --- | --- | --- |
-| 后端 | ✅ `logging.level.root: DEBUG`（committed）；标准 Spring Boot 控制台日志。⚠️ DEBUG 级日志量大，可能含敏感信息 | `application.yml` |
+| 后端 | ✅ `logging.level.root: ${LOG_LEVEL_ROOT:INFO}`（安全默认 INFO；dev 可设 `LOG_LEVEL_ROOT=DEBUG`）；标准 Spring Boot 控制台日志 | `application.yml` |
 | 前端 | 🔶 浏览器端 Axios；无集中日志 | — |
 | AI 推理服务 | 🔶 uvicorn/FastAPI 默认日志 | `serve.py` |
 | AI 实时告警 | ✅ 控制台打印 + **CSV 落盘**（`stream_timeline.csv` 逐窗口、`stream_alarm_events.csv` 告警事件） | `stream_live_alert_service.py` |

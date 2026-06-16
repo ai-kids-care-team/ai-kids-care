@@ -143,7 +143,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - [ ] 用 `.env` 覆盖所有默认凭据（`POSTGRES_*`、`NEO4J_*`）；设生产 `SESSION_COOKIE_SECURE=true` 与 Caddy `DOMAIN`/`ACME_EMAIL`（`JWT_SECRET` 已废，JWT→服务端会话）。
 - [ ] 解决 data-loader 与 Flyway V1 迁移的首启竞态（OQ-OPS-1，方向已定见上「缓解」小节；部署时按提案落地并验证）。
 - [x] 后端鉴权已开启（默认拒绝 + 服务端会话 + 每请求授权，PR #89）。
-- [ ] 确认日志级别（`root: DEBUG`，OQ-SEC-6）。
+- [x] 日志级别安全默认 `INFO`（`logging.level.root: ${LOG_LEVEL_ROOT:INFO}`；dev 可设 `LOG_LEVEL_ROOT=DEBUG`。OQ-SEC-6 已关闭）。
 - [ ] 部署 Caddy 边缘 TLS（`infra/caddy/Caddyfile`）：设公网 `DOMAIN`，验证 ACME 证书签发与 HTTP→HTTPS/HSTS（PR #89 草案，端到端待部署验证）。
 - [ ] 确认 AI 服务是否需部署、模型权重如何分发到 `outputs/`。
 - [ ] 生产切换 `db` 镜像为 `Dockerfile.prod`（无 initdb 种子），通过 CD 管线打 release tag 发布。

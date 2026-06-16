@@ -46,7 +46,7 @@
 | `DOMAIN` / `ACME_EMAIL` | Caddy 边缘 TLS 域名 / ACME 邮箱（生产） | —（**生产须设 `DOMAIN`**） | caddy（prod） |
 | `TZ` / `JAVA_TOOL_OPTIONS` | 时区 | `Asia/Seoul` / `-Duser.timezone=Asia/Seoul` | backend |
 | `server.port`（yml） | 端口 | `8080` | backend |
-| `logging.level.root`（yml） | 日志级别 | `DEBUG` ⚠️ | backend |
+| `logging.level.root` / `LOG_LEVEL_ROOT` | 根日志级别（安全默认 INFO；dev 可设 `LOG_LEVEL_ROOT=DEBUG`） | `INFO` | backend |
 
 ### AI 服务
 
