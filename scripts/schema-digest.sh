@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate docs/engineering/schema-digest.md from the ACTUAL schema:
-# initdb V1 baseline (+ seed) then Flyway V2/V3 applied via psql, then introspected.
+# initdb V1 baseline (+ seed) then Flyway delta migrations (V2+) applied via psql, then introspected.
 # The migrations are the source of truth; regenerate this digest after any migration.
 #
 # Why: writing test fixtures / JPQL blind (grepping the DDL) caused real failures
@@ -43,12 +43,16 @@ for i in $(seq 1 90); do
   sleep 2
 done
 
-echo "Applying Flyway migrations V2, V3..."
-for v in V2__admin_audit_schema V3__relax_notifications_pending_columns; do
-  docker cp "${REPO}/backend/src/main/resources/db/migration/${v}.sql" "${CID}:/tmp/${v}.sql" >/dev/null
-  docker exec "$CID" psql -v ON_ERROR_STOP=1 -U kids_user -d kids_postgres_db -f "/tmp/${v}.sql" >/dev/null \
-    || { echo "ERROR applying ${v}"; exit 1; }
-done
+echo "Applying Flyway delta migrations (all V*__*.sql except the V1 initdb baseline, in version order)..."
+MIGDIR="${REPO}/backend/src/main/resources/db/migration"
+while IFS= read -r f; do
+  base="$(basename "$f")"
+  case "$base" in V1__*) continue ;; esac   # V1 is the baseline, already applied via initdb
+  echo "  applying ${base}"
+  docker cp "$f" "${CID}:/tmp/${base}" >/dev/null
+  docker exec "$CID" psql -v ON_ERROR_STOP=1 -U kids_user -d kids_postgres_db -f "/tmp/${base}" >/dev/null \
+    || { echo "ERROR applying ${base}"; exit 1; }
+done < <(ls -1 "${MIGDIR}"/V*__*.sql | sort -V)
 
 echo "Introspecting schema -> ${OUT_REL}..."
 docker exec -i "$CID" tee /tmp/introspect.sql >/dev/null <<'SQL'
