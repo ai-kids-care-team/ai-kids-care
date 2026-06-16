@@ -556,5 +556,7 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 实现（sub-agent[sonnet] 落地，Lead fresh-context 复审后并入）：从每个脚本的**可执行投影**（Cypher `SET` + 参数；`db100_insert_users.py` 另含 SQL `SELECT` 与 `normalize_user_row`）移除 §365 禁止字段——User: `password_hash`(S0)/`email`/`phone`；Kindergarten: `address`/`contact_phone`/`contact_email`；Teacher: `rrn_encrypted`/`rrn_first6`/`emergency_contact_phone`/`emergency_contact_name`；Child: `rrn_first6`/`rrn_encrypted`/`birth_date`/`address`；Guardian: `rrn_encrypted`/`rrn_first6`/`address`。保留 id/姓名/`login_id`/`status`/结构/关系/时间戳字段。CSV 源快照不动（不在 Neo4j 内）。
 - 既有 demo 图清理：新增 `no000_scrub_sensitive.py`（幂等 `REMOVE` 五个 Label 的上述属性，因 MERGE+SET 不删旧属性），并接为 `run_all.sh` 首条；`SETUP_GUIDE.md` 同步。
 - 边界保留（Lead 决定，待维护者复核）：`business_registration_no`（法人登记号，非个人 PII）与 `contact_name`（联系人姓名；§365 禁止集为 地址/电话/email/RRN/S0，未含「姓名」）予以保留；如需更严最小化可后续收紧。
-- 验证：本机 Python 3.12 对 7 个变更脚本 `python -m py_compile` 全过；`git diff --check` PASS；SET↔参数一致性逐脚本核对无悬挂 `$param`。loader 运行时需 Docker+Neo4j+PG（CI 不覆盖 loader），未跑实例。
-- 复审：实现=sub-agent，复审/集成=Lead（≠实现会话），符合 ADR-0020 sub-agent fresh-review 要求。
+- 验证（静态）：本机 Python 3.12 对 7 个变更脚本 `python -m py_compile` 全过；`git diff --check` PASS；SET↔参数一致性逐脚本核对无悬挂 `$param`。
+- 验证（运行时，2026-06-16，本机 Docker 起 db[含 initdb 种子]+neo4j 全栈）：跑全部 loader 后,Neo4j 五 Label 经 `sum(CASE … IS NOT NULL …)` 全量统计——**禁止字段计数全部为 0**（User 1000 节点 / Kindergarten 3 / Teacher 60 / Child 420 / Guardian 840），KEEP 字段（login_id/status/name/child_no）非空。`no000` scrub 另经「注入金丝雀 → 运行 scrub → 计数归 0 且节点总数 1000 不变」验证其清理既有图有效。CI 仍不覆盖 loader（运行时验证为本机 Docker 一次性手动执行）。
+- 已知（非本切片缺陷）：`run_all.sh` 在 **Windows 工作树**（`autocrlf=true`）签出为 CRLF，本机构建镜像后 `exec ./run_all.sh` 因 `#!/bin/bash\r` 失败（"no such file or directory"）；仓库内为 LF，故 GitHub Actions/CD（Linux 签出）与演示机（拉 GHCR 预构建镜像）不受影响。仅影响本机 Windows 构建。可加 `.gitattributes` `*.sh text eol=lf` 根治（待维护者定）。本次运行时验证以直接 `python <script>.py`（Python 容忍 CRLF）绕过。
+- 复审：实现=sub-agent，复审/集成+运行时验证=Lead（≠实现会话），符合 ADR-0020 sub-agent fresh-review 要求。
