@@ -1,6 +1,6 @@
 # AI Kids Care Project Instructions
 
-This file contains repository-specific instructions. The shared agent behavior is in `CONTEXT.md`.
+This file contains repository-specific instructions. The shared agent behavior is in `CONTEXT.md`. For the engineering harness — the map of Guides/Sensors, how to verify locally without a JDK, and the "recurring issue → add a control" discipline — see [`docs/engineering/harness.md`](../docs/engineering/harness.md).
 
 ## Working Language
 
