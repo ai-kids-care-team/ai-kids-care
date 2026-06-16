@@ -190,14 +190,9 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 Map.of("identifier", loginId, "password", TEST_PASSWORD));
     }
 
-    @Test
-    void login_activeUserWithMultipleActiveRoles_returns401() throws Exception {
-        insertSecondActiveRole();
-
-        assertAuthenticationFailure(
-                "/api/v1/auth/login",
-                Map.of("identifier", TEST_LOGIN_ID, "password", TEST_PASSWORD));
-    }
+    // 注：原 login_activeUserWithMultipleActiveRoles_returns401 已移除——ADR-0021 的
+    // uq_ura_one_active_per_user 部分唯一约束使「同一用户多条 ACTIVE role」在 DB 层不可能创建；
+    // 该 DB 拒绝由 V2SchemaConstraintIntegrationTest 覆盖，resolveIdentity 的 count 校验作为纵深防御保留。
 
     // ── Session lifecycle ────────────────────────────────────────────────────
 
@@ -749,16 +744,6 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 """,
                 Long.class,
                 kindergartenId);
-    }
-
-    private void insertSecondActiveRole() {
-        jdbc.update("""
-                INSERT INTO user_role_assignments
-                    (user_id, role, scope_type, scope_id, status, granted_at)
-                SELECT user_id, 'PLATFORM_IT_ADMIN', 'PLATFORM', NULL, 'ACTIVE', NOW()
-                FROM users
-                WHERE login_id = ?
-                """, TEST_LOGIN_ID);
     }
 
     private void assertAuthenticationFailure(String path, Map<String, ?> requestBody) throws Exception {

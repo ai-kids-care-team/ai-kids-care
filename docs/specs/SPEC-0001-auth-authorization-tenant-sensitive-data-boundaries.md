@@ -5,7 +5,7 @@ status: Approved
 implementation: Partial
 owner: 维护者
 created: 2026-06-10
-updated: 2026-06-14
+updated: 2026-06-15
 related_adrs:
   - ADR-0003
   - ADR-0009
@@ -447,15 +447,15 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - `AuthEndpointTest` 覆盖四类允许角色的 PENDING persistence、平台角色零落库、客户端 ACTIVE 无效、Guardian 伪造园区无效、儿童验证最小响应与非法 RRN 拒绝、role/level 不一致拒绝、PENDING/无 ACTIVE role/多 ACTIVE role/无效 refresh token 的显式 401 契约，以及园级 ACTIVE role 的服务端 `kindergartenId` 返回；纯 Mockito service test 固定同一异常语义。`DetectionEventEndpointTest` 固定完整应用中的关闭路径 `404`，`PublishedOpenApiContractTest` 固定旧 RRN 与 DetectionEvent path absence、专用验证 path presence、最小响应 schema 和公开注册 DTO 完整字段集合。
 - 已知限制：审批 endpoint/激活事务尚未实现；`child_guardian_relationships` 无 status 列，Guardian 申请仍创建关系行，但 PENDING guardian/membership/role 使其当前不构成有效授权关系。`/api/v1/**` 仍处于 `permitAll` 演示态，因此“不能登录”尚不等于业务 API 已受保护；Session、Redis、tenant enforcement 和资源关系授权不在本阶段范围。
 
-### 2026-06-15 Phase 2/3（会话认证 + 有效授权上下文与默认拒绝）— 本地验证通过，未合入
+### 2026-06-15 Phase 2/3（会话认证 + 有效授权上下文与默认拒绝）
 
-- 状态：实现于分支 `codex/spec-0001-auth-context`（基线 `478967d`），**未提交、未合入 `develop`**。遵循 [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 的分阶段边界（阶段 2、3 完成，阶段 4 部分完成）。本节为实施证据/as-built 记录；下方“验收标准”勾选保留给维护者评审，本阶段未自行翻转。
+- 状态：实现于分支 `codex/spec-0001-auth-context`（基线 `478967d`），**已随 [PR #89](https://github.com/ai-kids-care-team/ai-kids-care/pull/89) 合入 `develop`**（merge commit `36cfdd4`；后续 `651ec20` 文档清扫）。本小节连同下方切片 1-5 与「已发布 VO 主键 id」修复，构成该分支合入 `develop` 的整体内容。遵循 [ADR-0019](../decisions/adr/ADR-0019-effective-authorization-context-tenant-enforcement.md) 的分阶段边界（阶段 2、3 完成，阶段 4、5 部分完成）。本节为实施证据/as-built 记录；下方“验收标准”勾选保留给维护者评审，本阶段未自行翻转。
 - 会话认证（阶段 2）：引入 Redis 后端 Spring Session（`store-type=redis`、`repository-type=indexed`）、最小可序列化 `SessionPrincipal`（`user:{id}` + roleAssignmentId + membershipId）。`/auth/login` 建立服务端会话、只返回最小 `AuthSessionVO`（`@JsonInclude(NON_NULL)`，无 access/refresh token）；新增 `GET /auth/session`、`POST /auth/logout`（幂等 204）、`GET /auth/csrf`。启用 cookie CSRF（`XSRF-TOKEN` + `X-XSRF-TOKEN`）、`IF_REQUIRED` 会话、显式 SecurityContext 持久化、会话 cookie `AI_KIDS_CARE_SESSION`（httpOnly、`secure` 由 `SESSION_COOKIE_SECURE` 控制、`SameSite=Lax`）。删除 `JwtUtil`/`JwtAuthenticationFilter`/`TokenVO`/`TokenTypeEnum`/refresh、logout DTO 与 JJWT 依赖；前端去 bearer/localStorage、改 `withCredentials` + CSRF bootstrap + 会话 hydration（新增 `SessionBootstrap.tsx`、`csrf.ts`）。
 - 有效授权上下文与默认拒绝（阶段 3）：新增 `EffectiveAuthorizationContextFilter`（接在 `SecurityContextHolderFilter` 之后）每请求调用 `EffectiveAuthorizationContextService.resolve` 做权威投影——校验 ACTIVE user、恰一条 ACTIVE role assignment 且与 principal 一致、KINDERGARTEN scope 的唯一 ACTIVE membership、PLATFORM scope 无 membership；非法/漂移 invalidate 会话并返回通用 `401`。`@EnableMethodSecurity` + 集中 `AuthorizationPolicy`（`@PreAuthorize` 读取 request-scoped context，不读会话内陈旧 authority）。`SecurityConfig` 默认 `/api/v1/**` `authenticated()`。`POST /auth/session/tenant-context` 仅 PLATFORM 角色可选已验证 tenant，写入会话且不改 scope/role、不授予园级权限；园级角色调用 `403`。`ApiExceptionHandler` 将 `EntityNotFoundException` 统一为隐藏式 `404 {"error":"Resource not found"}`。
 - Tenant Repository Migration（阶段 4，部分）：Class/Room/CCTV/CameraStream/DetectionSession/Announcement 的部分 list/get/write 改为 tenant-aware 查询（`findByIdAndKindergarten_Id` 等）+ effective kindergarten 约束 + 客户端 `kindergartenId` 仅一致性校验、不一致按隐藏 `404`。**未完成**：DetectionEvent 仍信任客户端 `kindergartenId` 且未接集中 policy；全部发布 operation 的分类未完成。
 - 测试：`AuthEndpointTest` 扩展至 29 项，覆盖会话登录/无 token 401/园级有无 membership、平台角色有 membership 401、错误密码/无 ACTIVE role/多 ACTIVE role 的通用 401、CSRF 契约、refresh 关闭 404、logout 失效、role 撤销下一请求 401 并失效会话、平台 tenant-context 选择不改角色、园级角色禁选平台 tenant-context（403）、平台选 tenant 不获 camera 读（403）、园级角色禁读平台 AI 元数据（403）、跨租户 Class 隐藏（list 不含外租户 + detail 404）、写入拒绝客户端 kindergarten 覆盖（404）、camera list 拒绝 kindergarten 覆盖（404）。
 - 验证（2026-06-15，本地）：`cd backend; .\gradlew.bat test` → 8 类 / 61 tests / 0 failures / 0 errors / 2 预期 skip（`FlywayMigrationTest`，ADR-0013）。前端 21 改动文件 scoped ESLint 0 error / 0 warning；`npm run build` 成功生成 20 静态页。`git diff --check` PASS。全仓前端 lint 仍有既有 4 errors / 8 warnings（均在本阶段未修改文件）。
-- 环境备注：本机 JDK 21 wepoll selector 的 AF_UNIX wakeup pipe 因用户 Temp 路径含空格/撇号失败，须以 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=D:\tmp` 运行测试；与产品代码无关。
+- 环境备注（与产品代码无关，仅影响测试运行机器）：在**用户 Temp 路径含空格/撇号**的机器上，JDK 21 wepoll selector 的 AF_UNIX wakeup pipe 会失败（“Unable to establish loopback connection”），须以 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=<无空格/撇号的目录>` 运行测试（当时机器使用 `D:\tmp`）；Temp 路径本身不含空格/撇号的机器无需此项。
 - 已知限制 / 后续：阶段 4 未完（DetectionEvent + 半完成资源的 tenant repository migration）；阶段 5 Guardian/Teacher 关系策略、全会话吊销（`SessionRevocationService`）、状态事务衔接与安全审计未实现；阶段 6 TLS（ADR-0017）、生产 compose、CI 全套门禁与 fresh independent review 未完成。在全部验收标准完成并通过发布门前，本 Spec 不得标记 `Implemented`。
 
 #### 切片 1（2026-06-15）：默认拒绝白名单收敛 + operation 分类核验

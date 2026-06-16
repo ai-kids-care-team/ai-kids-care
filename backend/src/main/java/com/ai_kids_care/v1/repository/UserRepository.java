@@ -1,7 +1,11 @@
 package com.ai_kids_care.v1.repository;
 
 import com.ai_kids_care.v1.entity.User;
+import com.ai_kids_care.v1.type.StatusEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByLoginIdOrEmailOrPhone(String loginId, String email, String phone);
@@ -13,4 +17,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByPhone(String phone);
+
+    // SPEC-0002 Slice A: 条件更新 User.status（防 TOCTOU）
+    @Modifying
+    @Query("UPDATE User u SET u.status = :newStatus WHERE u.id = :userId AND u.status = :expectedStatus")
+    int conditionalUpdateStatus(
+            @Param("userId") Long userId,
+            @Param("expectedStatus") StatusEnum expectedStatus,
+            @Param("newStatus") StatusEnum newStatus);
 }
