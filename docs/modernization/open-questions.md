@@ -90,6 +90,7 @@
 - **为何重要**：演示环境=每次重置（合理）；生产=数据丢失（严重）。
 - **观察**：目标部署环境是哪种？
 - **结论（2026-05-29，团队确认）** ✅：当前面向**演示重置**（每次清库重建），符合预期。**生产环境将一并去除「删卷」与「插入 seed」两步流程**（届时需独立的生产部署流水线）。已 **Accept** [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)（2026-05-29 签署；推荐 Flyway/Liquibase 作 schema 迁移；落地待 Implementation）。
+- **结论（2026-06-16，loader×Flyway 竞态方向已定）** ✅：取证确认仅 `db100_insert_users.py` 读 live PG、其余读 CSV；`data-loader` 只依赖 `db: service_healthy` 不依赖 Flyway 完成——**演示持久路径竞态良性**（V1 在 db-healthy 时已建好 `users`），**生产空库路径会破坏**（`users` 待 Flyway 建好）。已决定方向：**生产不跑 data-loader**（prod-override no-op，同时消除竞态与向生产 Neo4j 注入演示/敏感数据）；演示如将来需严格排序再加 backend healthcheck + `depends_on`。本轮仅文档化（compose/loader 改动属部署行为、须部署时验证），见 [deployment.md「data-loader × Flyway 首启竞态的缓解」](../operations/deployment.md)。另：loader 把 `password_hash`/`email`/`phone` 投影进 Neo4j 违反 SPEC-0001 §365，属安全域、单独切片跟踪。
 
 ### OQ-OPS-2 ｜Redis 的角色
 - **证据** ✅：`db/redis-docker-compose.yml` 存在，且 `db/README.md` 开头提到"redis 으로 user 테이블…"；但根 compose 与后端依赖中**未见 Redis**。
@@ -106,6 +107,7 @@
 ### OQ-OPS-4 ｜回滚与发布策略
 - **证据** 🔶：CI 为全量重建，无显式回滚。
 - **观察**：正式发布/回滚策略未记录。
+- **结论（2026-06-16）** ✅：发布与回滚已记录——发布走 ADR-0022 CD（`main` 打 `v*` tag → release.yml → 推 GHCR `:prod` → watchtower 自动部署）；回滚 = `:prod` 重指旧版镜像（前向兼容时）/ 修复迁移 / 从备份恢复。**备份与恢复策略本轮补全**（PG=源真相必备份、Neo4j=派生投影重建、Redis=易失无需备份；`pg_dump -Fc` 基线 + 迁移前必做 + 异地存储 + 恢复演练），见 [deployment.md「备份与恢复策略」](../operations/deployment.md) 与 [runbook.md「备份与恢复」](../operations/runbook.md)。**自动化调度 / 异地加密存储 / 恢复演练**的真实环境落地仍待维护者执行（归 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。
 
 ---
 

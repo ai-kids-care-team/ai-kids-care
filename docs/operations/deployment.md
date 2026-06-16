@@ -117,12 +117,31 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 > ⚠️ **2026-06-10 复核：此路径尚未达到生产就绪。** 合并后的 compose 仍会启动 `data-loader`；它只依赖 PostgreSQL healthcheck，不依赖后端/Flyway 完成，因此空库首启存在 loader 与 V1 迁移的竞态。loader 还主要导入仓库内 CSV 快照并复制敏感字段。解决这些问题前，应把本节视为"生产方向的骨架"，而不是已验证的生产部署方案。
 
+### data-loader × Flyway 首启竞态的缓解（OQ-OPS-1，已决定方向，落地待部署验证）
+
+**事实**：`run_all.sh` 串行执行 12 个脚本，其中**仅 `db100_insert_users.py` 读取 live PostgreSQL**（`SELECT … FROM users`），其余 `no*` 脚本读仓库内 CSV 快照、与 PG schema 无关。`data-loader` 仅 `depends_on db: service_healthy`（`pg_isready`），**不**依赖 Flyway 完成（Flyway 在 `backend` 启动时运行）。
+
+- **演示 / CD（持久卷）路径竞态良性**：`db: service_healthy` 时 initdb 的 V1（含 `users` 表与种子）首启已建好，`db100` 的 `SELECT FROM users` 必然成功；后续启动数据持久。残留**潜在**风险——未来某迁移若改名/删除 `db100` 所 SELECT 的 `users` 列，会与 loader 竞态。
+- **生产（`Dockerfile.prod` 空库无种子）路径竞态会破坏**：空库 `pg_isready` 即 healthy，但 `users` 表要等 Flyway（在 `backend` 内）建好；`data-loader` 不等 `backend`，`db100` 可能 `relation "users" does not exist` → `exit(1)`。且 loader 在生产仍会把仓库 CSV 演示快照灌入 Neo4j（生产不应有），并复制敏感字段（见下）。
+
+**已决定方向**（本轮仅文档化；compose/loader 改动属部署行为、本机无部署环境、CI 仅 `docker compose config` 结构校验，须部署时验证后再落地）：
+
+1. **生产不跑 data-loader**（同时消除竞态与向生产 Neo4j 注入演示/敏感数据）。建议在 `docker-compose.prod.yml` 用 prod-only 覆盖把 loader 置为 no-op（**提案，未落地**）：
+   ```yaml
+   services:
+     data-loader:
+       entrypoint: ["sh", "-c", "echo '[prod] data-loader disabled (loader×Flyway race + sensitive projection); skipping' && exit 0"]
+   ```
+2. **若演示路径将来需要严格排序**（迁移开始改 `users` 列时）：给 `backend` 加 healthcheck，并令 `data-loader.depends_on.backend: service_healthy`（**提案，未落地**），使 Flyway 完成后再跑 loader。
+
+> 🔒 **关联安全问题（§365，单独跟踪）**：`db100_insert_users.py` 把 `password_hash`(S0) 与 `email`/`phone`(PII) 写入 Neo4j `User` 节点，违反 SPEC-0001 §365「loader/projection 不写入 S0/PII」。该项属安全域、单独切片修复（已开后台任务跟踪），不在本 ops 文档轮次内。上面的「生产不跑 loader」可消除其在**生产** Neo4j 的暴露，但 demo Neo4j 仍存在该投影，待安全切片处置。
+
 ## 生产前必做（基于已确认事实，仅清单非方案）
 
 > 以下为**事实驱动的核对项**，处置方式由团队决定：
 
 - [ ] 用 `.env` 覆盖所有默认凭据（`POSTGRES_*`、`NEO4J_*`）；设生产 `SESSION_COOKIE_SECURE=true` 与 Caddy `DOMAIN`/`ACME_EMAIL`（`JWT_SECRET` 已废，JWT→服务端会话）。
-- [ ] 解决 data-loader 与 Flyway V1 迁移的首启竞态（OQ-OPS-1）。
+- [ ] 解决 data-loader 与 Flyway V1 迁移的首启竞态（OQ-OPS-1，方向已定见上「缓解」小节；部署时按提案落地并验证）。
 - [x] 后端鉴权已开启（默认拒绝 + 服务端会话 + 每请求授权，PR #89）。
 - [ ] 确认日志级别（`root: DEBUG`，OQ-SEC-6）。
 - [ ] 部署 Caddy 边缘 TLS（`infra/caddy/Caddyfile`）：设公网 `DOMAIN`，验证 ACME 证书签发与 HTTP→HTTPS/HSTS（PR #89 草案，端到端待部署验证）。
@@ -130,7 +149,27 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - [ ] 生产切换 `db` 镜像为 `Dockerfile.prod`（无 initdb 种子），通过 CD 管线打 release tag 发布。
 - [ ] 在 GHCR `release.yml` 中为"推 :prod"步添加 GitHub Environments 人工审批门（ADR-0022 OQ-3）。
 - [ ] 配置生产机上的 GHCR PAT（OQ-2）及 watchtower 部署，或改用 `docker-compose.prod.yml` 手动部署路径。
-- [ ] 建立 PostgreSQL/Neo4j 备份与恢复策略（OQ-OPS-4，见 ADR-0012）。
+- [ ] 建立 PostgreSQL/Neo4j 备份与恢复策略（OQ-OPS-4，策略见下「备份与恢复策略」节；自动化与异地存储待部署时落地，见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。
+
+## 备份与恢复策略（OQ-OPS-4）
+
+> 本节为**推荐策略 + 可执行命令**，与现有拓扑一致；自动化调度、异地/加密存储与恢复演练由维护者在真实环境落地与验证，归 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)。命令见 [runbook](runbook.md#备份与恢复)。
+
+**分层（按是否源真相决定备份必要性）**：
+
+| 存储 | 角色 | 备份必要性 |
+| --- | --- | --- |
+| PostgreSQL（`postgres_data`） | **源真相**（全部业务数据 + `flyway_schema_history`） | **必须**——逻辑 `pg_dump` 为主，可选卷快照做 PITR |
+| Neo4j（`neo4j_data`） | **派生投影**（由 CSV 快照 + `users` 的 PG 导入重建） | **非主备份目标**——PG 恢复后重跑 data-loader 即可重建 |
+| Redis（`redis_data`） | 易失会话存储（Spring Session） | **无需备份**——丢失=用户重新登录 |
+
+**策略要点**：
+
+- **以 PostgreSQL 逻辑备份为基线**：`pg_dump -Fc`（custom 格式，支持选择性恢复）。一份完整 dump 同时含 schema、数据与 `flyway_schema_history`，恢复后 Flyway 看到一致的迁移历史、只增量执行更新的迁移，无需特殊处理。
+- **迁移前必做**：每次应用新 Flyway 迁移（尤其破坏性 schema 变更）前先取一份 PG dump——这是回滚选项 3（从备份恢复）的前提，与 Flyway「只前向、不反向」（见下「本地开发回滚」）配套。
+- **节奏与留存**：建议每日逻辑备份 + 保留 N 天（具体由维护者按 RPO 定）；存放到容器与宿主之外的位置（异地/对象存储），避免与数据卷同损。
+- **Neo4j 恢复 = 重建**：PG 恢复后执行 data-loader（`run_all.sh`）重投影即可；如需独立时点快照，可用 `neo4j-admin database dump`（停库或在线备份），但非主路径。
+- **恢复演练**：恢复流程须定期在非生产环境演练验证（备份未经恢复验证不算备份）。
 
 ## 本地开发回滚
 
@@ -139,4 +178,4 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 **生产**：Flyway 不支持自动回滚已执行的迁移。回滚选项：
 1. 回退到上一版镜像（重推旧版到 `:prod` tag，watchtower 自动拉取）——若 schema 变更前向兼容则可行。
 2. 编写修复迁移（`VN__revert_*.sql`）而非反向执行。
-3. 从备份恢复——备份/恢复策略待定（OQ-OPS-4，未决，见 [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md)）。
+3. 从备份恢复——见上「[备份与恢复策略（OQ-OPS-4）](#备份与恢复策略oq-ops-4)」（迁移前的 PG dump 即此选项的前提）。
