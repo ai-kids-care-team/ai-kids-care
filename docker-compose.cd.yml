@@ -43,11 +43,13 @@ services:
     build: !reset null
 
   # ── watchtower：自动拉取并重建 :prod digest 变化的服务容器 ─────────────────
-  # 监控策略：WATCHTOWER_LABEL_ENABLE=false（默认），监控同 compose 项目的所有容器。
-  # 若只想监控本栈（非 host 上其他容器），可改为 label 模式：
-  #   WATCHTOWER_LABEL_ENABLE=true
-  #   并在各服务 labels: 下加 com.centurylinklabs.watchtower.enable=true
-  # 当前选择：监控同 Docker 守护进程下的全部容器（含本栈 + watchtower 自身除外）。
+  # 认证（路 A，Windows 友好）：用 REPO_USER/REPO_PASS，从演示机的 .env 注入
+  #   （GHCR_USER=GitHub 用户名、GHCR_PAT=read:packages PAT）。.env 已被 .gitignore
+  #   忽略，不入库。这样避开 Windows Docker Desktop 把凭据存进 credsStore（而非明文
+  #   config.json）、导致挂载 config.json 拿不到凭据的坑。见 .env.example。
+  # 监控范围：WATCHTOWER_LABEL_ENABLE=false = 监控同 Docker 守护进程下全部容器。
+  #   若只想监控本栈，改 "true" 并在各服务 labels 下加
+  #   com.centurylinklabs.watchtower.enable=true。
   watchtower:
     image: containrrr/watchtower
     container_name: ai-kids-watchtower
@@ -55,16 +57,12 @@ services:
     volumes:
       # Docker socket：watchtower 用它拉取镜像并重建容器
       - /var/run/docker.sock:/var/run/docker.sock
-      # GHCR 登录凭据（host 侧先手动 docker login ghcr.io，见上方 OQ-2 说明）
-      # ${DOCKER_CONFIG:-$HOME/.docker} 允许通过环境变量覆盖路径
-      - ${DOCKER_CONFIG:-/root/.docker}/config.json:/config.json:ro
     environment:
       # 轮询间隔（秒）。300 = 每 5 分钟检查一次 :prod digest。
       WATCHTOWER_POLL_INTERVAL: "300"
       # 拉取新镜像后删除旧镜像，避免磁盘堆积
       WATCHTOWER_CLEANUP: "true"
-      # 只处理有 watchtower enable label 的容器（改为 "false" 监控全部）
-      # 当前 = "false"：监控本 Docker daemon 下所有容器
       WATCHTOWER_LABEL_ENABLE: "false"
-      # 拉取 GHCR 私有镜像时使用挂载的 config.json 凭据
-      DOCKER_CONFIG: /config.json
+      # GHCR 私有镜像拉取凭据（从演示机 .env 注入；见 .env.example）
+      REPO_USER: ${GHCR_USER:-}
+      REPO_PASS: ${GHCR_PAT:-}
