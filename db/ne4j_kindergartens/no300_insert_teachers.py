@@ -1,3 +1,5 @@
+# SPEC-0001 §365：本 loader 不再将 email/phone/password_hash/rrn/address 等 S0/PII 投影进 Neo4j；
+# 文件末尾示例查询中涉及这些属性的部分仅为历史参考（图中已不存在）。
 from neo4j_connect import driver
 import csv
 from datetime import datetime, date
