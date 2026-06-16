@@ -84,4 +84,4 @@
 
 ## 安全相关待确认项索引
 
-详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭，✅ 已实现 PR #89 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) / [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）、OQ-SEC-2/3（JWT access/refresh / secret，✅ 随 JWT 移除消解）、OQ-SEC-4（RRN 哈希策略 / 命名勘误，已决 → [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（DEBUG 日志）、OQ-SEC-7（审计落地，✅ 安全事件 writer 已实现，见 §7；残留拒绝洪泛限流 / 可信 forwarded IP / DB 级 append-only 为后续 OQ）。
+详见 [modernization/open-questions.md](../modernization/open-questions.md)：OQ-SEC-1（鉴权关闭，✅ 已实现 PR #89 → [ADR-0009](../decisions/adr/ADR-0009-restore-auth-enforcement.md) / [ADR-0016](../decisions/adr/ADR-0016-server-side-session-auth.md)）、OQ-SEC-2/3（JWT access/refresh / secret，✅ 随 JWT 移除消解）、OQ-SEC-4（RRN 哈希策略 / 命名勘误，已决 → [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）、OQ-SEC-5（`.env` 与默认凭据）、OQ-SEC-6（日志级别，✅ 已改 `${LOG_LEVEL_ROOT:INFO}` 安全默认）、OQ-SEC-7（审计落地，✅ 安全事件 writer 已实现，见 §7；残留拒绝洪泛限流 / 可信 forwarded IP / DB 级 append-only 为后续 OQ）。

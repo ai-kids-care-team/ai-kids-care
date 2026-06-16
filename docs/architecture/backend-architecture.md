@@ -90,7 +90,7 @@ templates/*.mustache  →  生成 6 类文件：
 - `show-sql: false`，方言 `PostgreSQLDialect`。
 - 数据源、Neo4j、JWT secret 全部通过环境变量注入，带本地默认值。
 
-> ⚠️ `logging.level.root: DEBUG` ✅——committed 配置为 DEBUG 级，生产环境会产生大量日志且可能泄露敏感信息。见 [open-questions](../modernization/open-questions.md)。
+> ✅ `logging.level.root: ${LOG_LEVEL_ROOT:INFO}`——安全默认 INFO（含生产，避免海量日志 / 敏感信息泄露），dev 可经 `LOG_LEVEL_ROOT=DEBUG` 调高（OQ-SEC-6 已关闭）。见 [open-questions](../modernization/open-questions.md)。
 
 ## 5. 认证与安全（概要）
 

@@ -38,9 +38,10 @@
 - **观察**：需核对 `.gitignore` 是否覆盖 `.env`，以及生产密钥管理方式。
 
 ### OQ-SEC-6 ｜生产日志级别
-- **证据** ✅：`logging.level.root: DEBUG`。
+- **证据** ✅：~~`logging.level.root: DEBUG`~~ → 已改 `${LOG_LEVEL_ROOT:INFO}`。
 - **为何重要**：DEBUG 在生产产生海量日志且可能泄露敏感数据。
 - **观察**：是否应按环境区分日志级别？
+- **结论（2026-06-16）** ✅：`logging.level.root` 默认改为 `${LOG_LEVEL_ROOT:INFO}`——**安全默认 INFO**（含生产），开发可经环境变量 `LOG_LEVEL_ROOT=DEBUG` 临时调高。本项关闭。
 
 ### OQ-SEC-7 ｜审计日志是否真正落地？
 - **证据** ✅：有 `audit_logs` 表与内部 service；Phase 1A 后公共 controller 不发布 operation。❓ 未见各写操作统一写审计（无切面/拦截器）。
