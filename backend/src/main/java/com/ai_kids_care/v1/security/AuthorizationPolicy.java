@@ -39,6 +39,10 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             case TENANT_SURVEILLANCE_READ ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // SPEC-0001 §3 / §349：粗粒度门——GUARDIAN + 有效 tenant identity；
+            // 细粒度「仅有 ACTIVE 关系的儿童」由 ChildRepository 的关系-scoped 查询在 SQL 内强制。
+            case GUARDIAN_CHILD_READ ->
+                    tenantIdentity && role == UserRoleEnum.GUARDIAN;
             // SPEC-0002 Slice A: 粗粒度门——仅确认 KINDERGARTEN_ADMIN + 有效 tenant identity。
             // 细粒度（teachers.level / 同园 / 禁自审 / 目标状态）由 KindergartenAdminPolicy 在事务内完成（ADR-0019 §2）。
             case KINDERGARTEN_ADMIN_APPROVAL_READ,

@@ -532,3 +532,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：新增 `SecurityAuditIntegrationTest`（按 `X-Correlation-Id` 精确定位本次请求审计行）——登录成功 / 失败 / 登出、tenant 切换平台 scope 无伪造 kg id、园级 approve 角色变更、错误角色 403 经 AccessDeniedHandler 写 DENIED、审计行不含 S0、审计 API 对业务用户不可读 / 写 / 删。
 - 验证：**本机无 Java/JAVA_HOME**，后端测试由 GitHub Actions「Backend Java Tests」（Testcontainers + initdb→Flyway V2）执行；本地 `git diff --check` PASS。
 - 已知限制 / 后续 OQ：拒绝洪泛限流 / 采样（每个 403 / CSRF 失败写一行）；可信 `X-Forwarded-For` 客户端 IP（待边缘反代定案 [ADR-0017](../decisions/adr/ADR-0017-tls-https-termination.md)，现记 `remoteAddr`）；DB 级 append-only `REVOKE`/触发器（维护者另定，ADR-0021 §4）；残留极罕见孤儿 SUCCESS（业务 commit 阶段失败时，REQUIRES_NEW 审计已提交）。
+
+#### 切片 7（2026-06-16）：Guardian→child 关系策略（资源关系 §3 / §349）
+
+- 维护者设计决策（2026-06-16）：① 关系活跃语义 = **`end_date` 窗**（`end_date IS NULL OR end_date >= today`），**不加 status 列、无 schema 迁移**（`child_guardian_relationships` 仍无 status 列；Guardian 审批前 membership/role 为 PENDING → 登录即被拒，批准后关系行已存在即活跃，故 end_date 窗充分）。② 首切片**仅 Guardian→child 读**（Teacher→child / 感谢信 / 通知作后续）。
+- 实现：新增最小 `GuardianChildVO(childId, name, status)`（不含 RRN/address/birth_date/childNo）；`AuthorizationAction.GUARDIAN_CHILD_READ` + `AuthorizationPolicy`（`tenantIdentity && role==GUARDIAN`）；`ChildRepository` 两条关系-scoped JPQL（活跃关系 EXISTS 子查询在 SQL 内强制：guardian 档案 ACTIVE + `Guardian.user_id` 匹配 + end_date 窗 + 同租户 + child ACTIVE）；`ChildrenService.listRelatedChildren`/`getRelatedChild`；`ChildrenController` 重开 `GET /children` 与 `GET /children/{id}`（仅 GUARDIAN）。无 ACTIVE 关系（跨租户 / 不存在 / 已结束）→ **审计 `AUTHORIZATION_DENIED`（复用切片 6 writer）+ 隐藏 404**（§3.4）。完整 `ChildVO`、通用 create/update/delete 仍关闭（写操作 → 405）。
+- 契约护栏更新（重开敏感资源的护栏，非移除）：`SensitivePublicApiClosureContractTest`（ChildrenController 不再空壳）、`SensitiveWriteContractTest`（children 写 → 405）、`PublishedOpenApiContractTest`（`/children`·`/children/{id}` GET 由 absent→present、锁 `GuardianChildVO` 仅 3 字段；`ChildVO` 仍 absent、`/children/rrn` 仍 absent）。`SensitiveResponseContractTest` 的 `ChildVO` 字段断言不变（`getChild`/`ChildVO` 保留未动）。
+- 测试：新增 `GuardianChildAuthorizationIntegrationTest`——仅 ACTIVE 关系儿童可见、无关系/已结束/跨租户 → 隐藏 404、无关系写 DENIED 审计行、TEACHER → 403、未认证 → 401、响应最小字段无 S0/S1。
+- 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。
+- defer（记录）：成功 S1 读取审计（跨切面，后续）；className/gender 字段；**Teacher→child / 事件**（§351 余项）；感谢信 / 通知 Guardian 资源。
