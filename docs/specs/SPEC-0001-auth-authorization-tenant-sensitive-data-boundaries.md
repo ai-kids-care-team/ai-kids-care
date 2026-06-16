@@ -549,3 +549,12 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：新增 `ErrorResponseSensitiveDataIntegrationTest`（4 项，集成测试经真实安全链）——(1) 400 注册校验失败植入口令/RRN 金丝雀不回显；(2) 400 报文不可解析不回显原始字节、不带 stacktrace/exception；(3) 403 CSRF 缺失不回显提交口令；(4) 401 未认证不暴露 S0/内部。共享 `assertNoSensitiveLeakage` 扫描金丝雀明文 + S0/内部存储字段名（camel+snake：`passwordHash`/`rrnEncrypted`/`ciphertext`/`pushToken`/`storageUri`/`sourceUrl`/`streamUser` 等）+ 内部信息 JSON key（`"trace"`/`"exception"`/`"stackTrace"`）。隐藏 404 `{"error":"Resource not found"}` 契约已由 GuardianChild/AdminApproval 覆盖，不重复。
 - 验证：本机无 Java，后端由 GitHub Actions「Backend Java Tests」执行；`git diff --check` PASS。仅新增一个后端测试文件，无生产代码改动，前端未触碰。
 - 未做 / 后续（ops 子项，与负向测试套件分离）：loader×Flyway 竞态（OQ-OPS-1）、备份（OQ-OPS-4）、生产 `.env`；以及 §372/§390 验收勾选保留维护者评审（多项跨前端/CI，非本切片可独立闭合）。
+
+#### 切片 9（2026-06-16）：Neo4j loader 去 S0/PII 投影（§365）
+
+- 取证：ops 排查（OQ-OPS-1）发现 `db/ne4j_kindergartens/` 的 loader 把 S0/PII 投影进 Neo4j 节点，违反 §365「Neo4j loader/projection 不写入 S0，且默认不写入地址、电话、email 或 RRN」。全量盘点 6 个含投影的脚本（User×2[CSV+PG]、Kindergarten、Teacher、Child、Guardian）；其余 no400/700/800/900/950/1000 仅结构/关系属性、无敏感字段。
+- 实现（sub-agent[sonnet] 落地，Lead fresh-context 复审后并入）：从每个脚本的**可执行投影**（Cypher `SET` + 参数；`db100_insert_users.py` 另含 SQL `SELECT` 与 `normalize_user_row`）移除 §365 禁止字段——User: `password_hash`(S0)/`email`/`phone`；Kindergarten: `address`/`contact_phone`/`contact_email`；Teacher: `rrn_encrypted`/`rrn_first6`/`emergency_contact_phone`/`emergency_contact_name`；Child: `rrn_first6`/`rrn_encrypted`/`birth_date`/`address`；Guardian: `rrn_encrypted`/`rrn_first6`/`address`。保留 id/姓名/`login_id`/`status`/结构/关系/时间戳字段。CSV 源快照不动（不在 Neo4j 内）。
+- 既有 demo 图清理：新增 `no000_scrub_sensitive.py`（幂等 `REMOVE` 五个 Label 的上述属性，因 MERGE+SET 不删旧属性），并接为 `run_all.sh` 首条；`SETUP_GUIDE.md` 同步。
+- 边界保留（Lead 决定，待维护者复核）：`business_registration_no`（法人登记号，非个人 PII）与 `contact_name`（联系人姓名；§365 禁止集为 地址/电话/email/RRN/S0，未含「姓名」）予以保留；如需更严最小化可后续收紧。
+- 验证：本机 Python 3.12 对 7 个变更脚本 `python -m py_compile` 全过；`git diff --check` PASS；SET↔参数一致性逐脚本核对无悬挂 `$param`。loader 运行时需 Docker+Neo4j+PG（CI 不覆盖 loader），未跑实例。
+- 复审：实现=sub-agent，复审/集成=Lead（≠实现会话），符合 ADR-0020 sub-agent fresh-review 要求。

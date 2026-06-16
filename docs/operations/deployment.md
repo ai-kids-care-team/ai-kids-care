@@ -134,7 +134,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
    ```
 2. **若演示路径将来需要严格排序**（迁移开始改 `users` 列时）：给 `backend` 加 healthcheck，并令 `data-loader.depends_on.backend: service_healthy`（**提案，未落地**），使 Flyway 完成后再跑 loader。
 
-> 🔒 **关联安全问题（§365，单独跟踪）**：`db100_insert_users.py` 把 `password_hash`(S0) 与 `email`/`phone`(PII) 写入 Neo4j `User` 节点，违反 SPEC-0001 §365「loader/projection 不写入 S0/PII」。该项属安全域、单独切片修复（已开后台任务跟踪），不在本 ops 文档轮次内。上面的「生产不跑 loader」可消除其在**生产** Neo4j 的暴露，但 demo Neo4j 仍存在该投影，待安全切片处置。
+> 🔒 **关联安全问题（§365，已修复）**：loader 原把 `password_hash`(S0) 与 `email`/`phone`/RRN/地址等写入 Neo4j 节点，违反 SPEC-0001 §365。**已修复**（SPEC-0001 实施记录「切片 9」）：6 个投影脚本去除全部 §365 禁止字段，新增 `no000_scrub_sensitive.py` 幂等清理既有 demo 图并接为 `run_all.sh` 首条。上面的「生产不跑 loader」仍是消除其在**生产** Neo4j 暴露的纵深防御。
 
 ## 生产前必做（基于已确认事实，仅清单非方案）
 

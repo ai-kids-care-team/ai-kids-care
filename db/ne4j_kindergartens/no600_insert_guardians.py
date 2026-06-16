@@ -89,10 +89,7 @@ def create_guardian_node(tx, row):
         SET g.kindergarten_id = $kindergarten_id,
             g.user_id = $user_id,
             g.name = $name,
-            g.rrn_encrypted = $rrn_encrypted,
-            g.rrn_first6 = $rrn_first6,
             g.gender = $gender,
-            g.address = $address,
             g.status = $status,
             g.created_at = $created_at,
             g.updated_at = $updated_at
@@ -101,10 +98,7 @@ def create_guardian_node(tx, row):
     kindergarten_id=int(row["kindergarten_id"]) if clean_value(row.get("kindergarten_id")) else None,
     user_id=int(row["user_id"]) if clean_value(row.get("user_id")) else None,
     name=clean_value(row.get("name")),
-    rrn_encrypted=clean_value(row.get("rrn_encrypted")),
-    rrn_first6=clean_value(row.get("rrn_first6")),
     gender=clean_value(row.get("gender")),
-    address=clean_value(row.get("address")),
     status=clean_value(row.get("status")),
     created_at=fix_datetime(row.get("created_at")),
     updated_at=fix_datetime(row.get("updated_at"))
