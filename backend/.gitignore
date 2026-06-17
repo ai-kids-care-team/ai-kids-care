@@ -78,7 +78,9 @@ application-local.yml
 application-local.yaml
 application-dev.yml
 application-dev.yaml
-application-test.yml
+# application-test.yml is intentionally tracked: it excludes Neo4j auto-config and
+# overrides redis password to empty for the Testcontainers-backed test suite.
+# Do NOT re-add application-test.yml here.
 application-test.yaml
 
 # Alternatively, ignore any local override config patterns

@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kids_postgres_db}
       POSTGRES_USER: ${POSTGRES_USER:-kids_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       TZ: Asia/Seoul
       PGTZ: Asia/Seoul
     ports:
@@ -28,7 +28,7 @@ services:
     container_name: neo4j
     restart: unless-stopped
     environment:
-      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-rose100!}
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set}
       NEO4J_dbms_memory_heap_initial__size: 512m
       NEO4J_dbms_memory_heap_max__size: 1G
       TZ: Asia/Seoul
@@ -37,17 +37,26 @@ services:
       - "7687:7687"   # Bolt (Java Driver)
     volumes:
       - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   redis:
     image: redis:7-alpine
     container_name: ai-kids-redis
     restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -61,17 +70,17 @@ services:
     environment:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-rose100!}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set}
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
       DB_USER: ${POSTGRES_USER:-kids_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     depends_on:
       db:
         condition: service_healthy
       neo4j:
-        condition: service_started
+        condition: service_healthy
     restart: "no"
 
   backend:
@@ -86,12 +95,13 @@ services:
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
       DB_USER: ${POSTGRES_USER:-kids_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-kids_pass}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-rose100!}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
     ports:
@@ -100,7 +110,7 @@ services:
       db:
         condition: service_healthy
       neo4j:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
 
