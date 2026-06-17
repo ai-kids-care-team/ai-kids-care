@@ -324,7 +324,8 @@ def run_stream_service(
                 step_frames = max(1, int(round(step_sec * fps)))
                 keep_window_sec = max(window_sec + step_sec + 3.0, window_sec + 1.0)
 
-                frame_buffer: deque[tuple[int, float, np.ndarray]] = deque()
+                _fb_maxlen = max(200, int(math.ceil(keep_window_sec * fps * 1.5)))
+                frame_buffer: deque[tuple[int, float, np.ndarray]] = deque(maxlen=_fb_maxlen)
                 frame_idx = -1
                 eval_index_in_connection = 0
                 next_eval_frame_idx = window_frames_required - 1
