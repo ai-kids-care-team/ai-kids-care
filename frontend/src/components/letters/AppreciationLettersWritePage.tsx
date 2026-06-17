@@ -17,7 +17,6 @@ import { openLoginModal } from '@/utils/auth-modal';
 import { GuardianAuthorCard } from './GuardianAuthorCard';
 import { LetterTargetPicker } from './LetterTargetPicker';
 import { getApiErrorMessage } from './api-error-message';
-import { pushClientAppreciationLetter } from './appreciation-letter-client-cache';
 
 export function AppreciationLettersWritePage() {
   const router = useRouter();
@@ -105,7 +104,7 @@ export function AppreciationLettersWritePage() {
 
     setSubmitting(true);
     try {
-      const created = await createAppreciationLetter({
+      await createAppreciationLetter({
         kindergartenId,
         senderUserId: senderNum,
         targetType,
@@ -114,19 +113,6 @@ export function AppreciationLettersWritePage() {
         content: content.trim(),
         isPublic,
         status: 'ACTIVE',
-      });
-      // 목록 API에서 PK 매핑이 누락될 수 있어, 방금 작성한 글을 캐시에 즉시 반영합니다.
-      pushClientAppreciationLetter({
-        letterId: created.letterId,
-        kindergartenId,
-        senderUserId: senderNum,
-        targetType,
-        targetId,
-        title: title.trim(),
-        content: content.trim(),
-        isPublic,
-        status: 'ACTIVE',
-        senderLoginId: (user?.loginId || user?.username || '').trim() || undefined,
       });
       toast.success('등록되었습니다.');
       router.push('/letters');

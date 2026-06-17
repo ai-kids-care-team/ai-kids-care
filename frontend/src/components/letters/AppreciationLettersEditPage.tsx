@@ -26,11 +26,6 @@ import { GuardianAuthorCard } from './GuardianAuthorCard';
 import { LetterTargetPicker } from './LetterTargetPicker';
 import { getApiErrorMessage } from './api-error-message';
 import {
-  getClientCachedLetterBySeq,
-  parseClientLetterSeqParam,
-  updateClientCachedLetter,
-} from './appreciation-letter-client-cache';
-import {
   buildAppreciationLetterViewerContext,
   isSameAppreciationLetterAuthor,
   parseLetterIdQueryParam,
@@ -43,7 +38,6 @@ import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten
 export function AppreciationLettersEditPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const clientSeq = parseClientLetterSeqParam(searchParams.get('cid'));
   const id = parseLetterIdQueryParam(searchParams.get('id')) ?? NaN;
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
   const senderNum = user?.id != null ? Number(user.id) : NaN;
@@ -126,83 +120,7 @@ export function AppreciationLettersEditPage() {
       return;
     }
 
-    // 1) 작성 직후 캐시 글(?cid) 로딩
-    if (clientSeq != null) {
-      const loadClient = async () => {
-        setLoading(true);
-        setLoadError('');
-        setServerLetterId(null);
-        const row = getClientCachedLetterBySeq(clientSeq);
-        if (!row) {
-          setLoadError('감사 편지를 찾을 수 없습니다. 목록에서 다시 열어 주세요.');
-          setStoredSenderUserId(null);
-          setLoading(false);
-          return;
-        }
-        const viewerCtx = buildAppreciationLetterViewerContext(currentUser);
-        if (!viewerMaySeeAppreciationLetter(row as AppreciationLetterVO, viewerCtx, isAuthenticated)) {
-          setLoadError('소속 유치원의 감사 편지만 열람·수정할 수 있습니다.');
-          setStoredSenderUserId(null);
-          setLoading(false);
-          return;
-        }
-        if (!isSameAppreciationLetterAuthor(currentUser.id, row.senderUserId)) {
-          setLoadError(
-            '수정 권한이 없습니다. 이 편지를 작성한 회원 계정으로 로그인했는지 확인해 주세요.',
-          );
-          setStoredSenderUserId(null);
-          setLoading(false);
-          return;
-        }
-
-        setStoredSenderUserId(row.senderUserId);
-        setKindergartenId(row.kindergartenId);
-        const tt = String(row.targetType ?? '').toUpperCase();
-        setTargetType(tt === 'TEACHER' ? 'TEACHER' : 'KINDERGARTEN');
-        setTargetId(row.targetId);
-        setTitle(row.title);
-        setContent(row.content);
-        setIsPublic(row.isPublic !== false);
-
-        try {
-          if (tt === 'TEACHER') {
-            const t = await getTeacher(row.targetId);
-            setTargetLabel(`${t.name} (교사)`);
-            try {
-              const k = await getKindergarten(row.kindergartenId);
-              setPresetKgForTeacherPicker({ kindergartenId: k.kindergartenId, name: k.name });
-            } catch {
-              setPresetKgForTeacherPicker({
-                kindergartenId: row.kindergartenId,
-                name: `유치원 #${row.kindergartenId}`,
-              });
-            }
-          } else {
-            const k = await getKindergarten(row.targetId);
-            setTargetLabel(k.name);
-            setPresetKgForTeacherPicker(null);
-          }
-        } catch {
-          setTargetLabel(
-            tt === 'TEACHER' ? `교사 #${row.targetId}` : `유치원 #${row.targetId}`,
-          );
-          if (tt === 'TEACHER') {
-            setPresetKgForTeacherPicker({
-              kindergartenId: row.kindergartenId,
-              name: `유치원 #${row.kindergartenId}`,
-            });
-          } else {
-            setPresetKgForTeacherPicker(null);
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-      void loadClient();
-      return;
-    }
-
-    // 2) API 글(?id) 로딩
+    // API 글(?id) 로딩
     if (!Number.isFinite(id) || id <= 0) {
       setLoadError('유효하지 않은 ID입니다.');
       setLoading(false);
@@ -292,7 +210,7 @@ export function AppreciationLettersEditPage() {
     };
 
     void load();
-  }, [id, clientSeq, user, isAuthenticated]);
+  }, [id, user, isAuthenticated]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -315,26 +233,6 @@ export function AppreciationLettersEditPage() {
 
     setSubmitting(true);
     try {
-      if (clientSeq != null) {
-        const ok = updateClientCachedLetter(clientSeq, {
-          kindergartenId,
-          senderUserId: senderForApi,
-          targetType,
-          targetId,
-          title: title.trim(),
-          content: content.trim(),
-          isPublic,
-          status: 'ACTIVE',
-        });
-        if (!ok) {
-          toast.error('저장에 실패했습니다. 목록에서 다시 열어 주세요.');
-          return;
-        }
-        toast.success('수정되었습니다.');
-        router.push(`/letters/read?cid=${clientSeq}`);
-        return;
-      }
-
       const putId =
         serverLetterId != null && Number.isFinite(serverLetterId) && serverLetterId > 0
           ? serverLetterId
@@ -393,11 +291,9 @@ export function AppreciationLettersEditPage() {
         <div className="mb-4">
           <Link
             href={
-              clientSeq != null
-                ? `/letters/read?cid=${clientSeq}`
-                : Number.isFinite(id) && id > 0
-                  ? `/letters/read?id=${id}`
-                  : '/letters'
+              Number.isFinite(id) && id > 0
+                ? `/letters/read?id=${id}`
+                : '/letters'
             }
             className="inline-flex items-center gap-2 text-sm text-[#006b52] transition-colors hover:text-[#005640]"
           >
@@ -472,11 +368,7 @@ export function AppreciationLettersEditPage() {
 
               <div className="flex justify-end gap-2 border-t border-gray-100 pt-5">
                 <Link
-                  href={
-                    clientSeq != null
-                      ? `/letters/read?cid=${clientSeq}`
-                      : `/letters/read?id=${id}`
-                  }
+                  href={`/letters/read?id=${id}`}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-slate-700 hover:bg-gray-50"
                 >
                   취소
