@@ -53,7 +53,6 @@ public class AnnouncementService {
     public AnnouncementVO createAnnouncement(AnnouncementCreateDTO createDTO) {
         EffectiveAuthorizationContext context =
                 EffectiveAuthorizationContextHolder.require();
-        requireSameUser(createDTO.getAuthorId(), context.userId());
         Announcement entity = mapper.toEntity(createDTO);
         entity.setAuthor(userRepository.getReferenceById(context.userId()));
         return mapper.toVO(repository.save(entity));
@@ -82,9 +81,4 @@ public class AnnouncementService {
         repository.delete(entity);
     }
 
-    private void requireSameUser(Long requestedUserId, Long effectiveUserId) {
-        if (requestedUserId != null && !requestedUserId.equals(effectiveUserId)) {
-            throw new EntityNotFoundException("Announcement not found");
-        }
-    }
 }

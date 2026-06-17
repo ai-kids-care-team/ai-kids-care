@@ -14,8 +14,6 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AnnouncementCreateDTO implements Serializable {
-    private Long id;
-    private Long authorId;
     private String title;
     private String body;
     private Boolean isPinned;
@@ -24,8 +22,4 @@ public class AnnouncementCreateDTO implements Serializable {
     private OffsetDateTime publishedAt;
     private OffsetDateTime startsAt;
     private OffsetDateTime endsAt;
-    private Long viewCount;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
-    private OffsetDateTime deletedAt;
 }
