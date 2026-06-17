@@ -8,7 +8,6 @@
 - Spring Web（REST）、Spring Security、Spring Data JPA、Bean Validation。
 - **MapStruct 1.5.5**（编译期 DTO↔Entity↔VO 映射）+ **Lombok**。
 - **springdoc-openapi 2.6**（Swagger UI）。
-- **jjwt 0.12.3**（JWT）。
 - **Neo4j Java Driver 5.19**（图查询，非 Spring Data Neo4j）。
 - **PostgreSQL JDBC 42.7.3**。
 
@@ -41,7 +40,7 @@ HTTP 请求
 - vo/     输出模型（XxxVO；vo/graph/ 为图查询结果）
 - mapper/ MapStruct 接口（Entity ↔ DTO/VO）
 - type/   领域枚举（与 PG enum 对应）
-- security/ JWT、AES-GCM 加密
+- security/ Spring Session + Redis、AES-GCM 加密
 - config/   SecurityConfig、Neo4jConfig
 ```
 

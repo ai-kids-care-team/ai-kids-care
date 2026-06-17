@@ -3,14 +3,12 @@ package com.ai_kids_care.v1.contract;
 import com.ai_kids_care.v1.controller.CameraStreamController;
 import com.ai_kids_care.v1.controller.ChildrenController;
 import com.ai_kids_care.v1.controller.CctvCameraController;
-import com.ai_kids_care.v1.controller.DetectionEventController;
 import com.ai_kids_care.v1.controller.DetectionSessionController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
 import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.NotificationController;
 import com.ai_kids_care.v1.controller.TeacherController;
-import com.ai_kids_care.v1.controller.UserController;
 import com.ai_kids_care.v1.mapper.AppreciationLetterMapper;
 import com.ai_kids_care.v1.mapper.CameraStreamMapper;
 import com.ai_kids_care.v1.mapper.CctvCameraMapper;
@@ -48,7 +46,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,37 +87,26 @@ class SensitiveWriteContractTest {
 
     @Test
     void closedPublicWriteEndpointsDoNotCallServices() throws Exception {
-        UserService userService = mock(UserService.class);
         ChildrenService childrenService = mock(ChildrenService.class);
         GuardianService guardianService = mock(GuardianService.class);
         TeacherService teacherService = mock(TeacherService.class);
         DeviceTokenService deviceTokenService = mock(DeviceTokenService.class);
         EventEvidenceFileService eventEvidenceFileService = mock(EventEvidenceFileService.class);
         CameraStreamService cameraStreamService = mock(CameraStreamService.class);
-        DetectionEventService detectionEventService = mock(DetectionEventService.class);
         DetectionSessionService detectionSessionService = mock(DetectionSessionService.class);
         CctvCameraService cctvCameraService = mock(CctvCameraService.class);
         NotificationService notificationService = mock(NotificationService.class);
         MockMvc mockMvc = standaloneSetup(
-                new UserController(),
                 new ChildrenController(childrenService),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
                 new EventEvidenceFileController(),
                 new CameraStreamController(cameraStreamService),
-                new DetectionEventController(),
                 new DetectionSessionController(detectionSessionService),
                 new CctvCameraController(cctvCameraService),
                 new NotificationController(notificationService)
         ).build();
-
-        mockMvc.perform(post("/api/v1/users").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(put("/api/v1/users/1").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(delete("/api/v1/users/1"))
-                .andExpect(status().isNotFound());
 
         // children 已重开 GET（Guardian 关系-scoped，SPEC-0001 §349）；写操作仍未发布 → 405（路径存在但无写 handler）。
         mockMvc.perform(post("/api/v1/children").contentType("application/json").content("{}"))
@@ -173,13 +159,6 @@ class SensitiveWriteContractTest {
         mockMvc.perform(delete("/api/v1/camera_streams/1"))
                 .andExpect(status().isMethodNotAllowed());
 
-        mockMvc.perform(post("/api/v1/detection_events").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(put("/api/v1/detection_events/1").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(delete("/api/v1/detection_events/1"))
-                .andExpect(status().isNotFound());
-
         mockMvc.perform(post("/api/v1/detection_sessions").contentType("application/json").content("{}"))
                 .andExpect(status().isMethodNotAllowed());
         mockMvc.perform(put("/api/v1/detection_sessions/1").contentType("application/json").content("{}"))
@@ -195,14 +174,12 @@ class SensitiveWriteContractTest {
                 .andExpect(status().isMethodNotAllowed());
 
         verifyNoInteractions(
-                userService,
                 childrenService,
                 guardianService,
                 teacherService,
                 deviceTokenService,
                 eventEvidenceFileService,
                 cameraStreamService,
-                detectionEventService,
                 detectionSessionService,
                 cctvCameraService,
                 notificationService
@@ -210,22 +187,7 @@ class SensitiveWriteContractTest {
     }
 
     @Test
-    void detectionEventReadsAreClosedBeforeCallingService() throws Exception {
-        DetectionEventService detectionEventService = mock(DetectionEventService.class);
-        MockMvc mockMvc = standaloneSetup(new DetectionEventController()).build();
-
-        mockMvc.perform(get("/api/v1/detection_events"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/detection_events/1"))
-                .andExpect(status().isNotFound());
-
-        verifyNoInteractions(detectionEventService);
-    }
-
-    @Test
     void genericWriteControllersServicesAndMappersAreNoLongerExposed() {
-        assertMethodNameAbsent(UserController.class, "updateUser");
-        assertMethodNameAbsent(UserController.class, "deleteUser");
         assertMethodNameAbsent(ChildrenController.class, "getChildByRRN");
         assertMethodNameAbsent(ChildrenController.class, "updateChildren");
         assertMethodNameAbsent(ChildrenController.class, "deleteChildren");
@@ -236,9 +198,6 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(DeviceTokenController.class, "deleteDeviceToken");
         assertMethodNameAbsent(EventEvidenceFileController.class, "deleteEventEvidenceFile");
         assertMethodNameAbsent(CameraStreamController.class, "deleteCameraStream");
-        assertMethodNameAbsent(DetectionEventController.class, "createDetectionEvent");
-        assertMethodNameAbsent(DetectionEventController.class, "updateDetectionEvent");
-        assertMethodNameAbsent(DetectionEventController.class, "deleteDetectionEvent");
         assertMethodNameAbsent(DetectionSessionController.class, "createDetectionSession");
         assertMethodNameAbsent(DetectionSessionController.class, "updateDetectionSession");
         assertMethodNameAbsent(DetectionSessionController.class, "deleteDetectionSession");
