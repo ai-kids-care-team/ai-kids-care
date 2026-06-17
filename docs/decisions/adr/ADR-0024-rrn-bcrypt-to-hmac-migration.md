@@ -2,7 +2,7 @@
 ADR: ADR-0024
 title: "ADR-0024: RRN 由 BCrypt 迁移到 HMAC-SHA-256 + pepper 的实施步骤"
 status: Accepted
-implementation: Not Started
+implementation: Phase 1 Complete (D1–D6, commit 8a15f99)
 date: 2026-06-17
 deciders: 接手人（Lead）起草；维护者 2026-06-18 Accept（PII / schema / 迁移属高风险）
 supersedes: []
@@ -19,7 +19,7 @@ related_specs: [SPEC-0001]
 
 Decision: `Accepted`（维护者 2026-06-18 签署）
 
-Implementation: `Not Started`（Accept 后按 implement-review-loop 分阶段落地）
+Implementation: `Phase 1 Complete`（D1–D6 已落地，commit 8a15f99，branch task/adr-0024-phase1；D7/V5/V6 待阶段二/三）
 
 > 高风险（PII + schema/migration + 注册认证路径）。Accept 后用 `implement-review-loop` 单 lane 串行落地——迁移、读/写路径、种子是强耦合、不可并行的原子改动。建议分阶段：阶段一 = V4 + 读写 + 种子 + 单 pepper 配置；阶段二 = RRN 再校验流程 + 回填；阶段三 = 达硬门后 V5/V6。
 

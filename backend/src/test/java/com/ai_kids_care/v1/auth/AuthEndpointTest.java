@@ -557,7 +557,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
         String loginId = "test-guardian-" + suffix;
         Map<String, Object> body = commonRegistrationBody(suffix, loginId, "GUARDIAN");
-        addApplicantIdentity(body);
+        addApplicantIdentity(body, suffix);
         body.put("kindergartenId", 999999);
         body.put("address", "Test address");
         body.put("childRrnFirst6", "200921");
