@@ -25,7 +25,6 @@ export function AnnouncementsEditForm() {
     status,
     setStatus,
     statusOptions,
-    authorIdHiddenValue,
     canWrite,
     loadingAnnouncement,
     submitting,
@@ -49,7 +48,6 @@ export function AnnouncementsEditForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
             {loading && <p className="text-sm text-gray-500">수정 정보를 불러오는 중입니다.</p>}
             {!loading && !canWrite && (
               <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
