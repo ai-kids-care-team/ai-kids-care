@@ -11,10 +11,18 @@ from ai_app.inference.predictor import PredictionResult, VideoPredictor
 from ai_app.serving.deps import get_predictor
 from ai_app.serving.schemas import (
     HealthResponse,
-    PredictPathRequest,
     PredictResponse,
     PredictionScoreResponse,
 )
+
+_ALLOWED_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
+_MAGIC_BYTES_LEN = 12
+
+_VIDEO_MAGIC_CHECKS = [
+    (0, b"RIFF"),                # AVI
+    (4, b"ftyp"),                # MP4 / MOV
+    (0, b"\x1a\x45\xdf\xa3"),   # MKV / WebM (EBML)
+]
 
 
 def _to_response(
@@ -79,21 +87,6 @@ def health(predictor: VideoPredictor = Depends(get_predictor)) -> HealthResponse
     )
 
 
-@app.post("/predict/path", response_model=PredictResponse)
-def predict_from_path(
-        request: PredictPathRequest,
-        predictor: VideoPredictor = Depends(get_predictor),
-) -> PredictResponse:
-    result = _predict_or_raise(
-        predictor=predictor,
-        video_path=request.video_path,
-        top_k=request.top_k,
-        num_frames=request.num_frames,
-        sampling_rate=request.sampling_rate,
-    )
-    return _to_response(result, predictor, request.video_path)
-
-
 @app.post("/predict/upload", response_model=PredictResponse)
 async def predict_from_upload(
         file: UploadFile = File(...),
@@ -102,17 +95,38 @@ async def predict_from_upload(
         sampling_rate: int | None = Form(None),
         predictor: VideoPredictor = Depends(get_predictor),
 ) -> PredictResponse:
-    suffix = Path(file.filename or "").suffix or ".mp4"
+    # Layer 1: file size limit
+    content = await file.read()
+    max_upload_mb = int(os.getenv("AI_MAX_UPLOAD_MB", "512"))
+    if len(content) > max_upload_mb * 1024 * 1024:
+        await file.close()
+        raise HTTPException(
+            status_code=413,
+            detail=f"File exceeds {max_upload_mb} MB limit",
+        )
+
+    # Layer 2: extension whitelist
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported file type '{suffix}'. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+        )
+
+    # Layer 3: magic-byte validation
+    header = content[:_MAGIC_BYTES_LEN]
+    if not any(header[offset:offset + len(sig)] == sig for offset, sig in _VIDEO_MAGIC_CHECKS):
+        raise HTTPException(
+            status_code=422,
+            detail="File content does not match a supported video container",
+        )
+
     temp_path: Path | None = None
 
     try:
         with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_path = Path(temp_file.name)
-            while True:
-                chunk = await file.read(1024 * 1024)
-                if not chunk:
-                    break
-                temp_file.write(chunk)
+            temp_file.write(content)
 
         result = _predict_or_raise(
             predictor=predictor,
