@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.config.RrnHashConfig;
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
 import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
@@ -8,6 +9,7 @@ import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
 import com.ai_kids_care.v1.security.AuthenticatedSession;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextService;
+import com.ai_kids_care.v1.security.RrnHashUtil;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
@@ -31,6 +33,7 @@ import java.util.List;
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
+    private final RrnHashConfig rrnHashConfig;
     private final UserRepository userRepository;
     private final UserRoleAssignmentRepository userRoleAssignmentRepository;
     private final KindergartenRepository kindergartenRepository;
@@ -124,11 +127,14 @@ public class AuthService {
 
 
     private void registerGuardian(User user, AuthRegisterDTO request, Child child) {
+        String guardianRrnHash = RrnHashUtil.hash(
+                rrnHashConfig.getPepper(), request.getRrnFirst6(), request.getRrnBack7());
         Guardian guardian = Guardian.builder()
                 .user(user)
                 .kindergarten(child.getKindergarten())
                 .name(request.getName())
-                .rrnEncrypted(passwordEncoder.encode(request.getRrnBack7()))
+                .rrnEncrypted(null)
+                .rrnHash(guardianRrnHash)
                 .rrnFirst6(request.getRrnFirst6())
                 .gender(request.getGender())
                 .address(request.getAddress())
@@ -174,6 +180,8 @@ public class AuthService {
     }
 
     private void registerTeacher(User user, AuthRegisterDTO request, Kindergarten kindergarten) {
+        String teacherRrnHash = RrnHashUtil.hash(
+                rrnHashConfig.getPepper(), request.getRrnFirst6(), request.getRrnBack7());
         Teacher teacher = Teacher.builder()
                 .kindergarten(kindergarten)
                 .user(user)
@@ -181,7 +189,8 @@ public class AuthService {
                 .gender(request.getGender())
                 .emergencyContactName(request.getEmergencyContactName())
                 .emergencyContactPhone(request.getEmergencyContactPhone())
-                .rrnEncrypted(passwordEncoder.encode(request.getRrnBack7()))
+                .rrnEncrypted(null)
+                .rrnHash(teacherRrnHash)
                 .rrnFirst6(request.getRrnFirst6())
                 .level(request.getLevel())
                 .staffNo(request.getStaffNo())

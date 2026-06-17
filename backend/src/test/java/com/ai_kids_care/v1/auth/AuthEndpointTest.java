@@ -557,7 +557,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
         String loginId = "test-guardian-" + suffix;
         Map<String, Object> body = commonRegistrationBody(suffix, loginId, "GUARDIAN");
-        addApplicantIdentity(body);
+        addApplicantIdentity(body, suffix);
         body.put("kindergartenId", 999999);
         body.put("address", "Test address");
         body.put("childRrnFirst6", "200921");
@@ -621,7 +621,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
         String loginId = "test-" + role.toLowerCase() + "-" + suffix;
         Map<String, Object> body = commonRegistrationBody(suffix, loginId, role);
-        addApplicantIdentity(body);
+        addApplicantIdentity(body, suffix);
         body.put("kindergartenId", 1);
         body.put("emergencyContactName", "Emergency Contact");
         body.put("emergencyContactPhone", "01033334444");
@@ -642,6 +642,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
 
     private void assertKindergartenRoleLevelMismatchRejected(String role, String level) {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        // Note: level mismatch is rejected before RRN hash is computed, so no uniqueness concern.
         String loginId = "test-invalid-" + suffix;
         Map<String, Object> body = commonRegistrationBody(suffix, loginId, role);
         addApplicantIdentity(body);
@@ -675,6 +676,19 @@ class AuthEndpointTest extends BaseIntegrationTest {
     private void addApplicantIdentity(Map<String, Object> body) {
         body.put("rrnFirst6", "990101");
         body.put("rrnBack7", "1234567");
+        body.put("gender", "MALE");
+    }
+
+    /**
+     * Suffix-based variant: derives a unique 7-digit back7 from the suffix so that
+     * multiple registrations in the same test do not collide on the rrn_hash UNIQUE index.
+     */
+    private void addApplicantIdentity(Map<String, Object> body, String suffix) {
+        body.put("rrnFirst6", "990101");
+        // Use last 7 numeric digits of the suffix hash to form a unique back7.
+        // suffix is alphanumeric (UUID-derived). Use Math.abs(hashCode()) % 10_000_000.
+        String back7 = String.format("%07d", Math.abs(suffix.hashCode()) % 10_000_000);
+        body.put("rrnBack7", back7);
         body.put("gender", "MALE");
     }
 

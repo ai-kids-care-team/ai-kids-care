@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.config.RrnHashConfig;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
 import com.ai_kids_care.v1.dto.GuardianChildVerificationRequest;
@@ -44,6 +45,7 @@ class AuthServiceRegistrationTest {
     private static final String AUTHENTICATION_FAILURE_MESSAGE = "Authentication failed";
 
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private RrnHashConfig rrnHashConfig;
     @Mock private UserRepository userRepository;
     @Mock private UserRoleAssignmentRepository userRoleAssignmentRepository;
     @Mock private KindergartenRepository kindergartenRepository;
