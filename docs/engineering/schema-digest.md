@@ -34,12 +34,14 @@
 | cctv_cameras | `(kindergarten_id, serial_no)` |
 | children | `(kindergarten_id, child_id)` |
 | children | `(kindergarten_id, child_no)` |
+| children | `(rrn_hash)` |
 | classes | `(kindergarten_id, class_id)` |
 | detection_events | `(kindergarten_id, event_id)` |
 | detection_sessions | `(kindergarten_id, session_id)` |
 | device_tokens | `(platform, push_token)` |
 | guardians | `(kindergarten_id, guardian_id)` |
 | guardians | `(user_id)` |
+| guardians | `(rrn_hash)` |
 | notifications | `(kindergarten_id, dedupe_key)` |
 | rooms | `(kindergarten_id, room_code)` |
 | rooms | `(kindergarten_id, room_id)` |
@@ -47,6 +49,7 @@
 | teachers | `(kindergarten_id, staff_no)` |
 | teachers | `(kindergarten_id, teacher_id)` |
 | teachers | `(user_id)` |
+| teachers | `(rrn_hash)` |
 | user_kindergarten_memberships | `(kindergarten_id, user_id)` |
 | user_kindergarten_memberships | `(user_id) WHERE (status = 'ACTIVE'::status_enum)` |
 | user_role_assignments | `(user_id) WHERE (status = 'ACTIVE'::status_enum)` |
@@ -122,7 +125,7 @@
 | cctv_cameras | camera_id, kindergarten_id, camera_name, created_by_user_id, status, created_at, updated_at |
 | child_class_assignments | assignment_id, kindergarten_id, child_id, class_id, start_date, status, created_by_user_id, created_at, updated_at |
 | child_guardian_relationships | kindergarten_id, child_id, guardian_id, relationship, is_primary, priority, start_date, created_at, updated_at |
-| children | child_id, kindergarten_id, name, child_no, rrn_first6, rrn_encrypted, birth_date, gender, address, enroll_date, status, created_at, updated_at |
+| children | child_id, kindergarten_id, name, child_no, rrn_first6, birth_date, gender, address, enroll_date, status, created_at, updated_at |
 | class_room_assignments | assignment_id, kindergarten_id, class_id, room_id, start_at |
 | class_teacher_assignments | assignment_id, kindergarten_id, class_id, teacher_id, role, start_date, status, created_by_user_id, created_at, updated_at |
 | classes | class_id, kindergarten_id, name, grade, academic_year, start_date, end_date, status, created_at, updated_at |
@@ -132,7 +135,7 @@
 | device_tokens | device_id, user_id, platform, push_token, status, created_at |
 | event_evidence_files | evidence_id, event_id, kindergarten_id, type, storage_uri, mime_type, created_at, hold, hash |
 | event_reviews | review_id, event_id, kindergarten_id, user_id, from_status, result_status, created_at |
-| guardians | guardian_id, kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address, status, created_at, updated_at |
+| guardians | guardian_id, kindergarten_id, user_id, name, rrn_first6, gender, address, status, created_at, updated_at |
 | kindergartens | kindergarten_id, name, address, business_registration_no, contact_name, contact_phone, contact_email, status, created_at, updated_at |
 | menu | menu_id, menu_name, menu_key, role_type, sort_order, is_active, created_at, updated_at |
 | notification_rules | rule_id, kindergarten_id, user_id, target_type, target_id, min_severity, enabled, created_at |
@@ -140,7 +143,7 @@
 | room_camera_assignments | assignment_id, kindergarten_id, camera_id, room_id, start_at, created_at, updated_at |
 | rooms | room_id, kindergarten_id, name, room_type, status, created_at, updated_at |
 | superadmins | superadmin_id, user_id, name, department, status, created_at, updated_at |
-| teachers | teacher_id, kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6, level, start_date, status, created_at, updated_at |
+| teachers | teacher_id, kindergarten_id, user_id, staff_no, name, gender, rrn_first6, level, start_date, status, created_at, updated_at |
 | user_kindergarten_memberships | membership_id, user_id, kindergarten_id, status, joined_at, created_at, updated_at |
 | user_role_assignments | role_assignment_id, user_id, role, scope_type, status, granted_at |
 | users | user_id, login_id, password_hash, status, created_at, updated_at |

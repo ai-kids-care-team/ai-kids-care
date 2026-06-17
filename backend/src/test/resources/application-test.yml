@@ -18,3 +18,7 @@ spring:
   data:
     redis:
       password:
+
+rrn:
+  hash:
+    pepper: test-pepper-not-secret-2026

@@ -102,6 +102,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
     ports:

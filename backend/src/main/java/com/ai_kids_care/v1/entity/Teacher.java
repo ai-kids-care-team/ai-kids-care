@@ -61,9 +61,11 @@ public class Teacher {
     @Column(name = "emergency_contact_phone", length = Integer.MAX_VALUE)
     private String emergencyContactPhone;
 
-    @NotNull
-    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
+    @Column(name = "rrn_encrypted", length = Integer.MAX_VALUE)
     private String rrnEncrypted;
+
+    @Column(name = "rrn_hash", length = Integer.MAX_VALUE)
+    private String rrnHash;
 
     @NotNull
     @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)

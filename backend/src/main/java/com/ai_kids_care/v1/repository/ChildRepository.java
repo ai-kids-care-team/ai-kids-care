@@ -17,6 +17,8 @@ public interface ChildRepository extends JpaRepository<Child, Long> {
 
     List<Child> findByRrnFirst6(String rrnFirst6);
 
+    Optional<Child> findByRrnHash(String rrnHash);
+
     // ── SPEC-0001 §3 / §349：Guardian 关系-scoped 读取（镜像 ClassRepository assignment-scoped idiom）──
     // 活跃关系 = guardian 档案 ACTIVE + 关系 end_date 窗（IS NULL 或 >= asOf）+ 同租户；
     // 关系条件写进 EXISTS 子查询，在 SQL 内强制（不做加载后过滤）。
