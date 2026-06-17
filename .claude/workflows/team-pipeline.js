@@ -6,6 +6,7 @@ export const meta = {
     { title: 'Implement' },
     { title: 'Review' },
     { title: 'Integrate' },
+    { title: 'Cleanup' },
   ],
 }
 
@@ -163,6 +164,16 @@ if (passed.length) {
     } })
 }
 
+// ---- Cleanup(只清 scratch):移除本次 worktree + harness worktree-wf_* 临时分支。
+// 交付分支(passed/failed 的 branch)保留待 Lead 合并;脚本只删已在 develop/main 的 scratch。 ----
+phase('Cleanup')
+await agent(
+  `从仓库根目录【只】执行下面这条命令,并把它的 stdout 原样回报:\n` +
+  `bash scripts/clean-workflow-trees.sh\n` +
+  `它会移除 .claude/worktrees/ 下的 scratch worktree 与 harness 的 worktree-wf_* 临时分支(仅当其提交已在 develop/main)。` +
+  `绝不删除未合并的交付分支、develop 或 main。不要做任何其它操作。`,
+  { agentType: 'implementer', phase: 'Cleanup', model: MODEL, label: 'cleanup' })
+
 return {
   halted: false,
   summary: `${passed.length}/${results.length} item 通过单项评审`,
@@ -173,5 +184,5 @@ return {
   })),
   failed: failed.map((r) => r && { id: r.id, branch: r.branch, findings: r.verdict && r.verdict.findings }),
   integration,
-  nextAction: 'Lead 复核 integration 结论后,把通过的工作分支(见 passed[].branch)按需(文件重叠者串行)合并入 develop;失败/exhausted 的 item 交人工。',
+  nextAction: 'Lead 复核 integration 结论后,把通过的工作分支(见 passed[].branch)按需(文件重叠者串行)合并入 develop;合并后再跑一次 `bash scripts/clean-workflow-trees.sh` 清理已合并的交付分支(scratch worktree 与 worktree-wf_* 临时分支已在 Cleanup 阶段自动清理)。失败/exhausted 的 item 交人工。',
 }
