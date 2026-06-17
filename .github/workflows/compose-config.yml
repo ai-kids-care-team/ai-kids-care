@@ -24,6 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # These are required (fail-fast) variables in the compose files (no weak
+    # defaults, per SPEC-0001 N-1). This job only validates structure, so dummy
+    # values are sufficient and intentionally non-secret.
+    env:
+      POSTGRES_PASSWORD: ci-structure-check
+      NEO4J_PASSWORD: ci-structure-check
+      REDIS_PASSWORD: ci-structure-check
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
