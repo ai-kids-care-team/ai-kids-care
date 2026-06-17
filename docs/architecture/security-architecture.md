@@ -48,13 +48,11 @@
 | 数据 | 处理方式 | 证据 |
 | --- | --- | --- |
 | 用户密码 | BCrypt 单向哈希 | `AuthService.register` |
-| 主民登录号 RRN | 拆分：`rrn_first6`（前6位/出生日期，**明文**，用于检索）+ `rrn_encrypted`（后位，**实为单向哈希；列名为历史命名错误**，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)） | schema 列注释（误导性，见下） |
-| RRN 后位的保护 | ✅ `AuthService` 中用 **`passwordEncoder.encode()`（BCrypt 单向哈希，不可逆）** 写入 `rrn_encrypted`——**不可解密** | `registerGuardian`/`registerTeacher` |
+| 主民登录号 RRN | 拆分：`rrn_first6`（前6位/出生日期，**明文**，用于检索）+ `rrn_hash`（完整13位的 **HMAC-SHA-256 + pepper 单向哈希**，不可逆，见 [ADR-0024](../decisions/adr/ADR-0024-rrn-bcrypt-to-hmac-migration.md)） | `children`/`guardians`/`teachers` schema（V4/V5/V6 已落地） |
+| RRN 哈希保护 | ✅ `AuthService.registerGuardian/registerTeacher` 调用 **`RrnHashUtil.hash(pepper, first6, back7)`（HMAC-SHA-256，不可逆）** 写入 `rrn_hash`；`rrn_encrypted` 列已由 V6 删除 | `AuthService.java`、`RrnHashUtil.java` |
 | 摄像头流密码 | AES-256-GCM 可逆加密，密文+IV+key_version 分列存储 | `AesGcmCryptoUtil` + `camera_streams` 列 |
 
-> ✅ **已决（2026-05-29，OQ-SEC-4，[ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）**：RRN **采用单向哈希、不可逆**；**不**使用任何形式的可逆加密。
->
-> 即：列名 `rrn_encrypted` + schema 注释"암호문(암호화 저장)" + 派生到本知识库的多处"加密"措辞**均为错误/误导性表述**，不反映系统设计意图。代码现状（BCrypt）方向正确。哈希算法的子选项（BCrypt 现状 vs HMAC-SHA-256+pepper）与列改名（`rrn_encrypted` → `rrn_hash`）留待 Implementation，详见 ADR-0010 勘误清单。
+> ✅ **已落地（2026-06-18，[ADR-0024](../decisions/adr/ADR-0024-rrn-bcrypt-to-hmac-migration.md) Phase 3 完成，V4+V5+V6 已应用）**：RRN 采用 **HMAC-SHA-256 + pepper 单向哈希**，写入 `rrn_hash` 列（NOT NULL + UNIQUE 约束）。旧列 `rrn_encrypted`（BCrypt）已由 V6 `DROP COLUMN` 永久移除。`children`/`guardians`/`teachers` 三表无任何可逆 RRN 存储。
 
 ## 5. 传输与网络
 
