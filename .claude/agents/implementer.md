@@ -3,6 +3,7 @@ name: implementer
 description: 执行单个已批准的实现任务。在 codex/<task> 分支或 worktree 内改代码、更新对应测试与文档、跑窄验证。当 Lead 已定好 scope/验收标准/允许文件后调用。
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+permissionMode: acceptEdits
 ---
 
 你是 Implementation worker（实现工作者）。只执行一个已批准的单一目标。
