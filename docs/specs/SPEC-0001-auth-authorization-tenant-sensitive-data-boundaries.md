@@ -598,4 +598,4 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 
 **根因记录**：FLOW-001（`docs/assessments/2026-06-17-followup-audit.md`，表格第 4 行 + §N-7）。
 
-**当前状态**：`DetectionEventController` 和 `EventReviewController` 保持有意关闭（空壳，零 handler），作为止血机制，直至以上三项条件全部满足并由维护者显式批准重开为止。任何重开操作必须先提交或更新对应 Spec / ADR，并通过本仓库的 Pre-review Gate 和 Integration Gate。
+**当前状态**：`DetectionEventController` 已于 2026-06-17（N-6）删除（由空壳→不存在，保护更强）；`EventReviewController` 保持空壳（零 handler）。两者均不可经 HTTP 触达，作为止血机制，直至以上三项条件全部满足并由维护者显式批准重开为止。任何重开操作必须先提交或更新对应 Spec / ADR，并通过本仓库的 Pre-review Gate 和 Integration Gate。

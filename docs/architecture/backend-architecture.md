@@ -87,7 +87,7 @@ templates/*.mustache  →  生成 6 类文件：
 - `spring.jpa.hibernate.ddl-auto: validate` — **Hibernate 不建表**，仅校验实体与现有表是否匹配。表必须由 `db/initdb/*.sql` 预先建好。
 - `open-in-view: false` — 关闭 OSIV，懒加载须在事务内完成（良好实践）。
 - `show-sql: false`，方言 `PostgreSQLDialect`。
-- 数据源、Neo4j、JWT secret 全部通过环境变量注入，带本地默认值。
+- 数据源、Neo4j、Redis 凭据全部通过环境变量注入（无弱默认值，缺失即启动失败）。
 
 > ✅ `logging.level.root: ${LOG_LEVEL_ROOT:INFO}`——安全默认 INFO（含生产，避免海量日志 / 敏感信息泄露），dev 可经 `LOG_LEVEL_ROOT=DEBUG` 调高（OQ-SEC-6 已关闭）。见 [open-questions](../modernization/open-questions.md)。
 
