@@ -15,8 +15,6 @@ public interface ChildRepository extends JpaRepository<Child, Long> {
 
     Page<Child> findByNameContains(String name, Pageable pageable);
 
-    List<Child> findByRrnFirst6(String rrnFirst6);
-
     Optional<Child> findByRrnHash(String rrnHash);
 
     // ── SPEC-0001 §3 / §349：Guardian 关系-scoped 读取（镜像 ClassRepository assignment-scoped idiom）──
