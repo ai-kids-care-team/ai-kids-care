@@ -248,12 +248,12 @@ class TeacherChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("""
                 INSERT INTO teachers
-                    (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6,
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash, rrn_first6,
                      level, start_date, status, created_at, updated_at)
-                SELECT ?, user_id, ?, ?, 'MALE', 'ENC', '000101', 'TEACHER'::level_enum,
+                SELECT ?, user_id, ?, ?, 'MALE', ?, '000101', 'TEACHER'::level_enum,
                        '2025-03-01', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
-                """, kindergartenId, "STAFF-" + suffix, "Teacher " + loginId, loginId);
+                """, kindergartenId, "STAFF-" + suffix, "Teacher " + loginId, "FIXTURE-HASH-" + suffix, loginId);
     }
 
     private void clearRoleAndMembership(String loginId) {
@@ -290,12 +290,12 @@ class TeacherChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         return jdbc.queryForObject("""
                 INSERT INTO children
-                    (kindergarten_id, name, child_no, rrn_first6, rrn_encrypted, birth_date, gender,
+                    (kindergarten_id, name, child_no, rrn_first6, rrn_hash, birth_date, gender,
                      address, enroll_date, status, created_at, updated_at)
-                VALUES (?, ?, ?, '200101', 'ENC', '2020-01-01', 'MALE', 'Child address',
+                VALUES (?, ?, ?, '200101', ?, '2020-01-01', 'MALE', 'Child address',
                         '2024-03-01', 'ACTIVE', NOW(), NOW())
                 RETURNING child_id
-                """, Long.class, kindergartenId, name, "CNO-" + suffix);
+                """, Long.class, kindergartenId, name, "CNO-" + suffix, "FIXTURE-HASH-CHILD-" + suffix);
     }
 
     private void insertChildClassAssignment(

@@ -515,15 +515,16 @@ class AdminApprovalAuthorizationIntegrationTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("""
                 INSERT INTO teachers
-                    (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6,
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash, rrn_first6,
                      level, start_date, status, created_at, updated_at)
-                SELECT ?, user_id, ?, ?, 'MALE', 'ENC', '000101', ?::level_enum,
+                SELECT ?, user_id, ?, ?, 'MALE', ?, '000101', ?::level_enum,
                        '2025-03-01', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
                 """,
                 kindergartenId,
                 "STAFF-" + suffix,
                 "Admin " + loginId,
+                "FIXTURE-HASH-" + suffix,
                 level,
                 loginId);
     }
@@ -566,12 +567,12 @@ class AdminApprovalAuthorizationIntegrationTest extends BaseIntegrationTest {
         String staffSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("""
                 INSERT INTO teachers
-                    (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6,
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash, rrn_first6,
                      level, start_date, status, created_at, updated_at)
-                VALUES (?, ?, ?, 'Pending Teacher', 'MALE', 'ENC', '000101',
+                VALUES (?, ?, ?, 'Pending Teacher', 'MALE', ?, '000101',
                         'TEACHER', '2026-03-01', 'PENDING', NOW(), NOW())
                 """,
-                kindergartenId, userId, "PSTAFF-" + staffSuffix);
+                kindergartenId, userId, "PSTAFF-" + staffSuffix, "FIXTURE-HASH-" + staffSuffix);
 
         return userId;
     }

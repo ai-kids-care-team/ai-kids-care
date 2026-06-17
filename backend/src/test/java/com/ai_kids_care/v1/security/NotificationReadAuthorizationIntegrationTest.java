@@ -242,9 +242,9 @@ class NotificationReadAuthorizationIntegrationTest extends BaseIntegrationTest {
                 """, kindergartenId, loginId);
         jdbc.update("""
                 INSERT INTO guardians
-                    (kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address,
+                    (kindergarten_id, user_id, name, rrn_hash, rrn_first6, gender, address,
                      status, created_at, updated_at)
-                SELECT ?, user_id, ?, 'ENC', '000101', 'MALE', 'Test address', 'ACTIVE', NOW(), NOW()
+                SELECT ?, user_id, ?, encode(sha256(convert_to(login_id, 'UTF8')), 'hex'), '000101', 'MALE', 'Test address', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
                 ON CONFLICT (user_id) DO UPDATE
                     SET status = 'ACTIVE', kindergarten_id = EXCLUDED.kindergarten_id
