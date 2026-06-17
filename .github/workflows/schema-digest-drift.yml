@@ -1,0 +1,44 @@
+name: Schema Digest Drift
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schema-digest-drift-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    name: schema-digest matches migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Regenerate the schema digest from initdb + migrations
+        run: bash scripts/schema-digest.sh
+
+      - name: Fail if the committed digest is stale
+        run: |
+          if git diff --quiet -- docs/engineering/schema-digest.md; then
+            echo "schema-digest.md is in sync with the migrations."
+          else
+            echo "::error file=docs/engineering/schema-digest.md::Schema digest is stale. Run 'bash scripts/schema-digest.sh' and commit the result."
+            git --no-pager diff -- docs/engineering/schema-digest.md
+            exit 1
+          fi

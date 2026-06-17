@@ -1,6 +1,6 @@
 # AI Kids Care Project Instructions
 
-This file contains repository-specific instructions. The shared agent behavior is in `CONTEXT.md`.
+This file contains repository-specific instructions. The shared agent behavior is in `CONTEXT.md`. For the engineering harness — the map of Guides/Sensors, how to verify locally without a JDK, and the "recurring issue → add a control" discipline — see [`docs/engineering/harness.md`](../docs/engineering/harness.md).
 
 ## Working Language
 
@@ -102,9 +102,13 @@ Inspect targeted diff sections instead of printing the complete repository diff.
 ## Verification Commands
 
 ```powershell
-# backend (requires a running Docker engine for Testcontainers)
-cd backend
-.\gradlew.bat test
+# backend — LOCAL loop, no local Java/JDK needed: runs Gradle in a container against the
+# host Docker daemon (integration tests use Testcontainers; initdb is copied so it works
+# under Docker-out-of-Docker). Requires Docker. Run via Git Bash. First run caches deps.
+bash scripts/test-backend.sh                        # full backend suite
+bash scripts/test-backend.sh '*NotificationRead*'   # only matching test classes (fast iteration)
+bash scripts/test-backend.sh --compile              # compile main+test only (fastest; catches type/MapStruct errors)
+# (On a host WITH JDK 21 installed you can instead run:  cd backend ; .\gradlew.bat test )
 
 # frontend
 cd frontend
@@ -115,6 +119,8 @@ npm.cmd run build
 # merged production compose model
 docker compose -f docker-compose.yml -f docker-compose.prod.yml config
 ```
+
+Before writing backend tests, JPQL, or insert fixtures, read [`docs/engineering/schema-digest.md`](../docs/engineering/schema-digest.md) (generated: every NOT NULL / UNIQUE / FK / enum — regenerate with `bash scripts/schema-digest.sh` after a migration — CI fails on drift via `schema-digest-drift.yml`) and [`docs/engineering/test-conventions.md`](../docs/engineering/test-conventions.md) (fixture pitfalls: shared-container uniqueness, composite tenant FKs, enum casts) instead of grepping the DDL. Then verify locally with `bash scripts/test-backend.sh '<pattern>'`.
 
 AI scripts currently have no test suite. At minimum, syntax-check changed Python files and add focused tests for new behavior.
 
