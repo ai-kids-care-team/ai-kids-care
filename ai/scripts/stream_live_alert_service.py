@@ -486,8 +486,6 @@ def run_stream_service(
                                         notification_title,
                                         alert_message,
                                         sound="alien",
-                                        user_keys=["uqrthzq6a6ha3dpnp383ceoj46i9kq", "ubijdryhdmyxk2z89n982hz5yj6utg"]
-
                                     )
                                 except Exception as push_error:
                                     print(
@@ -559,7 +557,9 @@ if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
 
     # Stream + model
-    stream_url = "http://www.ai-kids-care.asia:8082/live/livestream.flv"
+    stream_url = os.getenv("STREAM_URL", "")
+    if not stream_url:
+        raise ValueError("STREAM_URL environment variable must be set")
     model_dir = project_root / "outputs" / "01_assault_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / "stream_live_service"
     target_label = "assault"

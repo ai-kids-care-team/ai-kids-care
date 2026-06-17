@@ -27,6 +27,16 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile.prod
+    # Do not publish the PostgreSQL port to the host in production.
+    ports: !reset null
+
+  neo4j:
+    # Do not publish Neo4j browser/Bolt ports to the host in production.
+    ports: !reset null
+
+  redis:
+    # Do not publish the Redis port to the host in production.
+    ports: !reset null
 
   backend:
     environment:
