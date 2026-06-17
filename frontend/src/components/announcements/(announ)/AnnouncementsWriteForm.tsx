@@ -22,7 +22,6 @@ export function AnnouncementsWriteForm() {
     status,
     setStatus,
     statusOptions,
-    authorIdHiddenValue,
     canWrite,
     submitting,
     error,
@@ -41,7 +40,6 @@ export function AnnouncementsWriteForm() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
             {!canWrite && (
               <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 공지 등록은 <span className="font-medium">{describeAnnouncementEditorRolesKorean()}</span> 계정에서만

@@ -35,11 +35,6 @@ export function useAnnouncementsEdit() {
   const searchParams = useSearchParams();
   const id = Number(searchParams.get('id') ?? 0);
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
-  const authorIdHiddenValue = user?.id ?? '';
-  const authorId = useMemo(() => {
-    const parsed = Number(user?.id);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }, [user?.id]);
   const canWrite = useMemo(
     () => Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
     [isAuthenticated, user],
@@ -128,10 +123,6 @@ export function useAnnouncementsEdit() {
       setPublishedAtError('게시일시는 필수 입력입니다.');
       return;
     }
-    if (authorId == null) {
-      setError('로그인 사용자 ID를 확인할 수 없습니다.');
-      return;
-    }
     if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
       setError('게시 종료일은 게시 시작일보다 빠를 수 없습니다.');
       return;
@@ -146,7 +137,6 @@ export function useAnnouncementsEdit() {
       publishedAt: toIsoOrNull(publishedAt),
       startsAt: toIsoOrNull(startsAt),
       endsAt: toIsoOrNull(endsAt),
-      authorId,
     };
 
     try {
@@ -180,7 +170,6 @@ export function useAnnouncementsEdit() {
     status,
     setStatus,
     statusOptions,
-    authorIdHiddenValue,
     canWrite,
     loadingAnnouncement,
     submitting,

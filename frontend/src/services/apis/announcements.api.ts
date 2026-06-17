@@ -84,25 +84,7 @@ export type AnnouncementWritePayload = {
   publishedAt: string | null;
   startsAt: string | null;
   endsAt: string | null;
-  /** 등록 시 백엔드 `Announcement` @NotNull — 조회수는 서버에서 설정 */
-  createdAt?: string;
-  updatedAt?: string;
-  authorId?: number;
 };
-
-/** 등록 요청 직전 검증 (createdAt / updatedAt만 — viewCount는 백엔드에서 설정) */
-export function validateAnnouncementCreateAuditFields(
-  createdAt: string | null | undefined,
-  updatedAt: string | null | undefined,
-): string | null {
-  if (createdAt == null || String(createdAt).trim() === '') {
-    return '생성일시(createdAt)는 필수입니다.';
-  }
-  if (updatedAt == null || String(updatedAt).trim() === '') {
-    return '수정일시(updatedAt)는 필수입니다.';
-  }
-  return null;
-}
 
 /** @deprecated AnnouncementWritePayload 사용 */
 export type CreateAnnouncementPayload = AnnouncementWritePayload;

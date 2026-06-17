@@ -2,7 +2,7 @@
 ADR: ADR-0016
 title: "ADR-0016: 服务端会话鉴权（Server-Side Session，替代无状态 JWT）"
 status: Accepted
-implementation: Implemented
+implementation: Partial
 date: 2026-06-07
 deciders: 接手人起草，维护者 Accept（2026-06-07）；取代 ADR-0007；实现委派独立 session
 ---
@@ -14,6 +14,8 @@ deciders: 接手人起草，维护者 Accept（2026-06-07）；取代 ADR-0007�
 ## 状态（Status）
 
 Accepted（2026-06-07）。**Supersedes [ADR-0007](ADR-0007-jwt-stateless-auth.md)**。落地次序：**先于 [ADR-0009](ADR-0009-restore-auth-enforcement.md)（鉴权恢复）**——会话机制定了，0009 才按 session 落地，避免先恢复 JWT 再返工。**实现委派独立 Implementation session。**
+
+> **Implementation note (2026-06-17):** Session mechanism (Spring Session + Redis, httpOnly cookie, login/logout) is implemented and merged. Release gate hardening (HTTPS-only Secure cookie enforcement in prod) and some Guardian relationship strategy items remain deferred per SPEC-0001 Phase 4/5.
 
 ## 背景（Context）
 
