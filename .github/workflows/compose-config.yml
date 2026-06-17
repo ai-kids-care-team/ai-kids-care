@@ -31,6 +31,7 @@ jobs:
       POSTGRES_PASSWORD: ci-structure-check
       NEO4J_PASSWORD: ci-structure-check
       REDIS_PASSWORD: ci-structure-check
+      RRN_HASH_PEPPER: ci-structure-check
 
     steps:
       - name: Check out repository
