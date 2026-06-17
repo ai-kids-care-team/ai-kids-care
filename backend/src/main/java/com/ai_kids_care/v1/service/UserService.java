@@ -7,6 +7,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,11 +17,13 @@ public class UserService {
     private final UserRepository repository;
     private final UserMapper mapper;
 
+    @PreAuthorize("denyAll()")
     public Page<UserVO> listUsers(String keyword, Pageable pageable) {
         // TODO: filter User by keyword
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
+    @PreAuthorize("denyAll()")
     public UserVO getUser(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
