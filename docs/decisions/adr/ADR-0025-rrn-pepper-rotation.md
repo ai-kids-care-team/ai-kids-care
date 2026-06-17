@@ -1,10 +1,10 @@
 ---
 ADR: ADR-0025
 title: "ADR-0025: RRN pepper 的密钥版本化与轮换机制"
-status: Proposed
+status: Accepted
 implementation: Not Started
 date: 2026-06-17
-deciders: 接手人（Lead）起草，维护者待 Accept（密钥轮换 / PII，归维护者拍板）
+deciders: 接手人（Lead）起草；维护者 2026-06-18 Accept（密钥轮换 / PII）
 supersedes: []
 superseded_by: null
 related_specs: [SPEC-0001]
@@ -17,9 +17,9 @@ related_specs: [SPEC-0001]
 
 ## 状态（Status）
 
-Decision: `Proposed`（接手人起草，维护者待 Accept）
+Decision: `Accepted`（维护者 2026-06-18 签署）
 
-Implementation: `Not Started`
+Implementation: `Not Started`（依赖 ADR-0024 先落地；按需排期）
 
 > **依赖 ADR-0024 已落地**（RRN 在 HMAC + 单一 pepper）。本 ADR 可独立排期，不阻塞 ADR-0024 的迁移上线。高风险（密钥 + PII）。
 
