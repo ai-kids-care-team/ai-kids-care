@@ -20,6 +20,8 @@ Decision: `Proposed`（接手人起草，维护者待 Accept——架构/范围�
 
 Implementation: `Complete`（确定性核心已落地并入 develop、CI 绿；非目标按定义即不构建）
 
+> **Note (2026-06-17):** implementation field reflects that the deterministic guard core is merged and CI-green; status: Proposed reflects that the maintainer has not yet formally Accepted the ADR scope boundary. Awaiting maintainer decision.
+
 ## 背景（Context）
 
 - harness「Known gaps」原列「无 behaviour-eval 套件（binary pass/fail；convert incidents to evals）」。
