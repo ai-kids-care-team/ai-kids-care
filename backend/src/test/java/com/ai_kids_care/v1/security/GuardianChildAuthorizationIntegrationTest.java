@@ -211,9 +211,9 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         // 避免残留关系导致 @BeforeEach 删除时 FK 失败级联。
         jdbc.update("""
                 INSERT INTO guardians
-                    (kindergarten_id, user_id, name, rrn_encrypted, rrn_first6, gender, address,
+                    (kindergarten_id, user_id, name, rrn_hash, rrn_first6, gender, address,
                      status, created_at, updated_at)
-                SELECT ?, user_id, ?, 'ENC', '000101', 'MALE', 'Test address', 'ACTIVE', NOW(), NOW()
+                SELECT ?, user_id, ?, encode(sha256(convert_to(login_id, 'UTF8')), 'hex'), '000101', 'MALE', 'Test address', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
                 ON CONFLICT (user_id) DO UPDATE
                     SET status = 'ACTIVE', kindergarten_id = EXCLUDED.kindergarten_id
@@ -240,12 +240,12 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
         jdbc.update("""
                 INSERT INTO teachers
-                    (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted, rrn_first6,
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash, rrn_first6,
                      level, start_date, status, created_at, updated_at)
-                SELECT ?, user_id, ?, ?, 'MALE', 'ENC', '000101', 'DIRECTOR'::level_enum,
+                SELECT ?, user_id, ?, ?, 'MALE', ?, '000101', 'DIRECTOR'::level_enum,
                        '2025-03-01', 'ACTIVE', NOW(), NOW()
                 FROM users WHERE login_id = ?
-                """, kindergartenId, "STAFF-" + suffix, "Admin " + loginId, loginId);
+                """, kindergartenId, "STAFF-" + suffix, "Admin " + loginId, "FIXTURE-HASH-" + suffix, loginId);
     }
 
     private void clearRoleAndMembership(String loginId) {
@@ -259,12 +259,12 @@ class GuardianChildAuthorizationIntegrationTest extends BaseIntegrationTest {
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         return jdbc.queryForObject("""
                 INSERT INTO children
-                    (kindergarten_id, name, child_no, rrn_first6, rrn_encrypted, birth_date, gender,
+                    (kindergarten_id, name, child_no, rrn_first6, rrn_hash, birth_date, gender,
                      address, enroll_date, status, created_at, updated_at)
-                VALUES (?, ?, ?, '200101', 'ENC', '2020-01-01', 'MALE', 'Child address',
+                VALUES (?, ?, ?, '200101', ?, '2020-01-01', 'MALE', 'Child address',
                         '2024-03-01', 'ACTIVE', NOW(), NOW())
                 RETURNING child_id
-                """, Long.class, kindergartenId, name, "CNO-" + suffix);
+                """, Long.class, kindergartenId, name, "CNO-" + suffix, "FIXTURE-HASH-CHILD-" + suffix);
     }
 
     private void linkGuardianChild(long kindergartenId, long childId, long guardianId, String endDate) {

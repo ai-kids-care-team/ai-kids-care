@@ -690,8 +690,6 @@ COMMENT ON COLUMN "children"."child_no" IS '원아 번호(원내 관리번호)';
 
 COMMENT ON COLUMN "children"."rrn_first6" IS '주민등록번호 앞 6자리(생년월일, 검색/중복확인용)';
 
-COMMENT ON COLUMN "children"."rrn_encrypted" IS '주민등록번호 뒷자리 레거시 BCrypt 해시(단방향, V6 삭제 예정)';
-
 COMMENT ON COLUMN "children"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 
 COMMENT ON COLUMN "children"."birth_date" IS '생년월일';
@@ -735,8 +733,6 @@ COMMENT ON COLUMN "teachers"."gender" IS '성별';
 COMMENT ON COLUMN "teachers"."emergency_contact_name" IS '비상 연락처 이름';
 
 COMMENT ON COLUMN "teachers"."emergency_contact_phone" IS '비상 연락처 전화번호';
-
-COMMENT ON COLUMN "teachers"."rrn_encrypted" IS '주민등록번호 레거시 BCrypt 해시(단방향, V6 삭제 예정)';
 
 COMMENT ON COLUMN "teachers"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 
@@ -853,8 +849,6 @@ COMMENT ON COLUMN "room_camera_assignments"."created_at" IS '생성 일시';
 COMMENT ON COLUMN "room_camera_assignments"."updated_at" IS '수정 일시';
 
 COMMENT ON COLUMN "guardians"."name" IS '보호자 이름';
-
-COMMENT ON COLUMN "guardians"."rrn_encrypted" IS '주민등록번호 레거시 BCrypt 해시(단방향, V6 삭제 예정)';
 
 COMMENT ON COLUMN "guardians"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 

@@ -134,11 +134,12 @@ class TeacherAssignmentAuthorizationIntegrationTest extends BaseIntegrationTest 
     }
 
     private long createActiveTeacher() {
+        String staffSuffix = UUID.randomUUID().toString().substring(0, 8);
         return jdbc.queryForObject("""
                 INSERT INTO teachers
-                    (kindergarten_id, user_id, staff_no, name, gender, rrn_encrypted,
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash,
                      rrn_first6, level, start_date, status, created_at, updated_at)
-                SELECT ?, user_id, ?, 'Assignment Teacher', 'MALE'::gender_enum, 'enc',
+                SELECT ?, user_id, ?, 'Assignment Teacher', 'MALE'::gender_enum, ?,
                        '900101', 'TEACHER'::level_enum, DATE '2024-03-01',
                        'ACTIVE'::status_enum, NOW(), NOW()
                 FROM users WHERE login_id = ?
@@ -146,7 +147,8 @@ class TeacherAssignmentAuthorizationIntegrationTest extends BaseIntegrationTest 
                 """,
                 Long.class,
                 KG,
-                "STAFF-" + UUID.randomUUID().toString().substring(0, 8),
+                "STAFF-" + staffSuffix,
+                "FIXTURE-HASH-" + staffSuffix,
                 LOGIN_ID);
     }
 

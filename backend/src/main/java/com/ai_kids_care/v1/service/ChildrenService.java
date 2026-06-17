@@ -20,9 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -35,7 +33,6 @@ public class ChildrenService {
 
     private final ChildRepository repository;
     private final ChildMapper mapper;
-    private final PasswordEncoder passwordEncoder;
     private final RrnHashConfig rrnHashConfig;
     private final SecurityAuditWriter auditWriter;
 
@@ -117,37 +114,15 @@ public class ChildrenService {
     }
 
     /**
-     * HMAC 우선 + BCrypt 회퇴 + 게으른 역충전(lazy backfill) — ADR-0024 D3.
+     * HMAC 단일 조회 경로 — ADR-0024 D4 (Phase 3).
      *
-     * <p>1. HMAC 해시로 빠른 단일 조회(O(1) index scan).
-     * <p>2. 미스 시 BCrypt 후보 필터링(레거시 행, rrn_hash IS NULL).
-     * <p>3. BCrypt 명중 시 rrn_hash를 동일 트랜잭션 내 역충전.
-     *
-     * <p>트랜잭션 전략(Q3): REQUIRES_NEW 로 독립 쓰기 트랜잭션 확보.
-     * 호출자(AuthService)가 readOnly=true 인 경우에도 역충전 쓰기가 안전하게 커밋된다.
+     * <p>V5/V6 적용 완료 후: rrn_hash NOT NULL, rrn_encrypted 열 삭제.
+     * BCrypt 회퇴 경로 및 게으른 역충전은 제거되었다.
+     * 읽기 전용 트랜잭션으로 동작한다.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(readOnly = true)
     Optional<Child> getChildEntityByRRN(String rrn_First6, String rrn_Last7) {
-        // Step 1: HMAC 명중 경로
         String hash = RrnHashUtil.hash(rrnHashConfig.getPepper(), rrn_First6, rrn_Last7);
-        Optional<Child> byHash = repository.findByRrnHash(hash);
-        if (byHash.isPresent()) {
-            return byHash;
-        }
-
-        // Step 2: BCrypt 회퇴 경로 (rrn_hash IS NULL 인 레거시 행)
-        Optional<Child> fallback = repository.findByRrnFirst6(rrn_First6).stream()
-                .filter(child -> child.getRrnEncrypted() != null
-                        && passwordEncoder.matches(rrn_Last7, child.getRrnEncrypted()))
-                .findFirst();
-
-        // Step 3: 게으른 역충전 (명중한 경우만 씀)
-        if (fallback.isPresent()) {
-            Child child = fallback.get();
-            child.setRrnHash(hash);
-            repository.save(child);
-        }
-
-        return fallback;
+        return repository.findByRrnHash(hash);
     }
 }

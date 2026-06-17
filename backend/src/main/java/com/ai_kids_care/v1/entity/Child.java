@@ -46,9 +46,6 @@ public class Child {
     @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)
     private String rrnFirst6;
 
-    @Column(name = "rrn_encrypted", length = Integer.MAX_VALUE)
-    private String rrnEncrypted;
-
     @Column(name = "rrn_hash", length = Integer.MAX_VALUE)
     private String rrnHash;
 
