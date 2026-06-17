@@ -126,4 +126,4 @@ AI scripts currently have no test suite. At minimum, syntax-check changed Python
 
 ## Known Baseline
 
-The current verified assessment is `docs/assessments/2026-06-10-codebase-audit.md`. Treat older modernization assessments as historical snapshots.
+The current verified assessment is `docs/assessments/2026-06-17-followup-audit.md` (supersedes `2026-06-10-codebase-audit.md`). Treat the 2026-06-10 audit and older modernization assessments as historical snapshots.
