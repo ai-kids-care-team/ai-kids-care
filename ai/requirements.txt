@@ -1,7 +1,13 @@
+# ai/requirements.txt
+# Locking policy:
+#   - Exact pins (==) for ML stack (transformers, torch, torchvision, av, pandas, scikit-learn, accelerate)
+#     to ensure reproducibility; torch/torchvision CUDA suffix must be validated against the deployment GPU.
+#   - Range pins (>=) for utility libraries (tqdm) with no ABI constraint.
+#   - Optional deps (solapi) are declared for discoverability; skip install if SMS is not needed.
 transformers==5.4.0
 av==17.0.0
-torch==2.11.0+cu130
-torchvision==0.26.0+cu130
+torch==2.11.0+cu130  # placeholder — confirm against actual CUDA env before locking
+torchvision==0.26.0+cu130  # placeholder — confirm against actual CUDA env before locking
 pandas==3.0.1
 scikit-learn==1.8.0
 accelerate==1.13.0
@@ -11,3 +17,5 @@ python-multipart==0.0.20
 requests==2.33.1
 python-dotenv==1.2.2
 openpyxl==3.1.5
+tqdm>=4.66.0  # tqdm: used in datasets/loader.py and multiple ai/scripts; version range intentional (no ABI constraint)
+solapi>=3.0.0  # scripts-only / optional — lazy-imported in ai/src/ai_app/utils/sms.py; not required for inference serving
