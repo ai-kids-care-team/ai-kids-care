@@ -8,18 +8,8 @@ import { toast } from 'sonner';
 import {
   deleteAppreciationLetter,
   getAppreciationLetterDetail,
-  getAppreciationLetters,
-  APPRECIATION_LETTERS_FETCH_LIMIT,
 } from '@/services/apis/appreciationLetters.api';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
-import {
-  getClientCachedLetterBySeq,
-  listClientCachedLetters,
-  removeClientCachedLetter,
-  removeClientCachedLettersMatchingLetter,
-  removeClientCachedLettersBySenderUserId,
-  parseClientLetterSeqParam,
-} from './appreciation-letter-client-cache';
 import {
   buildAppreciationLetterViewerContext,
   formatLetterDateTime,
@@ -44,14 +34,9 @@ export function AppreciationLettersDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
-  const clientSeq = parseClientLetterSeqParam(searchParams.get('cid'));
   const id = parseLetterIdQueryParam(searchParams.get('id')) ?? NaN;
-  const sig = searchParams.get('sig')?.trim() ?? '';
-  const isSigView = sig !== '';
-  const isClientView = clientSeq != null;
   const [hydrated, setHydrated] = useState(false);
   const [letter, setLetter] = useState<AppreciationLetterVO | null>(null);
-  const [resolvedClientSeq, setResolvedClientSeq] = useState<number | null>(null);
   const [resolvedLetterId, setResolvedLetterId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -96,11 +81,11 @@ export function AppreciationLettersDetailPage() {
         isAuthenticated &&
           letter &&
           user &&
-          (resolvedClientSeq != null || apiLetterId != null) &&
+          apiLetterId != null &&
           canWriteAppreciationLetters(user.role) &&
           isSameAppreciationLetterAuthor(user.id, letter.senderUserId),
       ),
-    [isAuthenticated, letter, user, resolvedClientSeq, apiLetterId],
+    [isAuthenticated, letter, user, apiLetterId],
   );
 
   const resolvedAuthorLoginLabel = useMemo(() => {
@@ -212,170 +197,7 @@ export function AppreciationLettersDetailPage() {
     const load = async () => {
       setLoading(true);
       setError('');
-      setResolvedClientSeq(null);
       setResolvedLetterId(null);
-
-      if (isClientView) {
-        const cached = getClientCachedLetterBySeq(clientSeq!);
-        if (!cached) {
-          setLetter(null);
-          setError('작성 직후 캐시 글을 불러오지 못했습니다. 목록에서 다시 열어 주세요.');
-          setLoading(false);
-          return;
-        }
-        if (
-          !viewerMaySeeAppreciationLetter(
-            cached,
-            buildAppreciationLetterViewerContext(user),
-            isAuthenticated,
-          )
-        ) {
-          setLetter(null);
-          setError(
-            isAuthenticated
-              ? '이 감사 편지를 열람할 수 없습니다. 소속 유치원의 편지만 볼 수 있습니다.'
-              : '로그인 후 소속 유치원의 감사 편지를 볼 수 있습니다.',
-          );
-          setLoading(false);
-          return;
-        }
-        setLetter(cached);
-        setResolvedClientSeq(clientSeq!);
-        setLoading(false);
-        return;
-      }
-
-      if (isSigView) {
-        type SigPayload = {
-          title: string;
-          senderUserId: number;
-          targetType: string;
-          targetId: number;
-        };
-
-        const parseSigPayload = (raw: string): SigPayload | null => {
-          try {
-            const parsed = JSON.parse(raw) as {
-              title?: unknown;
-              senderUserId?: unknown;
-              targetType?: unknown;
-              targetId?: unknown;
-            };
-            const title = typeof parsed?.title === 'string' ? parsed.title : null;
-            const senderUserId = Number(parsed?.senderUserId);
-            const targetType =
-              typeof parsed?.targetType === 'string' ? parsed.targetType : null;
-            const targetId = Number(parsed?.targetId);
-
-            if (title && Number.isFinite(senderUserId) && targetType && Number.isFinite(targetId)) {
-              return {
-                title,
-                senderUserId,
-                targetType: String(targetType).toUpperCase(),
-                targetId,
-              };
-            }
-          } catch {
-            // ignore
-          }
-          return null;
-        };
-
-        const payload = parseSigPayload(sig);
-        if (!payload) {
-          setLetter(null);
-          setError('잘못된 시그니처입니다.');
-          setLoading(false);
-          return;
-        }
-
-        // 1) 먼저 client cache에서 찾기 (작성 직후 빠른 열람)
-        const candidates = listClientCachedLetters();
-        const found = candidates.find(({ vo }) => {
-          return (
-            vo.title === payload.title &&
-            vo.senderUserId === payload.senderUserId &&
-            String(vo.targetType ?? '').toUpperCase() === payload.targetType &&
-            vo.targetId === payload.targetId
-          );
-        });
-
-        if (found) {
-          if (
-            !viewerMaySeeAppreciationLetter(
-              found.vo,
-              buildAppreciationLetterViewerContext(user),
-              isAuthenticated,
-            )
-          ) {
-            setLetter(null);
-            setError(
-              isAuthenticated
-                ? '이 감사 편지를 열람할 수 없습니다. 소속 유치원의 편지만 볼 수 있습니다.'
-                : '로그인 후 소속 유치원의 감사 편지를 볼 수 있습니다.',
-            );
-            setResolvedClientSeq(null);
-            setResolvedLetterId(null);
-            setLoading(false);
-            return;
-          }
-          setLetter(found.vo);
-          setResolvedClientSeq(found.seq);
-          setLoading(false);
-          return;
-        }
-
-        // 2) cache에 없으면 백엔드(DB)에서 실제 id를 찾아서 상세 표시
-        // `sig` URL은 PK 없이 제목/작성자/대상으로만 역추적해야 하므로,
-        // PK가 커졌을 때(예: 200 초과)에는 상한이 낮으면 매칭 실패 → 수정/삭제 불가가 생김.
-        const MAX_RESOLVE_ID = 1000;
-        for (let did = 1; did <= MAX_RESOLVE_ID; did++) {
-          let detail: AppreciationLetterVO | null = null;
-          try {
-            detail = await getAppreciationLetterDetail(did);
-          } catch {
-            // 해당 id가 없을 수 있음
-          }
-          if (!detail) continue;
-
-          const isMatch =
-            detail.title === payload.title &&
-            detail.senderUserId === payload.senderUserId &&
-            String(detail.targetType ?? '').toUpperCase() === payload.targetType &&
-            detail.targetId === payload.targetId;
-
-          if (!isMatch) continue;
-
-          if (
-            !viewerMaySeeAppreciationLetter(
-              detail,
-              buildAppreciationLetterViewerContext(user),
-              isAuthenticated,
-            )
-          ) {
-            setLetter(null);
-            setError(
-              isAuthenticated
-                ? '이 감사 편지를 열람할 수 없습니다. 소속 유치원의 편지만 볼 수 있습니다.'
-                : '로그인 후 소속 유치원의 감사 편지를 볼 수 있습니다.',
-            );
-            setResolvedClientSeq(null);
-            setResolvedLetterId(null);
-            setLoading(false);
-            return;
-          }
-
-          setLetter(detail);
-          setResolvedLetterId(did);
-          setLoading(false);
-          return;
-        }
-
-        setLetter(null);
-        setError('해당 글을 찾지 못했습니다. 목록에서 다시 열어 주세요.');
-        setLoading(false);
-        return;
-      }
 
       if (!Number.isFinite(id) || id <= 0) {
         setLetter(null);
@@ -416,10 +238,6 @@ export function AppreciationLettersDetailPage() {
     void load();
   }, [
     id,
-    clientSeq,
-    isClientView,
-    sig,
-    isSigView,
     user,
     isAuthenticated,
   ]);
@@ -429,88 +247,9 @@ export function AppreciationLettersDetailPage() {
     setDeleteConfirmOpen(false);
     setDeleting(true);
     try {
-      if (resolvedClientSeq != null) {
-        const cachedDeleteId =
-          letter != null && Number.isFinite(letter.letterId) && letter.letterId > 0
-            ? Math.trunc(letter.letterId)
-            : null;
-
-        let deleteId = cachedDeleteId;
-
-        // 과거 캐시 데이터에는 `letterId`가 0일 수 있으므로,
-        // 그 경우엔 서버 목록을 한 번 더 받아서 같은 시그니처를 가진 항목을 찾아 삭제한다.
-        if (deleteId == null && letter) {
-          const cachedCreatedMs = (() => {
-            const t = letter.createdAt ? new Date(letter.createdAt).getTime() : NaN;
-            return Number.isFinite(t) ? t : null;
-          })();
-
-          const targetSig = {
-            title: letter.title,
-            senderUserId: letter.senderUserId,
-            targetType: String(letter.targetType ?? '').toUpperCase(),
-            targetId: letter.targetId,
-          };
-
-          const pageData = await getAppreciationLetters({
-            page: 0,
-            size: APPRECIATION_LETTERS_FETCH_LIMIT,
-            sort: 'createdAt,desc',
-          });
-
-          const candidates = (pageData.content ?? []).filter((row) => {
-            return (
-              row.title === targetSig.title &&
-              row.senderUserId === targetSig.senderUserId &&
-              String(row.targetType ?? '').toUpperCase() === targetSig.targetType &&
-              row.targetId === targetSig.targetId
-            );
-          });
-
-          if (candidates.length > 0) {
-            const best = (() => {
-              if (cachedCreatedMs == null) return candidates[0];
-              let bestRow = candidates[0];
-              const t0 = new Date(bestRow.createdAt).getTime();
-              let bestDiff = Number.isFinite(t0) ? Math.abs(t0 - cachedCreatedMs) : Number.POSITIVE_INFINITY;
-              for (const r of candidates.slice(1)) {
-                const t = new Date(r.createdAt).getTime();
-                if (!Number.isFinite(t)) continue;
-                const diff = Math.abs(t - cachedCreatedMs);
-                if (diff < bestDiff) {
-                  bestDiff = diff;
-                  bestRow = r;
-                }
-              }
-              return bestRow;
-            })();
-
-            if (best && Number.isFinite(best.letterId) && best.letterId > 0) {
-              deleteId = Math.trunc(best.letterId);
-            }
-          }
-        }
-
-        if (deleteId == null) {
-          toast.error('삭제할 편지 ID를 찾지 못했습니다. 다시 시도해 주세요.');
-          return;
-        }
-
-        await deleteAppreciationLetter(deleteId);
-
-        removeClientCachedLetter(resolvedClientSeq);
-        if (letter) removeClientCachedLettersBySenderUserId(letter.senderUserId);
-
-        toast.success('삭제되었습니다.');
-        router.push(`/letters?reload=${Date.now()}`);
-        return;
-      }
-
       const deleteId = apiLetterId;
       if (deleteId != null) {
         await deleteAppreciationLetter(deleteId);
-        removeClientCachedLettersMatchingLetter(letter);
-        removeClientCachedLettersBySenderUserId(letter.senderUserId);
       } else {
         toast.error('삭제할 수 없습니다. 목록에서 다시 열어 주세요.');
         return;
@@ -612,13 +351,9 @@ export function AppreciationLettersDetailPage() {
             </Link>
             {hydrated && !loading && !error && letter && canEdit && (
               <div className="flex flex-wrap items-center gap-2">
-                {(resolvedClientSeq != null || apiLetterId != null) && (
+                {apiLetterId != null && (
                   <Link
-                    href={
-                      resolvedClientSeq != null
-                        ? `/letters/edit?cid=${resolvedClientSeq}`
-                        : `/letters/edit?id=${apiLetterId}`
-                    }
+                    href={`/letters/edit?id=${apiLetterId}`}
                     className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-50"
                   >
                     <Pencil className="h-4 w-4" />

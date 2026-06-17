@@ -18,7 +18,6 @@ import { AppreciationLettersListForm, type AppreciationLetterListItem } from './
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
 import { useAppSelector } from '@/store/hook';
 import { canWriteAppreciationLetters } from '@/types/user-role';
-import { listClientCachedLetters } from './appreciation-letter-client-cache';
 import { getApiErrorMessage } from './api-error-message';
 
 function rowSenderUserIdNum(row: unknown): number {
@@ -30,34 +29,28 @@ function rowSenderUserIdNum(row: unknown): number {
 /** 백엔드 리스트 응답에는 `letterId`가 null일 수 있으므로 href는 없을 수 있음 */
 function mapRowsToListItems(
   rows: AppreciationLetterVO[],
-  opts?: { cacheSeqBySignature?: Map<string, number> },
 ): AppreciationLetterListItem[] {
   return rows.flatMap((row, rowIndex) => {
     const letterId = resolveAppreciationLetterId(row as unknown as Record<string, unknown>);
 
     // 캐시 매칭/서버 해석용 시그니처(정규화)
     const signature = `${row.title}|${Number(row.senderUserId)}|${String(row.targetType ?? '').toUpperCase()}|${Number(row.targetId)}`;
-    const cachedSeq = opts?.cacheSeqBySignature?.get(signature);
     const href =
       letterId != null
         ? `/letters/read?id=${letterId}`
-        : cachedSeq != null
-          ? `/letters/read?cid=${cachedSeq}`
-          : `/letters/read?sig=${encodeURIComponent(
-              JSON.stringify({
-                title: row.title,
-                senderUserId: Number(row.senderUserId),
-                targetType: String(row.targetType ?? '').toUpperCase(),
-                targetId: Number(row.targetId),
-              }),
-            )}`;
+        : `/letters/read?sig=${encodeURIComponent(
+            JSON.stringify({
+              title: row.title,
+              senderUserId: Number(row.senderUserId),
+              targetType: String(row.targetType ?? '').toUpperCase(),
+              targetId: Number(row.targetId),
+            }),
+          )}`;
 
     const key =
       letterId != null
         ? `api-${letterId}-r${rowIndex}`
-        : cachedSeq != null
-          ? `api-cache-${cachedSeq}-r${rowIndex}`
-          : `api-sig-${Number(row.senderUserId)}-${String(row.targetType ?? '').toUpperCase()}-${Number(row.targetId)}-${row.createdAt}-r${rowIndex}`;
+        : `api-sig-${Number(row.senderUserId)}-${String(row.targetType ?? '').toUpperCase()}-${Number(row.targetId)}-${row.createdAt}-r${rowIndex}`;
 
     const kg = resolveLetterKindergartenId(row as unknown as Record<string, unknown>);
 
@@ -164,56 +157,13 @@ export function AppreciationLettersListPage() {
         });
         if (cancelled) return;
 
-        const cachedItems: AppreciationLetterListItem[] = listClientCachedLetters().map(({ seq, vo }) => {
-          const signature = `${vo.title}|${Number(vo.senderUserId)}|${String(vo.targetType ?? '').toUpperCase()}|${Number(vo.targetId)}`;
-          return {
-            key: `cache-${seq}`,
-            title: vo.title,
-            date: formatLetterDate(vo.createdAt),
-            statusLabel: letterStatusLabel(vo.status),
-            href: `/letters/read?cid=${seq}`,
-            isPublic: vo.isPublic,
-            senderUserId: vo.senderUserId,
-            kindergartenId: resolveLetterKindergartenId(vo as unknown as Record<string, unknown>) ?? undefined,
-            dedupeSignature: signature,
-          };
-        });
-
-        const cacheSeqBySignature = new Map(
-          listClientCachedLetters().map(({ seq, vo }) => [
-            `${vo.title}|${vo.senderUserId}|${String(vo.targetType ?? '').toUpperCase()}|${vo.targetId}`,
-            seq,
-          ]),
-        );
-
         const rows = pageData.content ?? [];
-        const apiItems = mapRowsToListItems(rows, { cacheSeqBySignature });
-        const cachedSigs = new Set(
-          cachedItems.map((it) => it.dedupeSignature).filter((s): s is string => Boolean(s)),
-        );
-        const apiItemsDeduped = apiItems.filter((it) => {
-          const sig = it.dedupeSignature;
-          return !sig || !cachedSigs.has(sig);
-        });
-        setItems([...cachedItems, ...apiItemsDeduped]);
+        const apiItems = mapRowsToListItems(rows);
+        setItems(apiItems);
       } catch (e) {
         if (cancelled) return;
         console.warn('감사 편지 목록 조회 실패:', e);
-        const cachedItems: AppreciationLetterListItem[] = listClientCachedLetters().map(({ seq, vo }) => {
-          const signature = `${vo.title}|${Number(vo.senderUserId)}|${String(vo.targetType ?? '').toUpperCase()}|${Number(vo.targetId)}`;
-          return {
-            key: `cache-${seq}`,
-            title: vo.title,
-            date: formatLetterDate(vo.createdAt),
-            statusLabel: letterStatusLabel(vo.status),
-            href: `/letters/read?cid=${seq}`,
-            isPublic: vo.isPublic,
-            senderUserId: vo.senderUserId,
-            kindergartenId: resolveLetterKindergartenId(vo as unknown as Record<string, unknown>) ?? undefined,
-            dedupeSignature: signature,
-          };
-        });
-        setItems(cachedItems);
+        setItems([]);
         setError(getApiErrorMessage(e, '목록을 불러오지 못했습니다.'));
       } finally {
         if (!cancelled) setLoading(false);
