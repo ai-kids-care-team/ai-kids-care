@@ -10,8 +10,14 @@
 
 from __future__ import annotations
 
+import sys
 from functools import lru_cache
 from pathlib import Path
+
+_SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
+del _SRC_DIR
 
 import av
 import numpy as np
@@ -22,49 +28,10 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
 from transformers import VideoMAEForVideoClassification, VideoMAEImageProcessor
 
-
-def decode_video_pyav(video_path: str | Path) -> list[np.ndarray]:
-    """
-    Decode all frames from a short clip using PyAV.
-    Returns RGB frames as numpy arrays.
-    """
-    container = av.open(str(video_path))
-    frames = []
-    try:
-        for frame in container.decode(video=0):
-            frames.append(frame.to_ndarray(format="rgb24"))
-    finally:
-        container.close()
-    return frames
+from ai_app.inference.pipeline import decode_video_pyav, sample_frame_indices
 
 
-def sample_frame_indices(
-        total_frames: int,
-        num_frames: int = 16,
-        sampling_rate: int = 4,
-) -> list[int]:
-    """
-    Same basic strategy as training/eval loader:
-    - if enough frames: center sampling with stride
-    - otherwise: uniform sampling over the whole clip
-    """
-    clip_len = num_frames * sampling_rate
-
-    if total_frames <= 0:
-        raise ValueError("Video contains no decodable frames.")
-
-    if total_frames >= clip_len:
-        start_idx = (total_frames - clip_len) // 2
-        indices = start_idx + np.arange(num_frames) * sampling_rate
-        indices = np.clip(indices, 0, total_frames - 1)
-        return indices.astype(int).tolist()
-
-    indices = np.linspace(0, total_frames - 1, num=num_frames)
-    indices = np.clip(np.round(indices).astype(int), 0, total_frames - 1)
-    return indices.tolist()
-
-
-@lru_cache(maxsize=50000)
+@lru_cache(maxsize=256)
 def probe_total_frames(video_path: str) -> int:
     container = av.open(video_path)
     try:
