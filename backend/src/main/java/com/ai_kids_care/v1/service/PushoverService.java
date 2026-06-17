@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.service;
 
 import net.pushover.client.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Set;
@@ -21,6 +22,14 @@ public class PushoverService {
             String titleForUrl,
             String sound
     ) {
+        if (!StringUtils.hasText(apiToken)) {
+            throw new IllegalArgumentException(
+                "PushoverService: apiToken must not be blank — configure PUSHOVER_API_TOKEN");
+        }
+        if (!StringUtils.hasText(userId)) {
+            throw new IllegalArgumentException(
+                "PushoverService: userId must not be blank — configure PUSHOVER_USER_ID");
+        }
         try {
             return client.pushMessage(
                     PushoverMessage.builderWithApiToken(apiToken)
