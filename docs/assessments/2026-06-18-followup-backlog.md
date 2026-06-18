@@ -31,14 +31,12 @@ HALT 项须人工决策后方可继续。
 
 ---
 
-## Wave 1（地基）
+## Wave 1（已完成 — 2026-06-18）
 
-按顺序执行，后续 Wave 依赖本层完成。
-
-| ID | 描述 | 前置 | 优先级 |
-| --- | --- | --- | --- |
-| DB-1 | initdb ↔ Flyway 对齐：`audit_logs` 列/可空、`status_enum` REJECTED、`notifications` 可空、`login_id` 去重 | 无（但须先于 DB-2、SEC-0026 种子改动） | P1 |
-| BE-1 | 全局异常处理 + `@Valid` + 关 stacktrace | 无（软前置于 BE-3 和任何新增写端点） | P1 |
+| ID | 描述 | 状态 |
+| --- | --- | --- |
+| BE-1 | 全局异常处理（MethodArgumentNotValid→400 不回显 rejectedValue、IllegalArgument→400 固定消息）+ 5 controller `@Valid` + 10 DTO Bean Validation + `application.yml` include-stacktrace:never | Done（commit 3f91add；compile + *ErrorResponse* 金丝雀 + *ContractTest* 过） |
+| DB-1 | initdb ↔ Flyway「对齐」 | **关闭：非问题**。bootstrap = initdb V1 基线 + Flyway V2–V6（`baseline-on-migrate`）；生产空库则 Flyway 跑全量 V1–V6。两路径最终 schema 均正确，CI `Schema Digest Drift` 连绿，FlywayMigrationTest/V2SchemaConstraint 在跑。把 V2 `ADD COLUMN`（无 IF NOT EXISTS）塞进 initdb 反会触发双重应用报错。唯一极小技术债：`users.login_id` 冗余 UNIQUE（在 V1 源头、两路径一致，非漂移）→ P3 可不动 |
 
 ---
 
@@ -52,7 +50,7 @@ HALT 项须人工决策后方可继续。
 | BE-3 | VO 字段收窄（移除密码/RRN hash 等敏感字段） | 软前置 BE-1 | P1 |
 | AI-1 | 推理同步阻塞 async 循环修复 | 与 AI-3/SEC-0026 协调同批进入 `ai/` | P2 |
 | AI-3 | 推理入参范围校验 | 与 AI-1/SEC-0026 协调同批进入 `ai/` | P2 |
-| DB-2 | `Announcement`/`ClassRoomAssignment` 补 `kindergarten_id` | DB-1 完成后 | P2 |
+| DB-2 | `Announcement`/`ClassRoomAssignment` 补 `kindergarten_id`（新 migration V7 + initdb 同步） | 无（DB-1 已关闭，DB-2 独立） | P2 |
 | CODEGEN | 移除 `pg-spring-crud-codegen`：需 ADR + 删模块 + 清 17 处引用 | 无（独立） | P2 |
 
 ---
