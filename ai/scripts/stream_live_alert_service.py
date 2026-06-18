@@ -324,7 +324,8 @@ def run_stream_service(
                 step_frames = max(1, int(round(step_sec * fps)))
                 keep_window_sec = max(window_sec + step_sec + 3.0, window_sec + 1.0)
 
-                frame_buffer: deque[tuple[int, float, np.ndarray]] = deque()
+                _fb_maxlen = max(200, int(math.ceil(keep_window_sec * fps * 1.5)))
+                frame_buffer: deque[tuple[int, float, np.ndarray]] = deque(maxlen=_fb_maxlen)
                 frame_idx = -1
                 eval_index_in_connection = 0
                 next_eval_frame_idx = window_frames_required - 1
@@ -486,8 +487,6 @@ def run_stream_service(
                                         notification_title,
                                         alert_message,
                                         sound="alien",
-                                        user_keys=["uqrthzq6a6ha3dpnp383ceoj46i9kq", "ubijdryhdmyxk2z89n982hz5yj6utg"]
-
                                     )
                                 except Exception as push_error:
                                     print(
@@ -559,7 +558,9 @@ if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
 
     # Stream + model
-    stream_url = "http://www.ai-kids-care.asia:8082/live/livestream.flv"
+    stream_url = os.getenv("STREAM_URL", "")
+    if not stream_url:
+        raise ValueError("STREAM_URL environment variable must be set")
     model_dir = project_root / "outputs" / "01_assault_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / "stream_live_service"
     target_label = "assault"

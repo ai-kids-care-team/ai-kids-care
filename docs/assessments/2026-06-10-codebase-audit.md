@@ -1,7 +1,8 @@
 ---
 type: assessment
 date: 2026-06-10
-status: Current
+status: Superseded
+superseded_by: 2026-06-17-followup-audit.md
 baseline_commit: ead603e
 scope: monorepo implementation, architecture, documentation, tests, and deployment
 ---

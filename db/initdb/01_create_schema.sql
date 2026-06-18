@@ -170,7 +170,8 @@ CREATE TABLE "children" (
   "name" varchar NOT NULL,
   "child_no" varchar NOT NULL,
   "rrn_first6" varchar NOT NULL,
-  "rrn_encrypted" varchar NOT NULL,
+  "rrn_encrypted" varchar,
+  "rrn_hash" varchar,
   "birth_date" date NOT NULL,
   "gender" gender_enum NOT NULL,
   "address" varchar NOT NULL,
@@ -205,7 +206,8 @@ CREATE TABLE "teachers" (
   "gender" gender_enum NOT NULL,
   "emergency_contact_name" varchar,
   "emergency_contact_phone" varchar,
-  "rrn_encrypted" varchar NOT NULL,
+  "rrn_encrypted" varchar,
+  "rrn_hash" varchar,
   "rrn_first6" varchar NOT NULL,
   "level" level_enum NOT NULL,
   "start_date" date NOT NULL,
@@ -297,7 +299,8 @@ CREATE TABLE "guardians" (
   "kindergarten_id" bigint NOT NULL,
   "user_id" bigint NOT NULL,
   "name" varchar NOT NULL,
-  "rrn_encrypted" varchar NOT NULL,
+  "rrn_encrypted" varchar,
+  "rrn_hash" varchar,
   "rrn_first6" varchar NOT NULL,
   "gender" gender_enum NOT NULL,
   "address" varchar NOT NULL,
@@ -562,6 +565,11 @@ CREATE UNIQUE INDEX "uq_guardian_kg_guardianid" ON "guardians" ("kindergarten_id
 
 CREATE UNIQUE INDEX "uq_guardian_user_id" ON "guardians" ("user_id");
 
+-- ADR-0024: rrn_hash 단방향 해시 唯一索引 (NULL IS NOT NULL 충돌 없음)
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_children_rrn_hash"  ON "children"("rrn_hash");
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_guardians_rrn_hash" ON "guardians"("rrn_hash");
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_teachers_rrn_hash"  ON "teachers"("rrn_hash");
+
 CREATE INDEX "idx_cgr_child" ON "child_guardian_relationships" ("kindergarten_id", "child_id");
 
 CREATE INDEX "idx_cgr_guardian" ON "child_guardian_relationships" ("kindergarten_id", "guardian_id");
@@ -682,7 +690,7 @@ COMMENT ON COLUMN "children"."child_no" IS '원아 번호(원내 관리번호)';
 
 COMMENT ON COLUMN "children"."rrn_first6" IS '주민등록번호 앞 6자리(생년월일, 검색/중복확인용)';
 
-COMMENT ON COLUMN "children"."rrn_encrypted" IS '주민등록번호 뒤자리 암호문(암호화 저장)';
+COMMENT ON COLUMN "children"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 
 COMMENT ON COLUMN "children"."birth_date" IS '생년월일';
 
@@ -726,7 +734,7 @@ COMMENT ON COLUMN "teachers"."emergency_contact_name" IS '비상 연락처 이�
 
 COMMENT ON COLUMN "teachers"."emergency_contact_phone" IS '비상 연락처 전화번호';
 
-COMMENT ON COLUMN "teachers"."rrn_encrypted" IS '주민등록번호 뒤 7자리 암호문(암호화 저장)';
+COMMENT ON COLUMN "teachers"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 
 COMMENT ON COLUMN "teachers"."rrn_first6" IS '주민등록번호 앞 6자리(생년월일, 검색/중복확인용)';
 
@@ -842,7 +850,7 @@ COMMENT ON COLUMN "room_camera_assignments"."updated_at" IS '수정 일시';
 
 COMMENT ON COLUMN "guardians"."name" IS '보호자 이름';
 
-COMMENT ON COLUMN "guardians"."rrn_encrypted" IS '주민등록번호 암호문(암호화 저장)';
+COMMENT ON COLUMN "guardians"."rrn_hash" IS '주민등록번호 단방향 해시(검증용, 복호화 불가) — HMAC-SHA-256+pepper';
 
 COMMENT ON COLUMN "guardians"."rrn_first6" IS '주민등록번호 앞 6자리(생년월일, 검색/중복확인용)';
 

@@ -47,8 +47,8 @@ public class Child {
     private String rrnFirst6;
 
     @NotNull
-    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
-    private String rrnEncrypted;
+    @Column(name = "rrn_hash", nullable = false, length = Integer.MAX_VALUE)
+    private String rrnHash;
 
     @NotNull
     @Column(name = "birth_date", nullable = false)

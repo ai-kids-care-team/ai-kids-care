@@ -1,18 +1,12 @@
 package com.ai_kids_care.v1.contract;
 
-import com.ai_kids_care.v1.controller.AuditLogController;
-import com.ai_kids_care.v1.controller.AppreciationLetterController;
-import com.ai_kids_care.v1.controller.DetectionEventController;
 import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventReviewController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
-import com.ai_kids_care.v1.controller.GraphController;
 import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.KindergartenController;
 import com.ai_kids_care.v1.controller.NotificationRuleController;
-import com.ai_kids_care.v1.controller.SuperadminController;
 import com.ai_kids_care.v1.controller.TeacherController;
-import com.ai_kids_care.v1.controller.UserController;
 import com.ai_kids_care.v1.mapper.KindergartenMapper;
 import com.ai_kids_care.v1.service.KindergartenService;
 import com.ai_kids_care.v1.vo.KindergartenLookupResponse;
@@ -38,58 +32,34 @@ class SensitivePublicApiClosureContractTest {
 
     @Test
     void graphAuditLogNotificationAndSensitiveControllersPublishNoOperations() {
-        assertThat(GraphController.class.getDeclaredMethods()).isEmpty();
-        assertThat(AuditLogController.class.getDeclaredMethods()).isEmpty();
         // NotificationController 已重开 tenant-scoped GET（SPEC-0001 / ADR-0018 A3d）——不再是空壳；
         // 其授权 / 作用域 / 隐藏 404 行为由 NotificationReadAuthorizationIntegrationTest 覆盖。
         assertThat(EventReviewController.class.getDeclaredMethods()).isEmpty();
         assertThat(NotificationRuleController.class.getDeclaredMethods()).isEmpty();
-        assertThat(SuperadminController.class.getDeclaredMethods()).isEmpty();
-        assertThat(AppreciationLetterController.class.getDeclaredMethods()).isEmpty();
-        assertThat(UserController.class.getDeclaredMethods()).isEmpty();
         // ChildrenController 已重开 Guardian 关系-scoped GET（SPEC-0001 §349）——不再是空壳；
         // 其授权 / 关系 / 隐藏 404 行为由 GuardianChildAuthorizationIntegrationTest 覆盖。
         assertThat(GuardianController.class.getDeclaredMethods()).isEmpty();
         assertThat(TeacherController.class.getDeclaredMethods()).isEmpty();
         assertThat(DeviceTokenController.class.getDeclaredMethods()).isEmpty();
         assertThat(EventEvidenceFileController.class.getDeclaredMethods()).isEmpty();
-        assertThat(DetectionEventController.class.getDeclaredMethods()).isEmpty();
     }
 
     @Test
     void controllersWithoutPublishedOperationsReturn404ForRepresentativePaths() throws Exception {
         MockMvc mockMvc = standaloneSetup(
-                new GraphController(),
-                new AuditLogController(),
                 new EventReviewController(),
                 new NotificationRuleController(),
-                new SuperadminController(),
-                new AppreciationLetterController(),
-                new UserController(),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
-                new EventEvidenceFileController(),
-                new DetectionEventController()
+                new EventEvidenceFileController()
         ).build();
 
-        mockMvc.perform(get("/api/v1/graph/children/1"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/audit_logs"))
-                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/event_reviews"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/event_reviews/1/latest"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/notification_rules"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/superadmins"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/appreciation_letters"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/users"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/users/1"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/guardians"))
                 .andExpect(status().isNotFound());
@@ -107,17 +77,9 @@ class SensitivePublicApiClosureContractTest {
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/event_evidence_files/1"))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/detection_events"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/detection_events/1"))
-                .andExpect(status().isNotFound());
         mockMvc.perform(post("/api/v1/event_reviews").contentType("application/json").content("{}"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(post("/api/v1/notification_rules").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/v1/superadmins").contentType("application/json").content("{}"))
-                .andExpect(status().isNotFound());
-        mockMvc.perform(post("/api/v1/appreciation_letters").contentType("application/json").content("{}"))
                 .andExpect(status().isNotFound());
     }
 

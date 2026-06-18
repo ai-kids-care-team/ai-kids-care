@@ -18,6 +18,7 @@ public interface AnnouncementMapper {
     @Mapping(target = "viewCount", constant = "0L")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     Announcement toEntity(AnnouncementCreateDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -26,5 +27,6 @@ public interface AnnouncementMapper {
     @Mapping(target = "viewCount", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     void updateEntity(AnnouncementUpdateDTO dto, @MappingTarget Announcement entity);
 }

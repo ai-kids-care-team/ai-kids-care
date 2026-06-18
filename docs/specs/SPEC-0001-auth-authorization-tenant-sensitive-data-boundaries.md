@@ -583,3 +583,19 @@ Swagger/OpenAPI 在开发和测试环境可公开；生产环境必须关闭公�
 - 测试：新增 `NotificationReadAuthorizationIntegrationTest`（受体仅见自己、他人通知隐藏 404 + DENIED 审计、KINDERGARTEN_ADMIN 见全园、跨租户 404、未认证 401、最小字段无内部/S0）。
 - 实现=sub-agent[sonnet]，复审/集成=Lead（≠实现会话，ADR-0020）。本机无 Java → CI 唯一验证（Lead 复核：JPQL/契约镜像 T2、admin 无 profile 经 `EffectiveAuthorizationContextService.resolve` 确认可解析、membership ON CONFLICT 经 `uq_ukm_kg_user` 唯一索引确认有效、channel/status enum 值核对）。
 - defer 仍在：Teacher→detection_events / 感谢信 / 通知**写链与规则**（notification_rules）/ AI 闭环（ADR-0015）。
+
+#### 提案 / Proposed（待 Lead 批准）：DetectionEvent / EventReview 重开前置条件（N-7，2026-06-17 审计）
+
+> **状态：Proposed / 待 Lead 批准。本节为非规范性说明，不修改本 Spec 的任何需求、范围或验收标准。**
+
+`DetectionEventController` 与 `EventReviewController` 于 Phase 1A（2026-06-10）作为止血措施被有意关闭。该闭合是暂时止血，不是对底层问题的修复。2026-06-17 复核审计（FLOW-001）确认相关问题代码仍在代码库中，重开前必须满足以下三项前置条件，否则将把 P0 安全债带回可访问 API 路径。
+
+**前置条件（须全部满足，并由维护者显式批准重开）：**
+
+1. **前后端契约 casing 统一**：`DetectionEvent` / `EventReview` 的前后端字段命名需在 snake_case（后端 JSON）与 camelCase（前端 TypeScript）之间完成系统性统一，消除 FLOW-001 记录的字段不匹配问题。
+2. **review 与 status 写入收敛为单一原子事务**：`EventReview` 创建与关联 `DetectionEvent` 状态字段更新必须处于同一事务边界，符合本 Spec 不变量「授权检查和业务写入必须处于同一事务边界或使用能防止 TOCTOU 的等价机制」（§299）。
+3. **tenant-aware policy 接入**：重开的控制器必须遵循 SPEC-0001 的 authz-read-slice 模式，通过 `@PreAuthorize` 门 + 角色分支 + scoped JPQL 实现租户策略，不得仅依赖已关闭状态作为安全边界。
+
+**根因记录**：FLOW-001（`docs/assessments/2026-06-17-followup-audit.md`，表格第 4 行 + §N-7）。
+
+**当前状态**：`DetectionEventController` 已于 2026-06-17（N-6）删除（由空壳→不存在，保护更强）；`EventReviewController` 保持空壳（零 handler）。两者均不可经 HTTP 触达，作为止血机制，直至以上三项条件全部满足并由维护者显式批准重开为止。任何重开操作必须先提交或更新对应 Spec / ADR，并通过本仓库的 Pre-review Gate 和 Integration Gate。

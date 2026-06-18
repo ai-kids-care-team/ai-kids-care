@@ -15,6 +15,7 @@ So the harness uses **portable, interpreter-free** controls and pushes the rest 
 | Control | Where | Why here |
 | --- | --- | --- |
 | Stop hook `git diff --check` | `.claude/settings.json` | Pure `git` (on PATH everywhere); exits 2 on whitespace / conflict-marker errors → blocks the turn end. No interpreter needed. |
+| TaskCreated hook `high-risk-task-guard.ps1` | `.claude/settings.json` + `.claude/hooks/` | Bounded-autonomy gate for Agent Teams: blocks creating a task whose payload matches the constitution's high-risk surface (schema/migration/auth/billing/public-API/deploy/destructive) until a human approves. Pure `powershell`, reads hook JSON from stdin, schema-agnostic keyword match. Self-test commands are in the script header. Only fires when `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. |
 | Schema-digest drift | `.github/workflows/schema-digest-drift.yml` | The migration→digest sync is enforced on the Linux runner (Docker + the script), not a fragile local hook. |
 | Protected-push guard | (none — server-side) | Direct push to `main` / force-push of `develop`/`main` is already blocked by GitHub branch protection (ADR-0020), the real control. A local guard would only duplicate it. |
 

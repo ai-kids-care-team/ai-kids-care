@@ -1,10 +1,12 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.config.RrnHashConfig;
 import com.ai_kids_care.v1.entity.Child;
 import com.ai_kids_care.v1.mapper.ChildMapper;
 import com.ai_kids_care.v1.repository.ChildRepository;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
+import com.ai_kids_care.v1.security.RrnHashUtil;
 import com.ai_kids_care.v1.security.audit.AuditAction;
 import com.ai_kids_care.v1.security.audit.AuditEvent;
 import com.ai_kids_care.v1.security.audit.AuditResult;
@@ -18,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class ChildrenService {
 
     private final ChildRepository repository;
     private final ChildMapper mapper;
-    private final PasswordEncoder passwordEncoder;
+    private final RrnHashConfig rrnHashConfig;
     private final SecurityAuditWriter auditWriter;
 
     // ── SPEC-0001 §3 / §349 / §351：儿童读取（Guardian 关系-scoped + Teacher assignment-scoped）──
@@ -112,9 +113,16 @@ public class ChildrenService {
         return repository.findById(id).map(mapper::toVO).orElseThrow(() -> new EntityNotFoundException("Children not found"));
     }
 
+    /**
+     * HMAC 단일 조회 경로 — ADR-0024 D4 (Phase 3).
+     *
+     * <p>V5/V6 적용 완료 후: rrn_hash NOT NULL, rrn_encrypted 열 삭제.
+     * BCrypt 회퇴 경로 및 게으른 역충전은 제거되었다.
+     * 읽기 전용 트랜잭션으로 동작한다.
+     */
+    @Transactional(readOnly = true)
     Optional<Child> getChildEntityByRRN(String rrn_First6, String rrn_Last7) {
-        return repository.findByRrnFirst6(rrn_First6).stream()
-                .filter(child -> passwordEncoder.matches(rrn_Last7, child.getRrnEncrypted()))
-                .findFirst();
+        String hash = RrnHashUtil.hash(rrnHashConfig.getPepper(), rrn_First6, rrn_Last7);
+        return repository.findByRrnHash(hash);
     }
 }

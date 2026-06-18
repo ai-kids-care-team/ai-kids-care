@@ -44,8 +44,8 @@ public class Guardian {
     private String name;
 
     @NotNull
-    @Column(name = "rrn_encrypted", nullable = false, length = Integer.MAX_VALUE)
-    private String rrnEncrypted;
+    @Column(name = "rrn_hash", nullable = false, length = Integer.MAX_VALUE)
+    private String rrnHash;
 
     @NotNull
     @Column(name = "rrn_first6", nullable = false, length = Integer.MAX_VALUE)

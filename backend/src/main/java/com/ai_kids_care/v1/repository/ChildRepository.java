@@ -15,7 +15,7 @@ public interface ChildRepository extends JpaRepository<Child, Long> {
 
     Page<Child> findByNameContains(String name, Pageable pageable);
 
-    List<Child> findByRrnFirst6(String rrnFirst6);
+    Optional<Child> findByRrnHash(String rrnHash);
 
     // ── SPEC-0001 §3 / §349：Guardian 关系-scoped 读取（镜像 ClassRepository assignment-scoped idiom）──
     // 活跃关系 = guardian 档案 ACTIVE + 关系 end_date 窗（IS NULL 或 >= asOf）+ 同租户；

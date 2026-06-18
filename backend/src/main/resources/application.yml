@@ -2,13 +2,14 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:kids_postgres_db}
     username: ${DB_USER:kids_user}
-    password: ${DB_PASSWORD:kids_pass}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
 
   session:
     store-type: redis
@@ -19,7 +20,7 @@ spring:
     uri: ${NEO4J_URI:bolt://localhost:7687}
     authentication:
       username: ${NEO4J_USERNAME:neo4j}
-      password: ${NEO4J_PASSWORD:rose100!}
+      password: ${NEO4J_PASSWORD}
 
   flyway:
     enabled: true
@@ -49,6 +50,10 @@ server:
         http-only: true
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: lax
+
+rrn:
+  hash:
+    pepper: ${RRN_HASH_PEPPER}
 
 logging:
   level:

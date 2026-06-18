@@ -11,9 +11,15 @@ Pipeline architecture:
 from __future__ import annotations
 
 import math
+import sys
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
+
+_SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
+del _SRC_DIR
 
 import av
 import numpy as np
@@ -22,6 +28,8 @@ import torch
 from torch.utils.data import DataLoader, IterableDataset, get_worker_info
 from tqdm import tqdm
 from transformers import VideoMAEForVideoClassification, VideoMAEImageProcessor
+
+from ai_app.inference.pipeline import sample_frame_indices
 
 _PROCESSOR_CACHE: dict[str, VideoMAEImageProcessor] = {}
 
@@ -42,26 +50,6 @@ def get_cached_processor(model_dir: Path) -> VideoMAEImageProcessor:
         processor = VideoMAEImageProcessor.from_pretrained(model_dir)
         _PROCESSOR_CACHE[key] = processor
     return processor
-
-
-def sample_frame_indices(
-        total_frames: int,
-        num_frames: int = 16,
-        sampling_rate: int = 4,
-) -> list[int]:
-    clip_len = num_frames * sampling_rate
-    if total_frames <= 0:
-        raise ValueError("Video contains no decodable frames.")
-
-    if total_frames >= clip_len:
-        start_idx = (total_frames - clip_len) // 2
-        indices = start_idx + np.arange(num_frames) * sampling_rate
-        indices = np.clip(indices, 0, total_frames - 1)
-        return indices.astype(int).tolist()
-
-    indices = np.linspace(0, total_frames - 1, num=num_frames)
-    indices = np.clip(np.round(indices).astype(int), 0, total_frames - 1)
-    return indices.tolist()
 
 
 def resolve_fps(stream: av.video.stream.VideoStream) -> float:

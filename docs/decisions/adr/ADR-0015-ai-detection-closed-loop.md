@@ -4,6 +4,7 @@ title: "ADR-0015: AI 检测闭环集成契约（Detection Closed-Loop Integratio
 status: Accepted
 date: 2026-06-07
 deciders: 接手人起草，维护者 Accept（2026-06-07）；实现委派独立 session
+implementation: Not Started
 ---
 
 # ADR-0015: AI 检测闭环集成契约（Detection Closed-Loop Integration Contract）
@@ -13,6 +14,8 @@ deciders: 接手人起草，维护者 Accept（2026-06-07）；实现委派独�
 ## 状态（Status）
 
 Accepted（2026-06-07 签署）。**落地次序：加固轨之后**——`0011 ✅ → 0014 → 0012 → 0013 → 0010 → 0009 → **0015**`；**实现委派独立 session**。
+
+> **Implementation note (2026-06-17):** AI-to-DB integration not yet connected; detection_events/detection_sessions tables populated only by seed data as of baseline d0d2269.
 
 > **决议（2026-06-07，维护者 Accept）**：集成媒介 = PostgreSQL 直连；concretization = **V1（AI 直写核心表）**（V2 列 Phase 2 运维后升级）；前置 OQ-AI-2/3 已解决；证据 = 本地→对象可升级；**通知 = 人工复核确认后才通知家长**（园方可选高置信即时预警）。本 ADR 同时**勘误 [ADR-0002](ADR-0002-dual-datastore-postgres-neo4j.md) / [ADR-0006](ADR-0006-decoupled-ai-videomae.md)** 中被误记为决策的"后端唯一写入者 / AI 不连库"。
 

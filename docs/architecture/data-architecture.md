@@ -107,7 +107,7 @@ db/migration/VN__*.sql                  ← 后续变更...
 | 外键约束 | `DEFERRABLE INITIALLY IMMEDIATE`（可在事务末延迟校验） | 全部 FK |
 | 软删除 | `announcements` 有 `deleted_at`；其余多用 `status` 表达停用 | schema |
 | 枚举 | 用 PG `CREATE TYPE ... AS ENUM`，后端 `type/` 包一一对应 | schema + `type/` |
-| 敏感数据 | RRN：`rrn_first6` 明文 + 后位 **单向哈希、不可逆**（列名 `rrn_encrypted` 为历史命名错误，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md)）；流凭证 AES-GCM 加密；密码 BCrypt | 见 [security-architecture](security-architecture.md) |
+| 敏感数据 | RRN：`rrn_first6` 明文 + 完整 RRN 的 **单向哈希 `rrn_hash`（HMAC-SHA-256+pepper，不可逆、`UNIQUE`）**，见 [ADR-0010](../decisions/adr/ADR-0010-rrn-one-way-hash.md) / [ADR-0024](../decisions/adr/ADR-0024-rrn-bcrypt-to-hmac-migration.md)（旧 `rrn_encrypted` BCrypt 列已于阶段三删除）；流凭证 AES-GCM 加密；密码 BCrypt | 见 [security-architecture](security-architecture.md) |
 
 ## 7. Neo4j 加载器
 

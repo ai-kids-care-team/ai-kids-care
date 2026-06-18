@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   createAnnouncement,
   DEFAULT_ANNOUNCEMENT_STATUS_OPTIONS,
-  validateAnnouncementCreateAuditFields,
   type AnnouncementWritePayload,
 } from '@/services/apis/announcements.api';
 import { useAppSelector } from '@/store/hook';
@@ -31,11 +30,6 @@ function toLocalDatetimeInputNow() {
 export function useAnnouncementsWrite() {
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
-  const authorIdHiddenValue = user?.id ?? '';
-  const authorId = useMemo(() => {
-    const parsed = Number(user?.id);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }, [user?.id]);
   const canWrite = useMemo(
     () => Boolean(isAuthenticated && user && canManageAnnouncements(user.role)),
     [isAuthenticated, user],
@@ -99,21 +93,8 @@ export function useAnnouncementsWrite() {
       setPublishedAtError('게시일시는 필수 입력입니다.');
       return;
     }
-    if (authorId == null) {
-      setError('로그인 사용자 ID를 확인할 수 없습니다.');
-      return;
-    }
     if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
       setError('게시 종료일은 게시 시작일보다 빠를 수 없습니다.');
-      return;
-    }
-
-    const nowIso = new Date().toISOString();
-    const createdAt = nowIso;
-    const updatedAt = nowIso;
-    const auditMsg = validateAnnouncementCreateAuditFields(createdAt, updatedAt);
-    if (auditMsg) {
-      setError(auditMsg);
       return;
     }
 
@@ -126,9 +107,6 @@ export function useAnnouncementsWrite() {
       publishedAt: toIsoOrNull(publishedAt),
       startsAt: toIsoOrNull(startsAt),
       endsAt: toIsoOrNull(endsAt),
-      createdAt,
-      updatedAt,
-      authorId,
     };
     try {
       setSubmitting(true);
@@ -160,7 +138,6 @@ export function useAnnouncementsWrite() {
     status,
     setStatus,
     statusOptions,
-    authorIdHiddenValue,
     canWrite,
     submitting,
     error,

@@ -5,13 +5,11 @@ import com.ai_kids_care.v1.controller.DeviceTokenController;
 import com.ai_kids_care.v1.controller.EventEvidenceFileController;
 import com.ai_kids_care.v1.controller.GuardianController;
 import com.ai_kids_care.v1.controller.TeacherController;
-import com.ai_kids_care.v1.controller.UserController;
 import com.ai_kids_care.v1.service.CameraStreamService;
 import com.ai_kids_care.v1.service.DeviceTokenService;
 import com.ai_kids_care.v1.service.EventEvidenceFileService;
 import com.ai_kids_care.v1.service.GuardianService;
 import com.ai_kids_care.v1.service.TeacherService;
-import com.ai_kids_care.v1.service.UserService;
 import com.ai_kids_care.v1.vo.CameraStreamVO;
 import com.ai_kids_care.v1.vo.ChildVO;
 import com.ai_kids_care.v1.vo.DeviceTokenVO;
@@ -54,14 +52,17 @@ class SensitiveResponseContractTest {
         assertJacksonPropertyAbsent(ChildVO.class, "rrnFirst6");
         assertJacksonPropertyAbsent(ChildVO.class, "birthDate");
         assertJacksonPropertyAbsent(ChildVO.class, "address");
+        assertJacksonPropertyAbsent(ChildVO.class, "rrnHash");
         assertJacksonPropertyAbsent(GuardianVO.class, "rrnEncrypted");
         assertJacksonPropertyAbsent(GuardianVO.class, "rrnFirst6");
         assertJacksonPropertyAbsent(GuardianVO.class, "address");
+        assertJacksonPropertyAbsent(GuardianVO.class, "rrnHash");
         assertJacksonPropertyAbsent(TeacherVO.class, "rrnEncrypted");
         assertJacksonPropertyAbsent(TeacherVO.class, "staffNo");
         assertJacksonPropertyAbsent(TeacherVO.class, "rrnFirst6");
         assertJacksonPropertyAbsent(TeacherVO.class, "emergencyContactName");
         assertJacksonPropertyAbsent(TeacherVO.class, "emergencyContactPhone");
+        assertJacksonPropertyAbsent(TeacherVO.class, "rrnHash");
         assertJacksonPropertyAbsent(DeviceTokenVO.class, "pushToken");
         assertJacksonPropertyAbsent(EventEvidenceFileVO.class, "storageUri");
         assertJacksonPropertyAbsent(CameraStreamVO.class, "sourceUrl");
@@ -79,21 +80,12 @@ class SensitiveResponseContractTest {
 
     @Test
     void representativeSpringMvcResponsesDoNotSerializeSensitiveStorageFields() throws Exception {
-        UserService userService = mock(UserService.class);
         GuardianService guardianService = mock(GuardianService.class);
         TeacherService teacherService = mock(TeacherService.class);
         DeviceTokenService deviceTokenService = mock(DeviceTokenService.class);
         EventEvidenceFileService eventEvidenceFileService = mock(EventEvidenceFileService.class);
         CameraStreamService cameraStreamService = mock(CameraStreamService.class);
 
-        when(userService.getUser(1L)).thenReturn(new UserVO(
-                1L,
-                "guardian01",
-                "ACTIVE",
-                OffsetDateTime.parse("2026-06-10T00:00:00Z"),
-                OffsetDateTime.parse("2026-06-01T00:00:00Z"),
-                OffsetDateTime.parse("2026-06-09T00:00:00Z")
-        ));
         when(guardianService.getGuardian(1L)).thenReturn(new GuardianVO(
                 1L,
                 10L,
@@ -154,7 +146,6 @@ class SensitiveResponseContractTest {
         ));
 
         MockMvc mockMvc = standaloneSetup(
-                new UserController(),
                 new GuardianController(),
                 new TeacherController(),
                 new DeviceTokenController(),
@@ -162,8 +153,6 @@ class SensitiveResponseContractTest {
                 new CameraStreamController(cameraStreamService)
         ).build();
 
-        mockMvc.perform(get("/api/v1/users/1"))
-                .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/guardians/1"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/v1/teachers/1"))
@@ -196,14 +185,17 @@ class SensitiveResponseContractTest {
         assertOpenApiPropertyAbsent(ChildVO.class, "rrnFirst6");
         assertOpenApiPropertyAbsent(ChildVO.class, "birthDate");
         assertOpenApiPropertyAbsent(ChildVO.class, "address");
+        assertOpenApiPropertyAbsent(ChildVO.class, "rrnHash");
         assertOpenApiPropertyAbsent(GuardianVO.class, "rrnEncrypted");
         assertOpenApiPropertyAbsent(GuardianVO.class, "rrnFirst6");
         assertOpenApiPropertyAbsent(GuardianVO.class, "address");
+        assertOpenApiPropertyAbsent(GuardianVO.class, "rrnHash");
         assertOpenApiPropertyAbsent(TeacherVO.class, "rrnEncrypted");
         assertOpenApiPropertyAbsent(TeacherVO.class, "staffNo");
         assertOpenApiPropertyAbsent(TeacherVO.class, "rrnFirst6");
         assertOpenApiPropertyAbsent(TeacherVO.class, "emergencyContactName");
         assertOpenApiPropertyAbsent(TeacherVO.class, "emergencyContactPhone");
+        assertOpenApiPropertyAbsent(TeacherVO.class, "rrnHash");
         assertOpenApiPropertyAbsent(DeviceTokenVO.class, "pushToken");
         assertOpenApiPropertyAbsent(EventEvidenceFileVO.class, "storageUri");
         assertOpenApiPropertyAbsent(CameraStreamVO.class, "sourceUrl");

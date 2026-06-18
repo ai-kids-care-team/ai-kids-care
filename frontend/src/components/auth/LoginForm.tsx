@@ -12,6 +12,8 @@ import { isUserRole } from '@/types/user-role';
 
 const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
 
+const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS === 'true';
+
 export function LoginForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -133,6 +135,7 @@ export function LoginForm() {
           비밀번호 재설정은 아직 제공되지 않습니다.
         </div>
 
+        {showDemoHints && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center mb-3">데모 계정</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -158,6 +161,7 @@ export function LoginForm() {
             </div>
           </div>
         </div>
+        )}
     </div>
   );
 }

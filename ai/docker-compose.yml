@@ -10,7 +10,7 @@ services:
       AI_MODEL_DIR: /app/outputs/videomae_baseline/best_model
       AI_SERVICE_HOST: 0.0.0.0
       AI_SERVICE_PORT: 8001
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     volumes:
       - ./outputs:/app/outputs:ro
