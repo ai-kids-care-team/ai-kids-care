@@ -56,7 +56,7 @@ HALT 项须人工决策后方可继续。
 
 平台级语义暴露出当前 read 模型缺陷：`AnnouncementRepository` 按「作者 membership」EXISTS 过滤，而平台公告作者（superadmin）无 membership → **这些公告对所有人不可见**。
 修复方向：announcements 改平台级 read——所有认证用户可见 ACTIVE、未删除公告；移除 author-membership 过滤；相应调整 `@PreAuthorize`（tenant-scoped → 任一认证用户）与契约/授权测试。
-状态：待实施（维护者已确认平台级语义）。
+状态：**Done**（commit 83b1862）。新增 AuthorizationAction PLATFORM_ANNOUNCEMENT_READ（任一认证用户）/PLATFORM_ANNOUNCEMENT_WRITE（PLATFORM_IT_ADMIN）；移除 TENANT_ANNOUNCEMENT_*；AnnouncementRepository 去 author-membership 过滤改平台广读；写收到 PLATFORM_IT_ADMIN（杜绝跨园广播）。AnnouncementAuthorizationIntegrationTest 11 通过（跨园可读、租户管理员写 403、PLATFORM_IT_ADMIN 写 201、未认证 401）+ 契约/授权回归过。
 
 ---
 
