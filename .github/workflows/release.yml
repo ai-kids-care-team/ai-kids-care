@@ -171,10 +171,10 @@ jobs:
 
   # ── Promote the smoke-tested :<version> images to :prod, which the demo-host
   # watchtower polls and auto-deploys. Gated by the GitHub 'production' Environment
-  # (ADR-0022 OQ-3): configure required reviewers under
+  # (ADR-0022 OQ-3): a required reviewer (the maintainer) is configured under
   #   Settings → Environments → production
-  # to require manual approval before this job runs. Until reviewers are configured
-  # the gate is inert (the job runs immediately after build-smoke).
+  # so this job PAUSES for manual approval before it runs (prevent_self_review=false,
+  # so the maintainer can approve their own release).
   deploy-prod:
     name: Promote :version → :prod (manual approval)
     needs: build-smoke

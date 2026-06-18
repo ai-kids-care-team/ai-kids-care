@@ -13,25 +13,21 @@ HALT 项须人工决策后方可继续。
 
 ---
 
-## Wave 0（立即可执行 + HALT 待人工）
-
-### 已执行（2026-06-18）
+## Wave 0（已全部完成 — 2026-06-18）
 
 | ID | 描述 | 状态 |
 | --- | --- | --- |
-| SEC-SEED（工作区） | 删除 `db/initdb/26_children_seed.sql` 第 1–2 行明文 RRN 注释 | Done |
-| AI-4 | `pushover.py` priority 参数化（Emergency→默认 High，新增 `priority: int = 1` 参数） | Done |
+| SEC-SEED（工作区） | 删除 `db/initdb/26_children_seed.sql` 明文 RRN 注释 | Done |
+| SEC-SEED（history） | `git-filter-repo` 抹除全历史 15 个 RRN 串，force-push `develop`(7d3307d)+`main`(886ce85)；独立 clone 验证两分支历史无 RRN；seed dummy data 零丢失（仅 2 个测试文件的 Javadoc 注释被 redact，不影响测试） | Done |
+| AI-4 | `pushover.py` priority 参数化（默认 High=1；仅 Emergency≥2 带 retry/expire；支持 `PUSHOVER_PRIORITY`） | Done |
+| AI-2 | `ai/` 迁移至 uv（新增 `pyproject.toml`、删 `requirements*.txt`、Dockerfile/README/test 更新；torch 经 cu130 index 对应 CUDA 13.2） | Done（`uv lock` 待 deploy host 跑一次验证/锁版本） |
+| CODEOWNERS | 删除（唯一维护者、无 coworker，避免 PR codeowner 飘红） | Done |
+| CI-1 | `production` 环境 required reviewer = 维护者（SimpleJerry），`prevent_self_review=false` → 每次 `deploy-prod` 人工批准（ADR-0022 OQ-3 关闭）；实测原已配置，`release.yml` 过时注释已修正 | Done |
+| CI-2 | `main` required status checks 加入 `schema-digest matches migrations`（经 gh api，现共 4 项） | Done |
 | DOC-audit | `2026-06-10-codebase-audit.md` 追加废弃提示 | Done |
-| DOC-adr | `ADR-0020` 追加 required status checks 实测补注 + CI-2 缺口标注 | Done |
+| DOC-adr | `ADR-0020` 追加 required checks 补注 + CODEOWNERS-now-false 修正 | Done |
 
-### HALT — 待人工决策
-
-| ID | 描述 | 阻断原因 | gh api 草案 |
-| --- | --- | --- | --- |
-| CI-1 | 配置 `main` 分支 prod 环境 required reviewers | 需人工指定 reviewer GitHub 账号；不可臆测 | `gh api repos/{owner}/{repo}/environments/production/deployment_protection_rules --method POST -f type=required_reviewers ...` |
-| CI-2 | 把 `Schema Digest Drift` 加入 `main` required status checks | 改生产分支保护；context 名须先从 CI 日志确认，不可推断 | `gh api repos/{owner}/{repo}/branches/main/protection/required_status_checks/contexts --method POST -f contexts[]="schema-digest-drift"` |
-| AI-2 | `ai/requirements.txt` torch 钉版 | 正确版本依赖部署机真实 CUDA 版本；README 标 cu118，但 `torch==2.11.0+cu130` 不存在，禁止臆测 | 待人工提供部署机 CUDA 版本后执行 |
-| SEC-SEED（history） | git history rewrite — 清除已推送 commits 中的明文 RRN 注释 | 影响已推送远端 refs，需人工决策是否重写历史（`git filter-repo` / BFG） | 待人工决策 |
+> 注：SEC-SEED 经维护者澄清为 demo 假数据、非隐私泄露；历史改写已完成即保持不变。`feat/notification-sms-email` 分支与 GitHub `refs/pull/*` 中的旧 RRN 不再处理。**维护者需重新打开历史改写期间临时关闭的 `main`/`develop` force-push 保护。**
 
 ---
 
@@ -89,6 +85,7 @@ HALT 项须人工决策后方可继续。
 
 ## 残留已知风险
 
-1. **SEC-SEED history**：`26_children_seed.sql` 中的明文 RRN 注释仍存在于 git history，需 history rewrite（Wave 0 HALT）。工作区文件已清理。
-2. **AI-2 torch 版本**：`ai/requirements.txt` 中 torch 版本未钉定，构建时可能拉取非预期版本；需人工确认部署机 CUDA 版本后修复。
-3. **CI-2 schema drift check**：`Schema Digest Drift` 尚未纳入 `main` required checks，schema drift 不能在 PR 合并前自动阻断。
+1. **AI-2 / `uv.lock`**：`ai/pyproject.toml` 用 cu130 index 对应 CUDA 13.2（推断），torch/torchvision 具体版本与 `uv.lock` 须在联网 deploy host 执行 `uv lock` 验证并生成；Dockerfile 随后应改为 `uv sync --frozen`。
+2. **force-push 保护**：`main`/`develop` 的 force-push 保护在 SEC-SEED 历史改写期间被临时关闭，须由维护者重新开启。
+3. **feat 分支 / PR refs 旧 RRN**：`feat/notification-sms-email` 与 `refs/pull/*` 仍含改写前的 RRN（假数据）；经维护者确认非敏感，不再清理。
+4. **README Python 版本**：`ai/README.md` 标 Python 3.14、`ai/Dockerfile` 用 3.12；`pyproject.toml` 以 3.12 为准，README 待维护者确认。
