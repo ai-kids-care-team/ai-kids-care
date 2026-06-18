@@ -10,7 +10,6 @@ import org.mapstruct.*;
 public interface AnnouncementMapper {
 
     @Mapping(source = "id", target = "id")
-    @Mapping(source = "author.id", target = "authorId")
     AnnouncementVO toVO(Announcement entity);
 
     @Mapping(target = "id", ignore = true)

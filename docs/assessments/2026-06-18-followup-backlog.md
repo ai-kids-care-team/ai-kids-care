@@ -76,6 +76,7 @@ HALT 项须人工决策后方可继续。
 | FE-1 | 注册流 CSRF-less fetch 收口 | 无（独立） | P2 |
 | FE-2 | 前端不再传服务端身份字段 | 后端感谢信端点就绪 | P2 |
 | FE-3 | 死代码清理 | 无（独立，低优先级） | P3 |
+| FE-authorId | 前端 announcements TS 类型移除 `authorId`（后端 BE-3b 已从 VO 移除，运行时不受影响，仅类型清理） | 无（独立） | P3 |
 | CI-4 | 前端测试 + AI 测试纳入 CI | 依赖 FE/AI 测试先行编写 | P3 |
 | CI-3 | 分支保护加固 | CI-1/CI-2 完成后 | P3 |
 

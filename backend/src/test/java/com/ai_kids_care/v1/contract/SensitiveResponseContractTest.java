@@ -10,6 +10,7 @@ import com.ai_kids_care.v1.service.DeviceTokenService;
 import com.ai_kids_care.v1.service.EventEvidenceFileService;
 import com.ai_kids_care.v1.service.GuardianService;
 import com.ai_kids_care.v1.service.TeacherService;
+import com.ai_kids_care.v1.vo.AnnouncementVO;
 import com.ai_kids_care.v1.vo.CameraStreamVO;
 import com.ai_kids_care.v1.vo.ChildVO;
 import com.ai_kids_care.v1.vo.DeviceTokenVO;
@@ -79,6 +80,8 @@ class SensitiveResponseContractTest {
         assertJacksonPropertyPresent(CameraStreamVO.class, "playbackProtocol");
         assertJacksonPropertyAbsent(ChildGraphVO.TeacherNodeVO.class, "staffNo");
         assertJacksonPropertyAbsent(ChildGraphVO.KindergartenNodeVO.class, "address");
+        // BE-3b: AnnouncementVO must not expose internal author user_id (S1 enumeration risk).
+        assertJacksonPropertyAbsent(AnnouncementVO.class, "authorId");
     }
 
     @Test

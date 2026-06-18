@@ -8,7 +8,6 @@ import java.time.OffsetDateTime;
  */
 public record AnnouncementVO(
         Long id,
-        Long authorId,
         String title,
         String body,
         Boolean isPinned,
