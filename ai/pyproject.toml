@@ -1,0 +1,45 @@
+[project]
+name = "ai-kids-care-ai"
+version = "0.1.0"
+# [推断] requires-python 取自 Dockerfile 实际基础镜像 python:3.12-slim；
+# ai/README.md 声明 Python 3.14（可能为目标版本，待维护者确认 — OQ-1）。
+requires-python = ">=3.12"
+dependencies = [
+    "transformers==5.4.0",
+    "av==17.0.0",
+    # torch/torchvision 不写 +cu130 后缀；CUDA 变体由下方 [tool.uv.sources] index 解析。
+    # 具体版本由 uv lock 在联网机锁定。下限取自原 requirements.txt 占位版本。
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
+    "pandas==3.0.1",
+    "scikit-learn==1.8.0",
+    "accelerate==1.13.0",
+    "fastapi==0.115.12",
+    "uvicorn==0.34.0",
+    "python-multipart==0.0.20",
+    "requests==2.33.1",
+    "python-dotenv==1.2.2",
+    "openpyxl==3.1.5",
+    "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+# solapi 仅用于 ai/src/ai_app/utils/sms.py（lazy import）；推理服务不依赖它。
+sms = ["solapi>=3.0.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+]
+
+# [推断] cu130 用于 CUDA 13.2；待 deploy host 验证 torch/torchvision 轮子可用性。
+# torch/torchvision cu130 表示 CUDA 13.0+ 支持线；CUDA 13.x 次版本向前兼容。
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130" }]
+torchvision = [{ index = "pytorch-cu130" }]

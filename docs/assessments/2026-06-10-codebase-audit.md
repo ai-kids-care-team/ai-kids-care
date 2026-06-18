@@ -9,6 +9,8 @@ scope: monorepo implementation, architecture, documentation, tests, and deployme
 
 # AI Kids Care 代码库审计
 
+> **[已废弃]** 本审计已被 [2026-06-17-followup-audit.md](2026-06-17-followup-audit.md) 取代（superseded 2026-06-18）。以下内容仅作历史参考。
+
 ## 执行摘要
 
 AI Kids Care 已有较广的领域模型与清晰可辨的 monorepo 结构，但尚未达到生产级安全管理平台的成熟度。当前更接近：面向演示的 CRUD 系统、部分前端流程、独立 AI 实验，以及声明的目标架构与运行时强制行为之间的明显缺口。

@@ -4,7 +4,7 @@ Focused tests for ai_app.serving.app hardening changes.
 Dependencies: pytest, httpx (required by FastAPI TestClient).
   pip install pytest httpx
 If httpx is not installed, these tests will raise ImportError on collection.
-httpx is not listed in ai/requirements.txt; add it under ai-deps-lock item.
+httpx is declared in the dev dependency-group of ai/pyproject.toml.
 """
 from __future__ import annotations
 

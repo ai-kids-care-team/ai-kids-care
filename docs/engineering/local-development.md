@@ -74,7 +74,8 @@ docker compose up -d --build
 cd ai
 python -m venv .venv
 source .venv/bin/activate            # Windows: .\.venv\Scripts\Activate.ps1
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 export PYTHONPATH=src                 # Windows: $env:PYTHONPATH="src"
 python scripts/serve.py
 ```

@@ -55,7 +55,7 @@
 - [x] `pg-spring-crud-codegen/docker-compose.yml` 相对路径 `../../db` → `../db`
 - [x] 新增 `pg-spring-crud-codegen/README.md`（自洽子工程说明）
 - [x] 新增 `scripts/codegen/README.md`（软指针）
-- [x] `CODEOWNERS` 增补 `/pg-spring-crud-codegen/` 条目
+- [x] ~~`CODEOWNERS` 增补 `/pg-spring-crud-codegen/` 条目~~ **（2026-06-18）** `CODEOWNERS` 已整体删除（所引用 GitHub 团队不存在）
 - [x] 13 处内部引用切换（root READMEs、docs/architecture/*、ADR-0004 等）
 
 **未做**（按 ADR 范围）：未拆出独立 git 仓库——保持仓内迁址形态；后续 `git filter-repo` 带史拆出留待单独任务。

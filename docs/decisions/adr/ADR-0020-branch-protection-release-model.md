@@ -76,6 +76,9 @@ Implementation: `Complete`
 - `main` 复活后必须为 `develop` 的祖先（fast-forward 或显式 merge，含处理 `7502d83`）。
 - [`.ai/project.md`](../../../.ai/project.md) 的「Branch And CI Workflow」「Delivery Gates」与本 ADR 一致（无文档漂移）。
 
+> **实测补注（2026-06-18，经 `gh api` 核实）：** `main` 分支当前 required status checks 实为 4 项：`Gradle test (Java 21)`、`docker compose config`、`Frontend lint & build`、`schema-digest matches migrations`（后两者为本 ADR 之后新增；`schema-digest matches migrations` 于 2026-06-18 追加，对应 backlog 项 CI-2）。
+> 另：本批次已删除仓库根 `CODEOWNERS`（唯一维护者、无 coworker，团队型 owner 形同虚设且导致 PR 飘红）；因此上文「背景」第 34 行所述「code-owner 审批**有效**」自 2026-06-18 起**不再成立**——`require_code_owner_reviews` 虽仍为 true，但无 `CODEOWNERS` 即无 owner，不再构成合并前的实际门槛。
+
 ## 关联（References）
 
 - [SPEC-0001：认证、授权、租户与敏感数据边界](../../specs/SPEC-0001-auth-authorization-tenant-sensitive-data-boundaries.md)（其 Release Gate 落点依赖本分支模型）

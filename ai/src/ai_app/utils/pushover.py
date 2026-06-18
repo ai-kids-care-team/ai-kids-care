@@ -13,6 +13,8 @@ Environment variables:
 - PUSHOVER_API_TOKEN: app token
 - PUSHOVER_USER_KEY: single default user key
 - PUSHOVER_USER_KEYS: comma-separated user keys (batch default, preferred)
+- PUSHOVER_PRIORITY: default notification priority; overrides the priority=1
+  default only when the caller does not pass `priority` explicitly
 """
 
 import logging
@@ -57,12 +59,18 @@ def send_pushover_notification(
         message,
         sound="cashregister",
         user_key: str | None = None,
+        priority: int = 1,
 ) -> bool:
     """
     Send to a single user.
     If user_key is None, fallback order is:
     1) first from PUSHOVER_USER_KEYS
     2) PUSHOVER_USER_KEY
+
+    priority defaults to 1 (High). When the caller leaves the default, the
+    PUSHOVER_PRIORITY env var (if a valid int) overrides it. Only priority >= 2
+    (Emergency) attaches retry/expire, so non-emergency alerts no longer retry
+    for hours.
     """
     target_user_key = str(user_key).strip() if user_key else ""
     if not target_user_key:
@@ -76,16 +84,26 @@ def send_pushover_notification(
         logging.error("No Pushover user key found. Set PUSHOVER_USER_KEY or PUSHOVER_USER_KEYS.")
         return False
 
+    if priority == 1:
+        env_priority = os.getenv("PUSHOVER_PRIORITY")
+        if env_priority is not None:
+            try:
+                priority = int(env_priority)
+            except ValueError:
+                logging.warning("Invalid PUSHOVER_PRIORITY=%s; using default 1.", env_priority)
+
     data = {
         "token": PUSHOVER_API_TOKEN,
         "user": target_user_key,
         "title": title,
         "message": message,
         "sound": sound,
-        "priority": 2,
-        "retry": 30,
-        "expire": 10800,
+        "priority": priority,
     }
+    # Pushover requires retry/expire only for Emergency (priority 2).
+    if priority >= 2:
+        data["retry"] = 30
+        data["expire"] = 10800
 
     try:
         response = requests.post(PUSHOVER_API_URL, data=data, timeout=15)

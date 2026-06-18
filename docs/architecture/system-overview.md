@@ -18,7 +18,7 @@ ai-kids-care/
 └── .github/workflows/     # GitHub Actions：后端测试 / 前端 lint+build / compose config / release（CD，ADR-0022）
 ```
 
-✅ **代码归属**（`CODEOWNERS`）：`/ai/`、`/frontend/`、`/backend/`、`/db/` 分属四个团队，`/docs/` 与其他文件归 leads。
+代码归属规则（`CODEOWNERS`）已移除——原规则引用的 GitHub 团队（`ai-kids-care-team/*`）均不存在，已于 2026-06-18 删除。
 
 ## 2. 技术栈总表
 
@@ -27,7 +27,7 @@ ai-kids-care/
 | Frontend | Next.js 16.1.6、React 19.2、TypeScript 5、Tailwind v4、Radix UI、Redux Toolkit、Axios、reagraph、recharts | `frontend/package.json` |
 | Backend | Java 21、Spring Boot 3.2.5（Web/Security/Data JPA/Validation）、MapStruct 1.5.5、springdoc-openapi 2.6、jjwt 0.12.3、Neo4j Java Driver 5.19、Pushover client | `backend/build.gradle` |
 | Database | PostgreSQL 16、Neo4j 5.19 | `docker-compose.yml`、`db/` |
-| AI | Python、FastAPI、Uvicorn、PyTorch、HuggingFace Transformers（VideoMAE）、PyAV/FFmpeg | `ai/requirements.txt`、`ai/src/ai_app/` |
+| AI | Python、FastAPI、Uvicorn、PyTorch、HuggingFace Transformers（VideoMAE）、PyAV/FFmpeg | `ai/pyproject.toml`、`ai/src/ai_app/` |
 | DevOps | Docker、Docker Compose、Nginx、Gradle、GitHub Actions（CI + CD）、GHCR 私有镜像、watchtower | 各 `Dockerfile`、`.github/workflows/*`、`docker-compose.cd.yml`（CD，ADR-0022） |
 
 ## 3. 运行时拓扑（整栈 docker-compose）

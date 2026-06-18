@@ -137,7 +137,8 @@ docker compose up -d --build
 cd ai
 python -m venv .venv
 source .venv/bin/activate
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 export PYTHONPATH=src
 python scripts/serve.py
 ```
@@ -148,7 +149,8 @@ Windows PowerShell:
 cd ai
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 $env:PYTHONPATH = "src"
 python scripts\serve.py
 ```
