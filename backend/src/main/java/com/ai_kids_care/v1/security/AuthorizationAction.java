@@ -23,5 +23,8 @@ public enum AuthorizationAction {
     PLATFORM_USER_WRITE,
     // SPEC-0001 / ADR-0018 A3d：通知读取粗粒度门——GUARDIAN / TEACHER / KINDERGARTEN_ADMIN + 有效 tenant identity；
     // 细粒度「受体仅读自己 / Admin 读其园」由 NotificationRepository SQL 强制（recipient-scoped vs. kindergarten-scoped）。
-    NOTIFICATION_READ
+    NOTIFICATION_READ,
+    // ADR-0026 Phase 1：摄像头流写粗粒度门——仅 KINDERGARTEN_ADMIN + 有效 tenant identity；
+    // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
+    TENANT_SURVEILLANCE_WRITE
 }

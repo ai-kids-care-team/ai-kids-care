@@ -44,6 +44,7 @@ services:
       # Caddy edge below terminates.
       SESSION_COOKIE_SECURE: "true"
       RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
+      CAMERA_STREAM_AES_KEY_V1: ${CAMERA_STREAM_AES_KEY_V1:?CAMERA_STREAM_AES_KEY_V1 must be set}
 
   frontend:
     # Behind Caddy in production: do not publish the frontend nginx to the host.

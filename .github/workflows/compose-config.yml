@@ -32,6 +32,7 @@ jobs:
       NEO4J_PASSWORD: ci-structure-check
       REDIS_PASSWORD: ci-structure-check
       RRN_HASH_PEPPER: ci-structure-check
+      CAMERA_STREAM_AES_KEY_V1: ci-structure-check
 
     steps:
       - name: Check out repository

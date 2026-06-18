@@ -330,8 +330,9 @@ class PublishedOpenApiContractTest {
 
         assertOperationPresent(apiDocs, "/api/v1/camera_streams", "get");
         assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "get");
-        assertOperationAbsent(apiDocs, "/api/v1/camera_streams", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "put");
+        // ADR-0026 Phase 1：camera_streams POST/PUT 已合法发布。
+        assertOperationPresent(apiDocs, "/api/v1/camera_streams", "post");
+        assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "put");
         assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "delete");
 
         assertPathAbsent(apiDocs, "/api/v1/detection_events");

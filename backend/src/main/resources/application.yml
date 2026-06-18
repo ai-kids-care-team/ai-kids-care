@@ -57,6 +57,12 @@ rrn:
   hash:
     pepper: ${RRN_HASH_PEPPER}
 
+camera-stream:
+  crypto:
+    current-version: v1
+    keys:
+      v1: ${CAMERA_STREAM_AES_KEY_V1}
+
 logging:
   level:
     # 安全默认 INFO（含生产）。开发可经环境变量 LOG_LEVEL_ROOT=DEBUG 临时调高。

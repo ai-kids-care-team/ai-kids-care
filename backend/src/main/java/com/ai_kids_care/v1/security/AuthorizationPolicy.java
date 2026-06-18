@@ -68,6 +68,10 @@ public class AuthorizationPolicy {
                     tenantIdentity && (role == UserRoleEnum.GUARDIAN
                             || role == UserRoleEnum.TEACHER
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // ADR-0026 Phase 1：写粗粒度门——仅 KINDERGARTEN_ADMIN + 有效 tenant identity。
+            // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
+            case TENANT_SURVEILLANCE_WRITE ->
+                    tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
         };
     }
 }

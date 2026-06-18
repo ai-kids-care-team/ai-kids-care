@@ -152,10 +152,8 @@ class SensitiveWriteContractTest {
         mockMvc.perform(delete("/api/v1/event_evidence_files/1"))
                 .andExpect(status().isNotFound());
 
-        mockMvc.perform(post("/api/v1/camera_streams").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
-        mockMvc.perform(put("/api/v1/camera_streams/1").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+        // ADR-0026 Phase 1：camera_streams POST/PUT 已合法发布；授权由集成测试（CameraStreamEncryptionIntegrationTest）覆盖。
+        // DELETE 仍未发布 → 405。
         mockMvc.perform(delete("/api/v1/camera_streams/1"))
                 .andExpect(status().isMethodNotAllowed());
 
@@ -224,8 +222,8 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(EventEvidenceFileService.class, "createEventEvidenceFile");
         assertMethodNameAbsent(EventEvidenceFileService.class, "updateEventEvidenceFile");
         assertMethodNameAbsent(EventEvidenceFileService.class, "deleteEventEvidenceFile");
-        assertMethodNameAbsent(CameraStreamService.class, "createCameraStream");
-        assertMethodNameAbsent(CameraStreamService.class, "updateCameraStream");
+        // ADR-0026 Phase 1：camera_streams 写（createCameraStream/updateCameraStream）已合法发布；
+        // 授权集成测试由 CameraStreamEncryptionIntegrationTest 覆盖。
         assertMethodNameAbsent(CameraStreamService.class, "deleteCameraStream");
         assertMethodNameAbsent(DetectionEventService.class, "createDetectionEvent");
         assertMethodNameAbsent(DetectionEventService.class, "updateDetectionEvent");
