@@ -1,10 +1,10 @@
 ---
 ADR: ADR-0026
 title: "ADR-0026: 摄像头流密码加密链路（Java 中介 AES-256-GCM）"
-status: Proposed
-implementation: Not Started
+status: Accepted
+implementation: In Progress
 date: 2026-06-18
-deciders: 接手人（Lead）起草；维护者待 Accept（密钥管理 / 摄像头凭据 / PII）
+deciders: 接手人（Lead）起草；维护者 2026-06-18 Accept（OQ-1 选静态共享 Bearer token，批准开建）
 supersedes: []
 superseded_by: null
 related_specs: [SPEC-0001]
@@ -16,9 +16,9 @@ related_specs: [SPEC-0001]
 
 ## 状态（Status）
 
-Decision: `Proposed`（待维护者 Accept）
+Decision: `Accepted`（维护者 2026-06-18 签署）
 
-Implementation: `Not Started`（高风险：密钥管理 + 新认证内部端点 + 生产摄像头凭据 + 跨 backend/AI/compose）。OQ-1（凭据接口认证模型）须先定案。
+Implementation: `In Progress`（维护者 2026-06-18 批准开建 Phase 1）。**OQ-1 已定：静态共享 Bearer token（OQ1-A）。** 其余 OQ-2/3/4 在对应 Phase 实施时定。
 
 ## 背景（Context，as-built @ 2026-06-18）
 
@@ -60,7 +60,7 @@ Implementation: `Not Started`（高风险：密钥管理 + 新认证内部端点
 
 ## 开放问题（OQ）
 
-- **OQ-1 [阻断 Phase 2]**：凭据接口认证模型 = A（Bearer，推荐）/ B（系统用户会话）/ C（网络隔离，不推荐）？
+- **OQ-1 [已定 2026-06-18]**：凭据接口认证模型 = **A 静态共享 Bearer token**（`AI_SERVICE_TOKEN` env，Java `/internal/**` filter 常量时间比较；token 在 Java+AI env，AES 密钥仍仅 Java）。
 - **OQ-2 [中]**：AI 推理服务是否纳入主 `docker-compose.yml`（影响 `JAVA_BACKEND_URL`）？
 - **OQ-3 [中]**：凭据接口是否强制 kindergarten 租户隔离，还是信任 AI 仅按 `stream_id` 查自己的流？
 - **OQ-4 [中]**：种子策略 = A（用 dev 密钥真实加密）/ B（保留占位 + 更新注释）？
