@@ -24,7 +24,7 @@ db/initdb/01_create_schema.sql   （生成的建表 SQL）
    └─ Prod：复制为 Flyway V1，后续由 V2... 迁移演进
    ▼
 PostgreSQL 实际表结构
-   │  pg-spring-crud-codegen 内省         后端 JPA 实体（ddl-auto=validate 校验匹配）
+   │  ~~pg-spring-crud-codegen 内省~~（已退役，ADR-0027）  后端 JPA 实体（ddl-auto=validate 校验匹配）
    ▼                                        ▲
 后端 Java 实体/CRUD 代码  ──────────────────┘
 ```

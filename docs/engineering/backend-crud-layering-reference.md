@@ -1,6 +1,6 @@
 # 后端分层骨架参考（Backend CRUD Layering Reference）
 
-> 用途：这是从已弃用的 `pg-spring-crud-codegen/` 6 个 mustache 模板**回收并加固**而来的分层参考，供 agent 手写后端领域对象时对照。
+> 用途：这是从**已退役删除**的 `pg-spring-crud-codegen/`（ADR-0027，2026-06-18）6 个 mustache 模板**回收并加固**而来的分层参考，供 agent 手写后端领域对象时对照。
 >
 > ⚠️ **为什么不直接用原模板**：原 codegen 量产的是「裸 CRUD」骨架，其默认产物**违反 SPEC-0001**（多租户 + 角色 scope）——它生成的 Controller 缺 `@Valid`/`@PreAuthorize`，Service 用 `findAll` 无租户过滤，VO 平铺所有字段（泄漏 S0/S1）。本文档保留它的**分层契约骨架**，同时把这些安全默认逐处纠正。
 >

@@ -2,6 +2,7 @@
 ADR: ADR-0011
 title: "ADR-0011: 将 pg-spring-crud-codegen 抽离为独立工程"
 status: Accepted
+superseded_by: ADR-0027
 date: 2026-05-29
 deciders: 维护者（2026-05-29 Accept；推荐方案 A 仓内迁址 + 软指针）
 ---
@@ -13,6 +14,8 @@ deciders: 维护者（2026-05-29 Accept；推荐方案 A 仓内迁址 + 软指�
 ## 状态（Status）
 
 Accepted（2026-05-29 签署；执行方案 A：仓内迁址 + 软指针）。**已实施于 2026-05-29**——见下方"实施记录"。
+
+> **已被 [ADR-0027](ADR-0027-retire-pg-spring-crud-codegen.md) 取代（2026-06-18）**：`pg-spring-crud-codegen/` 已退役并删除。分层架构原则（ADR-0004）不受影响。
 
 ## 实施记录（Implementation Log）
 

@@ -1,6 +1,6 @@
 # 后端开发指南（Backend Guide）
 
-✅ 来源：`backend/`、`pg-spring-crud-codegen/`（原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)）。架构总览见 [architecture/backend-architecture.md](../architecture/backend-architecture.md)。
+✅ 来源：`backend/`。架构总览见 [architecture/backend-architecture.md](../architecture/backend-architecture.md)。
 
 ## 包结构速查
 
@@ -29,43 +29,24 @@ com.ai_kids_care.v1
 | OpenAPI | Controller 上加 `@Tag`，便于 Swagger 分组 |
 | 枚举 | PG enum ↔ `type/` 包枚举一一对应 |
 
-## 代码生成器：从一张表生成 CRUD 骨架
+## 新增后端领域对象
 
-✅ `pg-spring-crud-codegen/`（Python + psycopg + pystache）。流程见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md) 与 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
+`pg-spring-crud-codegen` 代码生成器已由 [ADR-0027](../decisions/adr/ADR-0027-retire-pg-spring-crud-codegen.md) 退役（2026-06-18）。
 
-它内省 PostgreSQL，按 `templates/*.mustache` 为每张表生成 6 类文件：`CreateDTO`、`UpdateDTO`、`Mapper`、`VO`、`Controller`、`Service`。
+新增领域对象改用**手写 + 分层参考**：
 
-✅ 通过环境变量配置（`pg-spring-crud-codegen/main.py`）：
+- 分层骨架与安全默认：[`docs/engineering/backend-crud-layering-reference.md`](backend-crud-layering-reference.md)（含 `@PreAuthorize`、租户过滤、VO 字段收窄等加固）
+- 含完整 authz gate + scoped JPQL + 契约测试的读端点：`.claude/skills/authz-read-slice/SKILL.md`
 
-| 变量 | 含义 | 示例 |
-| --- | --- | --- |
-| `PG_DSN` | PostgreSQL 连接串 | `postgresql://kids_user:kids_pass@localhost:5432/kids_postgres_db` |
-| `PG_SCHEMA` | schema | `public` |
-| `JAVA_PACKAGE_BASE` | 生成代码的包名 | `com.ai_kids_care.v1` |
-| `OUT_JAVA` | 输出根目录 | `./out/src/main/java` |
-| `ONLY_TABLES` | 仅生成指定表（逗号分隔，可选） | `children,classes` |
-| `EXCLUDE_TABLES` | 排除表（可选） | `audit_logs` |
-
-运行（🔶 推断的典型用法）：
-
-```bash
-cd pg-spring-crud-codegen
-cp .env.example .env      # 填入上述变量
-pip install -r requirements.txt
-python main.py            # 生成到 OUT_JAVA
-```
-
-> 🔶 codegen 是**一次性脚手架**：生成后请把文件挪入 `backend/` 并**手工补业务逻辑**。它与既有代码无双向绑定，重新生成不会、也不应直接覆盖已演进的代码。校验生成结果后再合并。
-
-## 新增一个领域对象的典型步骤（🔶 推断的推荐路径）
+**新增一个领域对象的典型步骤**：
 
 1. 在 `db/dbml/schema.dbml` 增表 → 生成 SQL（见 [database-guide](database-guide.md)）。
-2. （可选）用 codegen 生成 CRUD 骨架。
+2. 参照 [backend-crud-layering-reference.md](backend-crud-layering-reference.md) 手写骨架（codegen 已退役，见 ADR-0027）。
 3. 在 `entity/` 写/校对 JPA 实体（必须与表结构一致，否则 `ddl-auto=validate` 启动失败）。
 4. 补 `repository`/`service` 业务逻辑、`mapper` 映射、`dto`/`vo`。
 5. Controller 暴露 `/api/v1/...`。
 6. 更新 [api/rest-endpoints.md](../api/rest-endpoints.md) 与相关文档。
-7. （应当）补测试——但当前项目无测试基线，见 [testing](testing.md)。
+7. 补测试，见 [testing](testing.md)。
 
 ## 访问 Neo4j
 

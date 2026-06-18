@@ -10,13 +10,13 @@ ai-kids-care/
 ├── backend/               # Spring Boot 3.2.5 / Java 21（REST API）
 ├── ai/                    # FastAPI + PyTorch VideoMAE（推理与实时告警）
 ├── db/                    # PostgreSQL 16 + Neo4j 5.19（schema/种子/加载器）
-├── pg-spring-crud-codegen/# PG schema 内省 → Mustache → Java CRUD 代码生成器（2026-05-29 由 scripts/codegen/ 迁入，见 ADR-0011）
-├── scripts/codegen/       # ⚠️ 仅留 README 软指针 → pg-spring-crud-codegen/
 ├── docs/                  # 本知识库 + ERD
 ├── docker-compose.yml     # 整栈编排（db/neo4j/data-loader/backend/frontend）
 ├── docker-compose.cd.yml  # CD override：拉 GHCR 镜像 + watchtower 自动部署（ADR-0022）
 └── .github/workflows/     # GitHub Actions：后端测试 / 前端 lint+build / compose config / release（CD，ADR-0022）
 ```
+
+> 注：`pg-spring-crud-codegen/` 代码生成器已于 2026-06-18 由 [ADR-0027](../decisions/adr/ADR-0027-retire-pg-spring-crud-codegen.md) 退役删除；`scripts/codegen/` 软指针 stub 同步删除。
 
 代码归属规则（`CODEOWNERS`）已移除——原规则引用的 GitHub 团队（`ai-kids-care-team/*`）均不存在，已于 2026-06-18 删除。
 

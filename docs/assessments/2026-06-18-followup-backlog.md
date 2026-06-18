@@ -51,7 +51,7 @@ HALT 项须人工决策后方可继续。
 | AI-1 | 推理同步阻塞 async 循环修复 | 与 AI-3/SEC-0026 协调同批进入 `ai/` | P2 |
 | AI-3 | 推理入参范围校验 | 与 AI-1/SEC-0026 协调同批进入 `ai/` | P2 |
 | DB-2 | `Announcement`/`ClassRoomAssignment` 补 `kindergarten_id`（新 migration V7 + initdb 同步） | 无（DB-1 已关闭，DB-2 独立） | P2 |
-| CODEGEN | 移除 `pg-spring-crud-codegen`：需 ADR + 删模块 + 清 17 处引用 | 无（独立） | P2 |
+| CODEGEN | 移除 `pg-spring-crud-codegen`：需 ADR + 删模块 + 清 17 处引用 | 无（独立） | Done（ADR-0027 Proposed；模块已删除；引用已更新） |
 
 ---
 

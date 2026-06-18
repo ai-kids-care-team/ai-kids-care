@@ -46,7 +46,7 @@ The system is designed so kindergarten operators can manage cameras and classroo
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
 |-- docs/db/ERD/          # ERD diagrams and rendered images
-|-- pg-spring-crud-codegen/  # PostgreSQL schema introspection and Java code generation (relocated from scripts/codegen on 2026-05-29, see ADR-0011)
+|-- (pg-spring-crud-codegen/ retired 2026-06-18, ADR-0027)
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
 |-- Jenkinsfile           # CI/CD pipeline for compose deployment
@@ -171,7 +171,7 @@ The default `AI_MODEL_DIR` is `outputs/videomae_baseline/best_model`. Both Docke
 - DBML schema: `db/dbml/schema.dbml`
 - ERD documentation: `docs/db/ERD/README.md`
 - Neo4j data loader: `db/ne4j_kindergartens/`
-- Code generation tool: `pg-spring-crud-codegen/` (was `scripts/codegen/`, see ADR-0011)
+- Code generation tool: ~~`pg-spring-crud-codegen/`~~ (retired 2026-06-18, ADR-0027; new domain objects are hand-written)
 
 The backend runs with Hibernate `ddl-auto=validate`, so the database schema must exist before the application starts. The root Docker Compose setup applies `db/initdb` when the PostgreSQL container is created.
 
