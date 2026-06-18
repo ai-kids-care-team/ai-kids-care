@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from ai_app.inference.predictor import PredictionResult, VideoPredictor
 from ai_app.serving.deps import get_predictor
@@ -90,9 +91,14 @@ def health(predictor: VideoPredictor = Depends(get_predictor)) -> HealthResponse
 @app.post("/predict/upload", response_model=PredictResponse)
 async def predict_from_upload(
         file: UploadFile = File(...),
-        top_k: int = Form(3),
-        num_frames: int | None = Form(None),
-        sampling_rate: int | None = Form(None),
+        # top_k: 1–50。上限保守取 50（模型标签数通常远小于此值；
+        # 超出实际标签数时 predictor.py 内部 ranked_ids[:max(1,top_k)] 会自然截断，
+        # 但仍需防止超大值导致 predictor 内循环异常消耗资源）。
+        top_k: int = Form(default=3, ge=1, le=50),
+        # num_frames: 1 帧以上有意义；上限取 256（防止极大值导致内存溢出）。
+        num_frames: int | None = Form(default=None, ge=1, le=256),
+        # sampling_rate: 1 以上有意义；上限取 128（典型视频 30fps，128 已足够稀疏）。
+        sampling_rate: int | None = Form(default=None, ge=1, le=128),
         predictor: VideoPredictor = Depends(get_predictor),
 ) -> PredictResponse:
     # Layer 1: file size limit
@@ -128,7 +134,8 @@ async def predict_from_upload(
             temp_path = Path(temp_file.name)
             temp_file.write(content)
 
-        result = _predict_or_raise(
+        result = await run_in_threadpool(
+            _predict_or_raise,
             predictor=predictor,
             video_path=temp_path,
             top_k=top_k,

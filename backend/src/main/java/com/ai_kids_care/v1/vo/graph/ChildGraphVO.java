@@ -40,7 +40,6 @@ public class ChildGraphVO {
     public static class TeacherNodeVO {
         private Long teacherId;
         private String name;
-        private String staffNo;
         private String level;
         private String status;
     }
@@ -50,7 +49,6 @@ public class ChildGraphVO {
     public static class KindergartenNodeVO {
         private Long kindergartenId;
         private String name;
-        private String address;
         private String status;
     }
 

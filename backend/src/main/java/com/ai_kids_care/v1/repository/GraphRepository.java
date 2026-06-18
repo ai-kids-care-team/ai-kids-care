@@ -98,7 +98,6 @@ public class GraphRepository {
         return ChildGraphVO.TeacherNodeVO.builder()
                 .teacherId(getLong(node, "teacher_id"))
                 .name(getString(node, "name"))
-                .staffNo(getString(node, "staff_no"))
                 .level(getString(node, "level"))
                 .status(getString(node, "status"))
                 .build();
@@ -110,7 +109,6 @@ public class GraphRepository {
         return ChildGraphVO.KindergartenNodeVO.builder()
                 .kindergartenId(getLong(node, "kindergarten_id"))
                 .name(getString(node, "name"))
-                .address(getString(node, "address"))
                 .status(getString(node, "status"))
                 .build();
     }

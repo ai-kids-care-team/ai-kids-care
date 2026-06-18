@@ -17,6 +17,7 @@ import com.ai_kids_care.v1.vo.EventEvidenceFileVO;
 import com.ai_kids_care.v1.vo.GuardianVO;
 import com.ai_kids_care.v1.vo.TeacherVO;
 import com.ai_kids_care.v1.vo.UserVO;
+import com.ai_kids_care.v1.vo.graph.ChildGraphVO;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
@@ -76,6 +77,8 @@ class SensitiveResponseContractTest {
         assertJacksonPropertyPresent(CameraStreamVO.class, "hasPassword");
         assertJacksonPropertyPresent(CameraStreamVO.class, "sourceProtocol");
         assertJacksonPropertyPresent(CameraStreamVO.class, "playbackProtocol");
+        assertJacksonPropertyAbsent(ChildGraphVO.TeacherNodeVO.class, "staffNo");
+        assertJacksonPropertyAbsent(ChildGraphVO.KindergartenNodeVO.class, "address");
     }
 
     @Test
