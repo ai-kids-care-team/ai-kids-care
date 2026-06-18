@@ -27,21 +27,17 @@ public class AnnouncementService {
 
 
     @Transactional(readOnly = true)
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_ANNOUNCEMENT_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_ANNOUNCEMENT_READ)")
     public Page<AnnouncementVO> listActiveAnnouncements(String keyword, Pageable pageable) {
-        Long kindergartenId =
-                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        return repository.listActiveAnnouncements(kindergartenId, keyword, pageable)
+        return repository.listActiveAnnouncements(keyword, pageable)
                 .map(mapper::toVO);
     }
 
     @Transactional
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_ANNOUNCEMENT_READ)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_ANNOUNCEMENT_READ)")
     public AnnouncementVO getAnnouncement(Long id) {
-        Long kindergartenId =
-                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         Announcement announcement = repository
-                .findByIdAndActiveAuthorMembership(id, kindergartenId)
+                .findActiveById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Announcement not found"));
         announcement.setViewCount(announcement.getViewCount() + 1);
         repository.save(announcement);
@@ -49,7 +45,7 @@ public class AnnouncementService {
     }
 
     @Transactional
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_ANNOUNCEMENT_WRITE)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_ANNOUNCEMENT_WRITE)")
     public AnnouncementVO createAnnouncement(AnnouncementCreateDTO createDTO) {
         EffectiveAuthorizationContext context =
                 EffectiveAuthorizationContextHolder.require();
@@ -59,24 +55,20 @@ public class AnnouncementService {
     }
 
     @Transactional
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_ANNOUNCEMENT_WRITE)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_ANNOUNCEMENT_WRITE)")
     public AnnouncementVO updateAnnouncement(Long id, AnnouncementUpdateDTO updateDTO) {
-        Long kindergartenId =
-                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         Announcement entity = repository
-                .findByIdAndActiveAuthorMembership(id, kindergartenId)
+                .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Announcement not found"));
         mapper.updateEntity(updateDTO, entity);
         return mapper.toVO(repository.save(entity));
     }
 
     @Transactional
-    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_ANNOUNCEMENT_WRITE)")
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_ANNOUNCEMENT_WRITE)")
     public void deleteAnnouncement(Long id) {
-        Long kindergartenId =
-                EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         Announcement entity = repository
-                .findByIdAndActiveAuthorMembership(id, kindergartenId)
+                .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Announcement not found"));
         repository.delete(entity);
     }

@@ -32,6 +32,7 @@ Current phone spaces (illustrative, not exhaustive):
 | `010-0800-*` | TeacherChildAuthorizationIntegrationTest |
 | `010-0900-*` | SecurityAuditIntegrationTest |
 | `010-0905-*` | NotificationReadAuthorizationIntegrationTest |
+| `010-0910-*` | AnnouncementAuthorizationIntegrationTest |
 
 (The original collision — NotificationRead reusing TeacherChild's `010-0800-0001` — broke 6 tests.)
 

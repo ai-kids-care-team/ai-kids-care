@@ -28,11 +28,15 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.SUPERADMIN;
             case PLATFORM_METADATA_WRITE ->
                     role == UserRoleEnum.PLATFORM_IT_ADMIN;
-            case TENANT_ANNOUNCEMENT_READ ->
-                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
-                            || role == UserRoleEnum.TEACHER
-                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
-            case TENANT_ANNOUNCEMENT_WRITE, TENANT_S2_WRITE ->
+            // AN-READ：平台级公告广读——任一已认证用户可见 ACTIVE 公告。
+            // isAllowed 在无认证 context 时通过 orElse(false) 返回 false，
+            // 因此 context 存在时返回 true 等价于"任一已认证用户"。
+            case PLATFORM_ANNOUNCEMENT_READ -> true;
+            // AN-READ：写操作仅限 PLATFORM_IT_ADMIN（镜像 PLATFORM_USER_WRITE）。
+            case PLATFORM_ANNOUNCEMENT_WRITE ->
+                    context.scopeType() == UserRoleAssignmentScopeType.PLATFORM
+                            && role == UserRoleEnum.PLATFORM_IT_ADMIN;
+            case TENANT_S2_WRITE ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
             case TENANT_S2_READ ->
                     tenantIdentity && (role == UserRoleEnum.TEACHER

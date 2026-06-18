@@ -3,8 +3,10 @@ package com.ai_kids_care.v1.security;
 public enum AuthorizationAction {
     PLATFORM_METADATA_READ,
     PLATFORM_METADATA_WRITE,
-    TENANT_ANNOUNCEMENT_READ,
-    TENANT_ANNOUNCEMENT_WRITE,
+    // AN-READ：平台级公告无 tenant scope 过滤；任一已认证用户均可读 ACTIVE 公告（粗粒度门）。
+    PLATFORM_ANNOUNCEMENT_READ,
+    // AN-READ：公告写操作专属 PLATFORM_IT_ADMIN 门。
+    PLATFORM_ANNOUNCEMENT_WRITE,
     TENANT_S2_READ,
     TENANT_S2_WRITE,
     TENANT_SURVEILLANCE_READ,

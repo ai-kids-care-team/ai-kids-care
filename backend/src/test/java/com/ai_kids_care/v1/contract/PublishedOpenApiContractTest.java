@@ -278,6 +278,17 @@ class PublishedOpenApiContractTest {
         ));
         assertComponentAbsent(apiDocs, "NotificationCreateDTO");
         assertComponentAbsent(apiDocs, "NotificationUpdateDTO");
+        // AN-READ：AnnouncementVO 平台级发布，无 S0/S1；authorId 已删除（BE-3b）；锁定允许字段集。
+        assertComponentHasOnlyProperties(apiDocs, "AnnouncementVO", Set.of(
+                "id", "title", "body", "isPinned", "pinnedUntil",
+                "status", "publishedAt", "startsAt", "endsAt",
+                "viewCount", "createdAt", "updatedAt", "deletedAt"
+        ));
+        assertOperationPresent(apiDocs, "/api/v1/announcements", "get");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "get");
+        assertOperationPresent(apiDocs, "/api/v1/announcements", "post");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "put");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "delete");
         assertComponentAbsent(apiDocs, "AuthLogoutDTO");
         assertComponentAbsent(apiDocs, "ChangePasswordRequest");
         assertComponentAbsent(apiDocs, "AuthPasswordResetDTO");
