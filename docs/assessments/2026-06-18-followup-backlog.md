@@ -40,18 +40,23 @@ HALT 项须人工决策后方可继续。
 
 ---
 
-## Wave 2（安全加固，可并行）
+## Wave 2（已完成 — 2026-06-18）
 
-各项可独立并行，但 AI 系三项（AI-1/AI-3/SEC-0026）建议一次进入 `ai/` 统一改动。
+| ID | 描述 | 状态 |
+| --- | --- | --- |
+| BE-2 | 休眠 Service（Graph/DetectionEvent/EventReview）补 `@PreAuthorize("denyAll()")` | Done（ee29f30） |
+| BE-3 | VO 收窄：ChildGraphVO 去 staffNo/address（BE-3a）+ AnnouncementVO 去 authorId（BE-3b） | Done（ee29f30 / 17fb19b）；前端类型清理见 FE-authorId |
+| AI-1 | `/predict/upload` 同步推理改 `run_in_threadpool` | Done（ee29f30） |
+| AI-3 | 推理 Form 参数范围校验（top_k/num_frames/sampling_rate → 422） | Done（ee29f30） |
+| CODEGEN | 移除 `pg-spring-crud-codegen` + ADR-0027 + 清引用 | Done（123c57e；ADR-0027 Proposed 待 Accept） |
+| DB-2a | announcements 补 kindergarten_id | **关闭：误读**。announcements 经维护者确认为**平台级**（superadmin 作者面向所有园，与 seed/标题一致）；加 kindergarten_id 方向错误，且回填不可行（admin user_id=1 无 ACTIVE membership）。→ 衍生 AN-READ |
+| DB-2b | ClassRoomAssignment 补 kindergarten 实体映射 | **关闭：不做**。全仓 assignment 一致用单列 join、复合 FK 已在库层保证；改它引入新模式+不一致，无具体需求 |
 
-| ID | 描述 | 前置 | 优先级 |
-| --- | --- | --- | --- |
-| BE-2 | 休眠 Service 授权 `@PreAuthorize` | 无（独立于 DB-1） | P1 |
-| BE-3 | VO 字段收窄（移除密码/RRN hash 等敏感字段） | 软前置 BE-1 | P1 |
-| AI-1 | 推理同步阻塞 async 循环修复 | 与 AI-3/SEC-0026 协调同批进入 `ai/` | P2 |
-| AI-3 | 推理入参范围校验 | 与 AI-1/SEC-0026 协调同批进入 `ai/` | P2 |
-| DB-2 | `Announcement`/`ClassRoomAssignment` 补 `kindergarten_id`（新 migration V7 + initdb 同步） | 无（DB-1 已关闭，DB-2 独立） | P2 |
-| CODEGEN | 移除 `pg-spring-crud-codegen`：需 ADR + 删模块 + 清 17 处引用 | 无（独立） | Done（ADR-0027 Proposed；模块已删除；引用已更新） |
+### AN-READ（DB-2 衍生，P1 真实 bug）
+
+平台级语义暴露出当前 read 模型缺陷：`AnnouncementRepository` 按「作者 membership」EXISTS 过滤，而平台公告作者（superadmin）无 membership → **这些公告对所有人不可见**。
+修复方向：announcements 改平台级 read——所有认证用户可见 ACTIVE、未删除公告；移除 author-membership 过滤；相应调整 `@PreAuthorize`（tenant-scoped → 任一认证用户）与契约/授权测试。
+状态：待实施（维护者已确认平台级语义）。
 
 ---
 
