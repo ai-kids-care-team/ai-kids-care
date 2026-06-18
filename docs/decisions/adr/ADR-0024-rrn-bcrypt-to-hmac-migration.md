@@ -21,6 +21,8 @@ Decision: `Accepted`（维护者 2026-06-18 签署）
 
 Implementation: `Phase 3 Complete`（D1–D6 已落地 commit 8a15f99；V5/V6 + entity/service/seed/DBML cleanup 已落地 commit 7ceb3da，branch task/adr-0024-phase3；D7 RRN 再校验流程不在本任务范围，见 Open Questions）
 
+> **更新（2026-06-18）：** D7 的「BCrypt → HMAC 回填」前提已 **OBE**——V5/V6 已删 `rrn_encrypted`、三表 `rrn_hash` NOT NULL、无 BCrypt 存量与读路径（`ChildrenService` 纯 HMAC）。D7 剩余价值（持有明文时机重算 RRN hash）并入 [ADR-0025](ADR-0025-rrn-pepper-rotation.md) R4，随 pepper 轮换 **按需实施**（已推迟，见 ADR-0025 状态注）。
+
 > 高风险（PII + schema/migration + 注册认证路径）。Accept 后用 `implement-review-loop` 单 lane 串行落地——迁移、读/写路径、种子是强耦合、不可并行的原子改动。建议分阶段：阶段一 = V4 + 读写 + 种子 + 单 pepper 配置；阶段二 = RRN 再校验流程 + 回填；阶段三 = 达硬门后 V5/V6。
 
 ## 维护者已决（2026-06-17）
