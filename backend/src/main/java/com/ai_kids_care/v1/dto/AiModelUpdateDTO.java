@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,9 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 public class AiModelUpdateDTO implements Serializable {
     private Long modelId;
+    @NotBlank
     private String name;
+    @NotBlank
     private String version;
     private String status;
     private OffsetDateTime createdAt;

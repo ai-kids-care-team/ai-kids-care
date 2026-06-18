@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.CommonCodeUpdateDTO;
 import com.ai_kids_care.v1.service.CommonCodeService;
 import com.ai_kids_care.v1.vo.CommonCodeVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -39,12 +40,12 @@ public class CommonCodeController {
     }
 
     @PostMapping
-    public ResponseEntity<CommonCodeVO> createCommonCode(@RequestBody CommonCodeCreateDTO createDTO) {
+    public ResponseEntity<CommonCodeVO> createCommonCode(@Valid @RequestBody CommonCodeCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createCommonCode(createDTO));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CommonCodeVO> updateCommonCode(@PathVariable Long id, @RequestBody CommonCodeUpdateDTO updateDTO) {
+    public ResponseEntity<CommonCodeVO> updateCommonCode(@PathVariable Long id, @Valid @RequestBody CommonCodeUpdateDTO updateDTO) {
         return ResponseEntity.ok(service.updateCommonCode(id, updateDTO));
     }
 

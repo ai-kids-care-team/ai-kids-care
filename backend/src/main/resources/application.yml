@@ -41,6 +41,8 @@ spring:
     open-in-view: false
 
 server:
+  error:
+    include-stacktrace: never
   port: 8080
   servlet:
     session:

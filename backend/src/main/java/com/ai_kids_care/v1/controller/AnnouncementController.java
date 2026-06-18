@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.AnnouncementUpdateDTO;
 import com.ai_kids_care.v1.vo.AnnouncementVO;
 import com.ai_kids_care.v1.service.AnnouncementService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,7 +37,7 @@ public class AnnouncementController {
     }
 
     @PostMapping
-    public ResponseEntity<AnnouncementVO> createAnnouncement(@RequestBody AnnouncementCreateDTO createDTO) {
+    public ResponseEntity<AnnouncementVO> createAnnouncement(@Valid @RequestBody AnnouncementCreateDTO createDTO) {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createAnnouncement(createDTO));
     }
@@ -44,7 +45,7 @@ public class AnnouncementController {
     @PutMapping("/{id}")
     public ResponseEntity<AnnouncementVO> updateAnnouncement(
             @PathVariable Long id,
-            @RequestBody AnnouncementUpdateDTO updateDTO
+            @Valid @RequestBody AnnouncementUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateAnnouncement(id, updateDTO));
     }

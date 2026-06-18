@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.RoomUpdateDTO;
 import com.ai_kids_care.v1.vo.RoomVO;
 import com.ai_kids_care.v1.service.RoomService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<RoomVO> createRoom(@RequestBody RoomCreateDTO createDTO) {
+    public ResponseEntity<RoomVO> createRoom(@Valid @RequestBody RoomCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createRoom(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<RoomVO> updateRoom(
             @PathVariable Long id,
-            @RequestBody RoomUpdateDTO updateDTO
+            @Valid @RequestBody RoomUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateRoom(id, updateDTO));
     }

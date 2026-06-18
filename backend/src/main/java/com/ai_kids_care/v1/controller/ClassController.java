@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.ClassUpdateDTO;
 import com.ai_kids_care.v1.vo.ClassVO;
 import com.ai_kids_care.v1.service.ClassService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class ClassController {
     }
 
     @PostMapping
-    public ResponseEntity<ClassVO> createClass(@RequestBody ClassCreateDTO createDTO) {
+    public ResponseEntity<ClassVO> createClass(@Valid @RequestBody ClassCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createClass(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ClassVO> updateClass(
             @PathVariable Long id,
-            @RequestBody ClassUpdateDTO updateDTO
+            @Valid @RequestBody ClassUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateClass(id, updateDTO));
     }
