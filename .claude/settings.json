@@ -12,6 +12,13 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"if (Test-Path '.ai/CHECKPOINT.local.md') { Write-Output '=== Resuming from .ai/CHECKPOINT.local.md (run /checkpoint to refresh) ==='; Get-Content '.ai/CHECKPOINT.local.md' -Raw }\"" }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
