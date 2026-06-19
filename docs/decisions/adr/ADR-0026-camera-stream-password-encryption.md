@@ -18,7 +18,7 @@ related_specs: [SPEC-0001]
 
 Decision: `Accepted`（维护者 2026-06-18 签署）
 
-Implementation: `In Progress`（维护者 2026-06-18 批准开建）。**Phase 1（写路径）+ Phase 2（凭据接口 + Bearer filter）已实现并验证。** **OQ-1 已定：静态共享 Bearer token（OQ1-A）；OQ-3 已定：B（信任 AI 按 stream_id 全局查，凭据接口不做租户隔离）。** 其余 OQ-2/4/5 在对应 Phase 实施时定。
+Implementation: `In Progress`（维护者 2026-06-18 批准开建）。**Phase 1（写路径）+ Phase 2（凭据接口 + Bearer filter）+ Phase 3（AI HTTP 客户端）已实现并验证。** **OQ-1 已定：静态共享 Bearer token（OQ1-A）；OQ-3 已定：B（信任 AI 按 stream_id 全局查，凭据接口不做租户隔离）。** 其余 OQ-2/4/5 在对应 Phase 实施时定。
 
 ## 背景（Context，as-built @ 2026-06-18）
 
@@ -55,7 +55,11 @@ Implementation: `In Progress`（维护者 2026-06-18 批准开建）。**Phase 1
 
 1. **Phase 1 — Java 写路径**（ADR Accept 后即可开始）：`CameraStreamCryptoConfig`、application.yml/application-test.yml（key 配置 + dev key）、`CameraStreamCreateRequest`（WRITE_ONLY password）、`CameraStreamService` 写方法 + 加密、`CameraStreamController` POST/PUT、`AuthorizationAction` 增 `TENANT_SURVEILLANCE_WRITE`（如需）、加密集成测试、`.env.example`。
 2. **Phase 2 — Java 凭据接口**（依赖 OQ-1）✅ 已实现：`com.ai_kids_care.v1.internal.StreamCredentialDTO`、`StreamCredentialController`（`@Hidden`，置于 `.internal` 兄弟包以避开 `PublishedOpenApiContractTest` 的「每个 controller operation 必须发布」强约束）、`CameraStreamService.getStreamCredential`（按 stream_id 全局查 + 解密，OQ-3=B）、`AiServiceTokenAuthenticationFilter`（仅 `/api/v1/internal/**`，常量时间 token 比较）、`InternalAiServiceConfig`（`internal.ai.service-token` fail-fast）、`SecurityConfig` 增 `requestMatchers("/api/v1/internal/**").hasRole("AI_SERVICE")` + filter、集成测试（200 解密 / 缺失 401 / 错误 token 401 / 会话用户无 token 403 / 无密码 null / 404 / @Hidden 不进 OpenAPI）。
-3. **Phase 3 — AI HTTP 客户端**：`stream_live_alert_service.py` 增 `STREAM_ID` 模式 + `JAVA_BACKEND_URL`、`ai/.env.example`、mock HTTP 测试（Python 不引入 crypto）。
+3. **Phase 3 — AI HTTP 客户端** ✅ 已实现（2026-06-19）：
+   - `ai/src/ai_app/utils/stream_credentials.py`（新增）：`fetch_stream_credentials(stream_id, backend_url, token, *, http_get=None)` + `build_stream_url(cred)` 纯函数模块，无 ML 依赖，`http_get` 参数注入便于 monkeypatch。
+   - `ai/scripts/stream_live_alert_service.py` `__main__` 块新增 `STREAM_ID` 分支：若设置 `STREAM_ID` 则调凭据接口拼 URL，否则回退到 `STREAM_URL`（legacy）；日志只打印 host:port，不含密码。
+   - `ai/tests/test_stream_credentials.py`（新增）：4 个 mock 测试（200+凭据注入、200+null 凭据、fallback build、401 抛 RuntimeError 且不含 token）。
+   - `ai/.env.example` 追加 `JAVA_BACKEND_URL`、`STREAM_ID`、`AI_SERVICE_TOKEN`。
 4. **Phase 4 — 种子/配置/CI**：`39_camera_streams_seed.sql`（依 OQ-4）、docker-compose(.prod).yml、.env.example、compose-config CI dummy env。
 
 ## 开放问题（OQ）

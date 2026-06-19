@@ -12,6 +12,7 @@ from __future__ import annotations
 import csv
 import math
 import os
+import re
 import sys
 import time
 from collections import deque
@@ -39,6 +40,16 @@ from realtime_persistence_demo import (
     safe_log_text,
     sample_frame_indices,
 )
+
+
+def mask_url_credentials(url: str) -> str:
+    """Replace userinfo (user:password@) in a URL with ***:***@ for safe logging.
+
+    Uses a regex so that no urllib parse/unparse round-trip can alter query
+    strings or path components.  Returns the original string unchanged if no
+    userinfo pattern is detected.
+    """
+    return re.sub(r"(://)[^@/]+@", r"\1***:***@", url)
 
 
 @dataclass
@@ -244,7 +255,7 @@ def run_stream_service(
     target_id = label_to_id(model, target_label)
 
     print("\n===== Live Stream Alert Service =====")
-    print(f"stream_url: {safe_log_text(stream_url)}")
+    print(f"stream_url: {safe_log_text(mask_url_credentials(stream_url))}")
     print(f"model_dir: {safe_log_text(model_dir)}")
     print(f"output_dir: {safe_log_text(output_dir)}")
     print(f"device: {device}")
@@ -532,9 +543,10 @@ def run_stream_service(
             except KeyboardInterrupt:
                 raise
             except Exception as e:
+                safe_msg = mask_url_credentials(type(e).__name__ + ": " + str(e))
                 print(
                     f"[WARN] Stream connection #{connection_index} failed: "
-                    f"{safe_log_text(type(e).__name__ + ': ' + str(e))}. "
+                    f"{safe_log_text(safe_msg)}. "
                     f"Reconnect after {reconnect_wait_sec}s."
                 )
             finally:
@@ -558,9 +570,31 @@ if __name__ == "__main__":
     project_root = Path(__file__).resolve().parent.parent
 
     # Stream + model
-    stream_url = os.getenv("STREAM_URL", "")
-    if not stream_url:
-        raise ValueError("STREAM_URL environment variable must be set")
+    # ADR-0026 Phase 3 (D3): prefer STREAM_ID + credential endpoint; fall back to STREAM_URL.
+    stream_id = os.getenv("STREAM_ID", "")
+    stream_url_fallback = os.getenv("STREAM_URL", "")
+
+    if stream_id:
+        # Phase 3 (ADR-0026 D3): call Java credential endpoint to obtain stream URL.
+        java_backend_url = os.getenv("JAVA_BACKEND_URL", "http://backend:8080")
+        ai_service_token = os.getenv("AI_SERVICE_TOKEN", "")
+        if not ai_service_token:
+            raise ValueError("AI_SERVICE_TOKEN must be set when STREAM_ID is used")
+        from ai_app.utils.stream_credentials import (  # noqa: PLC0415 (lazy import)
+            build_stream_url,
+            fetch_stream_credentials,
+        )
+        cred = fetch_stream_credentials(stream_id, java_backend_url, ai_service_token)
+        stream_url = build_stream_url(cred)
+        # Log only host:port to avoid leaking credentials in the URL userinfo.
+        from urllib.parse import urlparse as _urlparse  # noqa: PLC0415
+        _parsed = _urlparse(cred.get("sourceUrl", ""))
+        print(f"[INFO] Stream credentials fetched for stream_id={stream_id}, host={_parsed.netloc}")
+    elif stream_url_fallback:
+        # Legacy fallback: direct STREAM_URL (ADR-0026 D3 independent-test path).
+        stream_url = stream_url_fallback
+    else:
+        raise ValueError("Either STREAM_ID or STREAM_URL environment variable must be set")
     model_dir = project_root / "outputs" / "01_assault_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / "stream_live_service"
     target_label = "assault"
