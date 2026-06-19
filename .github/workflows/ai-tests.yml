@@ -51,5 +51,8 @@ jobs:
         with:
           name: ai-pytest-report
           path: ai/.pytest-results/
+          # .pytest-results is a dot-prefixed (hidden) dir; upload-artifact excludes
+          # hidden files by default, so opt in explicitly or the report is dropped.
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
