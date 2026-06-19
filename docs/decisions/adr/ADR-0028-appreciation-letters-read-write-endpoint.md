@@ -2,7 +2,7 @@
 ADR: ADR-0028
 title: "ADR-0028: 重新开放感谢信读写端点（服务端派生身份）"
 status: Accepted
-implementation: Not Implemented
+implementation: Implemented
 date: 2026-06-19
 deciders: 维护者（2026-06-19 决策新建感谢信后端端点并批准本 ADR + SPEC-0003 scope/授权模型/OQ 全默认）
 ---
