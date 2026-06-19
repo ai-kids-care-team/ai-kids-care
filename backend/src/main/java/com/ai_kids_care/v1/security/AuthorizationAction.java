@@ -26,5 +26,11 @@ public enum AuthorizationAction {
     NOTIFICATION_READ,
     // ADR-0026 Phase 1：摄像头流写粗粒度门——仅 KINDERGARTEN_ADMIN + 有效 tenant identity；
     // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
-    TENANT_SURVEILLANCE_WRITE
+    TENANT_SURVEILLANCE_WRITE,
+    // SPEC-0003：感谢信读取粗粒度门——GUARDIAN + TEACHER + KINDERGARTEN_ADMIN + 有效 tenant identity；
+    // 细粒度可见性（GUARDIAN 自己+公开 / TEACHER 公开+发给本人 / ADMIN 全部）由 Repository SQL 强制。
+    APPRECIATION_LETTER_READ,
+    // SPEC-0003：感谢信写粗粒度门——仅 GUARDIAN + 有效 tenant identity；
+    // 细粒度所有权（仅作者可改/删）由 Repository SQL 强制。
+    APPRECIATION_LETTER_WRITE
 }

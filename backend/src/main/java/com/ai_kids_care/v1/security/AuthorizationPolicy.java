@@ -72,6 +72,15 @@ public class AuthorizationPolicy {
             // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
             case TENANT_SURVEILLANCE_WRITE ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // SPEC-0003：感谢信读取——有效 tenant identity + GUARDIAN / TEACHER / KINDERGARTEN_ADMIN；
+            // SUPERADMIN / PLATFORM_IT_ADMIN 无 tenant identity，由此被拒（不需要显式排除）。
+            case APPRECIATION_LETTER_READ ->
+                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
+                            || role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // SPEC-0003：感谢信写——仅 GUARDIAN + 有效 tenant identity。
+            case APPRECIATION_LETTER_WRITE ->
+                    tenantIdentity && role == UserRoleEnum.GUARDIAN;
         };
     }
 }

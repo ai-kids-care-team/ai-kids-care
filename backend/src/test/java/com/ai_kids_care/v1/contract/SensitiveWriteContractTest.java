@@ -81,8 +81,9 @@ class SensitiveWriteContractTest {
         assertClassAbsent("com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminCreateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminUpdateDTO");
-        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO");
-        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO");
+        // SPEC-0003：感谢信 DTO 已合法发布；改为存在性正向断言。
+        assertClassPresent("com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO");
+        assertClassPresent("com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO");
     }
 
     @Test
@@ -243,9 +244,10 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(SuperadminService.class, "createSuperadmin");
         assertMethodNameAbsent(SuperadminService.class, "updateSuperadmin");
         assertMethodNameAbsent(SuperadminService.class, "deleteSuperadmin");
-        assertMethodNameAbsent(AppreciationLetterService.class, "createAppreciationLetter");
-        assertMethodNameAbsent(AppreciationLetterService.class, "updateAppreciationLetter");
-        assertMethodNameAbsent(AppreciationLetterService.class, "deleteAppreciationLetter");
+        // SPEC-0003：感谢信写方法已合法发布；改为存在性正向断言。
+        assertMethodNamePresent(AppreciationLetterService.class, "createAppreciationLetter");
+        assertMethodNamePresent(AppreciationLetterService.class, "updateAppreciationLetter");
+        assertMethodNamePresent(AppreciationLetterService.class, "deleteAppreciationLetter");
 
         assertMethodNameAbsent(UserMapper.class, "toEntity");
         assertMethodNameAbsent(UserMapper.class, "updateEntity");
@@ -273,8 +275,9 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(NotificationRuleMapper.class, "updateEntity");
         assertMethodNameAbsent(SuperadminMapper.class, "toEntity");
         assertMethodNameAbsent(SuperadminMapper.class, "updateEntity");
-        assertMethodNameAbsent(AppreciationLetterMapper.class, "toEntity");
-        assertMethodNameAbsent(AppreciationLetterMapper.class, "updateEntity");
+        // SPEC-0003：感谢信 Mapper 写方法已合法发布；改为存在性正向断言。
+        assertMethodNamePresent(AppreciationLetterMapper.class, "toEntity");
+        assertMethodNamePresent(AppreciationLetterMapper.class, "updateEntity");
     }
 
     private void assertMethodNameAbsent(Class<?> ownerType, String methodName) {
@@ -283,9 +286,21 @@ class SensitiveWriteContractTest {
                 .noneMatch(method -> method.getName().equals(methodName));
     }
 
+    private void assertMethodNamePresent(Class<?> ownerType, String methodName) {
+        assertThat(ownerType.getDeclaredMethods())
+                .as("%s must expose %s", ownerType.getSimpleName(), methodName)
+                .anyMatch(method -> method.getName().equals(methodName));
+    }
+
     private void assertClassAbsent(String className) {
         assertThatCode(() -> Class.forName(className))
                 .as("%s must not exist in the published generic write contract", className)
                 .isInstanceOf(ClassNotFoundException.class);
+    }
+
+    private void assertClassPresent(String className) {
+        assertThatCode(() -> Class.forName(className))
+                .as("%s must exist in the published contract", className)
+                .doesNotThrowAnyException();
     }
 }

@@ -266,8 +266,13 @@ class PublishedOpenApiContractTest {
         assertComponentAbsent(apiDocs, "NotificationRuleUpdateDTO");
         assertComponentAbsent(apiDocs, "SuperadminCreateDTO");
         assertComponentAbsent(apiDocs, "SuperadminUpdateDTO");
-        assertComponentAbsent(apiDocs, "AppreciationLetterCreateDTO");
-        assertComponentAbsent(apiDocs, "AppreciationLetterUpdateDTO");
+        // SPEC-0003：感谢信 DTO 已合法发布；改为存在性正向断言并锁定字段集。
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterCreateDTO", Set.of(
+                "targetType", "targetId", "title", "content", "isPublic"
+        ));
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterUpdateDTO", Set.of(
+                "title", "content", "isPublic"
+        ));
         assertComponentAbsent(apiDocs, "KindergartenCreateDTO");
         assertComponentAbsent(apiDocs, "KindergartenUpdateDTO");
         assertComponentAbsent(apiDocs, "ChildGraphVO");
@@ -374,8 +379,16 @@ class PublishedOpenApiContractTest {
         assertPathAbsent(apiDocs, "/api/v1/notification_rules/{id}");
         assertPathAbsent(apiDocs, "/api/v1/superadmins");
         assertPathAbsent(apiDocs, "/api/v1/superadmins/{id}");
-        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters");
-        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters/{id}");
+        // SPEC-0003：感谢信端点已合法发布；改为存在性正向断言并锁定 VO 字段集。
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters", "get");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters", "post");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "get");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "put");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "delete");
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterVO", Set.of(
+                "letterId", "senderName", "targetType", "targetName",
+                "title", "content", "isPublic", "createdAt", "updatedAt"
+        ));
     }
 
     @Test

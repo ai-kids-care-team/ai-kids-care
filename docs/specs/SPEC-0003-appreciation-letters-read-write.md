@@ -114,4 +114,39 @@ related_adrs: [ADR-0003, ADR-0009, ADR-0019, ADR-0028]
 
 ## 实施记录（Implementation Notes）
 
-> 仅在 Approved 后由实现者填写：改动范围、rollout、验证证据。
+实施日期：2026-06-20（worktree: `salvage-codegen-templates`，branch: `worktree-salvage-codegen-templates`）
+
+### 改动文件
+
+**Backend main（新建/修改）：**
+- `backend/src/main/java/com/ai_kids_care/v1/controller/AppreciationLetterController.java`（新建）
+- `backend/src/main/java/com/ai_kids_care/v1/service/AppreciationLetterService.java`（完全重写）
+- `backend/src/main/java/com/ai_kids_care/v1/dto/AppreciationLetterCreateDTO.java`（新建）
+- `backend/src/main/java/com/ai_kids_care/v1/dto/AppreciationLetterUpdateDTO.java`（新建）
+- `backend/src/main/java/com/ai_kids_care/v1/mapper/AppreciationLetterMapper.java`（扩展：删 toVO，加 toEntity/updateEntity）
+- `backend/src/main/java/com/ai_kids_care/v1/vo/AppreciationLetterVO.java`（重写：移除 kindergartenId/senderUserId/targetId/status）
+- `backend/src/main/java/com/ai_kids_care/v1/repository/AppreciationLetterRepository.java`（扩展：7 个作用域查询方法）
+- `backend/src/main/java/com/ai_kids_care/v1/security/AuthorizationAction.java`（加 APPRECIATION_LETTER_READ/WRITE）
+- `backend/src/main/java/com/ai_kids_care/v1/security/AuthorizationPolicy.java`（加对应 case）
+
+**Backend tests（修改/新建）：**
+- `backend/src/test/java/com/ai_kids_care/v1/contract/SensitiveWriteContractTest.java`（翻转 5 个 absent 断言为 present）
+- `backend/src/test/java/com/ai_kids_care/v1/contract/PublishedOpenApiContractTest.java`（翻转 4 个 absent/pathAbsent 为 present，锁定 VO/DTO 字段集）
+- `backend/src/test/java/com/ai_kids_care/v1/security/SecurityBoundaryIntegrationTest.java`（将 /api/v1/appreciation_letters 从 closed 列表迁入 published 列表）
+- `backend/src/test/java/com/ai_kids_care/v1/security/AppreciationLetterAuthorizationIntegrationTest.java`（新建，20 个测试用例）
+
+### 关键实施决策
+
+- **JPQL enum 传参**：`StatusEnum.ACTIVE` 和 `AppreciationTargetTypeEnum.TEACHER` 经 `@Param` 传入，而非内联 JPQL 枚举字面量（规避 Hibernate + PostgreSQL named_enum 兼容问题）。
+- **toVO 在 Service 实现**：`buildVO()` 私有方法直接构造 VO，含 Guardian/Teacher name lookup（N+1，Phase 1 可接受）。Mapper 无 `toVO`。
+- **软删除**：`deleteAppreciationLetter` 将 `status` 置 `DISABLED`，物理行保留。
+
+### 验证结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `bash scripts/test-backend.sh --compile` | BUILD SUCCESSFUL |
+| `bash scripts/test-backend.sh '*ContractTest'` | BUILD SUCCESSFUL（全绿） |
+| `bash scripts/test-backend.sh '*AppreciationLetter*'` | BUILD SUCCESSFUL（20/20 通过） |
+| `bash scripts/test-backend.sh '*SecurityBoundary*'` | BUILD SUCCESSFUL（全绿） |
+| `git diff --check` | 无错误（仅 LF/CRLF 警告） |

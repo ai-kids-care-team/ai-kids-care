@@ -37,7 +37,9 @@ class SecurityBoundaryIntegrationTest extends BaseIntegrationTest {
                 "/api/v1/rooms",
                 "/api/v1/cctv_cameras",
                 "/api/v1/camera_streams",
-                "/api/v1/detection_sessions"
+                "/api/v1/detection_sessions",
+                // SPEC-0003：感谢信端点已发布；匿名仍被 Spring Security 过滤层拒为 401。
+                "/api/v1/appreciation_letters"
         }) {
             mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
@@ -57,7 +59,6 @@ class SecurityBoundaryIntegrationTest extends BaseIntegrationTest {
                 "/api/v1/notification_rules",
                 "/api/v1/device_tokens",
                 "/api/v1/event_evidence_files",
-                "/api/v1/appreciation_letters",
                 "/api/v1/superadmins",
                 "/api/v1/graph/children/1"
         }) {
