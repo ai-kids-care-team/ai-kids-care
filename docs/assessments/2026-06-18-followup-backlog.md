@@ -79,7 +79,7 @@ HALT 项须人工决策后方可继续。
 | FE-1 | 注册流 CSRF-less fetch 收口 | 无（独立） | **Done**（2026-06-19）。`useSignupForm.ts` 两处 POST bare fetch 替换为 `apiClient.post()`：`verifyChild()` 中的 `POST /auth/guardian-child-verifications` 和 `handleSubmit()` 中的 `POST /auth/register`；axios 拦截器自动注入 `withCredentials`+`X-XSRF-TOKEN`；错误语义保持等价（AxiosError `.response.data.error` 提取）；GET 调用（common_codes / kindergartens）不变；lint 0 errors / build 成功（node:20-slim Docker 验证，20 页静态生成）。 |
 | FE-2 | 前端不再传服务端身份字段 | 后端感谢信端点就绪 | P2 |
 | FE-3 | 死代码清理 | 无（独立，低优先级） | P3 |
-| FE-authorId | 前端 announcements TS 类型移除 `authorId`（后端 BE-3b 已从 VO 移除，运行时不受影响，仅类型清理） | 无（独立） | P3 |
+| FE-authorId | 前端 announcements TS 类型移除 `authorId`（后端 BE-3b 已从 VO 移除，运行时不受影响，仅类型清理）。as-built：删除 `AnnouncementListItem` 和 `AnnouncementRecord` 中的 `authorId: number \| null` 字段（`announcements.api.ts`，镜像 BE-3b / `AnnouncementVO`）；删除 `AnnouncementsDetailPage.tsx` 中的 `authorIdHiddenValue` 变量、`<input type="hidden" name="authorId" />`、`formData.get('authorId')` 解析及 `parsedAuthorId > 0` 校验——删除表单现直接调用 `handleDelete()`；author 由服务端派生，`AnnouncementCreateDTO`/`AnnouncementUpdateDTO` 均不含此字段。`npm run lint` 0 errors，`npm run build` 成功（node:20-slim Docker 验证）。 | 无（独立） | **Done** |
 | CI-4 | 前端测试 + AI 测试纳入 CI | 依赖 FE/AI 测试先行编写 | P3 |
 | CI-3 | 分支保护加固 | CI-1/CI-2 完成后 | P3 |
 
