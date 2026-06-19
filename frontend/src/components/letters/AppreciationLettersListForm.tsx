@@ -5,21 +5,12 @@ import { useEffect, useState } from 'react';
 import { Heart, Plus, Search } from 'lucide-react';
 
 export type AppreciationLetterListItem = {
-  /** React key·중복 방지 (예: api-16-r0, demo-16-r0) */
+  /** React key (예: api-16-r0) */
   key: string;
   title: string;
   date: string;
-  statusLabel: string;
-  /** 백엔드 응답에서 letterId가 null이면 링크를 만들 수 없어서 optional 처리 */
+  /** 상세 페이지 링크 — letterId가 있으면 항상 존재 */
   href?: string;
-  /** false면 비공개 — 프론트에서 작성자 본인만 목록에 표시 */
-  isPublic?: boolean;
-  senderUserId?: number;
-  /** 유치원 스코프 필터용 (`AppreciationLetterVO.kindergartenId`) */
-  kindergartenId?: number;
-
-  /** 캐시/서버 중복 제거용 (title/sender/target 조합) */
-  dedupeSignature?: string;
 };
 
 type AppreciationLettersListFormProps = {
@@ -150,9 +141,6 @@ export function AppreciationLettersListForm({
                         <p className="text-base font-medium transition-colors hover:text-[#006b52]">{item.title}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
                           <span>{item.date}</span>
-                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                            {item.statusLabel}
-                          </span>
                         </div>
                       </div>
                     </div>
@@ -167,9 +155,6 @@ export function AppreciationLettersListForm({
                         <p className="text-base font-medium">{item.title}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
                           <span>{item.date}</span>
-                          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                            {item.statusLabel}
-                          </span>
                         </div>
                       </div>
                     </div>

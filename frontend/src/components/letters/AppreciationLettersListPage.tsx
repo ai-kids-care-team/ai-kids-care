@@ -4,15 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { APPRECIATION_LETTERS_PAGE_SIZE, getAppreciationLetters } from '@/services/apis/appreciationLetters.api';
 import {
-  buildAppreciationLetterViewerContext,
-  buildAppreciationLetterVisibilityProbe,
   formatLetterDate,
-  isAppreciationLetterPublic,
-  letterStatusLabel,
-  resolveAppreciationLetterId,
-  resolveLetterKindergartenId,
-  viewerMaySeeAppreciationLetter,
-  type AppreciationLetterViewerContext,
 } from './appreciation-letter-utils';
 import { AppreciationLettersListForm, type AppreciationLetterListItem } from './AppreciationLettersListForm';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
@@ -20,72 +12,15 @@ import { useAppSelector } from '@/store/hook';
 import { canWriteAppreciationLetters } from '@/types/user-role';
 import { getApiErrorMessage } from './api-error-message';
 
-function rowSenderUserIdNum(row: unknown): number {
-  const r = row as Record<string, unknown>;
-  const n = Number(r.senderUserId ?? r.sender_user_id);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
-/** 백엔드 리스트 응답에는 `letterId`가 null일 수 있으므로 href는 없을 수 있음 */
 function mapRowsToListItems(
   rows: AppreciationLetterVO[],
 ): AppreciationLetterListItem[] {
-  return rows.flatMap((row, rowIndex) => {
-    const letterId = resolveAppreciationLetterId(row as unknown as Record<string, unknown>);
-
-    // 캐시 매칭/서버 해석용 시그니처(정규화)
-    const signature = `${row.title}|${Number(row.senderUserId)}|${String(row.targetType ?? '').toUpperCase()}|${Number(row.targetId)}`;
-    const href =
-      letterId != null
-        ? `/letters/read?id=${letterId}`
-        : `/letters/read?sig=${encodeURIComponent(
-            JSON.stringify({
-              title: row.title,
-              senderUserId: Number(row.senderUserId),
-              targetType: String(row.targetType ?? '').toUpperCase(),
-              targetId: Number(row.targetId),
-            }),
-          )}`;
-
-    const key =
-      letterId != null
-        ? `api-${letterId}-r${rowIndex}`
-        : `api-sig-${Number(row.senderUserId)}-${String(row.targetType ?? '').toUpperCase()}-${Number(row.targetId)}-${row.createdAt}-r${rowIndex}`;
-
-    const kg = resolveLetterKindergartenId(row as unknown as Record<string, unknown>);
-
-    return [
-      {
-        key,
-        title: row.title,
-        date: formatLetterDate(row.createdAt),
-        statusLabel: letterStatusLabel(row.status),
-        href,
-        isPublic: isAppreciationLetterPublic(row as AppreciationLetterVO & Record<string, unknown>),
-        senderUserId: rowSenderUserIdNum(row),
-        kindergartenId: kg ?? undefined,
-        dedupeSignature: signature,
-      },
-    ];
-  });
-}
-
-function filterListForViewer(
-  list: AppreciationLetterListItem[],
-  viewerCtx: AppreciationLetterViewerContext,
-  isAuthenticated: boolean,
-): AppreciationLetterListItem[] {
-  return list.filter((it) =>
-    viewerMaySeeAppreciationLetter(
-      buildAppreciationLetterVisibilityProbe({
-        isPublic: it.isPublic,
-        senderUserId: it.senderUserId ?? 0,
-        kindergartenId: it.kindergartenId,
-      }),
-      viewerCtx,
-      isAuthenticated,
-    ),
-  );
+  return rows.map((row, rowIndex) => ({
+    key: `api-${row.letterId}-r${rowIndex}`,
+    title: row.title,
+    date: formatLetterDate(row.createdAt),
+    href: `/letters/read?id=${row.letterId}`,
+  }));
 }
 
 export function AppreciationLettersListPage() {
@@ -96,6 +31,7 @@ export function AppreciationLettersListPage() {
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
   const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -107,34 +43,9 @@ export function AppreciationLettersListPage() {
     [isAuthenticated, user],
   );
 
-  const viewerCtx = useMemo(
-    () => buildAppreciationLetterViewerContext(user),
-    [user],
-  );
-
-  const allVisibleItems = useMemo(
-    () => filterListForViewer(items, viewerCtx, isAuthenticated),
-    [items, viewerCtx, isAuthenticated],
-  );
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(allVisibleItems.length / APPRECIATION_LETTERS_PAGE_SIZE)),
-    [allVisibleItems.length],
-  );
-
   const safePage = useMemo(
     () => Math.min(page, totalPages > 0 ? totalPages - 1 : 0),
     [page, totalPages],
-  );
-
-  const visibleItems = useMemo(
-    () => {
-      if (allVisibleItems.length === 0) return [];
-      const start = safePage * APPRECIATION_LETTERS_PAGE_SIZE;
-      const end = start + APPRECIATION_LETTERS_PAGE_SIZE;
-      return allVisibleItems.slice(start, end);
-    },
-    [allVisibleItems, safePage],
   );
 
   // 목록 진입 시 항상 최신(1페이지)부터 보여주기
@@ -151,8 +62,8 @@ export function AppreciationLettersListPage() {
       try {
         const pageData = await getAppreciationLetters({
           keyword: appliedKeyword || undefined,
-          page: 0,
-          size: undefined,
+          page: safePage,
+          size: APPRECIATION_LETTERS_PAGE_SIZE,
           sort: 'createdAt,desc',
         });
         if (cancelled) return;
@@ -160,10 +71,12 @@ export function AppreciationLettersListPage() {
         const rows = pageData.content ?? [];
         const apiItems = mapRowsToListItems(rows);
         setItems(apiItems);
+        setTotalPages(Math.max(1, pageData.totalPages));
       } catch (e) {
         if (cancelled) return;
         console.warn('감사 편지 목록 조회 실패:', e);
         setItems([]);
+        setTotalPages(1);
         setError(getApiErrorMessage(e, '목록을 불러오지 못했습니다.'));
       } finally {
         if (!cancelled) setLoading(false);
@@ -174,7 +87,7 @@ export function AppreciationLettersListPage() {
     return () => {
       cancelled = true;
     };
-  }, [appliedKeyword, reloadToken]);
+  }, [appliedKeyword, reloadToken, safePage]);
 
   const handleSearch = () => {
     setPage(0);
@@ -183,7 +96,7 @@ export function AppreciationLettersListPage() {
 
   return (
     <AppreciationLettersListForm
-      items={visibleItems}
+      items={items}
       keyword={keyword}
       onKeywordChange={setKeyword}
       onSearch={handleSearch}

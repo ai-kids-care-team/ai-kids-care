@@ -21,7 +21,6 @@ import { getApiErrorMessage } from './api-error-message';
 export function AppreciationLettersWritePage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
-  const senderNum = user?.id != null ? Number(user.id) : NaN;
 
   const [targetType, setTargetType] = useState<AppreciationTargetType>('KINDERGARTEN');
   const [kindergartenId, setKindergartenId] = useState<number | null>(null);
@@ -42,10 +41,9 @@ export function AppreciationLettersWritePage() {
       Boolean(
         isAuthenticated &&
           user &&
-          Number.isFinite(senderNum) &&
           canWriteAppreciationLetters(user.role),
       ),
-    [isAuthenticated, user, senderNum],
+    [isAuthenticated, user],
   );
 
   const guardianLockKg = useMemo(() => {
@@ -93,7 +91,7 @@ export function AppreciationLettersWritePage() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    if (!hasTarget || kindergartenId == null || targetId == null) {
+    if (!hasTarget || targetId == null) {
       toast.error('감사 대상(유치원 또는 교사)을 검색 후 목록에서 선택해 주세요.');
       return;
     }
@@ -105,14 +103,11 @@ export function AppreciationLettersWritePage() {
     setSubmitting(true);
     try {
       await createAppreciationLetter({
-        kindergartenId,
-        senderUserId: senderNum,
         targetType,
         targetId,
         title: title.trim(),
         content: content.trim(),
         isPublic,
-        status: 'ACTIVE',
       });
       toast.success('등록되었습니다.');
       router.push('/letters');
@@ -191,10 +186,6 @@ export function AppreciationLettersWritePage() {
                 onClearTarget={handleClearLetterTarget}
                 lockedKindergartenId={guardianLockKg}
               />
-
-              <p className="text-[11px] text-gray-500 sm:text-xs">
-                등록 시 상태는 <strong className="text-slate-700">게시(ACTIVE)</strong>로 저장됩니다.
-              </p>
 
               <div>
                 <label className="mb-0.5 block text-xs font-medium text-slate-700 sm:text-sm">제목</label>
