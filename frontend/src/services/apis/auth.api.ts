@@ -72,22 +72,6 @@ export async function fetchRegisterFieldAvailability(
   return res.json() as Promise<RegisterFieldAvailability>;
 }
 
-export type CommonCodeItem = {
-  codeId?: number;
-  codeGroup: string;
-  parentCode?: string | null;
-  code: string;
-  codeName: string;
-  sortOrder: number;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type CommonCodePageResponse = {
-  content?: CommonCodeItem[];
-};
-
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     login: build.mutation<AuthSessionResponse, LoginRequest>({
@@ -109,26 +93,6 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['AuthSession'],
     }),
-    register: build.mutation<void, RegisterRequest>({
-      query: (userData) => ({
-        url: '/auth/register',
-        method: 'POST',
-        body: userData,
-      }),
-    }),
-    getCommonCodes: build.query<CommonCodeItem[], string>({
-      query: (group) => ({
-        url: '/common_codes',
-        params: {
-          codeGroup: group,
-          isActive: true,
-          size: 100,
-          sort: 'sortOrder,asc',
-        },
-      }),
-      transformResponse: (response: CommonCodePageResponse | CommonCodeItem[]) =>
-        Array.isArray(response) ? response : (response.content ?? []),
-    }),
   }),
   overrideExisting: false,
 });
@@ -137,6 +101,4 @@ export const {
   useLoginMutation,
   useSessionQuery,
   useLogoutMutation,
-  useRegisterMutation,
-  useGetCommonCodesQuery,
 } = authApi;
