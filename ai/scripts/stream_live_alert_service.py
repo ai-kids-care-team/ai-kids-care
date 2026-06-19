@@ -587,9 +587,11 @@ if __name__ == "__main__":
         cred = fetch_stream_credentials(stream_id, java_backend_url, ai_service_token)
         stream_url = build_stream_url(cred)
         # Log only host:port to avoid leaking credentials in the URL userinfo.
+        # _parsed.netloc includes userinfo (user:pass@host:port); use hostname+port instead.
         from urllib.parse import urlparse as _urlparse  # noqa: PLC0415
         _parsed = _urlparse(cred.get("sourceUrl", ""))
-        print(f"[INFO] Stream credentials fetched for stream_id={stream_id}, host={_parsed.netloc}")
+        _host_port = f"{_parsed.hostname}:{_parsed.port}" if _parsed.hostname else ""
+        print(f"[INFO] Stream credentials fetched for stream_id={stream_id}, host={_host_port}")
     elif stream_url_fallback:
         # Legacy fallback: direct STREAM_URL (ADR-0026 D3 independent-test path).
         stream_url = stream_url_fallback

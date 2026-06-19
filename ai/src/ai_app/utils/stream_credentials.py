@@ -83,8 +83,9 @@ def build_stream_url(cred: dict) -> str:
 
     Security note:
         The return value contains the plaintext password in the URL userinfo.
-        Callers MUST NOT log this value.  Log only the ``netloc`` (host:port)
-        from ``urllib.parse.urlparse(cred["sourceUrl"])``.
+        Callers MUST NOT log this value.  To log the target host safely, use
+        ``urlparse(cred["sourceUrl"]).hostname`` and ``.port`` — never
+        ``.netloc``, which includes userinfo (``user:pass@host:port``).
     """
     source_url: Optional[str] = cred.get("sourceUrl")
     if not source_url:
