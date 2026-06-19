@@ -31,6 +31,7 @@ sms = ["solapi>=3.0.0"]
 dev = [
     "pytest>=8.0.0",
     "httpx>=0.27.0",
+    "numpy>=1.26",
 ]
 
 # [推断] cu130 用于 CUDA 13.2；待 deploy host 验证 torch/torchvision 轮子可用性。

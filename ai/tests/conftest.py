@@ -1,6 +1,10 @@
 """
 conftest.py — install lightweight stubs for heavy ML dependencies that are
-not available on the CI/test host (torch, transformers, av, numpy).
+not available on the CI/test host (torch, transformers, av).
+
+numpy is a real dev dependency (see pyproject.toml [dependency-groups] dev)
+and must NOT be stubbed here — stubbing it causes MagicMock returns from
+np.arange/linspace/clip/round which break test_sample_frame_indices.
 
 These stubs are inserted into sys.modules BEFORE any ai_app module is imported,
 so the serving layer can be tested without GPU or large model packages.
@@ -15,8 +19,6 @@ _HEAVY_DEPS = [
     "torch.cuda",
     "transformers",
     "av",
-    "numpy",
-    "numpy.core",
 ]
 
 

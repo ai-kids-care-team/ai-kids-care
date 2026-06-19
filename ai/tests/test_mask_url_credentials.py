@@ -18,14 +18,17 @@ from unittest.mock import MagicMock
 # ---------------------------------------------------------------------------
 
 def _install_stubs() -> None:
+    """Inject minimal stubs for heavy deps of stream_live_alert_service.
+
+    numpy is a real dev dep — do NOT stub it. Only stub leaf modules whose
+    real implementations pull in unavailable CI packages (requests/dotenv for
+    pushover, pandas/dotenv for sms). Do NOT stub ai_app or ai_app.utils root
+    packages — they are empty __init__.py files that must remain importable as
+    real packages for test_sample_frame_indices and test_serving.
+    """
     if "av" not in sys.modules:
         sys.modules["av"] = MagicMock()
-    if "numpy" not in sys.modules:
-        np_stub = types.ModuleType("numpy")
-        np_stub.ndarray = object
-        np_stub.mean = MagicMock(return_value=0.0)
-        np_stub.argmax = MagicMock(return_value=0)
-        sys.modules["numpy"] = np_stub
+    # numpy is a real dev dependency — do NOT stub it here.
     if "torch" not in sys.modules:
         torch_stub = MagicMock()
         torch_stub.cuda.is_available.return_value = False
@@ -34,9 +37,18 @@ def _install_stubs() -> None:
         sys.modules["torchvision"] = MagicMock()
     if "transformers" not in sys.modules:
         sys.modules["transformers"] = MagicMock()
-    for pkg in ("ai_app", "ai_app.utils", "ai_app.utils.pushover", "ai_app.utils.sms"):
-        if pkg not in sys.modules:
-            sys.modules[pkg] = MagicMock()
+    # Precise leaf stubs only — do NOT stub ai_app or ai_app.utils root.
+    if "ai_app.utils.pushover" not in sys.modules:
+        pushover_stub = types.ModuleType("ai_app.utils.pushover")
+        pushover_stub.send_pushover_notification = MagicMock(return_value=True)
+        pushover_stub.send_pushover_notifications = MagicMock(return_value=[])
+        sys.modules["ai_app.utils.pushover"] = pushover_stub
+    if "ai_app.utils.sms" not in sys.modules:
+        sms_stub = types.ModuleType("ai_app.utils.sms")
+        sms_stub.build_message_service = MagicMock()
+        sms_stub.parse_recipients = MagicMock(return_value=[])
+        sms_stub.send_sms_batch = MagicMock(return_value=[])
+        sys.modules["ai_app.utils.sms"] = sms_stub
     if "realtime_persistence_demo" not in sys.modules:
         demo_stub = types.ModuleType("realtime_persistence_demo")
         demo_stub.frame_time_sec = MagicMock(return_value=0.0)
