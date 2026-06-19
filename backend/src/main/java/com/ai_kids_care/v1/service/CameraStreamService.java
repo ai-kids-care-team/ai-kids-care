@@ -8,6 +8,7 @@ import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.mapper.CameraStreamMapper;
 import com.ai_kids_care.v1.repository.CameraStreamRepository;
 import com.ai_kids_care.v1.repository.CctvCameraRepository;
+import com.ai_kids_care.v1.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.security.AesGcmCryptoUtil;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.vo.CameraStreamVO;
@@ -116,6 +117,32 @@ public class CameraStreamService {
         encryptPasswordIfPresent(request.getStreamPassword(), entity);
 
         return mapper.toVO(repository.save(entity));
+    }
+
+    // ADR-0026 Phase 2：内部凭据读路径（D2）。供经 Bearer token 认证的 AI 服务解密读取。
+    // 鉴权在 HTTP 层强制（AiServiceTokenAuthenticationFilter + hasRole("AI_SERVICE")）；
+    // AI 调用无 session/tenant 上下文，故此方法不叠加会话级 @PreAuthorize，也不做 kindergarten 隔离
+    // （OQ-3=B：信任 AI 仅按 stream_id 查自己处理的流；AI 为平台级基建，处理全部园所的流）。
+
+    @Transactional(readOnly = true)
+    public StreamCredentialDTO getStreamCredential(Long id) {
+        CameraStream entity = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("CameraStream not found"));
+
+        String plainPassword = null;
+        if (entity.getStreamPasswordCiphertext() != null
+                && !entity.getStreamPasswordCiphertext().isBlank()) {
+            plainPassword = AesGcmCryptoUtil.decrypt(
+                    entity.getStreamPasswordCiphertext(),
+                    entity.getStreamPasswordIv(),
+                    cryptoConfig.keyForVersion(entity.getStreamPasswordKeyVersion()));
+        }
+
+        return new StreamCredentialDTO(
+                entity.getId(),
+                entity.getSourceUrl(),
+                entity.getStreamUser(),
+                plainPassword);
     }
 
     /**

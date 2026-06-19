@@ -30,3 +30,8 @@ camera-stream:
       # 非生产 dev 测试密钥 — 32 字节全零 Base64，勿用于生产
       # Base64.getEncoder().encodeToString(new byte[32]) = 43 个 'A' + '=' = 44 chars → 32 bytes
       v1: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+# ADR-0026 Phase 2：非生产 dev 测试 token（内部凭据接口 Bearer 认证）
+internal:
+  ai:
+    service-token: test-ai-service-token-not-secret-2026

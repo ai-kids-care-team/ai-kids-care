@@ -45,6 +45,7 @@ services:
       SESSION_COOKIE_SECURE: "true"
       RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
       CAMERA_STREAM_AES_KEY_V1: ${CAMERA_STREAM_AES_KEY_V1:?CAMERA_STREAM_AES_KEY_V1 must be set}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?AI_SERVICE_TOKEN must be set}
 
   frontend:
     # Behind Caddy in production: do not publish the frontend nginx to the host.
