@@ -86,6 +86,15 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 FROM users
                 WHERE login_id = ?
                 """, TEST_LOGIN_ID);
+        jdbc.update("""
+                INSERT INTO superadmins (user_id, name, department, status, created_at, updated_at)
+                SELECT user_id, '테스트관리자', 'Test Department', 'ACTIVE', NOW(), NOW()
+                FROM users
+                WHERE login_id = ?
+                ON CONFLICT (user_id) DO UPDATE
+                    SET name = '테스트관리자',
+                        status = 'ACTIVE'
+                """, TEST_LOGIN_ID);
     }
 
     // ── POST /api/v1/auth/login ──────────────────────────────────────────────
@@ -102,6 +111,7 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
                 .andExpect(jsonPath("$.scopeType").value("PLATFORM"))
                 .andExpect(jsonPath("$.scopeId").doesNotExist())
+                .andExpect(jsonPath("$.name").value("테스트관리자"))
                 .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(jsonPath("$.token").doesNotExist());
@@ -115,7 +125,70 @@ class AuthEndpointTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value(TEST_LOGIN_ID))
                 .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
-                .andExpect(jsonPath("$.scopeType").value("PLATFORM"));
+                .andExpect(jsonPath("$.scopeType").value("PLATFORM"))
+                .andExpect(jsonPath("$.name").value("테스트관리자"));
+    }
+
+    @Test
+    void session_teacherRole_returnsTeacherProfileName() throws Exception {
+        configureTeacherRole(1L);
+        jdbc.update("""
+                INSERT INTO teachers
+                    (kindergarten_id, user_id, staff_no, name, gender, rrn_hash, rrn_first6,
+                     level, start_date, status, created_at, updated_at)
+                SELECT 1, user_id, 'TEST-TEACHER-BE4', '테스트선생', 'MALE'::gender_enum,
+                       'rrn-hash-teacher-be4', '990101', 'TEACHER'::level_enum,
+                       '2025-03-01', 'ACTIVE', NOW(), NOW()
+                FROM users
+                WHERE login_id = ?
+                ON CONFLICT (user_id) DO UPDATE
+                    SET name = '테스트선생',
+                        status = 'ACTIVE'
+                """, TEST_LOGIN_ID);
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.effectiveRole").value("TEACHER"))
+                .andExpect(jsonPath("$.name").value("테스트선생"));
+    }
+
+    @Test
+    void session_guardianRole_returnsGuardianProfileName() throws Exception {
+        configureKindergartenRole("GUARDIAN", 1L);
+        jdbc.update("""
+                INSERT INTO guardians
+                    (kindergarten_id, user_id, name, rrn_hash, rrn_first6,
+                     gender, address, status, created_at, updated_at)
+                SELECT 1, user_id, '테스트보호자', 'rrn-hash-guardian-be4', '900101',
+                       'FEMALE'::gender_enum, 'Test address', 'ACTIVE', NOW(), NOW()
+                FROM users
+                WHERE login_id = ?
+                ON CONFLICT (user_id) DO UPDATE
+                    SET name = '테스트보호자',
+                        status = 'ACTIVE'
+                """, TEST_LOGIN_ID);
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.effectiveRole").value("GUARDIAN"))
+                .andExpect(jsonPath("$.name").value("테스트보호자"));
+    }
+
+    @Test
+    void session_superadminWithoutProfile_returnsNoNameKey() throws Exception {
+        // Remove the superadmin profile row so name resolves to null.
+        jdbc.update("""
+                DELETE FROM superadmins
+                WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)
+                """, TEST_LOGIN_ID);
+        Cookie sessionCookie = loginSessionCookie();
+
+        mockMvc.perform(get("/api/v1/auth/session").cookie(sessionCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.effectiveRole").value("SUPERADMIN"))
+                .andExpect(jsonPath("$.name").doesNotExist());
     }
 
     @Test

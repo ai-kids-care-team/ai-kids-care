@@ -12,7 +12,8 @@ public record EffectiveAuthorizationContext(
         UserRoleAssignmentScopeType scopeType,
         Long activeKindergartenId,
         Long selectedKindergartenId,
-        Long membershipId
+        Long membershipId,
+        String name
 ) {
     public Long effectiveKindergartenId() {
         return scopeType == UserRoleAssignmentScopeType.KINDERGARTEN
@@ -26,7 +27,8 @@ public record EffectiveAuthorizationContext(
                 loginId,
                 role.name(),
                 scopeType.name(),
-                activeKindergartenId
+                activeKindergartenId,
+                name
         );
     }
 }

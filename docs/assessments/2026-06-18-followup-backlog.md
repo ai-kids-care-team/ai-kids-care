@@ -74,7 +74,7 @@ HALT 项须人工决策后方可继续。
 
 | ID | 描述 | 前置 | 优先级 |
 | --- | --- | --- | --- |
-| BE-4 | `/auth/session` 返回实名 `name` | 无 | P2 |
+| BE-4 | `/auth/session` 返回实名 `name` | **Done**（当前 worktree）。按角色从 teachers/guardians/superadmins 档案延迟查 name，PLATFORM_IT_ADMIN 返回 null（NON_NULL 抑制 key）；AuthSessionVO + EffectiveAuthorizationContext 添加 name 字段；GuardianRepository 添加 findByUser_Id；AuthEndpointTest 扩展 superadmin/teacher name 断言 + null-name 覆盖；PublishedOpenApiContractTest 更新 AuthSessionVO 属性集。 | P2 |
 | FE-name | 前端 name 显示修复 | BE-4 先行 | P2 |
 | FE-1 | 注册流 CSRF-less fetch 收口 | 无（独立） | P2 |
 | FE-2 | 前端不再传服务端身份字段 | 后端感谢信端点就绪 | P2 |

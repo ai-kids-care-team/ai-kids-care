@@ -221,8 +221,9 @@ class PublishedOpenApiContractTest {
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "level");
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "staffNo");
         assertComponentHasOnlyProperties(apiDocs, "AuthSessionVO", Set.of(
-                "userId", "loginId", "effectiveRole", "scopeType", "scopeId"
+                "userId", "loginId", "effectiveRole", "scopeType", "scopeId", "name"
         ));
+        assertComponentOptionalProperty(apiDocs, "AuthSessionVO", "name");
         assertComponentHasOnlyProperties(apiDocs, "TenantContextRequest", Set.of(
                 "kindergartenId"
         ));
