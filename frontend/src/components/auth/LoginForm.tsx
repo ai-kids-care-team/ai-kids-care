@@ -39,7 +39,7 @@ export function LoginForm() {
         id: String(response.userId),
         username: response.loginId,
         loginId: response.loginId,
-        name: response.loginId,
+        name: response.name,
         role: response.effectiveRole,
         scopeType: response.scopeType,
         scopeId: response.scopeId,

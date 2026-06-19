@@ -15,6 +15,7 @@ type LoginRequest = {
 export type AuthSessionResponse = {
   userId: number;
   loginId: string;
+  name?: string;
   effectiveRole: string;
   scopeType: 'PLATFORM' | 'KINDERGARTEN';
   scopeId?: number;

@@ -75,7 +75,7 @@ HALT 项须人工决策后方可继续。
 | ID | 描述 | 前置 | 优先级 |
 | --- | --- | --- | --- |
 | BE-4 | `/auth/session` 返回实名 `name` | **Done**（当前 worktree）。按角色从 teachers/guardians/superadmins 档案延迟查 name，PLATFORM_IT_ADMIN 返回 null（NON_NULL 抑制 key）；AuthSessionVO + EffectiveAuthorizationContext 添加 name 字段；GuardianRepository 添加 findByUser_Id；AuthEndpointTest 扩展 superadmin/teacher name 断言 + null-name 覆盖；PublishedOpenApiContractTest 更新 AuthSessionVO 属性集。 | P2 |
-| FE-name | 前端 name 显示修复 | BE-4 先行 | P2 |
+| FE-name | 前端 name 显示修复 | BE-4 先行 | P2（Done）。`AuthSessionResponse.name` 设为 `string \| undefined`（镜像后端 `@JsonInclude(NON_NULL)`）；`User.name` 改为可选字段；`SessionBootstrap` 和 `LoginForm` 写入真实 `name`（不再用 loginId 占位）；`AppLayout` 显示优先级改为 `name → loginId → '게스트'`；无档案的角色（PLATFORM_IT_ADMIN）优雅回退至 loginId；`CctvDashboardPage.personNameDisplay` 无需修改（已读 `name` 并以 `'—'` 兜底）。构建门验证通过（2026-06-19，Node v24.14.0 / npm 11.9.0）：`npm ci --legacy-peer-deps` 成功；`npm run lint` 0 errors 7 warnings（均为既存，无被更改文件）；`npm run build`（Next.js 16.1.6 Turbopack）编译成功，TypeScript 检查通过，20 页静态生成完成。 |
 | FE-1 | 注册流 CSRF-less fetch 收口 | 无（独立） | P2 |
 | FE-2 | 前端不再传服务端身份字段 | 后端感谢信端点就绪 | P2 |
 | FE-3 | 死代码清理 | 无（独立，低优先级） | P3 |

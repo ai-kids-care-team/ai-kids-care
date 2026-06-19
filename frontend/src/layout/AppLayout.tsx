@@ -17,11 +17,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const sessionUser = user;
     const hasSession = Boolean(sessionUser);
     const currentRole: UserRole = sessionUser?.role ?? 'GUARDIAN';
-    /** 상단바 로그인·로그아웃 옆: 로그인 아이디 우선 (`name`이 빈 문자열이면 `??`만으로는 `username`으로 안 넘어가 비어 보임) */
+    /** 상단바 로그인·로그아웃 옆: 실명(name) 우선, 없으면 loginId, 마지막으로 게스트 */
     const username =
+      sessionUser?.name?.trim() ||
       sessionUser?.loginId?.trim() ||
       sessionUser?.username?.trim() ||
-      sessionUser?.name?.trim() ||
       '게스트';
     const menuRoleType = hasSession ? sessionUser!.role : 'ANONYMOUS';
 
