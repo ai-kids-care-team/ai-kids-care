@@ -3,9 +3,11 @@ package com.ai_kids_care.v1.mapper;
 import com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO;
 import com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO;
 import com.ai_kids_care.v1.entity.AppreciationLetter;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
  * SPEC-0003：感谢信写操作 Mapper。
@@ -30,6 +32,7 @@ public interface AppreciationLetterMapper {
     @Mapping(target = "updatedAt", ignore = true)
     AppreciationLetter toEntity(AppreciationLetterCreateDTO dto);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "kindergarten", ignore = true)
     @Mapping(target = "senderUser", ignore = true)

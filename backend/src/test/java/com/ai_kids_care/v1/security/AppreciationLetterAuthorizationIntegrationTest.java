@@ -271,6 +271,35 @@ class AppreciationLetterAuthorizationIntegrationTest extends BaseIntegrationTest
         assertThat(((Number) row.get("kindergarten_id")).longValue()).isEqualTo(OWN_KG);
     }
 
+    // ── GUARDIAN 部分更新（仅 title）→ 200；未传字段（content/isPublic）保持不变 ─────────
+
+    @Test
+    void guardianPartialUpdate_onlyTitle_doesNotOverwriteOtherFields() throws Exception {
+        Long letterId = createLetterAsGuardian(GUARDIAN_LOGIN, false, "Original Title", "Original Content");
+        Cookie session = login(GUARDIAN_LOGIN);
+
+        // 仅发送 title，不含 content / isPublic
+        String body = "{\"title\":\"New Title\"}";
+
+        mockMvc.perform(withRealCsrf(put("/api/v1/appreciation_letters/{id}", letterId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                        .cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.letterId").value(letterId))
+                .andExpect(jsonPath("$.title").value("New Title"))
+                .andExpect(jsonPath("$.content").value("Original Content"))
+                .andExpect(jsonPath("$.isPublic").value(false));
+
+        // 验证 DB：content 和 is_public 未被 null 覆写
+        Map<String, Object> row = jdbc.queryForMap(
+                "SELECT title, content, is_public FROM appreciation_letters WHERE letter_id = ?",
+                letterId);
+        assertThat(row.get("title")).isEqualTo("New Title");
+        assertThat(row.get("content")).isEqualTo("Original Content");
+        assertThat(row.get("is_public")).isEqualTo(false);
+    }
+
     // ── GUARDIAN 无法更新他人信 → 404 ─────────────────────────────────────────────────
 
     @Test
