@@ -73,6 +73,7 @@ related_adrs: [ADR-0003, ADR-0009, ADR-0019, ADR-0028]
 - `AppreciationLetterCreateDTO`：`targetType`(enum 字符串)、`targetId`(Long)、`title`(NotBlank)、`content`(NotBlank)、`isPublic`(Boolean)。**无身份字段**。
 - `AppreciationLetterUpdateDTO`：`title`、`content`、`isPublic`。
 - **响应 VO 的 S0/S1 收敛**（默认建议，待 OQ-1 确认）：以 BE-4 的实名解析替代原始 `senderUserId` → 暴露 `senderName`；以 target 显示名替代裸 `targetId`（或同时保留供前端跳转，按 SPEC-0001 §敏感分级核定）；移除响应中的 `kindergartenId`（租户对调用者隐含）。`status` 是否出现在公开响应按 OQ-3 定。
+- **`editable` 归属信号（2026-06-20 FE-2 决策追加）**：VO 增加服务端派生的 `editable: Boolean`（= 当前调用者是否为本信作者）。FE 据此决定是否显示编辑/删除入口，**而不在客户端比对 `senderUserId`**（符合 SPEC-0001：UI 不从客户端数据推断身份）。非作者（含园所管理员、被致谢老师、同租户其他家长）一律 `editable=false`。该字段非敏感、加入 `PublishedOpenApiContractTest` 的 VO 字段锁集。
 - 守卫契约测试翻转：`SensitiveWriteContractTest`/`PublishedOpenApiContractTest` 中针对 appreciation letters 的 5 处 `assert*Absent` 改为存在性/正向断言。
 
 ## 不变量（Invariants）

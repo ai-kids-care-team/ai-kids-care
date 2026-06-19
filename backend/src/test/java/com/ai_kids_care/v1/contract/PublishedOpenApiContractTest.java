@@ -387,7 +387,7 @@ class PublishedOpenApiContractTest {
         assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "delete");
         assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterVO", Set.of(
                 "letterId", "senderName", "targetType", "targetName",
-                "title", "content", "isPublic", "createdAt", "updatedAt"
+                "title", "content", "isPublic", "editable", "createdAt", "updatedAt"
         ));
     }
 

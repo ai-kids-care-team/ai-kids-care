@@ -65,20 +65,21 @@ public class AppreciationLetterService {
         Long kgId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         String kw = normalizeKeyword(keyword);
 
+        Long viewerUserId = context.userId();
         return switch (context.role()) {
             case GUARDIAN -> repository
-                    .findVisibleForGuardian(kgId, context.userId(), kw, StatusEnum.ACTIVE, pageable)
-                    .map(this::buildVO);
+                    .findVisibleForGuardian(kgId, viewerUserId, kw, StatusEnum.ACTIVE, pageable)
+                    .map(l -> buildVO(l, viewerUserId));
             case TEACHER -> {
-                Long teacherId = resolveTeacherId(context.userId());
+                Long teacherId = resolveTeacherId(viewerUserId);
                 yield repository
                         .findVisibleForTeacher(kgId, teacherId, kw, StatusEnum.ACTIVE,
                                 AppreciationTargetTypeEnum.TEACHER, pageable)
-                        .map(this::buildVO);
+                        .map(l -> buildVO(l, viewerUserId));
             }
             case KINDERGARTEN_ADMIN -> repository
                     .findAllForAdmin(kgId, kw, StatusEnum.ACTIVE, pageable)
-                    .map(this::buildVO);
+                    .map(l -> buildVO(l, viewerUserId));
             default -> Page.empty(pageable);
         };
     }
@@ -108,7 +109,7 @@ public class AppreciationLetterService {
             recordDenied(context, kgId, id);
             throw new EntityNotFoundException("Appreciation letter not found");
         }
-        return buildVO(found.get());
+        return buildVO(found.get(), context.userId());
     }
 
     // ── 写操作（create / update / delete）────────────────────────────────────────────
@@ -132,7 +133,7 @@ public class AppreciationLetterService {
         letter.setStatus(StatusEnum.ACTIVE);
 
         repository.save(letter);
-        return buildVO(letter);
+        return buildVO(letter, context.userId());
     }
 
     /**
@@ -153,7 +154,7 @@ public class AppreciationLetterService {
 
         mapper.updateEntity(dto, letter);
         repository.save(letter);
-        return buildVO(letter);
+        return buildVO(letter, context.userId());
     }
 
     /**
@@ -180,8 +181,12 @@ public class AppreciationLetterService {
 
     /**
      * VO 组装：senderName/targetName 经额外 lookup 解析（Phase 1 N+1；可后续 JOIN 优化）。
+     * {@code editable} = 当前调用者是否为本信作者（服务端派生归属信号，供 FE 决定编辑/删除入口）。
      */
-    private AppreciationLetterVO buildVO(AppreciationLetter letter) {
+    private AppreciationLetterVO buildVO(AppreciationLetter letter, Long viewerUserId) {
+        boolean editable = viewerUserId != null
+                && viewerUserId.equals(letter.getSenderUser().getId());
+
         String senderName = guardianRepository
                 .findByUser_Id(letter.getSenderUser().getId())
                 .map(g -> g.getName())
@@ -206,6 +211,7 @@ public class AppreciationLetterService {
                 letter.getTitle(),
                 letter.getContent(),
                 letter.getIsPublic(),
+                editable,
                 letter.getCreatedAt(),
                 letter.getUpdatedAt()
         );

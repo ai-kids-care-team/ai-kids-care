@@ -240,6 +240,31 @@ class AppreciationLetterAuthorizationIntegrationTest extends BaseIntegrationTest
                 .andExpect(jsonPath("$.letterId").value(letterId));
     }
 
+    // ── editable 归属信号：作者=true，非作者=false（FE 据此显隐编辑/删除入口）─────────────
+
+    @Test
+    void editableFlag_trueForAuthor_falseForNonAuthor() throws Exception {
+        Long letterId = createLetterAsGuardian(GUARDIAN_LOGIN, true, "Editable Probe", "Body");
+
+        // 作者本人 → editable=true
+        mockMvc.perform(get("/api/v1/appreciation_letters/{id}", letterId)
+                        .cookie(login(GUARDIAN_LOGIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editable").value(true));
+
+        // 同租户其他家长（可见公开信，但非作者）→ editable=false
+        mockMvc.perform(get("/api/v1/appreciation_letters/{id}", letterId)
+                        .cookie(login(OTHER_GUARDIAN_LOGIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editable").value(false));
+
+        // 园所管理员（可见全部，但非作者）→ editable=false
+        mockMvc.perform(get("/api/v1/appreciation_letters/{id}", letterId)
+                        .cookie(login(ADMIN_LOGIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editable").value(false));
+    }
+
     // ── GUARDIAN update 本人信 → 200；target/sender 不变 ───────────────────────────────
 
     @Test
