@@ -2,7 +2,7 @@
 ADR: ADR-0026
 title: "ADR-0026: 摄像头流密码加密链路（Java 中介 AES-256-GCM）"
 status: Accepted
-implementation: In Progress
+implementation: Implemented (OQ-5 暂缓按决策，非 pending)
 date: 2026-06-18
 deciders: 接手人（Lead）起草；维护者 2026-06-18 Accept（OQ-1 选静态共享 Bearer token，批准开建）
 supersedes: []
@@ -18,7 +18,7 @@ related_specs: [SPEC-0001]
 
 Decision: `Accepted`（维护者 2026-06-18 签署）
 
-Implementation: `In Progress`（维护者 2026-06-18 批准开建）。**Phase 1（写路径）+ Phase 2（凭据接口 + Bearer filter）+ Phase 3（AI HTTP 客户端）已实现并验证。** **OQ-1 已定：静态共享 Bearer token（OQ1-A）；OQ-3 已定：B（信任 AI 按 stream_id 全局查，凭据接口不做租户隔离）。** 其余 OQ-2/4/5 在对应 Phase 实施时定。
+Implementation: `Implemented`（维护者 2026-06-18 批准开建）。**Phase 1（写路径）+ Phase 2（凭据接口 + Bearer filter）+ Phase 3（AI HTTP 客户端）+ Phase 4（种子/配置）已全部实现并验证。** **OQ-1 已定：静态共享 Bearer token（OQ1-A）；OQ-3 已定：B（信任 AI 按 stream_id 全局查，凭据接口不做租户隔离）；OQ-2 已定：A（AI 维持独立栈，不并入主 compose）；OQ-4 已定：C（种子密码列置 NULL）；OQ-5 已定：A 暂缓（应用层写路径原子写三列已保证内部一致性，DB 层加固为可选 follow-up）。**
 
 ## 背景（Context，as-built @ 2026-06-18）
 
@@ -60,15 +60,18 @@ Implementation: `In Progress`（维护者 2026-06-18 批准开建）。**Phase 1
    - `ai/scripts/stream_live_alert_service.py` `__main__` 块新增 `STREAM_ID` 分支：若设置 `STREAM_ID` 则调凭据接口拼 URL，否则回退到 `STREAM_URL`（legacy）；日志只打印 host:port，不含密码。
    - `ai/tests/test_stream_credentials.py`（新增）：4 个 mock 测试（200+凭据注入、200+null 凭据、fallback build、401 抛 RuntimeError 且不含 token）。
    - `ai/.env.example` 追加 `JAVA_BACKEND_URL`、`STREAM_ID`、`AI_SERVICE_TOKEN`。
-4. **Phase 4 — 种子/配置/CI**：`39_camera_streams_seed.sql`（依 OQ-4）、docker-compose(.prod).yml、.env.example、compose-config CI dummy env。
+4. **Phase 4 — 种子/配置** ✅ 已实现（2026-06-19）：
+   - `db/initdb/39_camera_streams_seed.sql`：全部 8 行种子行的五个凭据列改为 NULL（OQ-4=C）；旧占位串移除；文件顶部增说明注释。
+   - `ai/docker-compose.yml`：`environment` 块追加三个 passthrough 变量（`JAVA_BACKEND_URL`/`AI_SERVICE_TOKEN`/`STREAM_ID`，均带 fallback 默认值）（OQ-2=A）。
+   - OQ-5=A 暂缓：无 Flyway DDL 变更，应用层写路径已保证原子性。
 
 ## 开放问题（OQ）
 
 - **OQ-1 [已定 2026-06-18]**：凭据接口认证模型 = **A 静态共享 Bearer token**（`AI_SERVICE_TOKEN` env，Java `/internal/**` filter 常量时间比较；token 在 Java+AI env，AES 密钥仍仅 Java）。
-- **OQ-2 [中]**：AI 推理服务是否纳入主 `docker-compose.yml`（影响 `JAVA_BACKEND_URL`）？
+- **OQ-2 [已定 2026-06-19] A — AI 维持独立栈，不并入主 compose**：`JAVA_BACKEND_URL`/`AI_SERVICE_TOKEN`/`STREAM_ID` 以 passthrough 形式加入 `ai/docker-compose.yml`；FastAPI serving 路径不受影响（空字符串默认值）。
 - **OQ-3 [已定 2026-06-19]**：凭据接口**不**强制 kindergarten 租户隔离（选 **B**）——AI 为平台级基建、处理全部园所的流且无 session/tenant 上下文，故按 `stream_id` 全局查；纵深防御由 `/internal/**` 的 Bearer token + `ROLE_AI_SERVICE` 提供。
-- **OQ-4 [中]**：种子策略 = A（用 dev 密钥真实加密）/ B（保留占位 + 更新注释）？
-- **OQ-5 [低]**：Phase 1 后是否经 Flyway 给 `stream_password_key_version` 加 NOT NULL？
+- **OQ-4 [已定 2026-06-19] C — 种子密码列置 NULL**（demo 流无真实凭据；真实摄像头经 POST/PUT 加密配置）：`39_camera_streams_seed.sql` 中全部 8 行的 `stream_user`/`stream_password_ciphertext`/`stream_password_iv`/`stream_password_key_version`/`credential_updated_at` 改为 NULL；旧占位串（`enc_pw_*`/`iv_*`/`v1`）会导致 `AesGcmCryptoUtil.decrypt()` 抛出，故必须移除。
+- **OQ-5 [已定 2026-06-19] A 暂缓** — 应用层在写路径原子写三列已保证内部一致性；如需 DB 层加固可作为可选 follow-up，绝不 blanket NOT NULL（`stream_password_ciphertext`/`iv`/`key_version` 均可空，允许 demo/无密码流存在）。
 - **OQ-6 [低，延后]**：v2 轮换时是否引入 AAD（绑 `stream_id`）防跨流密文重放？
 
 ## 后果（Consequences）

@@ -10,6 +10,25 @@ services:
       AI_MODEL_DIR: /app/outputs/videomae_baseline/best_model
       AI_SERVICE_HOST: 0.0.0.0
       AI_SERVICE_PORT: 8001
+      # ADR-0026 OQ-2=A: AI is an independent stack and is NOT merged into the main
+      # docker-compose.yml. These three vars are consumed only by
+      # stream_live_alert_service.py (__main__ entry point); they are not used by
+      # the FastAPI serving path on port 8001.
+      #
+      # JAVA_BACKEND_URL: default http://backend:8080 is only valid when the AI
+      # container and the Java backend share a Docker network (e.g. via
+      # docker-compose.prod.yml network attachment). In production, set this to the
+      # actual reachable backend address.
+      #
+      # AI_SERVICE_TOKEN must match the AI_SERVICE_TOKEN env var set on the Java
+      # backend. The AI script validates at runtime: __main__ raises RuntimeError if
+      # STREAM_ID is set but AI_SERVICE_TOKEN is absent or empty.
+      #
+      # STREAM_ID and AI_SERVICE_TOKEN use empty-string defaults so the FastAPI
+      # serving mode (the normal container start path) starts without error.
+      JAVA_BACKEND_URL: ${JAVA_BACKEND_URL:-http://backend:8080}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      STREAM_ID: ${STREAM_ID:-}
     expose:
       - "8001"
     volumes:
