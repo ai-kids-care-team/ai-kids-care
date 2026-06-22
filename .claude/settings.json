@@ -3,7 +3,6 @@
   "permissions": {
     "allow": [
       "Bash(git *)",
-      "Bash(bash scripts/test-backend.sh*)",
       "Bash(npm.cmd *)"
     ],
     "defaultMode": "acceptEdits"

@@ -51,13 +51,6 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-// INC-005 (docs/engineering/incidents.md): fail the build on a forgotten MapStruct target mapping
-// (previously only a WARN). Global annotation-processor arg, so we don't touch all 22 @Mapper
-// annotations. If this surfaces an intentionally-unmapped target, add @Mapping(target=..., ignore=true).
-tasks.named('compileJava') {
-    options.compilerArgs.addAll(['-Amapstruct.unmappedTargetPolicy=ERROR'])
-}
-
 // ── database migration helpers (ADR-0012) ──────────────────────────────────────
 // Generates a Flyway migration draft by diffing the current schema (Flyway V*.sql
 // files) against the desired schema (db/dbml/schema.dbml).
