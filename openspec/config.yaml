@@ -1,0 +1,39 @@
+schema: spec-driven
+
+# 项目上下文：创建 OpenSpec 工件时展示给 AI。
+context: |
+  # AI Kids Care —— 多租户幼儿园看护系统（长期生产系统）
+
+  ## 工作范式（重要）
+  - 「做什么」用 OpenSpec：能力沉淀在 openspec/specs；变更走 propose → apply → archive。
+  - 「怎么可靠地做」用 superpowers 技能：brainstorming / writing-plans / executing-plans /
+    test-driven-development / verification-before-completion / requesting-code-review /
+    using-git-worktrees / finishing-a-development-branch 等。
+  - 优先级：用户显式指令 > superpowers 技能 > 默认行为。
+
+  ## 技术栈
+  - frontend/：Next.js 静态导出，Nginx 托管。
+  - backend/：Spring Boot REST API + JPA + Flyway + Neo4j 查询适配。
+  - ai/：FastAPI 推理 + 独立 VideoMAE 脚本。
+  - db/：PostgreSQL（设计/fixtures）+ Neo4j（loader）。
+
+  ## 语言策略
+  - 用请求所用语言与维护者沟通。
+  - 持久工程文档用简体中文 + 既有英文技术术语。
+  - 保留代码标识符、API 路径、enum 值、数据库名、韩语产品文案不变。
+
+  ## 领域与安全（产品事实）
+  - 多租户按 kindergarten_id 隔离。
+  - 鉴权为服务端会话（cookie/CSRF），非 stateless JWT。
+  - RRN 等敏感标识符单向哈希存储；绝不打印/提交密钥与敏感数据。
+
+  ## 分支 / 发布 / CD
+  - develop = 集成 trunk（直接提交）；main = 受保护发布线，经 develop → main PR。
+  - 发布门：GitHub Actions（Compose Config）+ code-owner 批准 + 全新独立评审 + 维护者 merge。
+  - 发布后 release.yml 构建 + 冒烟 +（production 环境批准后）推 :prod，watchtower 部署。
+
+rules:
+  proposal:
+    - 写明 Why 与 Non-goals。
+  tasks:
+    - 破坏性任务（删除 / 迁移 / schema / 部署）须在 apply 前经维护者逐个批准。
