@@ -23,24 +23,27 @@ which is disallowed by the testing-and-ci capability).
 
 ### Requirement: Schema source artifacts are guarded against drift
 
-The schema source artifacts SHALL stay aligned with the Flyway migrations, which are the source of
-truth for the deployed schema. A capability test SHALL assert structural invariants against the
-fully-migrated schema (Flyway V1..Vn applied to a PostgreSQL Testcontainer) and SHALL assert that
-`db/initdb/01_create_schema.sql` remains a structural mirror of `V1__initial_baseline.sql`.
-`db/dbml/schema.dbml` SHALL reflect the cumulative migrated schema (no stale pre-migration column
-definitions).
+The schema source artifacts SHALL stay aligned with the Flyway migrations (V1..Vn), which are the
+source of truth for the deployed schema. A capability test SHALL assert structural invariants
+against the fully-migrated schema (initdb baseline + V2..Vn applied to a PostgreSQL Testcontainer)
+so that a migration regression leaving the live schema in the wrong terminal shape is caught. `db/dbml/schema.dbml` SHALL reflect the cumulative migrated
+schema and SHALL be reconciled whenever a migration changes a column/type/constraint (verified at
+review); `db/initdb/01_create_schema.sql` is the demo/CI seed baseline and need not be a strict
+textual mirror of `V1__initial_baseline.sql` — the migrations are written idempotently
+(`IF NOT EXISTS` / `DROP NOT NULL`) so the fresh-V1 and initdb+baseline paths converge to the same
+terminal schema.
 
 #### Scenario: Migrated schema matches structural invariants
 
 - **WHEN** the backend test suite runs Flyway migrations against a PostgreSQL Testcontainer
-- **THEN** structural assertions hold — e.g. `push_subscriptions` exists and `device_tokens` / `device_platform_enum` do not after V7; `notifications.sent_at` and `fail_reason` are nullable after V3
+- **THEN** structural assertions hold — e.g. `push_subscriptions` exists and `device_tokens` / `device_platform_enum` do not after V7; `notifications.sent_at` and `fail_reason` are nullable after V3; `children`/`guardians`/`teachers` have `rrn_hash` NOT NULL and no `rrn_encrypted` after V4–V6
 
-#### Scenario: initdb stays a V1 mirror
+#### Scenario: Migration regression is caught
 
-- **WHEN** `db/initdb/01_create_schema.sql` or `V1__initial_baseline.sql` is edited and they diverge structurally
-- **THEN** the schema-consistency test fails until the two are brought back into structural equivalence
+- **WHEN** a change to a migration would leave the terminal schema in the wrong shape (missing table, wrong nullability, dropped guard)
+- **THEN** the schema-consistency test fails before the change can merge through the backend test gate
 
-#### Scenario: DBML drift is caught
+#### Scenario: DBML is reconciled when a migration changes the schema
 
-- **WHEN** a Flyway migration changes a column's nullability/type but `db/dbml/schema.dbml` is not updated to match
-- **THEN** the drift is surfaced (the dbml no longer reflects the cumulative migrated schema), to be reconciled before release
+- **WHEN** a Flyway migration changes a column's nullability/type/constraint
+- **THEN** `db/dbml/schema.dbml` is updated in the same change to reflect the new terminal schema (kept aligned by process and review, since the DBML is the DB-first design source)

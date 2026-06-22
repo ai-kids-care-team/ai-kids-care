@@ -36,9 +36,10 @@ Change 2 拆除的三道 data-platform 护栏至今只在 `rebuild-guardrails` s
 - `push_subscriptions` 存在、`device_tokens`/`device_platform_enum` 不存在（V7 生效）；
 - `notifications.sent_at`/`fail_reason` 可空（V3 生效）、`retry_count` 有默认；
 - 关键枚举/唯一索引存在（uq_notifications_dedupe、uq_push_subscriptions_*、uq_user_account_phone 等代表项）。
-并加 `initdb/01_create_schema.sql` 与 `V1__initial_baseline.sql` 的结构一致性断言（initdb=V1 镜像不变量；用规范化文本/对象比较，容忍注释/空白差异）。
-- **修复**：测试会暴露 `schema.dbml` 的 `sent_at`/`fail_reason` 漂移（与 V3 不符）等——本 change 回填 dbml 使其与 V2+ 迁移对齐（dbml 是 DB-first 源，应反映最新期望 schema）。修复范围 = 测试实际暴露的项，apply 时枚举。
-- 备选：复活 digest.md + CI diff 脚本——否决（已删、属 harness 层）；纯 dbml↔initdb 文本 diff——作为 V1 镜像断言的一部分，但主守卫是「迁移后真实 schema 结构断言」（迁移是 SoR）。
+主守卫是「迁移**终态**真实 schema 结构断言」（迁移是 SoR）。
+- **apply 期纠正**：不加「initdb=V1 严格镜像」断言 —— 经核 initdb **并非** V1 严格镜像（已含 V4 的 `rrn_hash`、`rrn_encrypted` nullable，却仍是 pre-V3 的 `sent_at NOT NULL`、pre-V6 的 `rrn_encrypted` 列）。迁移用 `IF NOT EXISTS`/`DROP NOT NULL` 幂等写法容忍此漂移，故 fresh-V1 与 initdb+baseline 两路径**收敛到同一终态**（套件绿即证 initdb 路径收敛）。强行断言 V1≡initdb 会误报。
+- **dbml 回填**：经核 dbml 实际只有 notifications（V3：sent_at/fail_reason 应 nullable、retry_count default 0）漂移；V2 audit/role、V4–V6 rrn、V7 push 均已在 dbml。本 change 全量对齐（实际＝修 notifications 块）。dbml 非运行时载荷、无自动 drift 守卫，靠「改迁移即同步 dbml + 评审」维持（spec 已据实写）。
+- 备选：复活 digest.md + CI diff 脚本——否决（已删、属 harness 层）。
 
 ### D4：测试归属与运行
 三项均 backend Gradle 测试、走 `backend-java-tests.yml` 门。INC-003/往返测试为纯单测（快）；schema 断言为 Testcontainers 集成测试（复用共享容器）。本机用 `gradle:8.7-jdk21` 容器 + DinD 实跑验证。

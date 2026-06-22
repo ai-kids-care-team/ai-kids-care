@@ -3,9 +3,10 @@ package com.ai_kids_care.v1.mapper;
 import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.vo.CctvCameraVO;
 import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface CctvCameraMapper {
 
     @Mapping(source = "id", target = "cameraId")

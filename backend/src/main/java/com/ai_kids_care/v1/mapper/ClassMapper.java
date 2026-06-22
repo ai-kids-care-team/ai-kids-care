@@ -6,7 +6,7 @@ import com.ai_kids_care.v1.entity.Class;
 import com.ai_kids_care.v1.vo.ClassVO;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface ClassMapper {
 
     @Mapping(source = "id", target = "classId")

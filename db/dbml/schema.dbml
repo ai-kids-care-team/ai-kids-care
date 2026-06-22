@@ -589,9 +589,9 @@ Table notifications {
   status notification_status_enum [not null, note: "전송 상태(세분화)"]
 
   dedupe_key varchar [not null, note: "중복 방지 키(멱등성 키, 애플리케이션에서 생성)"]
-  sent_at timestamptz [not null, note: "전송 완료/시도 일시"]
-  fail_reason varchar [not null, note: "실패 사유"]
-  retry_count int [not null, note: "재시도 횟수"]
+  sent_at timestamptz [note: "전송 완료/시도 일시(전송 전 NULL; V3)"]
+  fail_reason varchar [note: "실패 사유(실패 없으면 NULL; V3)"]
+  retry_count int [not null, default: 0, note: "재시도 횟수(V3: DEFAULT 0)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
 
   Indexes {

@@ -6,7 +6,7 @@ import com.ai_kids_care.v1.entity.Room;
 import com.ai_kids_care.v1.vo.RoomVO;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface RoomMapper {
 
     @Mapping(source = "id", target = "roomId")

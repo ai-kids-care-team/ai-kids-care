@@ -5,7 +5,7 @@ import com.ai_kids_care.v1.vo.KindergartenLookupResponse;
 import com.ai_kids_care.v1.vo.KindergartenVO;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface KindergartenMapper {
 
     @Mapping(source = "id", target = "kindergartenId")

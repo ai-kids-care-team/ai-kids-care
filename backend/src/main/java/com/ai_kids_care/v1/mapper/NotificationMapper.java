@@ -6,7 +6,7 @@ import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface NotificationMapper {
 
     @Mapping(source = "id", target = "notificationId")
