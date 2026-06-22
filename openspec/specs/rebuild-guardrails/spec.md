@@ -25,4 +25,3 @@ each one's rebuild:
 #### Scenario: Consulting the backlog before release
 - **WHEN** a contributor prepares a release touching a capability listed above
 - **THEN** the backlog identifies the guardrail to (re-)build for that capability before release
-

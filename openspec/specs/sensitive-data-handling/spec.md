@@ -153,4 +153,3 @@ Data is classified into four levels. S0 (Secret/Credential) and S1 (Restricted P
 
 - **WHEN** a `GUARDIAN` accesses child data for a child with whom they have an ACTIVE relationship
 - **THEN** only minimum necessary fields are returned (e.g., `GuardianChildVO` with `childId`, `name`, `status`); birth date, address, and `rrnFirst6` are excluded from list and standard detail responses
-

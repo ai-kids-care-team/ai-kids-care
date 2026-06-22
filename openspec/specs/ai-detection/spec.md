@@ -210,4 +210,3 @@ When the closed loop is implemented, the backend MUST use PostgreSQL `LISTEN/NOT
 
 - **WHEN** the backend restarts after a period of downtime during which the AI wrote detection rows
 - **THEN** the backend scans for rows in `detection_events` that have not yet been processed and pushes them to connected clients
-

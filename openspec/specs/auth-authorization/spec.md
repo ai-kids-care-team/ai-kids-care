@@ -345,4 +345,3 @@ A production deployment MUST NOT serve session-authenticated traffic until all o
 
 - **WHEN** the merged production compose configuration (`docker-compose.yml` + `docker-compose.prod.yml`) is resolved
 - **THEN** `SESSION_COOKIE_SECURE` is `"true"` for the backend service, Caddy occupies host ports 80/443, and the frontend does not publish any host port directly
-

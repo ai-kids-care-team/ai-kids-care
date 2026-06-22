@@ -177,4 +177,3 @@ scope for this capability and SHALL be connected when the audit-writer capabilit
 - **WHEN** an approval or rejection action completes inside the transaction
 - **THEN** the code reaches the reserved audit hook point; no audit write occurs until the writer
   is implemented
-

@@ -165,4 +165,3 @@ The device token management API SHALL be considered not yet published. The `Devi
 
 - **WHEN** a client sends any HTTP request to `/api/v1/device_tokens`
 - **THEN** the server returns HTTP 405 (no handlers are registered)
-

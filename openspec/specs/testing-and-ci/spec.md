@@ -28,4 +28,3 @@ enforcement such as `mapstruct.unmappedTargetPolicy=ERROR`.
 #### Scenario: Compiling the backend
 - **WHEN** the backend is compiled
 - **THEN** an unmapped MapStruct target follows the MapStruct default policy, not a build-failing harness override
-

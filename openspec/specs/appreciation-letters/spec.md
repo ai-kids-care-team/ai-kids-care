@@ -148,7 +148,7 @@ parameter. When `keyword` is supplied the server SHALL filter within the caller'
 matching against `title` and `content`.
 
 #### Scenario: Keyword filters on title and content
-- **WHEN** a GUARDIAN sends `GET /api/v1/appreciation_letters?keyword=감사` 
+- **WHEN** a GUARDIAN sends `GET /api/v1/appreciation_letters?keyword=감사`
 - **THEN** only letters visible to that caller whose `title` or `content` contains `감사` are returned
 
 ### Requirement: Contract guard tests are flipped to positive assertions
@@ -160,4 +160,3 @@ replaced with positive existence assertions.
 #### Scenario: Contract tests pass after implementation
 - **WHEN** `SensitiveWriteContractTest` and `PublishedOpenApiContractTest` are executed
 - **THEN** all assertions related to appreciation letters pass green
-

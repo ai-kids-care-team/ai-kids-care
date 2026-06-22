@@ -39,4 +39,3 @@ skills as the source of development process.
 - **THEN** `.ai/`, `.claude/agents`, `.claude/workflows`, `.claude/hooks`,
   `.claude/skills/{authz-read-slice,checkpoint}`, and `docs/engineering/*`
   (except `schema-digest.md`, handled in Change 2) no longer exist
-
