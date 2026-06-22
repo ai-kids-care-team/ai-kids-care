@@ -30,6 +30,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    # Required fail-fast vars in docker-compose.yml (no weak defaults, SPEC-0001 N-1).
+    # The smoke step actually boots the stack, so dummy-but-valid values are required:
+    # the backend validates these at startup — RrnHashConfig/CameraStreamCryptoConfig
+    # @NotBlank, and the AES key must be a 32-byte Base64 value. Mirrors
+    # compose-config.yml; values are intentionally non-secret (smoke test only).
+    env:
+      POSTGRES_PASSWORD: ci-smoke-test
+      NEO4J_PASSWORD: ci-smoke-test
+      REDIS_PASSWORD: ci-smoke-test
+      RRN_HASH_PEPPER: test-pepper-not-secret-2026
+      AI_SERVICE_TOKEN: test-ai-service-token-not-secret-2026
+      CAMERA_STREAM_AES_KEY_V1: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
