@@ -72,6 +72,8 @@ class NotificationDispatchTest {
         assertThat(n.getStatus()).isEqualTo(NotificationStatusEnum.SENT);
         assertThat(n.getSentAt()).isNotNull();
         verify(pushoverService).sendToUser("user-key-1", "Title", "Body");
+        // lifecycle persists twice: SENDING (before the external call) then SENT
+        verify(repository, times(2)).save(n);
     }
 
     @Test

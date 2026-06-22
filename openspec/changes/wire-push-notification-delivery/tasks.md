@@ -26,7 +26,7 @@
 - [x] 4.1 notifications spec delta 与实现一致（push_subscriptions 模型、Pushover 配置化投递、push-subscription 管理 API 仍 405）
 - [x] 4.2 容器内 `gradle:8.7-jdk21` 全套件全绿：**141 tests / 2 skipped(@Disabled) / 0 failures**
 - [x] 4.3 范围核对（git diff 确认）：产品改动仅 notifications 子系统 + config + application.yml + V7/dbml；SMS/EMAIL/规则引擎/触发器/管理 API 未触碰；秘密仅 `${ENV}`，测试用非密占位
-- [ ] 4.4 requesting-code-review；按反馈修正
+- [x] 4.4 code review（sonnet）完成，结论 Ready to merge: Yes；采纳 I1(原子性缺口注释+design 记录)/I2(catch 收窄为 IllegalStateException)/m1(成功路径 verify save×2)/m4(seed 23 注释)，重跑全绿
 - [ ] 4.5 合并 develop / push / `/opsx:archive`（用户驱动，含 spec delta sync）
 
 ---

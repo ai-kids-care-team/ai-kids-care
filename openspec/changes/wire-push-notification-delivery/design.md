@@ -68,6 +68,7 @@ PUSH 才需要外部注册身份；SMS=`users.phone`、EMAIL=`users.email` 已�
 - [provider 枚举初期单值显多余] → 接受；这是「换商不再迁移」的小代价，符合方案 3 取舍。
 - [真实 Pushover 凭据泄露] → 仅 `${ENV}`，test profile 用非密占位；绝不提交。
 - [投递原语无人调用 = 暂无端到端通知] → 接受且明示：本 change 消隐患 + 立正确原语，端到端待规则引擎 change。
+- [投递原子性缺口（code review I1）] 外部 Pushover 调用在 `dispatch` 的 `@Transactional` 边界内：若推送成功但随后 SENT save 失败，事务回滚、行停在 `SENDING`（推送已发出）。本 v1 原语暂无 live 触发器，接受此限制；**规则引擎 change 接入触发器前，应加 idempotency key / 两阶段标记**避免重复推送与 SENDING 滞留。`dispatch` 内已加注释。
 
 ## Migration Plan
 

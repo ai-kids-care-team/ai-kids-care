@@ -1,3 +1,7 @@
+-- NOTE: device_tokens is the V1-baseline table that initdb mirrors. Flyway V7
+-- (replace_device_tokens_with_push_subscriptions) DROPs it after baseline+migrate, so these
+-- rows do not persist into the live schema (push_subscriptions starts empty). Kept only to
+-- keep initdb a faithful V1 mirror. See OpenSpec change wire-push-notification-delivery.
 insert into device_tokens (device_id, user_id, platform, push_token, status, created_at, last_seen_at) values (1, 1, 'ANDROID', '91bec46859b8dcf1b4ebe2c4a53b3edd456c7b56ee9fbc982092846f7a52c52b', 'ACTIVE', '2025-05-07 20:20:53', '2025-09-15 07:16:57');
 insert into device_tokens (device_id, user_id, platform, push_token, status, created_at, last_seen_at) values (2, 2, 'IOS', 'bd416376eafdbf073b2b9ad24ad30cf523dbdcfd8a3f770bb5da4379ca6a053a', 'DISABLED', '2025-10-02 00:21:53', '2025-10-02 00:21:53');
 insert into device_tokens (device_id, user_id, platform, push_token, status, created_at, last_seen_at) values (3, 3, 'ANDROID', 'cd8016378f31fbcb5eabef1d5ead7fe9fc420dd7e467d122fab18d24526b4cb9', 'ACTIVE', '2025-07-22 03:20:28', '2026-01-06 00:30:34');

@@ -151,6 +151,14 @@ public class NotificationService {
             return;
         }
 
+        // Delivery-atomicity gap (acceptable for this v1 primitive, no live trigger yet):
+        // the external Pushover call sits inside the @Transactional boundary. If the push
+        // succeeds but the subsequent SENT save fails, the transaction rolls back and the
+        // row is left at SENDING (the push already went out). A trigger added later (rule
+        // engine) should add an idempotency key / two-phase mark before relying on this at
+        // volume. We catch only IllegalStateException (the translated PushoverException) so
+        // that programming errors (IllegalArgumentException) and DataAccessException
+        // propagate and roll back rather than being recorded as a delivery FAILED.
         try {
             pushoverService.sendToUser(
                     subscription.get().getAddress(),
@@ -159,7 +167,7 @@ public class NotificationService {
             notification.setStatus(NotificationStatusEnum.SENT);
             notification.setSentAt(OffsetDateTime.now());
             repository.save(notification);
-        } catch (RuntimeException e) {
+        } catch (IllegalStateException e) {
             markFailed(notification, "Pushover delivery failed: " + e.getMessage());
         }
     }
