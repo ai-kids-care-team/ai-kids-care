@@ -45,3 +45,12 @@ superpowers」最小化终态。原始内容保留在 git 历史与已归档 cha
 - ADR 取舍：28 份 ADR 的**当前事实**迁入对应能力 spec；ADR 的**决策理由（Why）**不进 OpenSpec 能力 spec，
   仅存于 git 历史。这是单个大 change + 最小化的已知代价（你已确认）。
 - 体量大、blast radius 大（已提示）。建议 apply 分阶段提交（每能力一提交）以便评审。
+
+## Known Gaps Carried Forward（迁移评审发现，记录以防随 docs 删除丢失）
+
+迁移评审中各能力 spec 已忠实记录如下「规范要求存在、实现滞后」的缺口（spec 是目标，缺口待 TDD 重建时补齐）：
+- **auth-authorization**：ADR-0019 stage 4-6 部分延后——DetectionEvent 租户迁移（控制器已删）、`GuardianChildPolicy` 全量、状态变更全量会话吊销触发器。
+- **notifications**：Pushover 凭证硬编码空串（PUSH 运行时即抛错）、SMS 未接线、规则引擎→派发管道未实现、`DeviceTokenController`/`NotificationRuleController` 为空壳。
+- **ai-detection**：ADR-0015 闭环为目标态，当前仅 Pushover/SMS/CSV 告警、无 DB 写入；检测表已就绪但未接。
+- **data-platform**：loader 多数节点用 CSV 快照而非实时 PG 查询（与 ADR-0002「PG 派生视图」目标有偏差）。
+- **ai 环境**：架构文档称 Python 3.14/CUDA 13.2，Dockerfile 用 python:3.12-slim（源文档未解决的矛盾，未在 spec 断言版本）。
