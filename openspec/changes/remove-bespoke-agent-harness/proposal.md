@@ -16,6 +16,7 @@ harness 层」——宪法/指令散文、自研 agent 与 workflow、本机 hoo
   （→ 改用 superpowers 子 agent / 评审技能）。
 - 删除 `.claude/workflows/`：`implement-review-loop.js` / `team-pipeline.js`
   （→ superpowers executing-plans / dispatching-parallel-agents）。
+- 删除 `scripts/clean-workflow-trees.sh`（team-pipeline worktree 清理脚本，随 workflow 一并失效）。
 - 删除 `.claude/hooks/`（`high-risk-task-guard.ps1`、`README.md`）及 `settings.json` 的
   `hooks`（SessionStart / Stop / TaskCreated）与 `env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`。
 - 删除 `.claude/skills/authz-read-slice/`、`.claude/skills/checkpoint/`
