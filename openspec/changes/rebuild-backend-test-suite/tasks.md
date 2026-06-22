@@ -54,7 +54,7 @@
 - [x] 7.1 容器内 `gradle:8.7-jdk21` DooD 实跑 `./gradlew test` 全绿：**132 tests / 2 skipped(@Disabled) / 0 failures / 0 errors**，BUILD SUCCESSFUL
 - [x] 7.2 确认零产品源码改动：`git status` 仅含 `src/test/**` + `.github/workflows/backend-java-tests.yml` + `openspec/**`，无 `src/main` 改动；build.gradle 未改（依赖本已齐）。TDD 未暴露需修的产品缺陷
 - [x] 7.3 code review（sonnet reviewer）完成，结论 Ready to merge: Yes；采纳 I-1/m-2/m-3（已应用并重跑绿），其余缺口按增量哲学接受/延后
-- [ ] 7.4 提交 develop；记录 follow-up：维护者把 Backend Java Tests 门加入 main 分支保护 required-status-checks 〔待用户确认合并策略〕
+- [x] 7.4 已 FF 合并到本地 develop（commit 9567264）。**待办**：(a) push develop 到远端（用户决定时机）；(b) 维护者把 `Gradle test (Java 21)` 加入 main 分支保护 required-status-checks（GitHub 侧操作）
 ```
 
 ## 维护者批准项（apply 前确认）
