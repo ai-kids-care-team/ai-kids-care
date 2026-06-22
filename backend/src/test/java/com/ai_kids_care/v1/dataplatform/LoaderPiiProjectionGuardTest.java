@@ -20,9 +20,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * The Neo4j data-loader scripts in {@code db/ne4j_kindergartens/} MUST NOT project any S0/PII
  * field into graph node properties. This test statically scans the loader Python source for
- * Cypher property binds of the form {@code <var>.<field> = $<param>} and fails if any forbidden
- * field is bound. It does not run the loaders or touch Neo4j — pure source-text scan, so it is
- * independent of the loader runtime architecture (CSV snapshot vs live PG).
+ * Cypher writes that BIND a forbidden field to a parameter, in either form the loaders could use:
+ *   - property assign:  {@code SET node.<field> = $param}
+ *   - map-entry bind:   {@code SET node += { <field>: $param }}  (or a map literal)
+ * Python {@code #} line comments are stripped first to avoid flagging commented-out examples.
+ * It does not run the loaders or touch Neo4j — pure source-text scan, independent of the loader
+ * runtime architecture (CSV snapshot vs live PG).
+ *
+ * Detection boundary (kept honest, INC-003 is a security guard): it flags a forbidden field bound
+ * to a {@code $param}. It does NOT detect value-side f-string interpolation
+ * ({@code f"SET n.email = '{row['email']}'"}) — the loaders use parameter binding exclusively, and
+ * an embed of that kind would still surface the forbidden field name as a write target on review.
+ * {@code REMOVE}/{@code MATCH}/{@code RETURN}/{@code WHERE} uses are intentionally not flagged
+ * (e.g. no000_scrub_sensitive.py REMOVEs PII — that is the remediation, not a projection).
  *
  * Forbidden fields per the data-platform spec (INC-003).
  */
@@ -35,10 +45,15 @@ class LoaderPiiProjectionGuardTest {
             "contact_phone", "contact_email",
             "stream_password_encrypted", "stream_password_ciphertext");
 
-    // Matches a Cypher property bind: someNode.<forbidden> = $param  (the loaders' write mechanism).
-    // Skips comment-block RETURN/WHERE clauses, CSV-header docstrings, and SQL positional params ($1).
-    private static final Pattern FORBIDDEN_BIND = Pattern.compile(
-            "\\b[A-Za-z_]\\w*\\.(" + String.join("|", FORBIDDEN_FIELDS) + ")\\s*=\\s*\\$[A-Za-z_]");
+    private static final String FORBIDDEN_ALT = String.join("|", FORBIDDEN_FIELDS);
+
+    // Cypher property assign: someNode.<forbidden> = $param  (excludes SQL positional $1).
+    private static final Pattern PROP_ASSIGN = Pattern.compile(
+            "\\b[A-Za-z_]\\w*\\.(" + FORBIDDEN_ALT + ")\\s*=\\s*\\$[A-Za-z_]");
+
+    // Cypher map-entry bind: { ... <forbidden>: $param ... }  (covers SET n += {email: $email}).
+    private static final Pattern MAP_ENTRY_BIND = Pattern.compile(
+            "(?<![A-Za-z_])(" + FORBIDDEN_ALT + ")\\s*:\\s*\\$[A-Za-z_]");
 
     private static Path loaderDir() {
         return Paths.get(System.getProperty("user.dir"))
@@ -54,6 +69,16 @@ class LoaderPiiProjectionGuardTest {
         } catch (IOException e) {
             throw new UncheckedIOException("cannot list loader dir: " + dir, e);
         }
+    }
+
+    /** Drop Python {@code #} line comments so commented-out examples aren't flagged. */
+    private static String stripHashComments(String source) {
+        StringBuilder out = new StringBuilder(source.length());
+        for (String line : source.split("\n", -1)) {
+            int hash = line.indexOf('#');
+            out.append(hash >= 0 ? line.substring(0, hash) : line).append('\n');
+        }
+        return out.toString();
     }
 
     @Test
@@ -73,9 +98,12 @@ class LoaderPiiProjectionGuardTest {
             } catch (IOException e) {
                 throw new UncheckedIOException("cannot read " + file, e);
             }
-            Matcher m = FORBIDDEN_BIND.matcher(source);
-            while (m.find()) {
-                violations.add(file.getFileName() + ": " + m.group().trim());
+            String code = stripHashComments(source);
+            for (Pattern pattern : List.of(PROP_ASSIGN, MAP_ENTRY_BIND)) {
+                Matcher m = pattern.matcher(code);
+                while (m.find()) {
+                    violations.add(file.getFileName() + ": " + m.group().trim());
+                }
             }
         }
 

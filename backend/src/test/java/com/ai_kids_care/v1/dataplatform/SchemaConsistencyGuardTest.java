@@ -46,6 +46,11 @@ class SchemaConsistencyGuardTest extends BaseIntegrationTest {
                 Integer.class, type) >= 1;
     }
 
+    /**
+     * True if an index of this name exists. Note: a UNIQUE CONSTRAINT (e.g. uq_*_rrn_hash added
+     * via ALTER TABLE ... ADD CONSTRAINT in V5) is backed by an index of the same name and is
+     * visible here too — so this matches both CREATE UNIQUE INDEX and constraint-backed uniques.
+     */
     private boolean indexExists(String index) {
         return jdbc.queryForObject("SELECT count(*) FROM pg_indexes WHERE indexname=?",
                 Integer.class, index) >= 1;
