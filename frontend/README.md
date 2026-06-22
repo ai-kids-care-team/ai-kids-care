@@ -4,7 +4,7 @@ Next.js 16 静态导出（`output: 'export'`），由 **Nginx** 托管。所有�
 
 认证采用**服务端会话**（Spring Session + Redis + httpOnly cookie + CSRF，ADR-0016）；前端使用 `withCredentials: true` + `X-XSRF-TOKEN` header，无 Bearer token。
 
-详细架构见 [`docs/architecture/frontend-architecture.md`](../docs/architecture/frontend-architecture.md)。
+详细规格见 OpenSpec 能力规格（`openspec/specs/`，如 auth-authorization、appreciation-letters 等）。
 
 ## 本地开发命令
 

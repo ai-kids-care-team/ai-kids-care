@@ -146,26 +146,6 @@ the SQL, then applying the change via Flyway migration.
 
 ---
 
-### Requirement: Schema drift between schema-digest and migrations is prevented (INC guardrail)
-
-The repository SHALL maintain a `docs/engineering/schema-digest.md` that enumerates all NOT
-NULL, UNIQUE, FK, and enum constraints. A CI check (`schema-digest-drift.yml`) SHALL fail if
-the digest diverges from the current migrations. The digest MUST be regenerated with
-`bash scripts/schema-digest.sh` after any migration.
-
-#### Scenario: Migration added without regenerating digest causes CI failure
-
-- **WHEN** a developer adds a new Flyway migration but does not regenerate `schema-digest.md`
-- **THEN** the `schema-digest-drift.yml` GitHub Actions workflow detects the drift and fails
-
-#### Scenario: Digest regenerated after migration passes CI
-
-- **WHEN** a developer adds a Flyway migration and runs `bash scripts/schema-digest.sh` before
-  pushing
-- **THEN** `schema-digest.md` reflects the new constraint set and the drift check passes
-
----
-
 ### Requirement: Flyway manages production schema evolution; initdb is for demo/CI only
 
 Production schema evolution SHALL use Flyway migrations versioned as `VN__description.sql` in
@@ -245,23 +225,3 @@ they are awaiting independent Implementation.
   (`CommonCodeController`, `CommonCodeService`, `CommonCodeMapper`, `CommonCodeRepository`,
   `CommonCode` entity, `CommonCodeCreateDTO`, `CommonCodeUpdateDTO`, `CommonCodeVO`)
 
----
-
-### Requirement: MapStruct unmapped target properties must not be silently dropped (INC-005)
-
-All MapStruct mapper interfaces in the backend SHALL use `unmappedTargetPolicy = ReportingPolicy.ERROR`
-or equivalent configuration so that an unmapped target property in a DTO/VO/entity mapping
-causes a compile-time error rather than being silently set to null or ignored.
-
-#### Scenario: New field added to entity without updating mapper
-
-- **WHEN** a developer adds a field to a JPA entity but does not add the corresponding mapping
-  in the MapStruct mapper
-- **THEN** the build fails with a compile-time MapStruct unmapped target error; no silent null
-  is introduced into the mapped output
-
-#### Scenario: Mapper with full field coverage compiles successfully
-
-- **WHEN** all target properties in a MapStruct mapper are explicitly mapped or explicitly
-  ignored via `@Mapping(target = "...", ignore = true)`
-- **THEN** the build succeeds with no MapStruct warnings or errors for unmapped targets

@@ -22,19 +22,19 @@
 
 ## 5. 清除迁后历史文档
 
-- [ ] 5.1 删除 `docs/specs/*`
-- [ ] 5.2 删除 `docs/decisions/adr/*`
-- [ ] 5.3 删除 `docs/architecture/*`、`docs/product/*`、`docs/api/*`、`docs/operations/*`、`docs/db/*`
-- [ ] 5.4 删除 `docs/assessments/*`、`docs/modernization/*`、`docs/governance/*`、`docs/README.md`
-- [ ] 5.5 若 `docs/` 全空则移除目录
+- [x] 5.1 删除 `docs/specs/*`
+- [x] 5.2 删除 `docs/decisions/adr/*`
+- [x] 5.3 删除 `docs/architecture/*`、`docs/product/*`、`docs/api/*`、`docs/operations/*`、`docs/db/*`
+- [x] 5.4 删除 `docs/assessments/*`、`docs/modernization/*`、`docs/governance/*`、`docs/README.md`
+- [x] 5.5 若 `docs/` 全空则移除目录
 
 ## 6. 同步根 README 链接
 
-- [ ] 6.1 `README.md`/`README.zh-CN.md`/`README.en.md` 中指向已删 docs 的链接改指 `openspec/`
+- [x] 6.1 `README.md`/`README.zh-CN.md`/`README.en.md` 中指向已删 docs 的链接改指 `openspec/`
 
 ## 7. 验证与提交
 
-- [ ] 7.1 `openspec validate --specs` 全部能力通过；每条 requirement 有 ≥1 Scenario
-- [ ] 7.2 grep 确认无指向已删 docs 的悬挂链接（README、代码注释）
-- [ ] 7.3 产品代码 / 保留 CI 未受影响；`git diff --check` 干净
+- [x] 7.1 `openspec validate --specs` 全部能力通过；每条 requirement 有 ≥1 Scenario
+- [x] 7.2 grep 确认无指向已删 docs 的悬挂链接（README、代码注释）
+- [x] 7.3 产品代码 / 保留 CI 未受影响；`git diff --check` 干净
 - [ ] 7.4 建议按能力分提交，提交 develop

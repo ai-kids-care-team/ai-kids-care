@@ -45,7 +45,7 @@ AI Kids Care 是面向幼儿园场景的 AI 安全管理平台。它把 CCTV 摄
 |-- backend/              # Spring Boot API server
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
-|-- docs/db/ERD/          # ERD diagrams and rendered images
+|-- openspec/             # OpenSpec specs (openspec/specs) and change proposals
 |-- （pg-spring-crud-codegen/ 已退役，2026-06-18，ADR-0027）
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
@@ -169,7 +169,7 @@ AI 服务主要端点：
 
 - PostgreSQL schema 和 seed SQL：`db/initdb/`
 - DBML schema：`db/dbml/schema.dbml`
-- ERD 文档：`docs/db/ERD/README.md`
+- ERD 文档：`openspec/specs/data-platform/spec.md`
 - Neo4j 数据加载器：`db/ne4j_kindergartens/`
 - 代码生成工具：~~`pg-spring-crud-codegen/`~~（已退役，2026-06-18，ADR-0027；新增领域对象改为手写）
 

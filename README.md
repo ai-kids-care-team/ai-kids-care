@@ -45,7 +45,7 @@ AI Kids Care는 유치원 환경에서 CCTV, 보호자, 교직원, 아동, 알�
 |-- backend/              # Spring Boot API server
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
-|-- docs/db/ERD/          # ERD diagrams and rendered images
+|-- openspec/             # OpenSpec specs (openspec/specs) and change proposals
 |-- （pg-spring-crud-codegen/ 已退役，2026-06-18，ADR-0027）
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
@@ -169,7 +169,7 @@ AI 서비스 주요 엔드포인트:
 
 - PostgreSQL 스키마와 seed SQL: `db/initdb/`
 - DBML 스키마: `db/dbml/schema.dbml`
-- ERD 문서: `docs/db/ERD/README.md`
+- ERD 문서: `openspec/specs/data-platform/spec.md`
 - Neo4j 데이터 로더: `db/ne4j_kindergartens/`
 - 코드 생성 도구: ~~`pg-spring-crud-codegen/`~~ （퇴역, 2026-06-18, ADR-0027；신규 도메인 객체는 수작업으로 작성）
 
