@@ -1,10 +1,10 @@
 ---
 ADR: ADR-0027
 title: "ADR-0027: 退役 pg-spring-crud-codegen 一次性 CRUD 代码生成器"
-status: Proposed
-implementation: Not Started
+status: Accepted
+implementation: Implemented (2026-06-18)
 date: 2026-06-18
-deciders: 维护者（2026-06-18 口头授权移除；ADR 正式接受待维护者拍板）
+deciders: 维护者（2026-06-18 口头授权移除；commit 123c57e）
 supersedes: [ADR-0011]
 superseded_by: null
 related_specs: [SPEC-0001]
@@ -14,7 +14,7 @@ related_specs: [SPEC-0001]
 
 ## 状态（Status）
 
-Proposed（2026-06-18；维护者已口头授权移除，正式 Accept 待拍板）。**Supersedes [ADR-0011](ADR-0011-extract-codegen-subproject.md)**（ADR-0011 状态更新为 Superseded by ADR-0027）。
+**Accepted（2026-06-18）；已实现（commit 123c57e，`pg-spring-crud-codegen/` 目录已删除）**。**Supersedes [ADR-0011](ADR-0011-extract-codegen-subproject.md)**（ADR-0011 状态更新为 Superseded by ADR-0027）。
 
 ## 背景（Context）
 

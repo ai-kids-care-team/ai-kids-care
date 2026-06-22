@@ -19,17 +19,17 @@
 
 > ✅ 关键：**AI 服务与后端之间没有直接集成**。两者都对外暴露 HTTP，但代码中不互相调用，也不共享数据库连接。
 
-## 2. 典型流：登录
+## 2. 典型流：登录（服务端会话，ADR-0016，PR #89）
 
 ✅ 来源 `AuthController`/`AuthService`、`apiClient.ts`。
 
 ```text
-前端 →(POST /api/v1/auth/login {identifier, password})→ 后端
+前端 →(POST /api/v1/auth/login {identifier, password}，withCredentials: true)→ 后端
    后端: 按 loginId/email/phone 查 ACTIVE user → BCrypt 校验密码
         → 要求恰好存在一条 ACTIVE 角色分配（缺失或多条均拒绝，不回退 GUARDIAN）
-        → 生成 accessToken & refreshToken（同法生成）
-        → 取最近 ACTIVE 角色分配 → 返回 TokenVO{accessToken, refreshToken, role, id, loginId, expiresIn}
-前端: token 只存 Redux 内存；不写 user/access/refresh token 到 localStorage
+        → 创建 Spring Session → Set-Cookie: SESSION（httpOnly, SameSite）
+        → 取最近 ACTIVE 角色分配 → 返回 AuthSessionVO{userId, loginId, effectiveRole, scopeType, scopeId, name}（name 按角色从档案解析，PLATFORM_IT_ADMIN 为 null；BE-4）
+前端: 会话由 httpOnly cookie 维持；Redux 仅存 effectiveRole/userId/name 等会话元数据，不存 token
 ```
 
 ### 2.1 公开注册申请（Phase 1B）
@@ -50,22 +50,24 @@
 
 > 返回完整 `ChildVO` 的通用 `GET /api/v1/children/rrn` 已关闭。Guardian 注册 payload 不携带 `childId`；服务端在注册事务中再次按完整 RRN 匹配儿童，并从该记录派生 kindergarten scope 与 membership。`KINDERGARTEN_ADMIN` 仅接受 `DIRECTOR` / `VICE_DIRECTOR` level，普通 `TEACHER` 不能提交这两个管理员 level。
 >
-> 审批 endpoint 和激活事务尚未实现。`child_guardian_relationships` 当前没有 status 列，Guardian 申请仍会创建关系行，但 PENDING guardian、membership 与 role assignment 会阻止其成为有效授权关系；该模型缺口留给后续审批/资源关系阶段处理。
+> 审批 endpoint 已实现：`AdminKindergartenController`（园级）/ `AdminPlatformController`（平台级）提供 approve/reject/disable 操作（SPEC-0002）。激活事务完成后 role assignment 置 ACTIVE。`child_guardian_relationships` 当前没有 status 列，Guardian 申请仍会创建关系行，但 PENDING guardian、membership 与 role assignment 会阻止其成为有效授权关系；Guardian 关系策略留后续处理。
 
-## 3. 典型流：带鉴权的数据请求（前端预期）
+## 3. 典型流：带鉴权的数据请求（服务端会话，已落地）
 
-✅ 来源 `apiClient.ts`。注意此为 server-side session 上线前的临时流程；后端当前仍未统一强制校验（[security-architecture](security-architecture.md)）。
+✅ 来源 `apiClient.ts`。ADR-0016 已落地（PR #89）；`/api/v1/**` 默认 `authenticated`，后端统一强制校验（[security-architecture](security-architecture.md)）。
 
 ```text
 前端发起请求
-   请求拦截器: 从 Redux 内存注入 Authorization: Bearer <token>
+   请求拦截器: withCredentials: true（随请求携带会话 cookie）
+               + X-XSRF-TOKEN CSRF header
+               无 Bearer token 注入
 后端响应
    ├─ 200 → 正常返回
    └─ 401 → 清空 Redux 会话 + 弹出登录框(openLoginModal)
 
 刷新浏览器
-   → 内存会话丢失
-   → 重新登录；前端当前不自动调用 refresh
+   → 会话 cookie 仍有效，由服务端 session 维持
+   → 会话过期或主动 logout 后需重新登录
 ```
 
 ## 4. 典型流：Phase 1A 已关闭的敏感通用入口
@@ -97,7 +99,7 @@ PUT|DELETE /api/v1/camera_streams/{id}
     → 公共读取 contract 只发布不含可播放地址或凭据的配置元数据
 ```
 
-> 同一轮止血已关闭 User、Child、Guardian、Teacher、DetectionEvent、DeviceToken、EventEvidenceFile 的全部公共 operation；CctvCamera、DetectionSession、CameraStream 仅保留脱敏 GET，通用写删链关闭；EventReview、NotificationRule、Superadmin、AppreciationLetter 同样不发布公共 operation。Phase 1B 已进一步把公开注册收敛为 PENDING 申请，但审批流、server-side session、tenant context 和授权隔离尚未落地。
+> 同一轮止血已关闭 User、Child、Guardian、Teacher、DetectionEvent、DeviceToken、EventEvidenceFile 的全部公共 operation；CctvCamera、DetectionSession、CameraStream 仅保留脱敏 GET，通用写删链关闭；EventReview、NotificationRule、Superadmin 同样不发布公共 operation。AppreciationLetter 已于 BE-5（2026-06-20）开放全套 CRUD（sender/tenant 服务端派生）。Phase 1B 已进一步把公开注册收敛为 PENDING 申请；server-side session、tenant context 和授权隔离已落地（ADR-0016，PR #89）。审批流（SPEC-0002）已实现（AdminKindergartenController / AdminPlatformController）。仍 deferred：Guardian 关系策略、安全审计。
 
 ## 5. 典型流：以儿童为中心的关系图（公共入口已关闭）
 

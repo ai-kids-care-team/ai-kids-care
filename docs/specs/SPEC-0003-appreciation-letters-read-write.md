@@ -2,9 +2,10 @@
 id: SPEC-0003
 title: "感谢信（Appreciation Letters）读写端点"
 status: Approved
+implementation: Implemented (2026-06-20)
 owner: "Lead/Planner"
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-20
 related_adrs: [ADR-0003, ADR-0009, ADR-0019, ADR-0028]
 ---
 
@@ -17,6 +18,8 @@ related_adrs: [ADR-0003, ADR-0009, ADR-0019, ADR-0028]
 已认证的 **家长（GUARDIAN）** 可在本人所属 kindergarten 内向 **老师** 或 **园所** 写感谢信；同租户成员按可见性规则读取；作者可编辑/删除本人的信。**sender 身份与 tenant 一律由服务端从会话派生，客户端永不提交身份字段**（这正是 FE-2 的前提）。
 
 ## 当前事实（Current Facts）
+
+> **（2026-06-20 FE-2 已完成，以下为 spec 起草时基线，描述实现前的状态）**
 
 - 后端骨架已存在：`entity/AppreciationLetter`、`repository/AppreciationLetterRepository`、`mapper/AppreciationLetterMapper`、`vo/AppreciationLetterVO`、`type/AppreciationTargetTypeEnum{KINDERGARTEN,TEACHER}`、表 `appreciation_letters`（`db/initdb/01_create_schema.sql` + seed `46_appreciation_letters_seed.sql` + `V1__initial_baseline.sql`）。
 - `service/AppreciationLetterService` 现仅有 `listAppreciationLetters` / `getAppreciationLetter`，且**两者都标注 `@PreAuthorize("denyAll()")`**（完全关闭）。**无 Controller，无 DTO，无写方法。**

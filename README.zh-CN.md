@@ -8,7 +8,7 @@ AI Kids Care 是面向幼儿园场景的 AI 安全管理平台。它把 CCTV 摄
 
 系统的目标是帮助幼儿园运营人员管理摄像头和班级/教室数据，审核 AI 检测到的事件，并把必要信息传达给监护人和教职员。主要流程包括：
 
-- 注册、登录、JWT 认证和基于角色的菜单
+- 注册、登录、服务端会话认证（Spring Session + Redis + cookie + CSRF）和基于角色的菜单
 - 幼儿园、班级、教室、儿童、监护人、教师数据管理
 - CCTV 摄像头和视频流管理
 - AI 检测会话、检测事件、证据文件和事件审核
@@ -20,7 +20,7 @@ AI Kids Care 是面向幼儿园场景的 AI 安全管理平台。它把 CCTV 摄
 
 | 领域 | 内容 |
 | --- | --- |
-| 认证与权限 | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN` 角色，JWT 登录/刷新/登出，按角色展示菜单 |
+| 认证与权限 | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN` 角色，服务端会话认证（Spring Session + Redis + cookie + CSRF）登录/刷新/登出，按角色展示菜单（ADR-0016） |
 | 幼儿园运营数据 | 幼儿园、班级、教室、教师、监护人、儿童、班级分配、监护关系、教室分配 |
 | CCTV 与事件 | 摄像头、视频流、AI 模型、检测会话、检测事件、审核、证据文件 |
 | 沟通功能 | 公告、感谢信、通知规则、设备 token、通知历史 |

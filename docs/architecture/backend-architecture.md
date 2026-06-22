@@ -94,7 +94,7 @@ HTTP 请求
 | 缺口 | 状态 |
 | --- | --- |
 | 测试覆盖薄 | ✅ 已有 Testcontainers 后端基线，但仅覆盖认证与检测事件少量路径；前端/AI 无测试 |
-| 无全局异常处理器 | 🔶 未见 `@ControllerAdvice`；service 多直接抛 `RuntimeException`/`IllegalArgumentException`，错误响应格式未统一 |
+| 全局异常处理器 | ✅ 已新增 `ApiExceptionHandler`（`@RestControllerAdvice`，BE-1，2026-06-18）；统一错误响应格式 |
 | 鉴权 | ✅ 已恢复（默认拒绝 + 会话 + EAC + 集中 policy，PR #89）；Guardian 关系策略 / 审计 / 全量主动吊销 deferred |
 | 密码重置未实现 | ✅ `AuthService.passwordResets` 抛 `Not implemented` |
 

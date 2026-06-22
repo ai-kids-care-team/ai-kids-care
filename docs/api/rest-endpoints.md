@@ -1,25 +1,24 @@
 # 后端 REST 端点目录
 
-✅ 来源：`backend/.../controller/`（25 个控制器，类级 `@RequestMapping` 已逐一核对）。**字段级 schema 以 Swagger 为准**（见 [api/README.md](README.md)）。
+✅ 来源：`backend/.../controller/`（23 个控制器，类级 `@RequestMapping` 已逐一核对）。**字段级 schema 以 Swagger 为准**（见 [api/README.md](README.md)）。
 
-## 资源总表（25 个控制器）
+## 资源总表（23 个控制器）
 
 | 域 | 基址 `/api/v1/...` | 控制器 |
 | --- | --- | --- |
 | 认证 | `/auth` | `AuthController` |
-| 用户 | `/users` | `UserController` |
 | 幼儿园 | `/kindergartens` | `KindergartenController` |
 | 班级 | `/classes` | `ClassController` |
 | 教室 | `/rooms` | `RoomController` |
 | 儿童 | `/children` | `ChildrenController` |
 | 教师 | `/teachers` | `TeacherController` |
 | 保护者 | `/guardians` | `GuardianController` |
-| 超级管理员 | `/superadmins` | `SuperadminController` |
+| 园级管理员审批 | `/admin/kindergarten` | `AdminKindergartenController`（GET registrations；POST approve/reject/disable；SPEC-0002） |
+| 平台管理员审批 | `/admin/platform` | `AdminPlatformController`（GET superadmin-registrations；POST approve/reject/disable；SPEC-0002） |
 | CCTV 摄像头 | `/cctv_cameras` | `CctvCameraController` |
 | 视频流 | `/camera_streams` | `CameraStreamController` |
 | AI 模型 | `/ai_models` | `AiModelController` |
 | 检测会话 | `/detection_sessions` | `DetectionSessionController` |
-| 检测事件 | `/detection_events` | `DetectionEventController` |
 | 事件复核 | `/event_reviews` | `EventReviewController` |
 | 证据文件 | `/event_evidence_files` | `EventEvidenceFileController` |
 | 通知 | `/notifications` | `NotificationController` |
@@ -27,10 +26,10 @@
 | 设备令牌 | `/device_tokens` | `DeviceTokenController` |
 | 公告 | `/announcements` | `AnnouncementController` |
 | 感谢信 | `/appreciation_letters` | `AppreciationLetterController` |
-| 关系图 | `/graph` | `GraphController`（见 [graph-api](graph-api.md)） |
+| 关系图 | （无公共路径） | `GraphService`/`GraphRepository` 内部；无公共 Controller（见 [graph-api](graph-api.md)） |
 | 公共代码 | `/common_codes` | `CommonCodeController` |
 | 菜单 | `/menus` | `MenuController` |
-| 审计日志 | `/audit_logs` | `AuditLogController` |
+| 流凭证（内部） | （内部路径） | `StreamCredentialController`（`internal/`） |
 
 ## 标准 CRUD 约定
 
@@ -48,7 +47,7 @@
 
 ### Phase 1A 已确认例外（as-built）
 
-以下内容是 **SPEC-0001 Phase 1A 当前已实现状态**，仅表示“敏感数据暴露止血”后的接口形状；**不表示** Session、审批流、tenant enforcement 或角色授权已经完成。
+以下内容是 **SPEC-0001 Phase 1A 当前已实现状态**，仅表示”敏感数据暴露止血”后的接口形状。服务端会话（ADR-0016，PR #89）、tenant enforcement（ADR-0019）已落地；审批流（SPEC-0002）已实现；仍 deferred：Guardian 关系策略、安全审计。
 
 | 资源 | 当前公共方法 | 说明 |
 | --- | --- | --- |
@@ -65,10 +64,8 @@
 | `/api/v1/detection_sessions` | `GET` list/detail | 通用 `POST` / `PUT` / `DELETE`、Create/Update DTO 与 service/mapper 写链已关闭 |
 | `/api/v1/event_reviews` | none | 公共 operation 与 generic 写链已关闭；等待授权和事件状态同事务的专用复核 command |
 | `/api/v1/notification_rules` | none | 公共 operation 与 generic 写链已关闭；等待 tenant-scoped 专用配置接口 |
-| `/api/v1/superadmins` | none | 公共 operation 与 generic 写链已关闭；等待平台治理授权接口 |
-| `/api/v1/appreciation_letters` | none | 正文与作者/目标关系不再通过匿名通用 CRUD 发布；前端路由显示暂不可用 |
-| `/api/v1/graph` | none | 儿童关系图含 S1 关系数据，公共 operation 已关闭；等待资源授权后再开放 |
-| `/api/v1/audit_logs` | none | 公共读写 operation 均关闭；未来只允许内部 append writer 与获授权查询 |
+| `/api/v1/appreciation_letters` | `GET` 列表/详情 + `POST` + `PUT /{id}` + `DELETE /{id}` | BE-5，2026-06-20；全套 CRUD 已开放；sender 与 tenant 服务端派生，客户端无身份字段；`editable` 字段服务端派生 |
+| `/api/v1/graph` | none | 无公共 Controller；`GraphService`/`GraphRepository` 内部实现；儿童关系图含 S1 关系数据，等待资源授权后再通过专用 Controller 开放 |
 | `/api/v1/notifications` | none | 通知内容与投递元数据不再通过通用 CRUD 公开；等待内部发送 command/授权查询 |
 
 ## 认证端点（详列）
@@ -86,9 +83,9 @@
 >
 > Phase 1B 后，客户端提交的 `status`、`scopeType`、`scopeId` 不属于 `AuthRegisterDTO`，未知字段会被忽略；Guardian 的客户端 `kindergartenId` 不用于 scope 写入。公开申请不能自行激活，审批 API 仍未实现。
 >
-> 登录/刷新只接受“恰好一条” ACTIVE role assignment；缺失或多条均返回通用 `401`。KINDERGARTEN scope 的登录响应返回服务端派生的 `kindergartenId`。前端还会拒绝缺失/未知 role 或空 access token 的响应。bearer token 当前只保存在 Redux 内存，不写入 localStorage、不自动 refresh；刷新页面后需重新登录。
+> 登录/刷新只接受”恰好一条” ACTIVE role assignment；缺失或多条均返回通用 `401`。KINDERGARTEN scope 的登录响应返回服务端派生的 `kindergartenId`。前端还会拒绝缺失/未知 role 的响应。会话以服务端 httpOnly cookie 维持（ADR-0016，PR #89）；前端使用 `withCredentials: true` + `X-XSRF-TOKEN` CSRF header，无 Bearer token。
 
 ## 特别说明
 
 - ✅ 检测域数据当前来自种子，非实时 AI（见 [open-questions](../modernization/open-questions.md) OQ-AI-1）；`detection_events` 与 `event_reviews` 当前均不发布公共 operation。
-- ✅ `/api/v1/**` 默认 `authenticated`（默认拒绝；PR #89）：会话认证、tenant 隔离、Teacher assignment 策略已落地。仍 deferred：Guardian 关系策略、安全审计。
+- ✅ `/api/v1/**` 默认 `authenticated`（默认拒绝；PR #89，ADR-0016 已落地）：服务端会话认证（Spring Session + Redis + cookie + CSRF）、tenant 隔离、Teacher assignment 策略已落地。仍 deferred：Guardian 关系策略、安全审计。

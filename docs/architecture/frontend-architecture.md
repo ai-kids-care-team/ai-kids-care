@@ -31,7 +31,7 @@ src/
 ├── app/                 # Next App Router 路由（页面）
 │   ├── (auth)/          #   signup / forgot-password / reset-password（路由组）
 │   ├── announcements/   #   公告 read/write/edit
-│   ├── appreciationLetter/, letters/  # 感谢信路由保留；当前显示暂不可用
+│   ├── appreciationLetter/, letters/  # 感谢信路由已激活（FE-2，2026-06-20；接后端 BE-5 端点）
 │   ├── cctvCamera/, cctvCameras/      # CCTV；仅园级角色加载 live stream
 │   └── detectionEvents/ #   检测事件占位页（授权接口落地前不读取）
 ├── components/          # 业务组件（按域：announcements/auth/cctv/detectionEvents/home/letters）
@@ -45,17 +45,17 @@ src/
 
 ## 4. API 客户端层
 
-✅ `services/apis/apiClient.ts` 是核心 Axios 实例，封装当前过渡期的 bearer 注入与 401 处理：
+✅ `services/apis/apiClient.ts` 是核心 Axios 实例，采用**服务端会话**模式（ADR-0016，PR #89，已落地）：
 
-**请求拦截器**：只从 `Redux store.user.token` 读取当前页面生命周期内的令牌，注入 `Authorization: Bearer <token>`。浏览器不再把 user/access/refresh token 写入或恢复自 `localStorage`。
+**请求拦截器**：`withCredentials: true`（随请求携带会话 cookie）+ 注入 `X-XSRF-TOKEN` CSRF header。**无 Bearer token 注入**，不从 Redux store 读取 token，不写入 `Authorization` 头。
 
 **响应拦截器**：
 - 收到 `401` → 清空 Redux 会话并调用 `openLoginModal()`。
-- 当前不在浏览器持久化 refresh token，也不自动刷新或重放请求；刷新页面后需重新登录。目标 server-side session 仍由 ADR-0016 后续实现。
+- 会话由服务端 httpOnly cookie 管理；刷新页面后会话保持，直到服务端 session 过期或主动 logout。
 
 ✅ `config/api.ts`：默认 base URL `http://localhost:8080/api/v1`，可由 `NEXT_PUBLIC_API_BASE_URL` 覆盖；并对大小写做规范化（`/api/V1`→`/api/v1`），还导出 `LEGACY_API_BASE_URL`（去掉 `/v1`）以兼容遗留端点。
 
-✅ 各域 API 模块基于 `apiClient`/`base.api.ts` 封装具体端点调用；Graph、User/Child/Guardian/Teacher profile 与 DetectionEvent 的 helper 当前不发起公共请求，相关页面显示待授权提示或返回不可用状态。
+✅ 各域 API 模块基于 `apiClient`/`base.api.ts` 封装具体端点调用；Graph、User/Child/Guardian/Teacher profile 与 DetectionEvent 的 helper 当前不发起公共请求，相关页面显示待授权提示或返回不可用状态。感谢信 API 已激活（FE-2，2026-06-20）。
 
 ## 5. 状态管理
 
