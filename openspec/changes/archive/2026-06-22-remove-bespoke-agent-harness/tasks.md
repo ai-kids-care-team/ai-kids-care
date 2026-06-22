@@ -39,4 +39,4 @@
 
 - [x] 8.1 grep 确认无残留引用：本 change 范围内已清；后端 `harness/*` 测试、`build.gradle:54`、`docs/*` 中的悬挂引用分属 Change 2 / Change 3，预期内
 - [x] 8.2 `git diff --check` 干净；产品代码、compose、本 change 范围外的 CI 未受影响
-- [ ] 8.3 提交到 develop
+- [x] 8.3 提交到 develop
