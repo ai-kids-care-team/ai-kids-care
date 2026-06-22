@@ -68,6 +68,11 @@ internal:
   ai:
     service-token: ${AI_SERVICE_TOKEN}
 
+# PUSH 主通道：Pushover 应用级 API token（每收件人的 user-key 是投递地址，存 push_subscriptions.address）。
+# 空白则上下文启动即失败（PushoverConfig fail-fast）。
+pushover:
+  api-token: ${PUSHOVER_API_TOKEN}
+
 logging:
   level:
     # 安全默认 INFO（含生产）。开发可经环境变量 LOG_LEVEL_ROOT=DEBUG 临时调高。

@@ -115,9 +115,8 @@ Enum mime_type_enum {
   "video/mp4"
 }
 
-Enum device_platform_enum{
-  IOS
-  ANDROID
+Enum push_provider_enum{
+  PUSHOVER
 }
 
 Enum notification_channel_enum{
@@ -546,18 +545,19 @@ Table event_evidence_files {
   }
 }
 
-Table device_tokens {
-  device_id bigint [pk, increment, note: "디바이스 토큰 ID"]
+Table push_subscriptions {
+  push_subscription_id bigint [pk, increment, note: "PUSH 구독 ID"]
   user_id bigint [not null, note: "사용자 ID(USER_ACCOUNT.user_id)"]
-  platform device_platform_enum [not null, note: "플랫폼(IOS/ANDROID)"]
-  push_token varchar [not null, note: "푸시 토큰(APNs/FCM 등)"]
-  status status_enum [not null, note: "토큰 상태"]
-  last_seen_at timestamptz [note: "마지막 사용/갱신 일시"]
+  provider push_provider_enum [not null, note: "PUSH 제공자(현재 PUSHOVER)"]
+  address varchar [not null, note: "제공자 전송 주소(Pushover=user key)"]
+  device_label varchar [note: "선택: Pushover 디바이스명/사람용 라벨"]
+  status status_enum [not null, note: "구독 상태"]
+  last_verified_at timestamptz [note: "마지막 검증 일시"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
 
   Indexes {
-    (platform, push_token) [unique, name: "uq_device_tokens_platform_push_token"]
-    (user_id, status) [name: "idx_device_tokens_user_status"]
+    (user_id, provider, address) [unique, name: "uq_push_subscriptions_user_provider_address"]
+    (user_id, status) [name: "idx_push_subscriptions_user_status"]
   }
 }
 
@@ -729,7 +729,7 @@ Ref: notifications.recipient_user_id > users.user_id
 Ref: notification_rules.kindergarten_id > kindergartens.kindergarten_id
 Ref: notification_rules.user_id > users.user_id
 
-Ref: device_tokens.user_id > users.user_id
+Ref: push_subscriptions.user_id > users.user_id
 
 Ref: audit_logs.kindergarten_id > kindergartens.kindergarten_id
 Ref: audit_logs.user_id > users.user_id

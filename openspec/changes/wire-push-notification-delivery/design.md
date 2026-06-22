@@ -41,10 +41,12 @@ push_subscriptions
 ### D2：SMS/EMAIL 地址不入表
 PUSH 才需要外部注册身份；SMS=`users.phone`、EMAIL=`users.email` 已存在。故 `push_subscriptions` 只服务 PUSH，避免重复建模。
 
-### D3：迁移策略 = 丢弃重建（无数据可迁）
-- 生产 `device_tokens` 为空（无发布 API 可写），故 Flyway `V7`：`DROP TABLE device_tokens` → `DROP TYPE device_platform_enum`（**前置校验**：确认无其他表/列引用该枚举，本 change 任务含此核查）→ `CREATE TYPE push_provider_enum AS ENUM ('PUSHOVER')` → `CREATE TABLE push_subscriptions`。
-- 同步改 `db/initdb/01_create_schema.sql`（fresh/demo 路径）与 seed `23_*`（重建为 Pushover 形或清空）。
-- **三方一致硬约束**：Flyway 迁移 / initdb 建表 / JPA 实体必须一致，否则 `ddl-auto=validate` 启动失败 —— `ContextLoadSmokeTest` + `FlywayMigrationSmokeTest` 会即时抓到（这正是上个 change 建地基的价值）。
+### D3：迁移策略 = V7 前进转换，**不动 initdb**（apply 期核实修正）
+- **已核实**：`db/initdb/01_create_schema.sql` 镜像 V1 基线（其 `notifications.sent_at/fail_reason` 仍是 V1 的 `NOT NULL`，V3 之后才 relax）。两条 schema 路径在 V7 执行前都已有 `device_tokens`：demo/test = initdb 建 + baseline V1 + V2..V7；fresh prod = V1 建 + V2..V7。
+- 故 Flyway `V7__replace_device_tokens_with_push_subscriptions.sql`：`DROP TABLE device_tokens` → `DROP TYPE device_platform_enum`（前置校验已过：仅 device_tokens 引用）→ `CREATE TYPE push_provider_enum AS ENUM ('PUSHOVER')` → `CREATE TABLE push_subscriptions`。两条路径都能 DROP（前都有表）。
+- **不改 `db/initdb/01_create_schema.sql` 的 device_tokens**（它镜像 V1；改了会破坏 baseline 镜像不变量）；**seed `23_device_tokens_seed.sql` 保留**（initdb 阶段 device_tokens 存在、插入 OK；V7 之后被 drop，无害；push_subscriptions 在 demo 起始为空，测试自带数据）。
+- `db/dbml/schema.dbml`：更新 device_tokens→push_subscriptions（设计文档卫生；该文件已知漂移、仅手动 generateMigration 用、不进运行时/测试路径，故非载荷）。
+- **三方一致硬约束**：V7 迁移 / JPA 实体（PushSubscription）/ 最终 schema 必须一致，否则 `ddl-auto=validate` 启动失败 —— `ContextLoadSmokeTest` + `FlywayMigrationSmokeTest` 会即时抓到（上个 change 建地基的价值）。
 
 ### D4：`PushoverService` 重构为可注入，便于单测
 - 现 `PushoverService` 内部 `new PushoverRestClient()` 写死、凭据走参数空串。改为构造注入 `PushoverConfig`（apiToken）+ 注入 `PushoverClient`（接口，生产 bean = `PushoverRestClient`）。

@@ -35,3 +35,7 @@ camera-stream:
 internal:
   ai:
     service-token: test-ai-service-token-not-secret-2026
+
+# PUSH 通道：非生产 dev 测试 token（PushoverConfig fail-fast 需非空）
+pushover:
+  api-token: test-pushover-token-not-secret-2026

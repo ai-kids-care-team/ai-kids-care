@@ -1,31 +1,31 @@
 ## 1. 寻址模型治理：device_tokens → push_subscriptions（TDD）
 
-- [ ] 1.1 前置校验：grep 确认 `device_platform_enum` 仅被 `device_tokens` 引用（决定 V7 能否一并 DROP 该枚举）
-- [ ] 1.2 [RED] 写 `push_subscriptions` 约束测试（唯一 `(user_id,provider,address)` 冲突 → `DataIntegrityViolationException` 且断言约束名；provider 枚举仅 PUSHOVER）—— 先红
-- [ ] 1.3 实体/枚举/仓储/映射：`PushSubscription`（取代 `DeviceToken`）、`push_provider_enum`、`PushSubscriptionRepository`（加 `findByUserIdAndProviderAndStatus` 等）、mapper、vo
-- [ ] 1.4 Flyway `V7__replace_device_tokens_with_push_subscriptions.sql`：DROP `device_tokens`（+ 若 1.1 通过则 DROP `device_platform_enum`）→ CREATE `push_provider_enum` → CREATE `push_subscriptions`
-- [ ] 1.5 同步 `db/initdb/01_create_schema.sql`（fresh/demo 建表 + 枚举）与 seed `23_*`（重建为 Pushover 形最小占位或清空，不放误导性假 user-key）
-- [ ] 1.6 `DeviceTokenService/Controller` → `PushSubscriptionService/Controller`（路径 `/api/v1/push_subscriptions`），**维持未发布/405**，不暴露 handler
-- [ ] 1.7 [GREEN] 容器内：context 启动、`ddl-auto=validate` 通过（三方一致）、1.2 约束测试绿；`ContextLoadSmokeTest`/`FlywayMigrationSmokeTest` 仍绿
+- [x] 1.1 前置校验完成：`device_platform_enum` 仅被 `device_tokens`（V1/initdb/dbml 各处的该表定义）引用 → V7 可一并 DROP。并核实 initdb 镜像 V1 基线（两路径 V7 前都有 device_tokens）
+- [x] 1.2 `PushSubscriptionConstraintTest`：唯一 `(user_id,provider,address)` 冲突 → `DataIntegrityViolationException` 且断言约束名 `uq_push_subscriptions_user_provider_address`（绿）
+- [x] 1.3 `PushSubscription` 实体 + `PushProviderEnum` + `PushSubscriptionRepository`(`findByUser_IdAndProviderAndStatus`) + mapper + vo（vo 不暴露 address）
+- [x] 1.4 Flyway `V7__replace_device_tokens_with_push_subscriptions.sql`：DROP device_tokens → DROP device_platform_enum → CREATE push_provider_enum + push_subscriptions（容器内执行成功、validate 通过）
+- [x] 1.5 未改 initdb device_tokens、保留 seed 23；更新 `db/dbml/schema.dbml`（enum/table/ref 三处 → push_subscriptions）
+- [x] 1.6 `DeviceToken*` 栈删除，新增 `PushSubscriptionService/Controller`（`/api/v1/push_subscriptions`），维持未发布/405（无 handler）
+- [x] 1.7 容器内 section1 验证：context 启动、validate 通过、约束测试绿、既有 132 不受影响（133 tests 全绿）
 
 ## 2. Pushover 凭据配置化（TDD）
 
-- [ ] 2.1 [RED] `PushoverConfig` fail-fast 测试：`pushover.api-token` 空白 → 启动/绑定校验失败（`@Validated`+`@NotBlank`）—— 先红
-- [ ] 2.2 `PushoverConfig`（`@ConfigurationProperties(prefix="pushover")`）+ application.yml `pushover.api-token: ${PUSHOVER_API_TOKEN}` + application-test.yml 加非密测试 token（仿 internal.ai 模式）
-- [ ] 2.3 重构 `PushoverService`：构造注入 `PushoverConfig` + 可注入 `PushoverClient`（接口/薄 wrapper，生产 bean=`PushoverRestClient`）；移除按参数传入的凭据
+- [x] 2.1 `PushoverConfigValidationTest`：空白 api-token → `@NotBlank` 违例；非空通过（绿）
+- [x] 2.2 `PushoverConfig`(`@ConfigurationProperties("pushover")`+`@Validated`) + `@EnableConfigurationProperties` 注册 + application.yml `pushover.api-token: ${PUSHOVER_API_TOKEN}` + application-test.yml 非密测试 token
+- [x] 2.3 重构 `PushoverService`：构造注入 `PushoverConfig` + `PushoverClient`(由 `PushoverClientConfig` @Bean 提供)；以 `sendToUser(userKey,title,body)` 取代按参数传凭据的 8 参 `sendMessage`
 
 ## 3. PUSH 投递原语 + 生命周期（TDD；触发器延后）
 
-- [ ] 3.1 [RED] 投递成功：打桩 client 返回成功 → `status=SENT` + `sent_at` 置位
-- [ ] 3.2 [RED] 投递失败：打桩 client 抛错 → `status=FAILED` + `fail_reason` 非空 + `retry_count++`
-- [ ] 3.3 [RED] 收件人无 active PUSHOVER 订阅 → `FAILED`（不调用 client、不发空地址）
-- [ ] 3.4 [GREEN] 实现 `NotificationService` 投递方法（解析订阅地址→SENDING→Pushover→SENT/FAILED 生命周期）；**删除调用点字面量空串**；不新增 HTTP 写入端点（写操作仍 405，触发器留待规则引擎 change）
+- [x] 3.1 投递成功 → `SENT` + `sent_at`（`NotificationDispatchTest.push_success_marksSentWithTimestamp`，绿）
+- [x] 3.2 投递失败 → `FAILED` + `fail_reason` + `retry_count++`（`push_deliveryFailure_marksFailedAndIncrementsRetry`，绿）
+- [x] 3.3 无 active PUSHOVER 订阅 → `FAILED`、不调用 client（`push_noActiveSubscription_marksFailedWithoutCallingPushover`，绿）
+- [x] 3.4 `NotificationService.dispatch` 实现（SENDING→解析订阅→Pushover→SENT/FAILED）；**已删 createNotification 的字面量空串**；未新增 HTTP 写端点（写仍 405，触发器留待规则引擎 change）
 
 ## 4. Spec 核对与验证（verification-before-completion）
 
-- [ ] 4.1 核对 notifications spec delta 与实现一致（push_subscriptions 模型、Pushover 配置化投递、push-subscription 管理 API 仍 405）
-- [ ] 4.2 容器内 `gradle:8.7-jdk21` 实跑**全套件**全绿（既有 132 + 新增），留存证据
-- [ ] 4.3 范围核对：SMS/EMAIL/规则引擎/触发器/管理 API 未触碰；产品改动限于 notifications 子系统 + 该 schema；秘密仅 `${ENV}`、无真实凭据提交
+- [x] 4.1 notifications spec delta 与实现一致（push_subscriptions 模型、Pushover 配置化投递、push-subscription 管理 API 仍 405）
+- [x] 4.2 容器内 `gradle:8.7-jdk21` 全套件全绿：**141 tests / 2 skipped(@Disabled) / 0 failures**
+- [x] 4.3 范围核对（git diff 确认）：产品改动仅 notifications 子系统 + config + application.yml + V7/dbml；SMS/EMAIL/规则引擎/触发器/管理 API 未触碰；秘密仅 `${ENV}`，测试用非密占位
 - [ ] 4.4 requesting-code-review；按反馈修正
 - [ ] 4.5 合并 develop / push / `/opsx:archive`（用户驱动，含 spec delta sync）
 

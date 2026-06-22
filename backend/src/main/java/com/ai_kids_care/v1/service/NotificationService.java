@@ -4,7 +4,9 @@ import com.ai_kids_care.v1.dto.NotificationCreateDTO;
 import com.ai_kids_care.v1.dto.NotificationUpdateDTO;
 import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.mapper.NotificationMapper;
+import com.ai_kids_care.v1.entity.PushSubscription;
 import com.ai_kids_care.v1.repository.NotificationRepository;
+import com.ai_kids_care.v1.repository.PushSubscriptionRepository;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.security.audit.AuditAction;
@@ -12,19 +14,22 @@ import com.ai_kids_care.v1.security.audit.AuditEvent;
 import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.NotificationChannelEnum;
+import com.ai_kids_care.v1.type.NotificationStatusEnum;
+import com.ai_kids_care.v1.type.PushProviderEnum;
+import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
 import com.ai_kids_care.v1.vo.NotificationReadVO;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import net.pushover.client.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +41,7 @@ public class NotificationService {
     private final NotificationMapper mapper;
     private final PushoverService pushoverService;
     private final SecurityAuditWriter auditWriter;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
 
     // ── SPEC-0001 / ADR-0018 A3d：通知读取（tenant-scoped；细粒度作用域由 Repository SQL 强制）────
 
@@ -108,23 +114,62 @@ public class NotificationService {
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
     }
 
+    /**
+     * Persist a notification (unpublished write path). Delivery is performed separately via
+     * {@link #dispatch(Notification)} — the previous inline hard-coded blank-credential
+     * Pushover call has been removed (it would always throw at runtime).
+     */
     public NotificationVO createNotification(NotificationCreateDTO createDTO) {
-        NotificationChannelEnum channel = NotificationChannelEnum.from(createDTO.getChannel());
+        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
+    }
 
-        if (channel == NotificationChannelEnum.PUSH) {
-            Status result = pushoverService.sendMessage(
-                    "",
-                    "",
-                    createDTO.getBody(),
-                    null,
-                    createDTO.getTitle(),
-                    "https://github.com/ai-kids-care-team/ai-kids-care",
-                    "ai-kids-care",
-                    "alien"
-            );
+    /**
+     * Deliver a persisted notification over its channel and record the delivery lifecycle
+     * (SENDING → SENT / FAILED, with sent_at / fail_reason / retry_count). Only PUSH
+     * (Pushover) has an implemented delivery path; SMS/EMAIL are not yet wired (see
+     * notifications spec). The trigger that decides WHEN to dispatch (rule engine) is out
+     * of scope — this is the delivery primitive it will call.
+     */
+    @Transactional
+    public void dispatch(Notification notification) {
+        if (notification.getChannel() != NotificationChannelEnum.PUSH) {
+            return; // SMS/EMAIL delivery not implemented
         }
 
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
+        notification.setStatus(NotificationStatusEnum.SENDING);
+        repository.save(notification);
+
+        Optional<PushSubscription> subscription = pushSubscriptionRepository
+                .findByUser_IdAndProviderAndStatus(
+                        notification.getRecipientUser().getId(),
+                        PushProviderEnum.PUSHOVER,
+                        StatusEnum.ACTIVE)
+                .stream().findFirst();
+
+        if (subscription.isEmpty()) {
+            markFailed(notification, "no active Pushover subscription for recipient");
+            return;
+        }
+
+        try {
+            pushoverService.sendToUser(
+                    subscription.get().getAddress(),
+                    notification.getTitle(),
+                    notification.getBody());
+            notification.setStatus(NotificationStatusEnum.SENT);
+            notification.setSentAt(OffsetDateTime.now());
+            repository.save(notification);
+        } catch (RuntimeException e) {
+            markFailed(notification, "Pushover delivery failed: " + e.getMessage());
+        }
+    }
+
+    private void markFailed(Notification notification, String reason) {
+        notification.setStatus(NotificationStatusEnum.FAILED);
+        notification.setFailReason(reason);
+        notification.setRetryCount(
+                (notification.getRetryCount() == null ? 0 : notification.getRetryCount()) + 1);
+        repository.save(notification);
     }
 
     public NotificationVO updateNotification(Long id, NotificationUpdateDTO updateDTO) {
