@@ -224,4 +224,3 @@ they are awaiting independent Implementation.
 - **THEN** no new endpoint, DTO, VO, or repository is added to the `CommonCode` CRUD stack
   (`CommonCodeController`, `CommonCodeService`, `CommonCodeMapper`, `CommonCodeRepository`,
   `CommonCode` entity, `CommonCodeCreateDTO`, `CommonCodeUpdateDTO`, `CommonCodeVO`)
-
