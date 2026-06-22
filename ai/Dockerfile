@@ -16,10 +16,10 @@ RUN apt-get update \
         libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
 RUN pip install --no-cache-dir uv \
-    && uv sync --no-dev --no-install-project
+    && uv sync --frozen --no-dev --no-install-project
 
 COPY src ./src
 COPY scripts ./scripts
