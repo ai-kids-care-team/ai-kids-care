@@ -1,0 +1,37 @@
+spring:
+  # Neo4j: exclude auto-configuration in the test profile.
+  # Tests use PostgreSQL + Redis Testcontainers (wired in BaseIntegrationTest via
+  # @DynamicPropertySource); no test path touches graph storage.
+  # The manual Neo4jConfig bean is also excluded by suppressing the parent auto-config.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration
+
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: test-only
+
+  # Redis: the test Testcontainer runs without requirepass; override the password to empty
+  # so the Spring RedisConnectionFactory does not send AUTH against the plain container.
+  data:
+    redis:
+      password:
+
+rrn:
+  hash:
+    pepper: test-pepper-not-secret-2026
+
+camera-stream:
+  crypto:
+    current-version: v1
+    keys:
+      # 非生产 dev 测试密钥 — 32 字节全零 Base64，勿用于生产
+      # Base64.getEncoder().encodeToString(new byte[32]) = 43 个 'A' + '=' = 44 chars → 32 bytes
+      v1: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+# ADR-0026 Phase 2：非生产 dev 测试 token（内部凭据接口 Bearer 认证）
+internal:
+  ai:
+    service-token: test-ai-service-token-not-secret-2026
