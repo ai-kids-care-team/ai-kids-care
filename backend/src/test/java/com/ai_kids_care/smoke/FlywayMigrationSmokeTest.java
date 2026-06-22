@@ -32,11 +32,12 @@ class FlywayMigrationSmokeTest extends BaseIntegrationTest {
 
     @Test
     void baselineAndIncrementalMigrationsApplied() {
-        // baseline-on-migrate records V1 as the baseline against the initdb-seeded schema.
+        // baseline-on-migrate records V1 as the baseline (type=BASELINE, not a re-run SQL
+        // migration) against the initdb-seeded schema.
         Integer baseline = jdbc.queryForObject(
-                "SELECT count(*) FROM flyway_schema_history WHERE version = '1'",
+                "SELECT count(*) FROM flyway_schema_history WHERE version = '1' AND type = 'BASELINE'",
                 Integer.class);
-        assertThat(baseline).as("V1 baseline row present").isEqualTo(1);
+        assertThat(baseline).as("V1 recorded as Flyway baseline").isEqualTo(1);
 
         // V2–V6 must each be applied successfully as SQL migrations on top of the baseline.
         for (String version : new String[]{"2", "3", "4", "5", "6"}) {

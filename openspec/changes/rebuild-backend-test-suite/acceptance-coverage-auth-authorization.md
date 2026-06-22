@@ -36,4 +36,5 @@
 ## 已知缺口（本切片不覆盖，归其他能力的后续 change）
 
 - announcements / appreciation-letters / notifications / 监控流凭据 / RRN 哈希 / ai-detection / OpenAPI 契约等授权测试 —— 这些被删测试归属各自能力，按 testing-and-ci「按能力增量 TDD」原则随各能力 change 重建。
+- **Guardian-child「拒绝监控访问」scenario 无专属测试**（spec Guardian Child Relationship Boundary 下「Guardian is denied surveillance access」）：当前由默认拒绝 + RBAC 矩阵（仅 KINDERGARTEN_ADMIN 可达 cameras）间接保证，回归风险低；专属 GUARDIAN→403 监控端点测试留作下一个 auth 相关 change 补齐（code review m-3）。
 - ADR-0013 决议后启用 `FlywayMigrationTest`（fresh-Flyway 路径）。

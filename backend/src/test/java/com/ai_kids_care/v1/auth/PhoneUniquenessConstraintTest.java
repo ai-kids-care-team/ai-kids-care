@@ -45,7 +45,10 @@ class PhoneUniquenessConstraintTest extends BaseIntegrationTest {
         assertThatThrownBy(() ->
                 insertUser(LOGIN_B, "inc001-phone-b@test.local", SHARED_PHONE))
                 .as("a second user account with an already-used phone must violate uq_user_account_phone")
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class)
+                // Pin it to the phone constraint specifically, so the test can't pass on some
+                // other future constraint (NOT NULL, a different unique index, etc.).
+                .hasStackTraceContaining("uq_user_account_phone");
     }
 
     private void insertUser(String loginId, String email, String phone) {
