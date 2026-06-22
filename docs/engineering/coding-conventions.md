@@ -50,7 +50,7 @@
 
 ## Git / 协作
 
-- ✅ `CODEOWNERS` 按目录分团队；改动 `docs/` 与根需 leads 评审。
+- ~~`CODEOWNERS` 按目录分团队；改动 `docs/` 与根需 leads 评审。~~ **（已删除，2026-06-18）** 所引用的 GitHub 团队不存在，文件已移除；PR 评审门禁由人工约定执行。
 - 🔶 提交信息历史为传统协作风格；2026-05-11 起引入 Vibe Coding / AI Agents（见 [product/overview](../product/overview.md#项目阶段与协作背景)）。
 - ✅ Commit message **尽量使用英文**（见 [ADR-0008](../../decisions/adr/ADR-0008-language-governance.md)）。
 

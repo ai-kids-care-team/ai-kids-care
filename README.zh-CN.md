@@ -46,7 +46,7 @@ AI Kids Care 是面向幼儿园场景的 AI 安全管理平台。它把 CCTV 摄
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
 |-- docs/db/ERD/          # ERD diagrams and rendered images
-|-- pg-spring-crud-codegen/  # PostgreSQL schema introspection and Java code generation (relocated from scripts/codegen on 2026-05-29, see ADR-0011)
+|-- （pg-spring-crud-codegen/ 已退役，2026-06-18，ADR-0027）
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
 |-- Jenkinsfile           # CI/CD pipeline for compose deployment
@@ -137,7 +137,8 @@ docker compose up -d --build
 cd ai
 python -m venv .venv
 source .venv/bin/activate
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 export PYTHONPATH=src
 python scripts/serve.py
 ```
@@ -148,7 +149,8 @@ Windows PowerShell：
 cd ai
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 $env:PYTHONPATH = "src"
 python scripts\serve.py
 ```
@@ -169,7 +171,7 @@ AI 服务主要端点：
 - DBML schema：`db/dbml/schema.dbml`
 - ERD 文档：`docs/db/ERD/README.md`
 - Neo4j 数据加载器：`db/ne4j_kindergartens/`
-- 代码生成工具：`pg-spring-crud-codegen/`（原 `scripts/codegen/`，2026-05-29 迁址，见 ADR-0011）
+- 代码生成工具：~~`pg-spring-crud-codegen/`~~（已退役，2026-06-18，ADR-0027；新增领域对象改为手写）
 
 后端以 Hibernate `ddl-auto=validate` 模式运行，因此应用启动前数据库 schema 必须已经存在。使用根目录 Docker Compose 时，PostgreSQL 容器创建阶段会自动应用 `db/initdb`。
 

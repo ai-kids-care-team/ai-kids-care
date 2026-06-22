@@ -17,8 +17,10 @@ Accepted (Retrospective)
 ## 背景
 
 ✅ 后端各业务模块结构高度同构：`controller → service → repository → entity`，配合 `dto`（入）/`vo`（出）/`mapper`（MapStruct）。
-✅ 仓库内含 `pg-spring-crud-codegen/`（**原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](ADR-0011-extract-codegen-subproject.md)**）——一个 Python 工具，内省 PostgreSQL schema（表/列/主键/外键/注释）后用 Mustache 模板生成 6 类 Java 文件（CreateDTO/UpdateDTO/Mapper/VO/Controller/Service）。
+✅ 仓库原含 `pg-spring-crud-codegen/`（**原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](ADR-0011-extract-codegen-subproject.md)**）——一个 Python 工具，内省 PostgreSQL schema（表/列/主键/外键/注释）后用 Mustache 模板生成 6 类 Java 文件（CreateDTO/UpdateDTO/Mapper/VO/Controller/Service）。
 ✅ 后端 `ddl-auto=validate`：Hibernate 不建表，仅校验实体与既有表匹配。
+
+> **注（2026-06-18）**：`pg-spring-crud-codegen/` 代码生成工具已由 [ADR-0027](ADR-0027-retire-pg-spring-crud-codegen.md) 退役并删除。本 ADR 的分层架构原则（Controller/Service/Repository/DTO/VO/MapStruct）**仍然有效**，新增领域对象改用手写 + [backend-crud-layering-reference.md](../../engineering/backend-crud-layering-reference.md)。
 
 ## 决策
 

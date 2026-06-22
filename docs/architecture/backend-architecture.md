@@ -56,29 +56,9 @@ HTTP 请求
 | 分页 | Spring `Pageable` + `@PageableDefault(size=20)` | `ChildrenController.listChildren` |
 | OpenAPI 标注 | `@Tag` 等 springdoc 注解 | controller 顶部 |
 
-## 3. 代码生成器（关键架构事实）
+## 3. 后端代码起源（已退役代码生成器）
 
-✅ **后端 CRUD 各层的高度同构，源于一个代码生成器**：`pg-spring-crud-codegen/`（Python；原 `scripts/codegen/`，2026-05-29 迁址，见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)）。
-
-`pg-spring-crud-codegen/main.py` 的流程：
-
-```text
-PostgreSQL schema
-   │ introspect_pg.py（读 information_schema：表/列/主键/外键/注释）
-   ▼
-EntityModel / FieldModel（model.py）+ 命名转换（naming.py）+ PG→Java 类型映射（type_map.py）
-   │ pystache 渲染
-   ▼
-templates/*.mustache  →  生成 6 类文件：
-   CreateDTO / UpdateDTO / Mapper / VO / Controller / Service
-```
-
-含义（对维护者很重要）：
-
-- 后端实体层是**数据库优先（DB-first）**：先有 PG schema，代码由其生成。
-- 新增一张表后，可用生成器快速产出 CRUD 骨架，再手工补业务逻辑。
-- 🔶 生成器是**一次性脚手架**：生成后代码已手工演进（如 `AuthService` 的复杂注册逻辑、`GraphRepository`），不存在"重新生成会覆盖"的双向绑定。
-- 详见 [engineering/backend-guide.md](../engineering/backend-guide.md)。
+✅ 后端 CRUD 各层的高度同构，源于一个已退役的代码生成器：`pg-spring-crud-codegen/`（Python + pystache + Mustache 模板，原 `scripts/codegen/`，2026-05-29 由 ADR-0011 迁址）。**该工具已由 [ADR-0027](../decisions/adr/ADR-0027-retire-pg-spring-crud-codegen.md) 退役并删除（2026-06-18）**；现有后端代码为手工演进版本，与模板无双向绑定。新增领域对象参见 [engineering/backend-guide.md §新增后端领域对象](../engineering/backend-guide.md) 与 [backend-crud-layering-reference.md](../engineering/backend-crud-layering-reference.md)。
 
 ## 4. 持久化配置
 

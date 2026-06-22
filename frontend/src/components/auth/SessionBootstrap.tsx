@@ -16,7 +16,7 @@ export function SessionBootstrap() {
         id: String(data.userId),
         loginId: data.loginId,
         username: data.loginId,
-        name: data.loginId,
+        name: data.name,
         role: data.effectiveRole,
         scopeType: data.scopeType,
         scopeId: data.scopeId,

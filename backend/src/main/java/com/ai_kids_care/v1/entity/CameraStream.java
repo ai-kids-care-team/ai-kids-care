@@ -29,7 +29,10 @@ public class CameraStream {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "camera_id", nullable = false)
+    @JoinColumns({
+        @JoinColumn(name = "kindergarten_id", referencedColumnName = "kindergarten_id", nullable = false),
+        @JoinColumn(name = "camera_id", referencedColumnName = "camera_id", nullable = false)
+    })
     private CctvCamera cctvCameras;
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

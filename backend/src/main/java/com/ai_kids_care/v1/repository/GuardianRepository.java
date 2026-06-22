@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface GuardianRepository extends JpaRepository<Guardian, Long> {
 
+    // BE-4: 按 userId 查 guardian 档案（用于 session name 解析）
+    Optional<Guardian> findByUser_Id(Long userId);
+
     // SPEC-0002 Slice A: 同园 tenant-aware 查询（approve/reject/disable guardian 档案）
     Optional<Guardian> findByUser_IdAndKindergarten_IdAndStatus(
             Long userId,

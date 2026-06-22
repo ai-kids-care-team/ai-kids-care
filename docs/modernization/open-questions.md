@@ -173,12 +173,12 @@
 - **证据** ✅：代码生成器位于 `pg-spring-crud-codegen/`（**2026-05-29 由 `scripts/codegen/` 迁入**，旧路径仅留 README 软指针）。Python + psycopg + pystache，见 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md) 与 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
 - **背景（2026-05-29，团队确认）**：`pg-spring-crud-codegen` 原意是把「通过数据库逆向工程自动生成 Java 代码」的能力**分离为独立子工程**，以便后期从本仓库拆出。
 - **观察**：拆分时机/边界/产物归属待定；属 module-boundary 变更，提案见 [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)。
-- **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)（`pg-spring-crud-codegen` = `scripts/codegen` 同一 Python 工具的预留迁址位置，非重写；执行方案 A 仓内迁址 + 软指针，日后 `git filter-repo` 带史拆出）。**实施记录（2026-05-29）**：迁址完成；docker-compose 相对路径已修正；两处 README 就位；CODEOWNERS 已补条目；13 处内部引用已切换。
+- **结论（2026-05-29，团队确认）** ✅：已 **Accept** [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md)（`pg-spring-crud-codegen` = `scripts/codegen` 同一 Python 工具的预留迁址位置，非重写；执行方案 A 仓内迁址 + 软指针，日后 `git filter-repo` 带史拆出）。**实施记录（2026-05-29）**：迁址完成；docker-compose 相对路径已修正；两处 README 就位；CODEOWNERS 条目已补（**后续 2026-06-18 因所引用 GitHub 团队不存在，CODEOWNERS 整体删除**）；13 处内部引用已切换。**更新（2026-06-18）**：`pg-spring-crud-codegen/` 已由 [ADR-0027](../decisions/adr/ADR-0027-retire-pg-spring-crud-codegen.md) 退役并删除。OQ-ARCH-3 最终关闭。
 
 ### OQ-ARCH-4 ｜列表端点 `keyword` 过滤：12/15 为「静默空操作」
 - **证据** ✅（2026-06-12 复核）：15 个公开列表 Controller 暴露 `@RequestParam(required = false) String keyword`（出现在 Swagger 中），但其中 **12 个对应 Service 直接 `repository.findAll(pageable)` 忽略该参数**（统一注释 `// TODO: filter X by keyword`：`AiModel`/`AppreciationLetter`/`Class`/`DetectionEvent`/`DetectionSession`/`DeviceToken`/`EventEvidenceFile`/`Guardian`/`NotificationRule`/`Room`/`Superadmin`/`User`）；仅 **3 个真正实现过滤**：`KindergartenService`（`findByNameContains`）、`AnnouncementService`（`listActiveAnnouncements`）、`TeacherService`（`findByNameContains*`）。Audit Log 与 Notification 公共列表已关闭，不再计入公开契约。
 - **为何重要**：API 契约对外宣称支持 `keyword` 搜索（Swagger 可见、调用方返回 HTTP 200），但 12 个端点**静默返回未过滤结果且无任何报错**——属「伪实现」，比 `Not implemented`（会显式抛错）更隐蔽，最易在演示中被误判为已完成。根因为 codegen 模板统一生成参数后未回填实现（关联 [ADR-0004](../decisions/adr/ADR-0004-layered-backend-codegen.md)）。
-- **观察**：这 12 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议在 codegen 模板层统一补齐（如按可搜索列生成 `Containing` 派生查询），避免逐个手写造成 3 已实现 vs 12 未实现的持续漂移。
+- **观察**：这 12 个端点是「计划实现过滤」还是「应移除误导性参数」？需团队确认终态。若选择实现，建议按可搜索列手写 `Containing` 派生查询（注：codegen 已退役，见 ADR-0027；该路径已不适用），避免逐个手写造成 3 已实现 vs 12 未实现的持续漂移。
 
 ### OQ-TEST-1 ｜测试策略
 - **证据（更新 2026-06-16）** ✅：后端已有 Testcontainers 集成、单元和公共 API/OpenAPI 契约测试，由 GitHub Actions 执行 `./gradlew test`（Jenkins 已退役，ADR-0022）；前端已接入 `Frontend lint & build` CI（ADR-0020、#4）；AI 仍无自动化测试。

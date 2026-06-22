@@ -1,6 +1,6 @@
 # AI 架构（AI Architecture）
 
-✅ 主要来源：`ai/src/ai_app/`、`ai/scripts/`、`ai/requirements.txt`、`ai/Dockerfile`、`ai/docker-compose.yml`、`ai/README.md`。
+✅ 主要来源：`ai/src/ai_app/`、`ai/scripts/`、`ai/pyproject.toml`、`ai/Dockerfile`、`ai/docker-compose.yml`、`ai/README.md`。
 
 ## 1. 概述
 
@@ -10,7 +10,7 @@ AI 模块基于 **VideoMAE**（HuggingFace Transformers 的视频分类模型）
 2. **推理服务（online, request/response）** — FastAPI，对单段视频做分类。
 3. **实时流告警（online, streaming）** — 消费直播流，连续推理 + 去抖动判定 + 外部告警。
 
-✅ 关键依赖（`requirements.txt`）：`transformers==5.4.0`、`torch==2.11.0+cu130`、`av==17.0.0`（PyAV/FFmpeg 解码）、`fastapi`、`uvicorn`、`scikit-learn`、`accelerate`、`pandas`。环境：Python 3.14 / CUDA 13.2（README）；Docker 镜像用 `python:3.12-slim`。
+✅ 关键依赖（`pyproject.toml`）：`transformers==5.4.0`、`torch>=2.11.0`（cu130 CUDA 变体，由 `[tool.uv.sources]` 解析）、`av==17.0.0`（PyAV/FFmpeg 解码）、`fastapi`、`uvicorn`、`scikit-learn`、`accelerate`、`pandas`。环境：Python 3.14 / CUDA 13.2（README）；Docker 镜像用 `python:3.12-slim`。
 
 ## 1.1 模型与数据来源（Provenance）
 

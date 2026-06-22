@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.config;
 
 import jakarta.servlet.DispatcherType;
+import com.ai_kids_care.v1.security.AiServiceTokenAuthenticationFilter;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextFilter;
 import com.ai_kids_care.v1.security.audit.CorrelationIdFilter;
 import com.ai_kids_care.v1.security.audit.SecurityAuditAccessDeniedHandler;
@@ -43,6 +44,7 @@ public class SecurityConfig {
             SecurityContextRepository securityContextRepository,
             CookieCsrfTokenRepository csrfTokenRepository,
             EffectiveAuthorizationContextFilter authorizationContextFilter,
+            AiServiceTokenAuthenticationFilter aiServiceTokenAuthenticationFilter,
             SecurityAuditAccessDeniedHandler accessDeniedHandler,
             CorrelationIdFilter correlationIdFilter
     ) throws Exception {
@@ -92,6 +94,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/guardian-child-verifications"
                         ).permitAll()
+                        // ADR-0026 Phase 2：内部凭据接口仅限 AI 服务（Bearer token → ROLE_AI_SERVICE）。
+                        // 必须在通配 /api/v1/** 规则之前；普通会话用户（SESSION_AUTHENTICATED）→ 403。
+                        .requestMatchers("/api/v1/internal/**").hasRole("AI_SERVICE")
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().authenticated()
                 )
@@ -104,6 +109,11 @@ public class SecurityConfig {
                 )
                 .addFilterAfter(
                         authorizationContextFilter,
+                        SecurityContextHolderFilter.class
+                )
+                // AI 服务 Bearer token filter：在授权检查前设入 ROLE_AI_SERVICE 认证（仅作用于 /api/v1/internal/**）。
+                .addFilterAfter(
+                        aiServiceTokenAuthenticationFilter,
                         SecurityContextHolderFilter.class
                 );
         return http.build();

@@ -18,7 +18,7 @@ Accepted (Retrospective)
 
 ✅ 系统由四个技术栈差异很大的组件构成：前端（TypeScript/Next.js）、后端（Java/Spring）、AI（Python/PyTorch）、数据库（SQL/Cypher）。这些组件被放在**同一个 Git 仓库**中（`frontend/`、`backend/`、`ai/`、`db/` 同级）。
 
-✅ `CODEOWNERS` 将各目录划归不同团队（ai/frontend/backend/db），`/docs/` 与根归 leads。
+~~`CODEOWNERS` 将各目录划归不同团队（ai/frontend/backend/db），`/docs/` 与根归 leads。~~ **（已删除，2026-06-18）** `CODEOWNERS` 所引用的 GitHub 团队 `ai-kids-care-team/*` 在本仓库中不存在，文件已移除，不再作为 PR 评审控制手段。
 
 ## 决策
 

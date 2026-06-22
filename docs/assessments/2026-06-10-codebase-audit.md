@@ -9,6 +9,8 @@ scope: monorepo implementation, architecture, documentation, tests, and deployme
 
 # AI Kids Care 代码库审计
 
+> **[已废弃]** 本审计已被 [2026-06-17-followup-audit.md](2026-06-17-followup-audit.md) 取代（superseded 2026-06-18）。以下内容仅作历史参考。
+
 ## 执行摘要
 
 AI Kids Care 已有较广的领域模型与清晰可辨的 monorepo 结构，但尚未达到生产级安全管理平台的成熟度。当前更接近：面向演示的 CRUD 系统、部分前端流程、独立 AI 实验，以及声明的目标架构与运行时强制行为之间的明显缺口。
@@ -83,7 +85,7 @@ AI Kids Care 已有较广的领域模型与清晰可辨的 monorepo 结构，但
 5. Database truth 分散在 DBML、initdb SQL、Flyway、JPA、seed SQL 和 Neo4j CSV snapshot。
 6. 数据库文档分布在 `db/**` 与 `docs/db/**`，但没有清晰 ownership 规则。
 7. `db/ne4j_kindergartens/` 及多个 script 名拼写错误，影响检索与自动化。
-8. Root `pg-spring-crud-codegen/` 加 `scripts/codegen/` pointer 保留了迁移历史，但增加导航噪音。
+8. Root `pg-spring-crud-codegen/` 加 `scripts/codegen/` pointer 保留了迁移历史，但增加导航噪音。（**注：`pg-spring-crud-codegen/` 与 `scripts/codegen/` 已于 2026-06-18 由 ADR-0027 删除**）
 9. 审计开始时 `.ai/CONTEXT.md` 已存在，但 `AGENTS.md`/`CLAUDE.md` 仍指向 `.agents/CONTEXT.md`；本次已修正入口指针。
 
 ## 建议顺序

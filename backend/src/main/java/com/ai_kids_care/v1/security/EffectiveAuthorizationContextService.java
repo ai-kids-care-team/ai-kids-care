@@ -1,15 +1,22 @@
 package com.ai_kids_care.v1.security;
 
+import com.ai_kids_care.v1.entity.Guardian;
 import com.ai_kids_care.v1.entity.Kindergarten;
+import com.ai_kids_care.v1.entity.Superadmin;
+import com.ai_kids_care.v1.entity.Teacher;
 import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.entity.UserKindergartenMembership;
 import com.ai_kids_care.v1.entity.UserRoleAssignment;
+import com.ai_kids_care.v1.repository.GuardianRepository;
 import com.ai_kids_care.v1.repository.KindergartenRepository;
+import com.ai_kids_care.v1.repository.SuperadminRepository;
+import com.ai_kids_care.v1.repository.TeacherRepository;
 import com.ai_kids_care.v1.repository.UserKindergartenMembershipRepository;
 import com.ai_kids_care.v1.repository.UserRepository;
 import com.ai_kids_care.v1.repository.UserRoleAssignmentRepository;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
+import com.ai_kids_care.v1.type.UserRoleEnum;
 import com.ai_kids_care.v1.vo.TenantContextVO;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +40,9 @@ public class EffectiveAuthorizationContextService {
     private final UserRoleAssignmentRepository roleAssignmentRepository;
     private final UserKindergartenMembershipRepository membershipRepository;
     private final KindergartenRepository kindergartenRepository;
+    private final TeacherRepository teacherRepository;
+    private final GuardianRepository guardianRepository;
+    private final SuperadminRepository superadminRepository;
 
     @Transactional(readOnly = true)
     public AuthenticatedSession establishSession(User user) {
@@ -151,6 +161,7 @@ public class EffectiveAuthorizationContextService {
             Long selectedKindergartenId
     ) {
         UserRoleAssignment roleAssignment = identity.roleAssignment();
+        String name = resolveProfileName(user.getId(), roleAssignment.getRole());
         return new EffectiveAuthorizationContext(
                 user.getId(),
                 user.getLoginId(),
@@ -159,8 +170,27 @@ public class EffectiveAuthorizationContextService {
                 roleAssignment.getScopeType(),
                 roleAssignment.getScopeId(),
                 selectedKindergartenId,
-                identity.membership() == null ? null : identity.membership().getId()
+                identity.membership() == null ? null : identity.membership().getId(),
+                name
         );
+    }
+
+    private String resolveProfileName(Long userId, UserRoleEnum role) {
+        return switch (role) {
+            case TEACHER, KINDERGARTEN_ADMIN ->
+                    teacherRepository.findByUserId(userId)
+                            .map(Teacher::getName)
+                            .orElse(null);
+            case GUARDIAN ->
+                    guardianRepository.findByUser_Id(userId)
+                            .map(Guardian::getName)
+                            .orElse(null);
+            case SUPERADMIN ->
+                    superadminRepository.findByUser_Id(userId)
+                            .map(Superadmin::getName)
+                            .orElse(null);
+            case PLATFORM_IT_ADMIN -> null;
+        };
     }
 
     private ResponseStatusException authenticationFailure() {

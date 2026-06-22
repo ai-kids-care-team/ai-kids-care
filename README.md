@@ -46,7 +46,7 @@ AI Kids Care는 유치원 환경에서 CCTV, 보호자, 교직원, 아동, 알�
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
 |-- docs/db/ERD/          # ERD diagrams and rendered images
-|-- pg-spring-crud-codegen/  # PostgreSQL schema introspection and Java code generation (relocated from scripts/codegen on 2026-05-29, see ADR-0011)
+|-- （pg-spring-crud-codegen/ 已退役，2026-06-18，ADR-0027）
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
 |-- Jenkinsfile           # CI/CD pipeline for compose deployment
@@ -137,7 +137,8 @@ docker compose up -d --build
 cd ai
 python -m venv .venv
 source .venv/bin/activate
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 export PYTHONPATH=src
 python scripts/serve.py
 ```
@@ -148,7 +149,8 @@ Windows PowerShell:
 cd ai
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt
+pip install uv
+uv sync --no-dev
 $env:PYTHONPATH = "src"
 python scripts\serve.py
 ```
@@ -169,7 +171,7 @@ AI 서비스 주요 엔드포인트:
 - DBML 스키마: `db/dbml/schema.dbml`
 - ERD 문서: `docs/db/ERD/README.md`
 - Neo4j 데이터 로더: `db/ne4j_kindergartens/`
-- 코드 생성 도구: `pg-spring-crud-codegen/`（구 `scripts/codegen/`, ADR-0011 참조）
+- 코드 생성 도구: ~~`pg-spring-crud-codegen/`~~ （퇴역, 2026-06-18, ADR-0027；신규 도메인 객체는 수작업으로 작성）
 
 백엔드는 Hibernate `ddl-auto=validate`로 실행되므로, DB 스키마는 애플리케이션 시작 전에 SQL init script로 준비되어 있어야 합니다. 루트 Docker Compose를 사용하면 PostgreSQL 컨테이너 생성 시 `db/initdb`가 적용됩니다.
 

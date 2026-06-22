@@ -41,6 +41,8 @@ spring:
     open-in-view: false
 
 server:
+  error:
+    include-stacktrace: never
   port: 8080
   servlet:
     session:
@@ -54,6 +56,17 @@ server:
 rrn:
   hash:
     pepper: ${RRN_HASH_PEPPER}
+
+camera-stream:
+  crypto:
+    current-version: v1
+    keys:
+      v1: ${CAMERA_STREAM_AES_KEY_V1}
+
+# ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
+internal:
+  ai:
+    service-token: ${AI_SERVICE_TOKEN}
 
 logging:
   level:

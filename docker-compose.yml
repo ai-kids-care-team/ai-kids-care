@@ -103,6 +103,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
+      CAMERA_STREAM_AES_KEY_V1: ${CAMERA_STREAM_AES_KEY_V1:?CAMERA_STREAM_AES_KEY_V1 must be set}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?AI_SERVICE_TOKEN must be set}
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
     ports:

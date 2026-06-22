@@ -12,7 +12,7 @@
 
 | 顺序 | ADR | 决策摘要 | 状态 | 复杂度 |
 | --- | --- | --- | --- | --- |
-| 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** | 小 |
+| 1 | [ADR-0011](../decisions/adr/ADR-0011-extract-codegen-subproject.md) | codegen → `pg-spring-crud-codegen/` 仓内迁址 | ✅ **Implemented (2026-05-29)** → **Superseded by ADR-0027 (2026-06-18)** | 小 |
 | 2 | [ADR-0014](../decisions/adr/ADR-0014-test-baseline.md) | 测试基线（Testcontainers PG + characterization） | ✅ **Implemented (2026-06-08)** | 中 |
 | 3 | [ADR-0012](../decisions/adr/ADR-0012-production-data-lifecycle.md) | 演示重置 vs 生产数据生命周期 + Flyway | ⚠️ **Partial**：迁移已落地，生产 loader 仍有竞态/快照问题 | 中 |
 | 4 | [ADR-0013](../decisions/adr/ADR-0013-dictionary-tables-governance.md) | `menu` → C 静态；`common_codes` → β 后端 enum 端点 + 前端 i18n | 📋 Backlog | 中 |
@@ -55,10 +55,12 @@
 - [x] `pg-spring-crud-codegen/docker-compose.yml` 相对路径 `../../db` → `../db`
 - [x] 新增 `pg-spring-crud-codegen/README.md`（自洽子工程说明）
 - [x] 新增 `scripts/codegen/README.md`（软指针）
-- [x] `CODEOWNERS` 增补 `/pg-spring-crud-codegen/` 条目
+- [x] ~~`CODEOWNERS` 增补 `/pg-spring-crud-codegen/` 条目~~ **（2026-06-18）** `CODEOWNERS` 已整体删除（所引用 GitHub 团队不存在）
 - [x] 13 处内部引用切换（root READMEs、docs/architecture/*、ADR-0004 等）
 
 **未做**（按 ADR 范围）：未拆出独立 git 仓库——保持仓内迁址形态；后续 `git filter-repo` 带史拆出留待单独任务。
+
+**退役（2026-06-18）**：[ADR-0027](../decisions/adr/ADR-0027-retire-pg-spring-crud-codegen.md) 退役并删除 `pg-spring-crud-codegen/`；ADR-0011 被 ADR-0027 取代。
 
 ---
 

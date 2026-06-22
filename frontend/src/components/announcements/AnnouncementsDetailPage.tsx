@@ -27,8 +27,6 @@ export function AnnouncementsDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
-  const authorIdHiddenValue = user?.id ?? '';
-
   useEffect(() => {
     const resetToTop = () => {
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -99,13 +97,6 @@ export function AnnouncementsDetailPage() {
 
   const handleDeleteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const authorIdValue = String(formData.get('authorId') ?? '').trim();
-    const parsedAuthorId = Number(authorIdValue);
-    if (!Number.isFinite(parsedAuthorId) || parsedAuthorId <= 0) {
-      setError('로그인 사용자 ID를 확인할 수 없습니다.');
-      return;
-    }
     await handleDelete();
   };
 
@@ -160,7 +151,6 @@ export function AnnouncementsDetailPage() {
                       수정
                     </Link>
                     <form onSubmit={handleDeleteSubmit}>
-                      <input type="hidden" name="authorId" value={authorIdHiddenValue} readOnly />
                       <button
                         type="submit"
                         disabled={deleting}

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Bell, ChevronRight } from 'lucide-react';
 import { HeroSlider } from '@/components/home/HeroSlider';
 import { Footer } from '@/layout/Footer';
-import { useAppSelector } from '@/store/hook';
 import { ANNOUNCEMENTS_DEFAULT_SORT, getAnnouncements } from '@/services/apis/announcements.api';
 import {
   getAnnouncementBaseDate,
@@ -32,7 +31,6 @@ function formatDate(value: string) {
 
 export function HomePage() {
   const [announcements, setAnnouncements] = useState<HomeAnnouncement[]>([]);
-  const { user } = useAppSelector((state) => state.user);
 
   useEffect(() => {
     const loadAnnouncements = async () => {

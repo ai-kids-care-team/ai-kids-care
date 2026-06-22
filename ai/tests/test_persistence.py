@@ -19,19 +19,21 @@ from unittest.mock import MagicMock
 # ---------------------------------------------------------------------------
 
 def _install_stubs() -> None:
-    """Inject minimal stubs for all heavy dependencies of stream_live_alert_service."""
+    """Inject minimal stubs for all heavy dependencies of stream_live_alert_service.
+
+    Strategy: stub only leaf modules whose real implementations import packages
+    unavailable in the CI lightweight environment (requests/dotenv for pushover,
+    pandas/dotenv for sms). Do NOT stub ai_app or ai_app.utils root packages —
+    those are plain empty __init__.py files that are safe and necessary to import
+    as real packages. Stubbing the root would break test_sample_frame_indices and
+    test_serving which import from ai_app directly.
+    """
 
     # av
     if "av" not in sys.modules:
         sys.modules["av"] = MagicMock()
 
-    # numpy — stub the parts the module-level code and type hints reference
-    if "numpy" not in sys.modules:
-        np_stub = types.ModuleType("numpy")
-        np_stub.ndarray = object  # used only in type annotation
-        np_stub.mean = MagicMock(return_value=0.0)
-        np_stub.argmax = MagicMock(return_value=0)
-        sys.modules["numpy"] = np_stub
+    # numpy is a real dev dependency — do NOT stub it here.
 
     # torch
     if "torch" not in sys.modules:
@@ -47,15 +49,23 @@ def _install_stubs() -> None:
     if "transformers" not in sys.modules:
         sys.modules["transformers"] = MagicMock()
 
-    # ai_app package hierarchy
-    for pkg in [
-        "ai_app",
-        "ai_app.utils",
-        "ai_app.utils.pushover",
-        "ai_app.utils.sms",
-    ]:
-        if pkg not in sys.modules:
-            sys.modules[pkg] = MagicMock()
+    # ai_app.utils.pushover imports `requests` and `dotenv` at module level —
+    # neither is in the CI lightweight install. Stub precisely at the leaf so
+    # Python resolves `from ai_app.utils.pushover import ...` via sys.modules
+    # without ever executing the real file.
+    if "ai_app.utils.pushover" not in sys.modules:
+        pushover_stub = types.ModuleType("ai_app.utils.pushover")
+        pushover_stub.send_pushover_notification = MagicMock(return_value=True)
+        pushover_stub.send_pushover_notifications = MagicMock(return_value=[])
+        sys.modules["ai_app.utils.pushover"] = pushover_stub
+
+    # ai_app.utils.sms imports `pandas` and `dotenv` at module level.
+    if "ai_app.utils.sms" not in sys.modules:
+        sms_stub = types.ModuleType("ai_app.utils.sms")
+        sms_stub.build_message_service = MagicMock()
+        sms_stub.parse_recipients = MagicMock(return_value=[])
+        sms_stub.send_sms_batch = MagicMock(return_value=[])
+        sys.modules["ai_app.utils.sms"] = sms_stub
 
     # realtime_persistence_demo — stub the symbols imported at the module level
     if "realtime_persistence_demo" not in sys.modules:

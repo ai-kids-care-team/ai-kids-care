@@ -1,0 +1,58 @@
+name: AI Python Tests
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-python-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest (Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest httpx numpy fastapi==0.115.12 uvicorn python-multipart==0.0.20
+
+      - name: Run AI pytest suite
+        working-directory: ai
+        env:
+          PYTHONPATH: src
+        run: python -m pytest tests/ -v --junit-xml=.pytest-results/results.xml
+
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-pytest-report
+          path: ai/.pytest-results/
+          # .pytest-results is a dot-prefixed (hidden) dir; upload-artifact excludes
+          # hidden files by default, so opt in explicitly or the report is dropped.
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

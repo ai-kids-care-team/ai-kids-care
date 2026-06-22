@@ -221,8 +221,9 @@ class PublishedOpenApiContractTest {
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "level");
         assertComponentOptionalProperty(apiDocs, "AuthRegisterDTO", "staffNo");
         assertComponentHasOnlyProperties(apiDocs, "AuthSessionVO", Set.of(
-                "userId", "loginId", "effectiveRole", "scopeType", "scopeId"
+                "userId", "loginId", "effectiveRole", "scopeType", "scopeId", "name"
         ));
+        assertComponentOptionalProperty(apiDocs, "AuthSessionVO", "name");
         assertComponentHasOnlyProperties(apiDocs, "TenantContextRequest", Set.of(
                 "kindergartenId"
         ));
@@ -265,8 +266,13 @@ class PublishedOpenApiContractTest {
         assertComponentAbsent(apiDocs, "NotificationRuleUpdateDTO");
         assertComponentAbsent(apiDocs, "SuperadminCreateDTO");
         assertComponentAbsent(apiDocs, "SuperadminUpdateDTO");
-        assertComponentAbsent(apiDocs, "AppreciationLetterCreateDTO");
-        assertComponentAbsent(apiDocs, "AppreciationLetterUpdateDTO");
+        // SPEC-0003：感谢信 DTO 已合法发布；改为存在性正向断言并锁定字段集。
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterCreateDTO", Set.of(
+                "targetType", "targetId", "title", "content", "isPublic"
+        ));
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterUpdateDTO", Set.of(
+                "title", "content", "isPublic"
+        ));
         assertComponentAbsent(apiDocs, "KindergartenCreateDTO");
         assertComponentAbsent(apiDocs, "KindergartenUpdateDTO");
         assertComponentAbsent(apiDocs, "ChildGraphVO");
@@ -278,6 +284,17 @@ class PublishedOpenApiContractTest {
         ));
         assertComponentAbsent(apiDocs, "NotificationCreateDTO");
         assertComponentAbsent(apiDocs, "NotificationUpdateDTO");
+        // AN-READ：AnnouncementVO 平台级发布，无 S0/S1；authorId 已删除（BE-3b）；锁定允许字段集。
+        assertComponentHasOnlyProperties(apiDocs, "AnnouncementVO", Set.of(
+                "id", "title", "body", "isPinned", "pinnedUntil",
+                "status", "publishedAt", "startsAt", "endsAt",
+                "viewCount", "createdAt", "updatedAt", "deletedAt"
+        ));
+        assertOperationPresent(apiDocs, "/api/v1/announcements", "get");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "get");
+        assertOperationPresent(apiDocs, "/api/v1/announcements", "post");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "put");
+        assertOperationPresent(apiDocs, "/api/v1/announcements/{id}", "delete");
         assertComponentAbsent(apiDocs, "AuthLogoutDTO");
         assertComponentAbsent(apiDocs, "ChangePasswordRequest");
         assertComponentAbsent(apiDocs, "AuthPasswordResetDTO");
@@ -319,8 +336,9 @@ class PublishedOpenApiContractTest {
 
         assertOperationPresent(apiDocs, "/api/v1/camera_streams", "get");
         assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "get");
-        assertOperationAbsent(apiDocs, "/api/v1/camera_streams", "post");
-        assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "put");
+        // ADR-0026 Phase 1：camera_streams POST/PUT 已合法发布。
+        assertOperationPresent(apiDocs, "/api/v1/camera_streams", "post");
+        assertOperationPresent(apiDocs, "/api/v1/camera_streams/{id}", "put");
         assertOperationAbsent(apiDocs, "/api/v1/camera_streams/{id}", "delete");
 
         assertPathAbsent(apiDocs, "/api/v1/detection_events");
@@ -361,8 +379,16 @@ class PublishedOpenApiContractTest {
         assertPathAbsent(apiDocs, "/api/v1/notification_rules/{id}");
         assertPathAbsent(apiDocs, "/api/v1/superadmins");
         assertPathAbsent(apiDocs, "/api/v1/superadmins/{id}");
-        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters");
-        assertPathAbsent(apiDocs, "/api/v1/appreciation_letters/{id}");
+        // SPEC-0003：感谢信端点已合法发布；改为存在性正向断言并锁定 VO 字段集。
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters", "get");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters", "post");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "get");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "put");
+        assertOperationPresent(apiDocs, "/api/v1/appreciation_letters/{id}", "delete");
+        assertComponentHasOnlyProperties(apiDocs, "AppreciationLetterVO", Set.of(
+                "letterId", "senderName", "targetType", "targetName",
+                "title", "content", "isPublic", "editable", "createdAt", "updatedAt"
+        ));
     }
 
     @Test

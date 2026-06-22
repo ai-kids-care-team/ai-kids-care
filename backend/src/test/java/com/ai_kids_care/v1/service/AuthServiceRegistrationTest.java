@@ -158,7 +158,7 @@ class AuthServiceRegistrationTest {
         UserRoleAssignment role = activeRole(user, UserRoleEnum.SUPERADMIN);
         AuthenticatedSession expected = new AuthenticatedSession(
                 new SessionPrincipal(1L, role.getId(), null, OffsetDateTime.now()),
-                new AuthSessionVO(1L, "user", "SUPERADMIN", "PLATFORM", null)
+                new AuthSessionVO(1L, "user", "SUPERADMIN", "PLATFORM", null, null)
         );
         when(userRepository.findByLoginIdOrEmailOrPhone("user", "user", "user"))
                 .thenReturn(user);

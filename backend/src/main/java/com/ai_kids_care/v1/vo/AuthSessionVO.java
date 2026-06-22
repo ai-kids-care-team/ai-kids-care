@@ -8,6 +8,7 @@ public record AuthSessionVO(
         String loginId,
         String effectiveRole,
         String scopeType,
-        Long scopeId
+        Long scopeId,
+        String name
 ) {
 }

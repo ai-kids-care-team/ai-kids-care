@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchRegisterFieldAvailability, type RegisterRequest } from '@/services/apis/auth.api';
 import { API_BASE_URL } from '@/config/api';
+import { apiClient } from '@/services/apis/apiClient';
 
 type MemberType = 'GUARDIAN' | 'KINDERGARTEN' | 'SUPERADMIN';
 type FieldErrorKey =
@@ -533,19 +534,10 @@ export function useSignupForm() {
     setChildVerificationMessage('');
     setIsChildVerifying(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/guardian-child-verifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          childRrnFirst6: first6,
-          childRrnBack7: back7,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('아이 정보 확인에 실패했습니다.');
-      }
-
-      const payload = (await response.json()) as { verified?: boolean };
+      const { data: payload } = await apiClient.post<{ verified?: boolean }>(
+        '/auth/guardian-child-verifications',
+        { childRrnFirst6: first6, childRrnBack7: back7 }
+      );
       const verified = payload.verified === true;
       setIsChildVerified(verified);
       setChildVerificationMessage(
@@ -553,7 +545,11 @@ export function useSignupForm() {
       );
     } catch (err) {
       setIsChildVerified(false);
-      setChildVerificationMessage(err instanceof Error ? err.message : '아이 정보 확인에 실패했습니다.');
+      const message =
+        err != null && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+          : undefined;
+      setChildVerificationMessage(message ?? (err instanceof Error ? err.message : '아이 정보 확인에 실패했습니다.'));
     } finally {
       setIsChildVerifying(false);
     }
@@ -726,18 +722,14 @@ export function useSignupForm() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registerBody),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const backendError = data.error || '회원가입에 실패했습니다.';
+      await apiClient.post('/auth/register', registerBody).catch((err) => {
+        const backendError =
+          (err != null && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+            : undefined) ?? '회원가입에 실패했습니다.';
         mapBackendErrorToField(backendError, setFieldErrors);
         throw new Error(backendError);
-      }
+      });
 
       setSuccessMessage('가입 신청이 제출되었습니다. 승인 완료 안내를 받은 뒤 로그인해 주세요.');
     } catch (err) {

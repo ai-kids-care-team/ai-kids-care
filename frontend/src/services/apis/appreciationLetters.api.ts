@@ -1,10 +1,5 @@
+import { apiClient } from './apiClient';
 import type { AppreciationLetterVO } from '@/types/appreciationLetter';
-
-function appreciationLettersUnavailable(): never {
-  throw new Error(
-    'Appreciation letters are unavailable until an authenticated, tenant-scoped API is implemented.',
-  );
-}
 
 /** Spring Data `Page` JSON */
 export type PageResponse<T> = {
@@ -17,23 +12,24 @@ export type PageResponse<T> = {
   last: boolean;
 };
 
-/** 백엔드 `AppreciationLetterCreateDTO` / `AppreciationLetterUpdateDTO` 필드 정렬 */
-export type AppreciationLetterWritePayload = {
-  kindergartenId: number;
-  senderUserId: number;
+/** 백엔드 `AppreciationLetterCreateDTO` */
+export type AppreciationLetterCreatePayload = {
   targetType: string;
   targetId: number;
   title: string;
   content: string;
   isPublic: boolean;
-  status: string;
+};
+
+/** 백엔드 `AppreciationLetterUpdateDTO` */
+export type AppreciationLetterUpdatePayload = {
+  title: string;
+  content: string;
+  isPublic: boolean;
 };
 
 /** 프론트 UI에서 한 페이지에 보여줄 개수 */
 export const APPRECIATION_LETTERS_PAGE_SIZE = 6;
-
-/** 목록 조회 시 한 번에 가져올 최대 개수(프론트에서 다시 페이지 나눔) */
-export const APPRECIATION_LETTERS_FETCH_LIMIT = 200;
 
 export type GetAppreciationLettersParams = {
   keyword?: string;
@@ -45,32 +41,47 @@ export type GetAppreciationLettersParams = {
 export async function getAppreciationLetters(
   params?: GetAppreciationLettersParams,
 ): Promise<PageResponse<AppreciationLetterVO>> {
-  void params;
-  return appreciationLettersUnavailable();
+  const page = params?.page ?? 0;
+  const size = params?.size ?? APPRECIATION_LETTERS_PAGE_SIZE;
+  const keyword = params?.keyword?.trim();
+  const sort = params?.sort;
+  const response = await apiClient.get<PageResponse<AppreciationLetterVO>>(
+    '/appreciation_letters',
+    {
+      params: {
+        page,
+        size,
+        ...(keyword ? { keyword } : {}),
+        ...(sort ? { sort } : {}),
+      },
+    },
+  );
+  return response.data;
 }
 
 export async function getAppreciationLetterDetail(id: number): Promise<AppreciationLetterVO> {
-  void id;
-  return appreciationLettersUnavailable();
+  const response = await apiClient.get<AppreciationLetterVO>(`/appreciation_letters/${id}`);
+  return response.data;
 }
 
 export async function createAppreciationLetter(
-  payload: AppreciationLetterWritePayload,
+  payload: AppreciationLetterCreatePayload,
 ): Promise<AppreciationLetterVO> {
-  void payload;
-  return appreciationLettersUnavailable();
+  const response = await apiClient.post<AppreciationLetterVO>('/appreciation_letters', payload);
+  return response.data;
 }
 
 export async function updateAppreciationLetter(
   id: number,
-  payload: AppreciationLetterWritePayload,
+  payload: AppreciationLetterUpdatePayload,
 ): Promise<AppreciationLetterVO> {
-  void id;
-  void payload;
-  return appreciationLettersUnavailable();
+  const response = await apiClient.put<AppreciationLetterVO>(
+    `/appreciation_letters/${id}`,
+    payload,
+  );
+  return response.data;
 }
 
 export async function deleteAppreciationLetter(id: number): Promise<void> {
-  void id;
-  return appreciationLettersUnavailable();
+  await apiClient.delete(`/appreciation_letters/${id}`);
 }

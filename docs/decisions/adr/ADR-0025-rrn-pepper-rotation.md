@@ -23,6 +23,13 @@ Implementation: `Not Started`（依赖 ADR-0024 先落地；按需排期）
 
 > **依赖 ADR-0024 已落地**（RRN 在 HMAC + 单一 pepper）。本 ADR 可独立排期，不阻塞 ADR-0024 的迁移上线。高风险（密钥 + PII）。
 
+> **设计确认 + 推迟（2026-06-18，维护者决定）：** SEC-D7 设计评估确认——ADR-0024 的「BCrypt 回填」前提已 **OBE**（V5/V6 已删 `rrn_encrypted`、无 BCrypt 存量），D7 的剩余价值即本 ADR **R4「保护者/教师再校验重算」**。本 ADR 设计完整（R1–R5），但 pepper 轮换是 **break-glass** 能力、生产 pepper 已强、无轮换在即，故 **推迟实施（build-on-demand）**。实施前须先定以下决策（写入实施小 spec）：
+> - **OQ-1** 过渡期未再校验用户：强制完成 vs 懒（退役速度 ↔ UX）。
+> - **OQ-2** 从不登录的休眠账号：等待 / DISABLE / 设最大等待期。
+> - **OQ-3** 再校验端点认证模型：完整 JWT vs 受限 session。
+> - **OQ-4** 过渡期时长 + 完成率监控。
+> 触发机制建议：专用 `POST /api/v1/auth/rrn-revalidate`（须认证、仅操作本人行、RRN 不入日志）。详见 2026-06-18 SEC-D7 设计评估。
+
 ## 背景（Context）
 
 - ADR-0024 落地后，RRN 以 `HMAC-SHA-256(pepper, first6‖back7)` 存于 `rrn_hash`，**单一 pepper**，无版本概念。

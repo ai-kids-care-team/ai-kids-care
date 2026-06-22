@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.AiModelUpdateDTO;
 import com.ai_kids_care.v1.vo.AiModelVO;
 import com.ai_kids_care.v1.service.AiModelService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -36,14 +37,14 @@ public class AiModelController {
     }
 
     @PostMapping
-    public ResponseEntity<AiModelVO> createAiModel(@RequestBody AiModelCreateDTO createDTO) {
+    public ResponseEntity<AiModelVO> createAiModel(@Valid @RequestBody AiModelCreateDTO createDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createAiModel(createDTO));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<AiModelVO> updateAiModel(
             @PathVariable Long id,
-            @RequestBody AiModelUpdateDTO updateDTO
+            @Valid @RequestBody AiModelUpdateDTO updateDTO
     ) {
         return ResponseEntity.ok(service.updateAiModel(id, updateDTO));
     }

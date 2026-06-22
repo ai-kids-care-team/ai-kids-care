@@ -4,7 +4,7 @@ Focused tests for ai_app.serving.app hardening changes.
 Dependencies: pytest, httpx (required by FastAPI TestClient).
   pip install pytest httpx
 If httpx is not installed, these tests will raise ImportError on collection.
-httpx is not listed in ai/requirements.txt; add it under ai-deps-lock item.
+httpx is declared in the dev dependency-group of ai/pyproject.toml.
 """
 from __future__ import annotations
 
@@ -142,3 +142,55 @@ def test_upload_valid_mp4_mock():
     assert body["predicted_id"] == 0
     assert body["predicted_label"] == "normal"
     assert abs(body["confidence"] - 0.95) < 1e-6
+
+
+def test_upload_top_k_out_of_range():
+    """top_k=0, top_k=51, and top_k=-1 must return 422 (Form range validation)."""
+    app.dependency_overrides[_original_get_predictor] = lambda: _make_mock_predictor()
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        for bad_top_k in [0, 51, -1]:
+            response = client.post(
+                "/predict/upload",
+                files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
+                data={"top_k": str(bad_top_k)},
+            )
+            assert response.status_code == 422, (
+                f"top_k={bad_top_k} should return 422, got {response.status_code}"
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_upload_num_frames_out_of_range():
+    """num_frames=0 must return 422 (Form range validation)."""
+    app.dependency_overrides[_original_get_predictor] = lambda: _make_mock_predictor()
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/predict/upload",
+            files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
+            data={"top_k": "3", "num_frames": "0"},
+        )
+        assert response.status_code == 422, (
+            f"num_frames=0 should return 422, got {response.status_code}"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_upload_sampling_rate_out_of_range():
+    """sampling_rate=0 must return 422 (Form range validation)."""
+    app.dependency_overrides[_original_get_predictor] = lambda: _make_mock_predictor()
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/predict/upload",
+            files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
+            data={"top_k": "3", "sampling_rate": "0"},
+        )
+        assert response.status_code == 422, (
+            f"sampling_rate=0 should return 422, got {response.status_code}"
+        )
+    finally:
+        app.dependency_overrides.clear()

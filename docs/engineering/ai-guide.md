@@ -5,7 +5,7 @@
 ## 环境
 
 - Python（README：3.14 / CUDA 13.2；Docker 镜像用 3.12-slim）+ FFmpeg。
-- 安装：`pip install --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements.txt`。
+- 安装：`pip install uv && uv sync --no-dev`（依赖声明在 `ai/pyproject.toml`；torch/torchvision CUDA 变体由 `[tool.uv.sources]` 自动解析）。
 - ✅ 务必设置 `PYTHONPATH=src`（脚本依赖 `ai_app` 包从 `src/` 解析）。
 
 ## 三条链路与入口

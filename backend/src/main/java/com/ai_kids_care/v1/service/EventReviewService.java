@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,10 @@ public class EventReviewService {
     private final EventReviewRepository repository;
     private final EventReviewMapper mapper;
 
+    // 此 Service 尚未接入任何 live Controller。
+    // 默认拒绝所有调用，防止将来误用绕过授权。
+    // 接入时须先通过 SPEC 定义 AuthorizationAction 并替换此注解。
+    @PreAuthorize("denyAll()")
     @Transactional(readOnly = true)
     public Page<EventReviewVO> listEventReviews(
             Long eventId,
@@ -54,12 +59,20 @@ public class EventReviewService {
                 .map(mapper::toVO);
     }
 
+    // 此 Service 尚未接入任何 live Controller。
+    // 默认拒绝所有调用，防止将来误用绕过授权。
+    // 接入时须先通过 SPEC 定义 AuthorizationAction 并替换此注解。
+    @PreAuthorize("denyAll()")
     @Transactional(readOnly = true)
     public EventReviewVO getEventReview(Long id) {
         return repository.findById(id).map(mapper::toVO)
                 .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
     }
 
+    // 此 Service 尚未接入任何 live Controller。
+    // 默认拒绝所有调用，防止将来误用绕过授权。
+    // 接入时须先通过 SPEC 定义 AuthorizationAction 并替换此注解。
+    @PreAuthorize("denyAll()")
     @Transactional(readOnly = true)
     public EventReviewVO getLatestReview(Long eventId) {
         return repository.findTopByDetectionEvents_IdOrderByIdDesc(eventId).map(mapper::toVO)

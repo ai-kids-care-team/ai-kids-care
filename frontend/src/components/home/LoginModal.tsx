@@ -58,7 +58,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         id: String(response.userId),
         loginId: response.loginId,
         username: response.loginId,
-        name: response.loginId,
+        name: response.name,
         role: response.effectiveRole,
         scopeType: response.scopeType,
         scopeId: response.scopeId,

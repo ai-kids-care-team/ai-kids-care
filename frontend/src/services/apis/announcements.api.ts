@@ -9,7 +9,6 @@ export type AnnouncementStatusOption = {
 /** 백엔드 `AnnouncementVO` 기반 목록 아이템 */
 export type AnnouncementListItem = {
   id: number;
-  authorId: number | null;
   title: string;
   body: string;
   isPinned: boolean | null;
@@ -92,7 +91,6 @@ export type CreateAnnouncementPayload = AnnouncementWritePayload;
 /** 백엔드 `AnnouncementVO` (생성/수정 응답) */
 export type AnnouncementRecord = {
   id: number;
-  authorId: number | null;
   title: string;
   body: string;
   isPinned: boolean | null;

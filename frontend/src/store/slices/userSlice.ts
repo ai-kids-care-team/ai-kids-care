@@ -6,7 +6,7 @@ export type { UserRole };
 export interface User {
   id: string;
   loginId : string;
-  name: string;
+  name?: string;
   username: string; // 로그인 ID
   role: UserRole;
   email?: string;

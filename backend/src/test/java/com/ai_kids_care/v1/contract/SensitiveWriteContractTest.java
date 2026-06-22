@@ -81,8 +81,9 @@ class SensitiveWriteContractTest {
         assertClassAbsent("com.ai_kids_care.v1.dto.NotificationRuleUpdateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminCreateDTO");
         assertClassAbsent("com.ai_kids_care.v1.dto.SuperadminUpdateDTO");
-        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO");
-        assertClassAbsent("com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO");
+        // SPEC-0003：感谢信 DTO 已合法发布；改为存在性正向断言。
+        assertClassPresent("com.ai_kids_care.v1.dto.AppreciationLetterCreateDTO");
+        assertClassPresent("com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO");
     }
 
     @Test
@@ -152,10 +153,8 @@ class SensitiveWriteContractTest {
         mockMvc.perform(delete("/api/v1/event_evidence_files/1"))
                 .andExpect(status().isNotFound());
 
-        mockMvc.perform(post("/api/v1/camera_streams").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
-        mockMvc.perform(put("/api/v1/camera_streams/1").contentType("application/json").content("{}"))
-                .andExpect(status().isMethodNotAllowed());
+        // ADR-0026 Phase 1：camera_streams POST/PUT 已合法发布；授权由集成测试（CameraStreamEncryptionIntegrationTest）覆盖。
+        // DELETE 仍未发布 → 405。
         mockMvc.perform(delete("/api/v1/camera_streams/1"))
                 .andExpect(status().isMethodNotAllowed());
 
@@ -224,8 +223,8 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(EventEvidenceFileService.class, "createEventEvidenceFile");
         assertMethodNameAbsent(EventEvidenceFileService.class, "updateEventEvidenceFile");
         assertMethodNameAbsent(EventEvidenceFileService.class, "deleteEventEvidenceFile");
-        assertMethodNameAbsent(CameraStreamService.class, "createCameraStream");
-        assertMethodNameAbsent(CameraStreamService.class, "updateCameraStream");
+        // ADR-0026 Phase 1：camera_streams 写（createCameraStream/updateCameraStream）已合法发布；
+        // 授权集成测试由 CameraStreamEncryptionIntegrationTest 覆盖。
         assertMethodNameAbsent(CameraStreamService.class, "deleteCameraStream");
         assertMethodNameAbsent(DetectionEventService.class, "createDetectionEvent");
         assertMethodNameAbsent(DetectionEventService.class, "updateDetectionEvent");
@@ -245,9 +244,10 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(SuperadminService.class, "createSuperadmin");
         assertMethodNameAbsent(SuperadminService.class, "updateSuperadmin");
         assertMethodNameAbsent(SuperadminService.class, "deleteSuperadmin");
-        assertMethodNameAbsent(AppreciationLetterService.class, "createAppreciationLetter");
-        assertMethodNameAbsent(AppreciationLetterService.class, "updateAppreciationLetter");
-        assertMethodNameAbsent(AppreciationLetterService.class, "deleteAppreciationLetter");
+        // SPEC-0003：感谢信写方法已合法发布；改为存在性正向断言。
+        assertMethodNamePresent(AppreciationLetterService.class, "createAppreciationLetter");
+        assertMethodNamePresent(AppreciationLetterService.class, "updateAppreciationLetter");
+        assertMethodNamePresent(AppreciationLetterService.class, "deleteAppreciationLetter");
 
         assertMethodNameAbsent(UserMapper.class, "toEntity");
         assertMethodNameAbsent(UserMapper.class, "updateEntity");
@@ -275,8 +275,9 @@ class SensitiveWriteContractTest {
         assertMethodNameAbsent(NotificationRuleMapper.class, "updateEntity");
         assertMethodNameAbsent(SuperadminMapper.class, "toEntity");
         assertMethodNameAbsent(SuperadminMapper.class, "updateEntity");
-        assertMethodNameAbsent(AppreciationLetterMapper.class, "toEntity");
-        assertMethodNameAbsent(AppreciationLetterMapper.class, "updateEntity");
+        // SPEC-0003：感谢信 Mapper 写方法已合法发布；改为存在性正向断言。
+        assertMethodNamePresent(AppreciationLetterMapper.class, "toEntity");
+        assertMethodNamePresent(AppreciationLetterMapper.class, "updateEntity");
     }
 
     private void assertMethodNameAbsent(Class<?> ownerType, String methodName) {
@@ -285,9 +286,21 @@ class SensitiveWriteContractTest {
                 .noneMatch(method -> method.getName().equals(methodName));
     }
 
+    private void assertMethodNamePresent(Class<?> ownerType, String methodName) {
+        assertThat(ownerType.getDeclaredMethods())
+                .as("%s must expose %s", ownerType.getSimpleName(), methodName)
+                .anyMatch(method -> method.getName().equals(methodName));
+    }
+
     private void assertClassAbsent(String className) {
         assertThatCode(() -> Class.forName(className))
                 .as("%s must not exist in the published generic write contract", className)
                 .isInstanceOf(ClassNotFoundException.class);
+    }
+
+    private void assertClassPresent(String className) {
+        assertThatCode(() -> Class.forName(className))
+                .as("%s must exist in the published contract", className)
+                .doesNotThrowAnyException();
     }
 }

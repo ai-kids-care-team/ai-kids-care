@@ -28,11 +28,15 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.SUPERADMIN;
             case PLATFORM_METADATA_WRITE ->
                     role == UserRoleEnum.PLATFORM_IT_ADMIN;
-            case TENANT_ANNOUNCEMENT_READ ->
-                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
-                            || role == UserRoleEnum.TEACHER
-                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
-            case TENANT_ANNOUNCEMENT_WRITE, TENANT_S2_WRITE ->
+            // AN-READ：平台级公告广读——任一已认证用户可见 ACTIVE 公告。
+            // isAllowed 在无认证 context 时通过 orElse(false) 返回 false，
+            // 因此 context 存在时返回 true 等价于"任一已认证用户"。
+            case PLATFORM_ANNOUNCEMENT_READ -> true;
+            // AN-READ：写操作仅限 PLATFORM_IT_ADMIN（镜像 PLATFORM_USER_WRITE）。
+            case PLATFORM_ANNOUNCEMENT_WRITE ->
+                    context.scopeType() == UserRoleAssignmentScopeType.PLATFORM
+                            && role == UserRoleEnum.PLATFORM_IT_ADMIN;
+            case TENANT_S2_WRITE ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
             case TENANT_S2_READ ->
                     tenantIdentity && (role == UserRoleEnum.TEACHER
@@ -64,6 +68,19 @@ public class AuthorizationPolicy {
                     tenantIdentity && (role == UserRoleEnum.GUARDIAN
                             || role == UserRoleEnum.TEACHER
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // ADR-0026 Phase 1：写粗粒度门——仅 KINDERGARTEN_ADMIN + 有效 tenant identity。
+            // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
+            case TENANT_SURVEILLANCE_WRITE ->
+                    tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // SPEC-0003：感谢信读取——有效 tenant identity + GUARDIAN / TEACHER / KINDERGARTEN_ADMIN；
+            // SUPERADMIN / PLATFORM_IT_ADMIN 无 tenant identity，由此被拒（不需要显式排除）。
+            case APPRECIATION_LETTER_READ ->
+                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
+                            || role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // SPEC-0003：感谢信写——仅 GUARDIAN + 有效 tenant identity。
+            case APPRECIATION_LETTER_WRITE ->
+                    tenantIdentity && role == UserRoleEnum.GUARDIAN;
         };
     }
 }
