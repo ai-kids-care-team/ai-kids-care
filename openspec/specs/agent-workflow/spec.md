@@ -1,7 +1,7 @@
 # agent-workflow Specification
 
 ## Purpose
-TBD - created by archiving change remove-bespoke-agent-harness. Update Purpose after archive.
+定义本仓库的开发流程能力：用 OpenSpec 承载 spec 与变更生命周期（propose → apply → archive），用 superpowers 技能承载执行纪律，agent 指令文件保持最小并委派给二者；不维护自研的宪法、agent、workflow、hook 或域流程技能。
 ## Requirements
 ### Requirement: Spec and change lifecycle via OpenSpec
 The repository SHALL use OpenSpec to capture capabilities and changes. New or changed
