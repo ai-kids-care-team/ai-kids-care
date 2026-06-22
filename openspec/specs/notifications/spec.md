@@ -5,7 +5,7 @@
 ## Requirements
 ### Requirement: Backend-owned notification dispatch
 
-The backend SHALL be the sole initiator of notifications; the AI inference layer MUST NOT send notifications directly to recipients. All notification dispatch MUST go through the backend notification subsystem, which queries recipients from the database and resolves delivery channels via `notification_rules` and `device_tokens`.
+The backend SHALL be the sole initiator of notifications; the AI inference layer MUST NOT send notifications directly to recipients. All notification dispatch MUST go through the backend notification subsystem, which queries recipients from the database and resolves delivery channels via `notification_rules` and per-user push delivery identities stored in `push_subscriptions`.
 
 #### Scenario: AI detection result triggers backend notification
 
@@ -69,24 +69,27 @@ The notification subsystem SHALL resolve recipients and delivery conditions usin
 
 ### Requirement: Pushover as primary delivery channel
 
-The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. Pushover device tokens registered per user in the `device_tokens` table are used as the delivery address. `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; `PUSH` (Pushover) is the only channel with an implemented backend delivery path (`PushoverService`).
+The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. The Pushover application credential (API token) MUST be supplied by configuration (`pushover.api-token`, sourced from the `PUSHOVER_API_TOKEN` environment variable) and MUST NOT be hard-coded; a blank credential MUST fail fast rather than be silently sent. Each recipient's Pushover delivery address (Pushover user key) SHALL be stored as an `address` row in `push_subscriptions` with `provider = PUSHOVER`; the FCM/APNS-shaped `device_tokens` table is superseded by `push_subscriptions` (see "Push delivery addressing model"). `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; `PUSH` (Pushover) is the channel with an implemented backend delivery path (`PushoverService`), driving the delivery lifecycle status transitions.
 
 #### Scenario: PUSH channel notification dispatched via Pushover
 
-- **WHEN** a notification is created with `channel = PUSH`
-- **THEN** the backend calls `PushoverService` with the recipient's registered Pushover device token and the notification `title` and `body`
+- **WHEN** a notification with `channel = PUSH` is dispatched for a recipient who has an `ACTIVE` `push_subscriptions` row with `provider = PUSHOVER`
+- **THEN** the backend calls `PushoverService` with the configured API token and the recipient's stored Pushover user-key address plus the notification `title` and `body`, and on success sets `status = SENT` and `sent_at`
+
+#### Scenario: PUSH dispatch with no active Pushover subscription
+
+- **WHEN** a notification with `channel = PUSH` is dispatched for a recipient who has no `ACTIVE` `push_subscriptions` row with `provider = PUSHOVER`
+- **THEN** no Pushover call is made and the notification is recorded as `FAILED` with a non-null `fail_reason` (no delivery to an empty/blank address is attempted)
 
 #### Scenario: SMS channel — delivery not fully implemented
 
 - **WHEN** a notification is created with `channel = SMS`
-- **THEN** the system records the notification in the `notifications` table; however, automated SMS delivery is not yet implemented in the backend dispatch pipeline (gap: SMS delivery path pending rebuild per ADR-0018)
+- **THEN** the system records the notification in the `notifications` table; however, automated SMS delivery is not yet implemented in the backend dispatch pipeline (gap: SMS delivery path pending rebuild per ADR-0018; the SMS address is the recipient's `users.phone`, not a `push_subscriptions` row)
 
 #### Scenario: EMAIL channel — not implemented
 
 - **WHEN** a notification is created with `channel = EMAIL`
 - **THEN** the system records the notification but no email is dispatched; EMAIL is listed as a future option only (gap: no backend email delivery path exists)
-
----
 
 ### Requirement: Deduplication of notifications per detection event
 
@@ -157,11 +160,26 @@ The notification rule management API SHALL be considered not yet published. The 
 
 ---
 
-### Requirement: Device token API not yet published
+### Requirement: Push delivery addressing model
 
-The device token management API SHALL be considered not yet published. The `DeviceTokenController` is registered at `/api/v1/device_tokens` but MUST NOT expose handler methods until the token management feature is implemented. Pushover device tokens are stored in the `device_tokens` table but there is no published API for clients to register, update, or delete their device tokens (gap: device token management API is pending).
+Per-user PUSH delivery identities SHALL be stored in a provider-aware `push_subscriptions` table, not the superseded FCM/APNS-shaped `device_tokens` table. Each row SHALL carry `user_id`, `provider` (`push_provider_enum`, initially `PUSHOVER`), `address` (the provider delivery address — for Pushover, the user key), an optional `device_label`, a `status` (`status_enum`), and SHALL enforce uniqueness on `(user_id, provider, address)`. SMS and EMAIL delivery addresses SHALL NOT be stored here — those reuse `users.phone` and `users.email` respectively. The `address` column SHALL accommodate future providers (e.g., FCM/APNS device tokens) without a schema redesign.
 
-#### Scenario: Any request to device tokens endpoint
+#### Scenario: Recipient Pushover identity resolved for PUSH dispatch
 
-- **WHEN** a client sends any HTTP request to `/api/v1/device_tokens`
+- **WHEN** the backend dispatches a `PUSH` notification to a recipient
+- **THEN** it resolves the recipient's `ACTIVE` `push_subscriptions` row with `provider = PUSHOVER` and uses its `address` as the Pushover user key
+
+#### Scenario: Duplicate push subscription rejected
+
+- **WHEN** a second `push_subscriptions` row is inserted with the same `(user_id, provider, address)`
+- **THEN** the database uniqueness constraint rejects the insert
+
+### Requirement: Push subscription management API not yet published
+
+The push subscription management API SHALL be considered not yet published. The controller is registered (at `/api/v1/push_subscriptions`) but MUST NOT expose handler methods until the subscription management feature is implemented. Pushover user keys are stored in the `push_subscriptions` table, but there is no published API for clients to register, update, or delete their push subscriptions (gap: subscription management API is pending).
+
+#### Scenario: Any request to push subscriptions endpoint
+
+- **WHEN** a client sends any HTTP request to `/api/v1/push_subscriptions`
 - **THEN** the server returns HTTP 405 (no handlers are registered)
+
