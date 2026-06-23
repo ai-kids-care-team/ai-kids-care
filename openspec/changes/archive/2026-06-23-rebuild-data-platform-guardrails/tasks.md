@@ -25,7 +25,7 @@
 - [x] 4.3 容器内全套件全绿:**148 tests / 2 skipped(@Disabled) / 0 failures**(既有 141 + 新增 7:loader 1/mapper 1/schema 5)
 - [x] 4.4 范围核对(git diff):src/main 改动**仅 22 个 mapper 注解**;无其它产品码、无 loader/运行时 schema 改动;dbml 为 doc 对齐
 - [x] 4.5 code review(sonnet)完成,Ready to merge;采纳 C1(INC-003 正则加 map-entry 模式+去注释+诚实 Javadoc)/I1(constraint-backed index 注释),重跑全绿
-- [ ] 4.6 合并 develop / push / `/opsx:archive`（用户驱动，含 spec delta sync）
+- [x] 4.6 已 archive(rebuild-guardrails+data-platform spec delta 已 sync)+ FF 合并 develop + push
 
 ---
 

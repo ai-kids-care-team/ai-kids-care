@@ -14,22 +14,22 @@ The repository SHALL keep a durable backlog of these guardrails until each is re
 - **THEN** the equivalent protection is authored as a capability test via TDD as part of that change
 
 ### Requirement: Guardrail backlog content
-The backlog SHALL record at least the following removed protections and the capability that owns
-each one's rebuild:
-- Neo4j loader must not project S0/PII fields into the graph (INC-003) — owner `data-platform`
-- MapStruct unmapped target mapping must not be silently dropped (INC-005) — owner `data-platform`
-- Schema digest matches migrations (DB drift) — owner `data-platform`
+The guardrail backlog SHALL record every recurring-incident protection removed in the harness
+teardown (Change 2) that has not yet been rebuilt. All such guardrails MUST be rebuilt as capability
+tests / compile-time guards under their owning capabilities; as of this change all have been rebuilt,
+so the backlog is empty.
 
-Protections that have been rebuilt as capability tests SHALL be removed from this backlog and
-are thereafter enforced by their owning capability's test suite. The following were rebuilt under
-the `auth-authorization` capability and are no longer carried here:
-- Shared-container test fixture phone uniqueness (INC-001) — rebuilt as an `auth-authorization` capability test
-- Spec acceptance coverage map references only existing tests — rebuilt as an `auth-authorization` acceptance coverage map
+Rebuilt guardrails and where each is now enforced:
+- Shared-container test fixture phone uniqueness (INC-001) — `auth-authorization` capability test
+- Spec acceptance coverage map references only existing tests — `auth-authorization` acceptance coverage map
+- Neo4j loader must not project S0/PII fields into the graph (INC-003) — `data-platform` loader PII-projection capability test
+- MapStruct unmapped target mapping must not be silently dropped (INC-005) — `data-platform` per-mapper `unmappedTargetPolicy=ERROR` compile-time guard
+- Schema digest matches migrations (DB drift) — `data-platform` schema-consistency capability test
 
 #### Scenario: Consulting the backlog before release
 
-- **WHEN** a contributor prepares a release touching a capability listed above
-- **THEN** the backlog identifies the guardrail to (re-)build for that capability before release
+- **WHEN** a contributor prepares a release
+- **THEN** the backlog lists no outstanding un-rebuilt guardrail; each former guardrail is enforced by its owning capability's test suite or compile-time guard
 
 #### Scenario: A rebuilt guardrail leaves the backlog
 
