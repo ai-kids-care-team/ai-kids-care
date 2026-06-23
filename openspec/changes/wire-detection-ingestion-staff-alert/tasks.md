@@ -24,7 +24,7 @@
 
 - [x] 4.1 容器内 `gradle:8.7-jdk21` 实跑**全套件**全绿(既有 157 + 新增)，留存证据
 - [x] 4.2 范围核对(git diff)：产品改动限于 internal ingest controller/service + ingest DTO + @EnableAsync + V8/dbml + schema 守卫断言;未碰复核/规则引擎/家长/SMS/前端;detection 写用 JdbcTemplate、未重构只读实体
-- [ ] 4.3 requesting-code-review;按反馈修正
+- [x] 4.3 code review(sonnet)完成,Ready to merge;采纳 #1(staff 告警去外层事务+逐 staff 容错,防一员失败回滚他人已建行)/#3(dedup race null 守卫)/#2(dedup_key 不映射注释),重跑 163 全绿
 - [ ] 4.4 合并 develop / push / `/opsx:archive` / 清理 worktree(用户驱动)
 
 ---

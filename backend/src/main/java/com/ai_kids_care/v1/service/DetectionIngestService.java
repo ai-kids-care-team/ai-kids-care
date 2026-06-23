@@ -65,6 +65,10 @@ public class DetectionIngestService {
                     status.name(), req.dedupKey());
         } catch (DuplicateKeyException race) {
             Long raced = findByDedup(kindergartenId, req.dedupKey());
+            if (raced == null) {
+                throw new IllegalStateException(
+                        "dedup uniqueness violated but no existing event found for key: " + req.dedupKey(), race);
+            }
             return new DetectionEventIngestResponse(raced, true);
         }
 

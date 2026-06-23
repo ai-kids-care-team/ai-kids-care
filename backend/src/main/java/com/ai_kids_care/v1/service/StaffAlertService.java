@@ -17,7 +17,6 @@ import com.ai_kids_care.v1.type.UserRoleEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -45,10 +44,14 @@ public class StaffAlertService {
 
     /**
      * Create + dispatch a staff alert for an already-persisted detection event. Public + directly
-     * callable (tests invoke it synchronously); in production it is invoked on a separate thread.
+     * callable (tests invoke it); in production it is invoked on a separate thread (@Async).
+     *
+     * Deliberately NOT @Transactional: each staff member's notification is saved + dispatched
+     * independently and wrapped in try/catch, so one member's delivery failure (e.g. a transient
+     * DataAccessException during subscription lookup) neither rolls back the other members'
+     * already-committed rows nor aborts the loop. Best-effort, per the pre-review staff alert intent.
      */
     @Async
-    @Transactional
     public void alertForEvent(Long eventId, Long kindergartenId, String eventTypeLabel) {
         Set<Long> staffUserIds = new LinkedHashSet<>();
         for (UserRoleAssignment ura : roleAssignmentRepository.findAllByStatusAndScopeTypeAndScopeIdAndRoleIn(
@@ -65,18 +68,22 @@ public class StaffAlertService {
         String body = "새 감지 이벤트(" + eventTypeLabel + ")가 접수되었습니다. 시스템에서 검토해 주세요.";
 
         for (Long userId : staffUserIds) {
-            Notification notification = Notification.builder()
-                    .kindergarten(kindergarten)
-                    .detectionEvents(event)
-                    .recipientUser(userRepository.getReferenceById(userId))
-                    .channel(NotificationChannelEnum.PUSH)
-                    .title(title)
-                    .body(body)
-                    .status(NotificationStatusEnum.QUEUED)
-                    .dedupeKey("evt-" + eventId + "-u-" + userId + "-staff")
-                    .build();
-            notificationRepository.save(notification);
-            notificationService.dispatch(notification);
+            try {
+                Notification notification = Notification.builder()
+                        .kindergarten(kindergarten)
+                        .detectionEvents(event)
+                        .recipientUser(userRepository.getReferenceById(userId))
+                        .channel(NotificationChannelEnum.PUSH)
+                        .title(title)
+                        .body(body)
+                        .status(NotificationStatusEnum.QUEUED)
+                        .dedupeKey("evt-" + eventId + "-u-" + userId + "-staff")
+                        .build();
+                notificationRepository.save(notification);   // own (auto) commit, independent of others
+                notificationService.dispatch(notification);  // own @Transactional; FAILED on no subscription
+            } catch (RuntimeException e) {
+                // Best-effort: a single staff member's alert failure must not abort the rest.
+            }
         }
     }
 }

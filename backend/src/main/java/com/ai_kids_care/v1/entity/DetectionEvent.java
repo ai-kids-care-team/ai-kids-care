@@ -24,6 +24,9 @@ import java.time.OffsetDateTime;
         @Index(name = "idx_event_camera_time", columnList = "kindergarten_id, camera_id, detected_at"),
         @Index(name = "idx_event_room_time", columnList = "kindergarten_id, room_id, detected_at"),
         @Index(name = "idx_event_status_time", columnList = "kindergarten_id, status, detected_at")})
+// NOTE: the V8 column `dedup_key` (NOT NULL, UNIQUE(kindergarten_id, dedup_key)) is intentionally
+// NOT mapped here — detection rows are written via JdbcTemplate in DetectionIngestService (the
+// read path doesn't need it). Hibernate ddl-auto=validate ignores extra unmapped columns.
 public class DetectionEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
