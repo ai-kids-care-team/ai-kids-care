@@ -56,7 +56,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
-                        .csrfTokenRequestHandler(csrfTokenRequestHandler))
+                        .csrfTokenRequestHandler(csrfTokenRequestHandler)
+                        // 内部 AI 接口用 Bearer token(无状态)鉴权,非 cookie 会话 —— CSRF 不适用,豁免。
+                        .ignoringRequestMatchers("/api/v1/internal/**"))
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository)
                         .requireExplicitSave(true))

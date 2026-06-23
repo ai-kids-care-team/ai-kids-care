@@ -93,4 +93,11 @@ class SchemaConsistencyGuardTest extends BaseIntegrationTest {
         assertThat(indexExists("uq_notifications_dedupe")).isTrue();
         assertThat(indexExists("uq_user_account_phone")).isTrue();
     }
+
+    @Test
+    void v8_detectionEventDedupKey() {
+        assertThat(columnExists("detection_events", "dedup_key")).as("detection_events.dedup_key exists (V8)").isTrue();
+        assertThat(columnNullable("detection_events", "dedup_key")).as("dedup_key NOT NULL (V8)").isFalse();
+        assertThat(indexExists("uq_detection_events_dedup")).as("uq_detection_events_dedup unique (V8)").isTrue();
+    }
 }

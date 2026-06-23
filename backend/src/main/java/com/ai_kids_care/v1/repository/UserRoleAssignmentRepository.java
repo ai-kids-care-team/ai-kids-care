@@ -23,6 +23,13 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
             UserRoleAssignmentScopeType scopeType,
             Long scopeId);
 
+    // 检测摄入 staff 即时告警：按 kindergarten(scopeId) + status + role∈{ADMIN,TEACHER} 解析园内 staff。
+    List<UserRoleAssignment> findAllByStatusAndScopeTypeAndScopeIdAndRoleIn(
+            StatusEnum status,
+            UserRoleAssignmentScopeType scopeType,
+            Long scopeId,
+            java.util.Collection<UserRoleEnum> roles);
+
     // SPEC-0002 Slice A: 加载单条 PENDING/ACTIVE role assignment（同园 tenant-aware）
     Optional<UserRoleAssignment> findByUser_IdAndStatusAndScopeTypeAndScopeId(
             Long userId,

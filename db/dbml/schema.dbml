@@ -504,11 +504,13 @@ Table detection_events {
   start_time timestamptz [not null, note: "이벤트 시작 시각"]
   end_time timestamptz [not null, note: "이벤트 종료 시각"]
   status event_status_enum [not null, note: "이벤트 상태(세분화)"]
+  dedup_key varchar [not null, note: "멱등성 키(AI 생성: camera+alarm 시작 시각; V8)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
   updated_at timestamptz [not null, default: "now()", note: "수정 일시"]
 
   Indexes {
     (kindergarten_id, event_id) [unique, name: "uq_event_kg_eventid"]
+    (kindergarten_id, dedup_key) [unique, name: "uq_detection_events_dedup"]
     (kindergarten_id, room_id, detected_at) [name: "idx_event_room_time"]
     (kindergarten_id, camera_id, detected_at) [name: "idx_event_camera_time"]
     (kindergarten_id, status, detected_at) [name: "idx_event_status_time"]
