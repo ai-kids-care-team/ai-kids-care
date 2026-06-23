@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +31,9 @@ class EventReviewApiTest extends BaseIntegrationTest {
 
     private static final String PW = "Test@EvReview2026";
     private static final String ADMIN_LOGIN = "evrev-admin";
+    private static final String TEACHER_LOGIN = "evrev-teacher";
     private static final String GUARDIAN_LOGIN = "evrev-guardian";
+    private static final String FOREIGN_ADMIN_LOGIN = "evrev-foreign-admin";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private JdbcTemplate jdbc;
@@ -41,7 +42,7 @@ class EventReviewApiTest extends BaseIntegrationTest {
 
     private long eventId;
     private long kindergartenId;
-    private Long foreignEventId;
+    private long foreignKindergartenId;
 
     @BeforeEach
     void setUp() {
@@ -49,13 +50,15 @@ class EventReviewApiTest extends BaseIntegrationTest {
                 "SELECT event_id AS eid, kindergarten_id AS kg FROM detection_events ORDER BY event_id LIMIT 1");
         eventId = ((Number) ev.get("eid")).longValue();
         kindergartenId = ((Number) ev.get("kg")).longValue();
-        List<Long> foreign = jdbc.query(
-                "SELECT event_id FROM detection_events WHERE kindergarten_id <> ? ORDER BY event_id LIMIT 1",
-                (rs, n) -> rs.getLong(1), kindergartenId);
-        foreignEventId = foreign.isEmpty() ? null : foreign.get(0);
+        // A different existing kindergarten — for the cross-tenant tests (a foreign-tenant staff user).
+        foreignKindergartenId = jdbc.queryForObject(
+                "SELECT kindergarten_id FROM kindergartens WHERE kindergarten_id <> ? ORDER BY kindergarten_id LIMIT 1",
+                Long.class, kindergartenId);
 
-        seedTenantUser(ADMIN_LOGIN, "evrev-admin@test.local", "010-0000-6601", "KINDERGARTEN_ADMIN");
-        seedTenantUser(GUARDIAN_LOGIN, "evrev-guardian@test.local", "010-0000-6602", "GUARDIAN");
+        seedTenantUser(ADMIN_LOGIN, "evrev-admin@test.local", "010-0000-6601", "KINDERGARTEN_ADMIN", kindergartenId);
+        seedTenantUser(TEACHER_LOGIN, "evrev-teacher@test.local", "010-0000-6603", "TEACHER", kindergartenId);
+        seedTenantUser(GUARDIAN_LOGIN, "evrev-guardian@test.local", "010-0000-6602", "GUARDIAN", kindergartenId);
+        seedTenantUser(FOREIGN_ADMIN_LOGIN, "evrev-foreign@test.local", "010-0000-6604", "KINDERGARTEN_ADMIN", foreignKindergartenId);
         // reset event status so RESOLVED assertions are meaningful across reruns
         jdbc.update("UPDATE detection_events SET status = 'OPEN'::event_status_enum WHERE event_id = ?", eventId);
     }
@@ -88,15 +91,38 @@ class EventReviewApiTest extends BaseIntegrationTest {
     }
 
     @Test
-    void confirm_crossTenantEvent_returnsHidden404() throws Exception {
-        if (foreignEventId == null) {
-            return; // seed has events in only one kindergarten; cross-tenant case not exercisable
-        }
-        Cookie admin = login(ADMIN_LOGIN);
-        mockMvc.perform(withCsrf(post("/api/v1/event_reviews")).cookie(admin)
+    void confirm_teacherRole_returns201() throws Exception {
+        Cookie teacher = login(TEACHER_LOGIN);
+        mockMvc.perform(withCsrf(post("/api/v1/event_reviews")).cookie(teacher)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("eventId", foreignEventId, "resultStatus", "RESOLVED"))))
+                                Map.of("eventId", eventId, "resultStatus", "IN_REVIEW"))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void confirm_crossTenantEvent_returnsHidden404() throws Exception {
+        // A staff admin of a DIFFERENT kindergarten cannot confirm this event (in kindergartenId).
+        Cookie foreignAdmin = login(FOREIGN_ADMIN_LOGIN);
+        mockMvc.perform(withCsrf(post("/api/v1/event_reviews")).cookie(foreignAdmin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("eventId", eventId, "resultStatus", "RESOLVED"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void get_crossTenantReview_returnsHidden404() throws Exception {
+        Cookie admin = login(ADMIN_LOGIN);
+        String body = mockMvc.perform(withCsrf(post("/api/v1/event_reviews")).cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("eventId", eventId, "resultStatus", "ACKNOWLEDGED"))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long reviewId = objectMapper.readTree(body).get("reviewId").asLong();
+
+        Cookie foreignAdmin = login(FOREIGN_ADMIN_LOGIN);
+        mockMvc.perform(get("/api/v1/event_reviews/{id}", reviewId).cookie(foreignAdmin))
                 .andExpect(status().isNotFound());
     }
 
@@ -111,9 +137,12 @@ class EventReviewApiTest extends BaseIntegrationTest {
     }
 
     @Test
-    void confirm_anonymous_returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/event_reviews"))
-                .andExpect(status().isUnauthorized());
+    void anonymous_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/event_reviews")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/event_reviews")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("eventId", eventId, "resultStatus", "RESOLVED"))))
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
@@ -147,7 +176,7 @@ class EventReviewApiTest extends BaseIntegrationTest {
         return request.cookie(csrf.getResponse().getCookie("XSRF-TOKEN")).header("X-XSRF-TOKEN", token);
     }
 
-    private void seedTenantUser(String loginId, String email, String phone, String role) {
+    private void seedTenantUser(String loginId, String email, String phone, String role, long kgId) {
         // Upsert the user (do NOT delete — audit_logs FK-references it after login). Only the
         // role assignment / membership are rebuilt (not referenced by audit_logs).
         jdbc.update("""
@@ -160,10 +189,10 @@ class EventReviewApiTest extends BaseIntegrationTest {
         jdbc.update("""
                 INSERT INTO user_role_assignments (user_id, role, scope_type, scope_id, status, granted_at)
                 SELECT user_id, ?::user_role_enum, 'KINDERGARTEN', ?, 'ACTIVE', NOW() FROM users WHERE login_id = ?
-                """, role, kindergartenId, loginId);
+                """, role, kgId, loginId);
         jdbc.update("""
                 INSERT INTO user_kindergarten_memberships (user_id, kindergarten_id, status, joined_at, created_at, updated_at)
                 SELECT user_id, ?, 'ACTIVE', NOW(), NOW(), NOW() FROM users WHERE login_id = ?
-                """, kindergartenId, loginId);
+                """, kgId, loginId);
     }
 }

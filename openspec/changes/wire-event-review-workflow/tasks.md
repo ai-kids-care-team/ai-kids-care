@@ -19,7 +19,7 @@
 
 - [x] 4.1 容器内 `gradle:8.7-jdk21` 实跑**全套件**全绿(既有 163 + 新增)，留存证据
 - [x] 4.2 范围核对(git diff)：仅 event-review controller/service + DTO + 2 auth action;未碰步骤③/家长/detection-event 读 API/SMS/前端;无 schema 迁移
-- [ ] 4.3 requesting-code-review;按反馈修正
+- [x] 4.3 code review(sonnet)完成,Ready to merge;采纳 I-1(mapper kindergartenId 单跳避 N+3)/M-1(EventReview.resultStatus @NotNull)/I-2(跨园用外园 admin 实测+补跨园 GET 404)/M-2(teacher 正向)/M-3(匿名 POST),重跑 171 全绿
 - [ ] 4.4 合并 develop / push / `/opsx:archive` / 清理 worktree(用户驱动)
 
 ---

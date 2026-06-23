@@ -46,6 +46,7 @@ public class EventReview {
     @Column(name = "from_status", columnDefinition = "event_status_enum")
     private EventStatusEnum fromStatus;
 
+    @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "result_status", columnDefinition = "event_status_enum")
     private EventStatusEnum resultStatus;
