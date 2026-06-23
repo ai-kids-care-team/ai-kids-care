@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -111,9 +112,43 @@ class PushSubscriptionApiTest extends BaseIntegrationTest {
     }
 
     @Test
+    void crossUserUpdate_returnsHidden404() throws Exception {
+        Cookie a = login(LOGIN_A);
+        long idA = register(a, "key-a-update-protected");
+        Cookie b = login(LOGIN_B);
+
+        mockMvc.perform(withCsrf(put("/api/v1/push_subscriptions/{id}", idA)).cookie(b)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("deviceLabel", "hijacked"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void update_ownSubscription_returns200WithMutation() throws Exception {
+        Cookie a = login(LOGIN_A);
+        long idA = register(a, "key-a-updatable");
+
+        mockMvc.perform(withCsrf(put("/api/v1/push_subscriptions/{id}", idA)).cookie(a)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("deviceLabel", "tablet", "status", "DISABLED"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deviceLabel").value("tablet"))
+                .andExpect(jsonPath("$.status").value("DISABLED"));
+    }
+
+    @Test
     void anonymousList_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/push_subscriptions"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anonymousWrite_isRejected() throws Exception {
+        // No session, no CSRF: blocked at CSRF (403) or auth (401) — either is a correct rejection.
+        mockMvc.perform(post("/api/v1/push_subscriptions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("address", "x"))))
+                .andExpect(status().is4xxClientError());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

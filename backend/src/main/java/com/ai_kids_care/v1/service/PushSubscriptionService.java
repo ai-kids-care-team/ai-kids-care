@@ -77,7 +77,8 @@ public class PushSubscriptionService {
         if (StringUtils.hasText(dto.getAddress())) {
             entity.setAddress(dto.getAddress());
         }
-        if (dto.getDeviceLabel() != null) {
+        if (StringUtils.hasText(dto.getDeviceLabel())) {
+            // patch semantics consistent with address/status: null/blank = no change
             entity.setDeviceLabel(dto.getDeviceLabel());
         }
         if (StringUtils.hasText(dto.getStatus())) {
