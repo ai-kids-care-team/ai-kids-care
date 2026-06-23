@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.service;
 import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.entity.Notification;
+import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.entity.UserRoleAssignment;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.repository.KindergartenRepository;
@@ -69,21 +70,49 @@ public class StaffAlertService {
 
         for (Long userId : staffUserIds) {
             try {
-                Notification notification = Notification.builder()
-                        .kindergarten(kindergarten)
-                        .detectionEvents(event)
-                        .recipientUser(userRepository.getReferenceById(userId))
-                        .channel(NotificationChannelEnum.PUSH)
-                        .title(title)
-                        .body(body)
-                        .status(NotificationStatusEnum.QUEUED)
-                        .dedupeKey("evt-" + eventId + "-u-" + userId + "-staff")
-                        .build();
-                notificationRepository.save(notification);   // own (auto) commit, independent of others
-                notificationService.dispatch(notification);  // own @Transactional; FAILED on no subscription
+                User recipient = userRepository.findById(userId).orElse(null);
+                if (recipient == null) {
+                    continue;
+                }
+                // PUSH (Pushover via push_subscriptions) — always attempted.
+                deliver(kindergarten, event, recipient, NotificationChannelEnum.PUSH, title, body,
+                        "evt-" + eventId + "-u-" + userId + "-staff");
+                // SMS (Solapi via users.phone) — only when the staff member has a phone.
+                String phone = recipient.getPhone();
+                if (phone != null && !phone.isBlank()) {
+                    deliver(kindergarten, event, recipient, NotificationChannelEnum.SMS, title, body,
+                            "evt-" + eventId + "-u-" + userId + "-staff-sms");
+                }
             } catch (RuntimeException e) {
-                // Best-effort: a single staff member's alert failure must not abort the rest.
+                // Best-effort (per-recipient): one staff member's lookup failure must not abort the rest.
             }
+        }
+    }
+
+    /**
+     * Build + persist + dispatch a single staff notification on one channel. Wrapped in its own
+     * try/catch so a per-channel delivery failure (e.g. PUSH with no subscription, or SMS with no
+     * phone recorded FAILED inside dispatch) neither rolls back nor skips the staff member's other
+     * channel. PUSH and SMS use distinct dedupe keys, so {@code (kindergarten_id, dedupe_key)} stays
+     * unique across both rows for the same event + recipient.
+     */
+    private void deliver(Kindergarten kindergarten, DetectionEvent event, User recipient,
+                         NotificationChannelEnum channel, String title, String body, String dedupeKey) {
+        try {
+            Notification notification = Notification.builder()
+                    .kindergarten(kindergarten)
+                    .detectionEvents(event)
+                    .recipientUser(recipient)
+                    .channel(channel)
+                    .title(title)
+                    .body(body)
+                    .status(NotificationStatusEnum.QUEUED)
+                    .dedupeKey(dedupeKey)
+                    .build();
+            notificationRepository.save(notification);   // own (auto) commit, independent of others
+            notificationService.dispatch(notification);  // own @Transactional; channel-specific lifecycle
+        } catch (RuntimeException e) {
+            // Best-effort (per-channel): a single channel's delivery failure must not abort the rest.
         }
     }
 }

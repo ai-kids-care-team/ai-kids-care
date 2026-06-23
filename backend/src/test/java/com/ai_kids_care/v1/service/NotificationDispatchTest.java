@@ -34,6 +34,7 @@ class NotificationDispatchTest {
     @Mock NotificationRepository repository;
     @Mock NotificationMapper mapper;
     @Mock PushoverService pushoverService;
+    @Mock SmsPort smsPort;
     @Mock SecurityAuditWriter auditWriter;
     @Mock PushSubscriptionRepository pushSubscriptionRepository;
 
@@ -46,6 +47,17 @@ class NotificationDispatchTest {
         when(user.getId()).thenReturn(RECIPIENT_ID);
         return Notification.builder()
                 .channel(NotificationChannelEnum.PUSH)
+                .recipientUser(user)
+                .title("Title")
+                .body("Body")
+                .build();
+    }
+
+    private Notification smsNotification(String phone) {
+        User user = mock(User.class);
+        when(user.getPhone()).thenReturn(phone);
+        return Notification.builder()
+                .channel(NotificationChannelEnum.SMS)
                 .recipientUser(user)
                 .title("Title")
                 .body("Body")
@@ -105,5 +117,57 @@ class NotificationDispatchTest {
         assertThat(n.getFailReason()).contains("no active Pushover subscription");
         assertThat(n.getRetryCount()).isEqualTo(1);
         verify(pushoverService, never()).sendToUser(any(), any(), any());
+    }
+
+    // ── SMS channel (⑤): delivery via SmsPort → users.phone ──────────────────────
+
+    @Test
+    void sms_success_callsPortWithPhoneAndBodyAndMarksSent() {
+        Notification n = smsNotification("01012345678");
+
+        service.dispatch(n);
+
+        verify(smsPort).send("01012345678", "Body");
+        assertThat(n.getStatus()).isEqualTo(NotificationStatusEnum.SENT);
+        assertThat(n.getSentAt()).isNotNull();
+        // lifecycle persists twice: SENDING (before the external call) then SENT
+        verify(repository, times(2)).save(n);
+        verifyNoInteractions(pushoverService);
+    }
+
+    @Test
+    void sms_noRecipientPhone_marksFailedWithoutCallingPort() {
+        Notification n = smsNotification(null);
+
+        service.dispatch(n);
+
+        assertThat(n.getStatus()).isEqualTo(NotificationStatusEnum.FAILED);
+        assertThat(n.getFailReason()).contains("no phone");
+        assertThat(n.getRetryCount()).isEqualTo(1);
+        verify(smsPort, never()).send(any(), any());
+    }
+
+    @Test
+    void sms_blankRecipientPhone_marksFailedWithoutCallingPort() {
+        Notification n = smsNotification("   ");
+
+        service.dispatch(n);
+
+        assertThat(n.getStatus()).isEqualTo(NotificationStatusEnum.FAILED);
+        assertThat(n.getFailReason()).contains("no phone");
+        verify(smsPort, never()).send(any(), any());
+    }
+
+    @Test
+    void sms_deliveryFailure_marksFailedAndIncrementsRetry() {
+        doThrow(new IllegalStateException("Solapi 발송 실패"))
+                .when(smsPort).send(any(), any());
+        Notification n = smsNotification("01012345678");
+
+        service.dispatch(n);
+
+        assertThat(n.getStatus()).isEqualTo(NotificationStatusEnum.FAILED);
+        assertThat(n.getFailReason()).contains("SMS delivery failed");
+        assertThat(n.getRetryCount()).isEqualTo(1);
     }
 }

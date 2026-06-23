@@ -37,6 +37,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
+    implementation 'net.nurigo:sdk:4.3.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'

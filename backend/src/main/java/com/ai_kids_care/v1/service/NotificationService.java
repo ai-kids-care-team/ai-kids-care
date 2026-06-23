@@ -40,6 +40,7 @@ public class NotificationService {
     private final NotificationRepository repository;
     private final NotificationMapper mapper;
     private final PushoverService pushoverService;
+    private final SmsPort smsPort;
     private final SecurityAuditWriter auditWriter;
     private final PushSubscriptionRepository pushSubscriptionRepository;
 
@@ -125,15 +126,19 @@ public class NotificationService {
 
     /**
      * Deliver a persisted notification over its channel and record the delivery lifecycle
-     * (SENDING → SENT / FAILED, with sent_at / fail_reason / retry_count). Only PUSH
-     * (Pushover) has an implemented delivery path; SMS/EMAIL are not yet wired (see
-     * notifications spec). The trigger that decides WHEN to dispatch (rule engine) is out
-     * of scope — this is the delivery primitive it will call.
+     * (SENDING → SENT / FAILED, with sent_at / fail_reason / retry_count). PUSH (Pushover)
+     * and SMS (Solapi via {@link SmsPort}, sending to {@code users.phone}) have implemented
+     * delivery paths; EMAIL is not yet wired (see notifications spec). The trigger that decides
+     * WHEN to dispatch (rule engine) is out of scope — this is the delivery primitive it will call.
      */
     @Transactional
     public void dispatch(Notification notification) {
+        if (notification.getChannel() == NotificationChannelEnum.SMS) {
+            dispatchSms(notification);
+            return;
+        }
         if (notification.getChannel() != NotificationChannelEnum.PUSH) {
-            return; // SMS/EMAIL delivery not implemented
+            return; // EMAIL delivery not implemented
         }
 
         notification.setStatus(NotificationStatusEnum.SENDING);
@@ -169,6 +174,34 @@ public class NotificationService {
             repository.save(notification);
         } catch (IllegalStateException e) {
             markFailed(notification, "Pushover delivery failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deliver an SMS notification via {@link SmsPort} to the recipient's {@code users.phone}.
+     * A missing/blank phone is recorded FAILED without calling the port (no SMS to an empty number);
+     * otherwise the row goes SENDING → SENT/sent_at on success, or FAILED on a delivery failure
+     * (the translated {@link IllegalStateException} from the adapter). Same lifecycle as the PUSH
+     * path — SMS has no title concept, so only the body is sent. Same delivery-atomicity caveat as
+     * PUSH applies (external call inside the @Transactional boundary).
+     */
+    private void dispatchSms(Notification notification) {
+        String phone = notification.getRecipientUser().getPhone();
+        if (phone == null || phone.isBlank()) {
+            markFailed(notification, "no phone for SMS recipient");
+            return;
+        }
+
+        notification.setStatus(NotificationStatusEnum.SENDING);
+        repository.save(notification);
+
+        try {
+            smsPort.send(phone, notification.getBody());
+            notification.setStatus(NotificationStatusEnum.SENT);
+            notification.setSentAt(OffsetDateTime.now());
+            repository.save(notification);
+        } catch (IllegalStateException e) {
+            markFailed(notification, "SMS delivery failed: " + e.getMessage());
         }
     }
 

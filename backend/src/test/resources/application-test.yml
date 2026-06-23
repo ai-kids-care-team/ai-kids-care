@@ -40,6 +40,13 @@ internal:
 pushover:
   api-token: test-pushover-token-not-secret-2026
 
+# SMS 通道：非生产 dev 测试凭据（SolapiConfig fail-fast 需非空）。测试由 @MockBean/stub SmsPort
+# 取代真实发送，凭据仅用于满足 fail-fast 校验，绝不真实调用 Solapi。
+solapi:
+  api-key: test-solapi-key-not-secret-2026
+  api-secret: test-solapi-secret-not-secret-2026
+  sender: "0200000000"
+
 # ③b: deferred-notification scanner — disable auto-scan in the test profile (huge interval/initial
 # delay); tests invoke DeferredNotificationScanner.scan() directly for determinism.
 notifications:

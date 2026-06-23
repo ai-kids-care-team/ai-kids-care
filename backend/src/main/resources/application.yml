@@ -73,6 +73,13 @@ internal:
 pushover:
   api-token: ${PUSHOVER_API_TOKEN}
 
+# SMS 通道：Solapi 应用级凭据 + 발신번호（每收件人手机号是投递地址，存 users.phone）。
+# 任一空白则上下文启动即失败（SolapiConfig fail-fast）。sender 须在 Solapi 控制台预注册（발신번호 사전등록）。
+solapi:
+  api-key: ${SOLAPI_API_KEY}
+  api-secret: ${SOLAPI_API_SECRET}
+  sender: ${SOLAPI_SENDER}
+
 logging:
   level:
     # 安全默认 INFO（含生产）。开发可经环境变量 LOG_LEVEL_ROOT=DEBUG 临时调高。

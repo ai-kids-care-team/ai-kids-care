@@ -58,7 +58,7 @@ The notification subsystem SHALL resolve recipients and delivery conditions usin
 
 ### Requirement: Pushover as primary delivery channel
 
-The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. The Pushover application credential (API token) MUST be supplied by configuration (`pushover.api-token`, sourced from the `PUSHOVER_API_TOKEN` environment variable) and MUST NOT be hard-coded; a blank credential MUST fail fast rather than be silently sent. Each recipient's Pushover delivery address (Pushover user key) SHALL be stored as an `address` row in `push_subscriptions` with `provider = PUSHOVER`; the FCM/APNS-shaped `device_tokens` table is superseded by `push_subscriptions` (see "Push delivery addressing model"). `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; `PUSH` (Pushover) is the channel with an implemented backend delivery path (`PushoverService`), driving the delivery lifecycle status transitions.
+The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. The Pushover application credential (API token) MUST be supplied by configuration (`pushover.api-token`, sourced from the `PUSHOVER_API_TOKEN` environment variable) and MUST NOT be hard-coded; a blank credential MUST fail fast rather than be silently sent. Each recipient's Pushover delivery address (Pushover user key) SHALL be stored as an `address` row in `push_subscriptions` with `provider = PUSHOVER`; the FCM/APNS-shaped `device_tokens` table is superseded by `push_subscriptions` (see "Push delivery addressing model"). `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; `PUSH` (Pushover, `PushoverService`) and `SMS` (Solapi, `SolapiSmsAdapter` — see "SMS delivery via Solapi adapter") have implemented backend delivery paths driving the delivery lifecycle status transitions; `EMAIL` does not yet.
 
 #### Scenario: PUSH channel notification dispatched via Pushover
 
@@ -70,10 +70,10 @@ The backend SHALL deliver PUSH channel notifications via the Pushover third-part
 - **WHEN** a notification with `channel = PUSH` is dispatched for a recipient who has no `ACTIVE` `push_subscriptions` row with `provider = PUSHOVER`
 - **THEN** no Pushover call is made and the notification is recorded as `FAILED` with a non-null `fail_reason` (no delivery to an empty/blank address is attempted)
 
-#### Scenario: SMS channel — delivery not fully implemented
+#### Scenario: SMS channel — delivered via Solapi adapter
 
 - **WHEN** a notification is created with `channel = SMS`
-- **THEN** the system records the notification in the `notifications` table; however, automated SMS delivery is not yet implemented in the backend dispatch pipeline (gap: SMS delivery path pending rebuild per ADR-0018; the SMS address is the recipient's `users.phone`, not a `push_subscriptions` row)
+- **THEN** the system records it in the `notifications` table and dispatches it to the recipient's `users.phone` through the Solapi adapter (not a `push_subscriptions` row), per the "SMS delivery via Solapi adapter" requirement (SENDING → SENT/`sent_at` on success; FAILED + `fail_reason` on a missing phone or send failure)
 
 #### Scenario: EMAIL channel — not implemented
 
@@ -362,4 +362,51 @@ guardian parameter but this slice resolves only the kindergarten-level window.
   `02:00`
 - **THEN** the time is treated as within quiet hours and `deferred_until` resolves to the upcoming
   `07:00` Asia/Seoul instant
+
+### Requirement: SMS delivery via Solapi adapter
+
+The backend SHALL deliver `SMS` channel notifications via a Solapi adapter, sending to the
+recipient's `users.phone` (not a `push_subscriptions` row). This replaces the prior gap where
+`SMS`/`EMAIL` notifications were recorded but never dispatched. Delivery goes through an `SmsPort`
+abstraction so the dispatcher does not depend directly on Solapi: `NotificationService.dispatch`
+SHALL, for `channel = SMS`, read the recipient's phone, set `status = SENDING`, call the SMS port
+with the phone and the notification body, and on success set `status = SENT` and `sent_at`; a send
+failure or a missing recipient phone SHALL set `status = FAILED` with a non-null `fail_reason` (and
+no SMS is sent to an empty number). The Solapi credentials (`solapi.api-key`, `solapi.api-secret`,
+`solapi.sender`) MUST be supplied by configuration and MUST fail fast on a blank value rather than be
+silently used.
+
+The kindergarten staff immediate alert SHALL use this SMS path in addition to Pushover: for each
+applicable staff recipient, the alert is delivered over Pushover (when the recipient has a
+`push_subscriptions` row) and over SMS (when the recipient has a `users.phone`); a staff member with
+both receives both, with distinct dedupe keys per channel.
+
+#### Scenario: SMS notification dispatched to the recipient's phone
+
+- **WHEN** a notification with `channel = SMS` is dispatched for a recipient whose `users.phone` is set
+- **THEN** the backend calls the SMS port with that phone and the notification body, and on success
+  sets `status = SENT` and `sent_at`
+
+#### Scenario: SMS dispatch with no recipient phone
+
+- **WHEN** a notification with `channel = SMS` is dispatched for a recipient whose `users.phone` is null/blank
+- **THEN** no SMS is sent and the notification is recorded `FAILED` with a non-null `fail_reason`
+
+#### Scenario: SMS send failure is recorded FAILED
+
+- **WHEN** the Solapi adapter raises a delivery failure
+- **THEN** the notification is recorded `FAILED` with a non-null `fail_reason`, and other
+  recipients' notifications are unaffected
+
+#### Scenario: Blank Solapi credentials fail fast
+
+- **WHEN** the application starts with a blank `solapi.api-key`, `solapi.api-secret`, or `solapi.sender`
+- **THEN** startup fails fast rather than silently attempting to send with a blank credential
+
+#### Scenario: Staff alert delivered over both Pushover and SMS
+
+- **WHEN** the backend dispatches the immediate staff alert for an ingested detection event, and an
+  applicable staff member has both an active Pushover subscription and a `users.phone`
+- **THEN** that staff member receives both a `PUSH` and an `SMS` notification (distinct dedupe keys);
+  a staff member with only one channel available receives only that one
 
