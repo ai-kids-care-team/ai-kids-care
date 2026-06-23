@@ -81,6 +81,10 @@ public class AuthorizationPolicy {
             // SPEC-0003：感谢信写——仅 GUARDIAN + 有效 tenant identity。
             case APPRECIATION_LETTER_WRITE ->
                     tenantIdentity && role == UserRoleEnum.GUARDIAN;
+            // push_subscriptions 自助管理——任一已认证用户（context 存在即 true，
+            // 等价「任一已认证用户」，镜像 PLATFORM_ANNOUNCEMENT_READ）。
+            // 细粒度「只能管自己的」由 PushSubscriptionService 的 user-scoped 查询强制。
+            case PUSH_SUBSCRIPTION_MANAGE -> true;
         };
     }
 }
