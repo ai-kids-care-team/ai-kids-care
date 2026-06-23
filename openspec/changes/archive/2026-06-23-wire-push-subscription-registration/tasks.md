@@ -27,7 +27,7 @@
 - [x] 5.4 范围核对（git diff）：仅 push_subscription 管理相关 + 1 个 auth action;未改投递原语/读 API/其它能力;无 schema 改动;秘密不回显
 - [x] 5.5 核对 notifications spec delta 与实现一致（API 已发布、自作用域、provider 限制、409/404/400/401）
 - [x] 5.6 code review(sonnet)完成,Ready to merge;采纳 Important(补 PUT 跨用户 404+自更新 200 测试)/m1(deviceLabel patch 用 hasText 一致化)/m3(匿名写 4xx 测试),重跑 157 全绿
-- [ ] 5.7 合并 develop / push / `/opsx:archive`（用户驱动，含 spec delta sync）
+- [x] 5.7 已 archive(notifications spec delta sync)+ FF 合并 develop + push + 清理 worktree
 
 ---
 
