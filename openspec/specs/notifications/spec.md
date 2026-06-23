@@ -35,17 +35,6 @@ Notifications addressed to recipients with role GUARDIAN SHALL only be dispatche
 
 ---
 
-### Requirement: Kindergarten staff immediate alert on high-confidence detection
-
-The notification subsystem SHALL allow immediate (pre-review) alert dispatch to kindergarten staff (KINDERGARTEN_ADMIN, TEACHER roles) when a detection event meets a high-confidence threshold. Exact confidence thresholds MUST be defined before this path is enabled in production (gap: thresholds not yet specified).
-
-#### Scenario: High-confidence detection alert to staff
-
-- **WHEN** a detection event's confidence score meets the configured staff-alert threshold
-- **THEN** the notification subsystem MAY dispatch an immediate notification to applicable KINDERGARTEN_ADMIN or TEACHER recipients without waiting for `event_reviews` confirmation
-
----
-
 ### Requirement: Rule-engine-driven recipient resolution
 
 The notification subsystem SHALL resolve recipients and delivery conditions using `notification_rules`. Each active rule (`enabled = true`) scoped to a kindergarten specifies a user, target type (`ROOM`, `CAMERA`, or `KINDERGARTEN`), target ID, optional event type filter, minimum severity (`min_severity`), and optional quiet hours (`quiet_hours_json`).
@@ -223,4 +212,34 @@ SHALL be rejected with `409`. Subscription read responses MUST NOT expose the de
 
 - **WHEN** a user has an `ACTIVE` `PUSHOVER` subscription and a `PUSH` notification for that user is dispatched
 - **THEN** `NotificationService.dispatch` resolves the registered address and sends via Pushover (status `SENT`), rather than failing with "no active Pushover subscription"
+
+### Requirement: Kindergarten staff immediate alert on AI alarm (pre-review)
+
+The notification subsystem SHALL dispatch an immediate (pre-review) alert to applicable kindergarten
+staff (KINDERGARTEN_ADMIN, TEACHER) when the backend ingests a detection event from the AI. The
+alert trigger is the AI persistence-rule `alarm_on` (a debounced sliding-window signal — single-frame
+threshold 0.60, ≥30s span, ≥~8 hits, ≥50% hit ratio, hysteresis clear at 40%, 120s cooldown), NOT a
+single-inference confidence value; the backend therefore SHALL NOT define its own global confidence
+threshold. Which staff/rules receive the alert MAY be further narrowed by `notification_rules`
+(including `min_severity`). The staff alert SHALL be delivered over every channel the recipient has
+available — Pushover (via the recipient's `push_subscriptions`) and SMS (via `users.phone`): if a
+recipient has both, both are used; if only one, that one is used. The subsystem SHALL also record an
+in-app notification and surface the event on the real-time frontend dashboard, so staff can quickly
+enter the system to review and act. This staff alert does NOT notify parents (see the guardian
+review-gate requirement).
+
+#### Scenario: Staff alerted immediately on ingest, across available channels
+
+- **WHEN** the backend ingests an AI detection event (alarm_on)
+- **THEN** applicable staff receive an immediate alert via Pushover and/or SMS (whichever they have; both if both), an in-app notification is recorded, and the event appears on the frontend dashboard — without waiting for `event_reviews` confirmation
+
+#### Scenario: No backend confidence threshold is required
+
+- **WHEN** the staff-alert path is enabled in production
+- **THEN** it relies on the AI persistence-rule alarm as the debounced trigger and does not gate on a backend-defined confidence threshold; per-rule `min_severity` is the only severity filter
+
+#### Scenario: Staff alert does not reach parents
+
+- **WHEN** a staff immediate alert is dispatched for an ingested detection event
+- **THEN** no parent/guardian notification is sent by this path; guardian notification happens only after staff review confirmation
 
