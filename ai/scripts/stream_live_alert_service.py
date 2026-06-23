@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Live stream inference service:
-- consume one FLV stream URL
+Live stream inference service (closed-loop step ④):
+- consume one FLV/RTSP stream URL
 - run window-based VideoMAE inference
 - apply persistence rule (same core logic as realtime_persistence_demo)
-- send pushover alert when alarm turns on
+- on alarm_on, submit a detection event to the Java backend internal ingest endpoint
+  (the backend is the sole writer of the detection tables and dispatches staff alerts).
+
+The legacy Pushover/SMS direct-dispatch and the local CSV outputs have been removed — detection
+results now flow only through the backend ingest endpoints (ADR-0015 V1).
 """
 from __future__ import annotations
 
-import csv
 import math
 import os
 import re
@@ -17,6 +20,7 @@ import sys
 import time
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 import av
@@ -29,8 +33,8 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from ai_app.utils.pushover import send_pushover_notification, send_pushover_notifications
-from ai_app.utils.sms import build_message_service, parse_recipients, send_sms_batch
+from ai_app.utils import backend_ingest
+from ai_app.utils.event_type_mapper import map_label
 from realtime_persistence_demo import (
     frame_time_sec,
     label_for_id,
@@ -57,17 +61,6 @@ class PersistenceState:
     history: deque[tuple[float, int]] = field(default_factory=deque)
     alarm_on: bool = False
     alarm_start_sec: float | None = None
-
-
-def open_csv_writer(path: Path, fieldnames: list[str]) -> tuple[csv.DictWriter, object]:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    file_exists = path.exists()
-    f = open(path, "a", newline="", encoding="utf-8")
-    writer = csv.DictWriter(f, fieldnames=fieldnames)
-    if not file_exists:
-        writer.writeheader()
-        f.flush()
-    return writer, f
 
 
 def detect_black_screen(
@@ -189,11 +182,10 @@ def run_stream_service(
         black_std_threshold: float = 8.0,
         notification_title: str = "AI Alert",
         notification_cooldown_sec: float = 120.0,
-        enable_sms_batch_notification: bool = False,
-        sms_api_key: str = "",
-        sms_api_secret: str = "",
-        sms_sender: str = "",
-        sms_recipients: list[str] | None = None,
+        stream_id: str = "",
+        model_id: int = 1,
+        java_backend_url: str = "",
+        ai_service_token: str = "",
         reconnect_wait_sec: float = 3.0,
         max_runtime_sec: float | None = None,
         max_eval_windows: int | None = None,
@@ -205,44 +197,6 @@ def run_stream_service(
         raise ValueError("stream_url is empty.")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    timeline_path = output_dir / "stream_timeline.csv"
-    events_path = output_dir / "stream_alarm_events.csv"
-
-    timeline_fields = [
-        "service_eval_index",
-        "connection_index",
-        "eval_index_in_connection",
-        "eval_frame_idx",
-        "ts_sec",
-        "pred_label",
-        "pred_conf",
-        "target_label",
-        "target_prob",
-        "clip_hit",
-        "rolling_count",
-        "rolling_hit_count",
-        "rolling_hit_ratio",
-        "history_span_sec",
-        "history_ready",
-        "alarm_on",
-    ]
-    event_fields = [
-        "event_index",
-        "connection_index",
-        "event_type",
-        "ts_sec",
-        "alarm_start_sec",
-        "alarm_end_sec",
-        "duration_sec",
-        "target_prob",
-        "rolling_hit_ratio",
-        "rolling_hit_count",
-        "rolling_count",
-        "message",
-    ]
-
-    timeline_writer, timeline_file = open_csv_writer(timeline_path, timeline_fields)
-    event_writer, event_file = open_csv_writer(events_path, event_fields)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cuda":
@@ -276,25 +230,21 @@ def run_stream_service(
     print(f"black_luma_threshold: {black_luma_threshold}")
     print(f"black_std_threshold: {black_std_threshold}")
     print(f"notification_cooldown_sec: {notification_cooldown_sec}")
-    print(f"enable_sms_batch_notification: {enable_sms_batch_notification}")
-    print(f"sms_recipient_count: {len(sms_recipients or [])}")
-    print(f"timeline_csv: {safe_log_text(timeline_path)}")
-    print(f"event_csv: {safe_log_text(events_path)}")
+    print(f"stream_id: {stream_id}")
+    print(f"backend_ingest: {'enabled' if (java_backend_url and ai_service_token) else 'disabled'}")
 
-    sms_service = None
-    effective_sms_recipients: list[str] = []
-    if enable_sms_batch_notification:
-        effective_sms_recipients = [str(x).strip() for x in (sms_recipients or []) if str(x).strip()]
-        if not sms_api_key or not sms_api_secret or not sms_sender or not effective_sms_recipients:
-            print("[WARN] SMS batch notification is enabled but config is incomplete. SMS will be skipped.")
-        else:
-            try:
-                sms_service = build_message_service(api_key=sms_api_key, api_secret=sms_api_secret)
-            except Exception as sms_init_error:
-                print(
-                    "[WARN] Failed to initialize SMS service. SMS will be skipped. "
-                    f"detail={safe_log_text(type(sms_init_error).__name__ + ': ' + str(sms_init_error))}"
-                )
+    # ④: create one detection session for this stream run (backend is the sole writer; it derives
+    # kindergarten/camera from the stream). Best-effort — a failure must not stop the stream service.
+    session_id = None
+    if java_backend_url and ai_service_token:
+        try:
+            session_id = backend_ingest.create_session(stream_id, model_id, java_backend_url, ai_service_token)
+            print(f"[INFO] Detection session created: session_id={session_id}")
+        except Exception as session_error:
+            print(
+                "[WARN] create_session failed; detection events will be skipped this run. "
+                f"detail={safe_log_text(type(session_error).__name__ + ': ' + str(session_error))}"
+            )
 
     service_start_wall = time.monotonic()
     service_eval_index = 0
@@ -413,32 +363,13 @@ def run_stream_service(
                         window_is_valid=(not is_black_screen) if enable_black_screen_gate else True,
                     )
 
-                    timeline_writer.writerow({
-                        "service_eval_index": service_eval_index,
-                        "connection_index": connection_index,
-                        "eval_index_in_connection": eval_index_in_connection,
-                        "eval_frame_idx": frame_idx,
-                        "ts_sec": eval_ts_sec,
-                        "pred_label": pred_label,
-                        "pred_conf": pred_conf,
-                        "target_label": target_label,
-                        "target_prob": target_prob,
-                        "clip_hit": persistence["clip_hit"],
-                        "rolling_count": persistence["rolling_count"],
-                        "rolling_hit_count": persistence["rolling_hit_count"],
-                        "rolling_hit_ratio": persistence["rolling_hit_ratio"],
-                        "history_span_sec": persistence["history_span_sec"],
-                        "history_ready": persistence["history_ready"],
-                        "alarm_on": persistence["alarm_on"],
-                    })
                     if service_eval_index % max(1, int(log_every_n_windows)) == 0:
                         print(
                             "[PRED] "
                             f"idx={service_eval_index}, "
                             f"conn={connection_index}, "
                             f"ts={eval_ts_sec:.2f}s, "
-                            # f"pred={pred_label}, ",
-                            f"pred={pred_label}{"(퐁력)" if pred_label == "assault" else "(정상)"}, ",
+                            f"pred={pred_label}{"(폭력)" if pred_label == "assault" else "(정상)"}, "
                             f"conf={pred_conf:.4f}, "
                             f"target_prob={target_prob:.4f}, "
                             f"hit={int(persistence['clip_hit'])}, "
@@ -450,7 +381,6 @@ def run_stream_service(
                             f"black_std={black_std:.2f}, "
                             f"alarm_on={int(persistence['alarm_on'])}"
                         )
-                        timeline_file.flush()
 
                     event_type = str(persistence["event_type"])
                     if event_type:
@@ -461,71 +391,41 @@ def run_stream_service(
                             f"rolling_hit_count={int(persistence['rolling_hit_count'])}/"
                             f"{int(persistence['rolling_count'])}"
                         )
-                        event_writer.writerow({
-                            "event_index": event_index,
-                            "connection_index": connection_index,
-                            "event_type": event_type,
-                            "ts_sec": eval_ts_sec,
-                            "alarm_start_sec": persistence["event_start_sec"],
-                            "alarm_end_sec": persistence["event_end_sec"],
-                            "duration_sec": persistence["event_duration_sec"],
-                            "target_prob": target_prob,
-                            "rolling_hit_ratio": persistence["rolling_hit_ratio"],
-                            "rolling_hit_count": persistence["rolling_hit_count"],
-                            "rolling_count": persistence["rolling_count"],
-                            "message": event_message,
-                        })
-                        event_file.flush()
                         print(f"[INFO] {event_message}")
 
                         if event_type == "alarm_on":
                             now_wall = time.monotonic()
                             if (now_wall - last_notification_wall) >= float(notification_cooldown_sec):
-                                alert_message = (
-                                    f"[{target_label}] alarm_on at {eval_ts_sec:.2f}s\n"
-                                    f"prob={target_prob:.4f}, "
-                                    f"hit_ratio={float(persistence['rolling_hit_ratio']):.4f}, "
-                                    f"hits={int(persistence['rolling_hit_count'])}/"
-                                    f"{int(persistence['rolling_count'])}"
-                                )
-                                try:
-                                    # send_pushover_notification(
-                                    #     notification_title,
-                                    #     alert_message,
-                                    #     sound="alien"
-                                    # )
-                                    send_pushover_notifications(
-                                        notification_title,
-                                        alert_message,
-                                        sound="alien",
-                                    )
-                                except Exception as push_error:
-                                    print(
-                                        "[WARN] send_pushover_notification failed: "
-                                        f"{safe_log_text(type(push_error).__name__ + ': ' + str(push_error))}"
-                                    )
-
-                                if sms_service is not None:
+                                if session_id is not None:
                                     try:
-                                        sms_results = send_sms_batch(
-                                            message_service=sms_service,
-                                            sender=sms_sender,
-                                            recipients=effective_sms_recipients,
-                                            text=alert_message.replace("\n", " | "),
+                                        onset_epoch = time.time()
+                                        now_iso = datetime.now(timezone.utc).isoformat()
+                                        result = backend_ingest.submit_event(
+                                            session_id,
+                                            map_label(target_label),
+                                            backend_ingest.severity_from_confidence(target_prob),
+                                            target_prob,
+                                            now_iso,
+                                            now_iso,
+                                            backend_ingest.build_dedup_key(stream_id, onset_epoch),
+                                            java_backend_url,
+                                            ai_service_token,
                                         )
-                                        sms_success = int(sum(1 for x in sms_results if x.get("ok")))
                                         print(
-                                            f"[INFO] SMS batch send done: success={sms_success}/{len(sms_results)}"
+                                            "[INFO] Detection event ingested: "
+                                            f"eventId={result.get('eventId')}, duplicate={result.get('duplicate')}"
                                         )
-                                    except Exception as sms_error:
+                                    except Exception as ingest_error:
                                         print(
-                                            "[WARN] send_sms_batch failed: "
-                                            f"{safe_log_text(type(sms_error).__name__ + ': ' + str(sms_error))}"
+                                            "[WARN] submit_event failed: "
+                                            f"{safe_log_text(type(ingest_error).__name__ + ': ' + str(ingest_error))}"
                                         )
+                                else:
+                                    print("[WARN] No detection session; skipping event ingest.")
 
                                 last_notification_wall = now_wall
                             else:
-                                print("[INFO] Notification cooldown active. Skip push.")
+                                print("[INFO] Notification cooldown active. Skip ingest.")
 
                     if max_eval_windows is not None and service_eval_index >= int(max_eval_windows):
                         break
@@ -560,10 +460,7 @@ def run_stream_service(
             state = PersistenceState()
             time.sleep(max(0.0, float(reconnect_wait_sec)))
     finally:
-        timeline_file.flush()
-        event_file.flush()
-        timeline_file.close()
-        event_file.close()
+        print("[INFO] Stream alert service stopped.")
 
 
 if __name__ == "__main__":
@@ -595,8 +492,14 @@ if __name__ == "__main__":
     elif stream_url_fallback:
         # Legacy fallback: direct STREAM_URL (ADR-0026 D3 independent-test path).
         stream_url = stream_url_fallback
+        java_backend_url = os.getenv("JAVA_BACKEND_URL", "http://backend:8080")
+        ai_service_token = os.getenv("AI_SERVICE_TOKEN", "")
     else:
         raise ValueError("Either STREAM_ID or STREAM_URL environment variable must be set")
+
+    # ④: backend ingest config (session creation + event submission)
+    model_id = int(os.getenv("MODEL_ID", "1"))
+
     model_dir = project_root / "outputs" / "01_assault_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / "stream_live_service"
     target_label = "assault"
@@ -623,11 +526,6 @@ if __name__ == "__main__":
     # Service behavior
     notification_title = "AI Kids Care Alert"
     notification_cooldown_sec = 120.0
-    enable_sms_batch_notification = True
-    sms_api_key = os.getenv("SOLAPI_API_KEY", "")
-    sms_api_secret = os.getenv("SOLAPI_API_SECRET", "")
-    sms_sender = os.getenv("SMS_DEFAULT_SENDER", "")
-    sms_recipients = parse_recipients(os.getenv("SMS_DEFAULT_RECIPIENTS", ""))
     reconnect_wait_sec = 3.0
     max_runtime_sec = None  # set seconds for local dry run, e.g. 600
     max_eval_windows = None  # set for quick test, e.g. 100
@@ -655,11 +553,10 @@ if __name__ == "__main__":
         black_std_threshold=black_std_threshold,
         notification_title=notification_title,
         notification_cooldown_sec=notification_cooldown_sec,
-        enable_sms_batch_notification=enable_sms_batch_notification,
-        sms_api_key=sms_api_key,
-        sms_api_secret=sms_api_secret,
-        sms_sender=sms_sender,
-        sms_recipients=sms_recipients,
+        stream_id=stream_id,
+        model_id=model_id,
+        java_backend_url=java_backend_url,
+        ai_service_token=ai_service_token,
         reconnect_wait_sec=reconnect_wait_sec,
         max_runtime_sec=max_runtime_sec,
         max_eval_windows=max_eval_windows,
