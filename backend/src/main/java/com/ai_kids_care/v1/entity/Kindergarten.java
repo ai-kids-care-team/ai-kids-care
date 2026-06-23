@@ -59,6 +59,10 @@ public class Kindergarten {
     @Column(name = "status", columnDefinition = "status_enum")
     private StatusEnum status;
 
+    // ③b: 전원 통일 정숙시간(quiet hours) 창 JSON {"start":"HH:mm","end":"HH:mm"}, Asia/Seoul; NULL=정숙시간 없음.
+    @Column(name = "notification_quiet_hours_json")
+    private String quietHoursJson;
+
     @CreationTimestamp
     @ColumnDefault("now()")
     @Column(name = "created_at", nullable = false)

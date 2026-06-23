@@ -39,3 +39,9 @@ internal:
 # PUSH 通道：非生产 dev 测试 token（PushoverConfig fail-fast 需非空）
 pushover:
   api-token: test-pushover-token-not-secret-2026
+
+# ③b: deferred-notification scanner — disable auto-scan in the test profile (huge interval/initial
+# delay); tests invoke DeferredNotificationScanner.scan() directly for determinism.
+notifications:
+  deferred-scan-interval-ms: 3600000
+  deferred-scan-initial-ms: 3600000

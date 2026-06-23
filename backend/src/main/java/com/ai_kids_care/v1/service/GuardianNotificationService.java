@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -53,6 +54,7 @@ public class GuardianNotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final QuietHoursService quietHoursService;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -87,6 +89,16 @@ public class GuardianNotificationService {
                 + "확인되었습니다. 앱에서 자세한 내용을 "
                 + "확인해 주세요.";
 
+        // ③b: a RESOLVED notification falling within the kindergarten's quiet hours is deferred to the
+        // window's end; ESCALATED pierces quiet hours (immediate). Kindergarten-wide → computed once.
+        OffsetDateTime now = OffsetDateTime.now();
+        Optional<QuietHoursService.QuietWindow> quietWindow =
+                resultStatus == EventStatusEnum.RESOLVED
+                        ? quietHoursService.resolveQuietWindow(kindergartenId, null)
+                        : Optional.empty();
+        boolean defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
+        OffsetDateTime deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
+
         for (Long userId : guardianUserIds) {
             try {
                 Notification notification = Notification.builder()
@@ -96,11 +108,14 @@ public class GuardianNotificationService {
                         .channel(NotificationChannelEnum.PUSH)
                         .title(title)
                         .body(body)
-                        .status(NotificationStatusEnum.QUEUED)
+                        .status(defer ? NotificationStatusEnum.DEFERRED : NotificationStatusEnum.QUEUED)
+                        .deferredUntil(deferUntil)
                         .dedupeKey("evt-" + eventId + "-u-" + userId + "-guardian")
                         .build();
-                notificationRepository.save(notification);   // own (auto) commit, independent of others
-                notificationService.dispatch(notification);  // own @Transactional; FAILED on no subscription
+                notificationRepository.save(notification);    // own (auto) commit, independent of others
+                if (!defer) {
+                    notificationService.dispatch(notification);  // immediate; deferred ones wait for the scanner
+                }
             } catch (RuntimeException e) {
                 // Best-effort: a dedupe-key clash (already notified) or one recipient's failure must
                 // not abort the rest. The review is already committed regardless.

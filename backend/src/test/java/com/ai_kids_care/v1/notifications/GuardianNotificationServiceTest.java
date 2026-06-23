@@ -129,7 +129,10 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
 
     @Test
     void guardianWithoutActiveSubscription_recordedFailed() {
-        jdbc.update("DELETE FROM push_subscriptions WHERE user_id = ? AND address = ?", GUARDIAN_USER, SUB_ADDRESS);
+        // Clear ALL of this guardian's push subscriptions — other step-③b test classes
+        // (QuietHours/Scanner) create user-121 subscriptions on the shared container, so an
+        // address-scoped delete would leave a stray ACTIVE subscription and dispatch would SEND.
+        jdbc.update("DELETE FROM push_subscriptions WHERE user_id = ?", GUARDIAN_USER);
 
         service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
                 ROOM_CLASSROOM, detectedClassroom, null, null);

@@ -100,4 +100,23 @@ class SchemaConsistencyGuardTest extends BaseIntegrationTest {
         assertThat(columnNullable("detection_events", "dedup_key")).as("dedup_key NOT NULL (V8)").isFalse();
         assertThat(indexExists("uq_detection_events_dedup")).as("uq_detection_events_dedup unique (V8)").isTrue();
     }
+
+    private boolean enumHasValue(String type, String value) {
+        return jdbc.queryForObject(
+                "SELECT count(*) FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid "
+                        + "WHERE t.typname = ? AND e.enumlabel = ?",
+                Integer.class, type, value) >= 1;
+    }
+
+    @Test
+    void v9_quietHoursDeferralColumnsAndEnum() {
+        assertThat(columnExists("notifications", "deferred_until")).as("notifications.deferred_until exists (V9)").isTrue();
+        assertThat(columnNullable("notifications", "deferred_until")).as("deferred_until nullable (V9)").isTrue();
+        assertThat(columnExists("kindergartens", "notification_quiet_hours_json"))
+                .as("kindergartens.notification_quiet_hours_json exists (V9)").isTrue();
+        assertThat(columnNullable("kindergartens", "notification_quiet_hours_json"))
+                .as("notification_quiet_hours_json nullable (V9)").isTrue();
+        assertThat(enumHasValue("notification_status_enum", "DEFERRED"))
+                .as("notification_status_enum has DEFERRED (V9)").isTrue();
+    }
 }
