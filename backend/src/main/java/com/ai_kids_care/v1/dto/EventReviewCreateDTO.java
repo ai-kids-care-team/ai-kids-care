@@ -25,4 +25,10 @@ public class EventReviewCreateDTO {
 
     @Schema(description = "선택: 검토 코멘트")
     private String comment;
+
+    @Schema(description = "선택: 공용 공간 이벤트에서 영향받는 아동 id 목록(수동 지정). 비면 교실 관계 그래프 자동 해석")
+    private java.util.List<Long> affectedChildIds;
+
+    @Schema(description = "선택: result_status=RESOLVED 시 보호자 통지 여부(ESCALATED는 항상 통지)")
+    private Boolean notifyGuardians;
 }

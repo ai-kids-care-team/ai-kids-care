@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.service;
 import com.ai_kids_care.v1.dto.EventReviewCreateDTO;
 import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.entity.EventReview;
+import com.ai_kids_care.v1.event.EventReviewedEvent;
 import com.ai_kids_care.v1.mapper.EventReviewMapper;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.repository.EventReviewRepository;
@@ -13,6 +14,7 @@ import com.ai_kids_care.v1.type.EventStatusEnum;
 import com.ai_kids_care.v1.vo.EventReviewVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,6 +30,7 @@ public class EventReviewService {
     private final EventReviewMapper mapper;
     private final DetectionEventRepository detectionEventRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Staff confirms a review of a detection event: appends an event_reviews row (reviewer = the
@@ -35,8 +38,8 @@ public class EventReviewService {
      * to result_status. Tenant-scoped: the event must be in the caller's active kindergarten
      * (otherwise hidden 404). result_status MUST NOT be OPEN.
      *
-     * Step ③ hook: when result_status is RESOLVED/ESCALATED, a future change will trigger guardian
-     * notification here (rule-engine, pending its own decisions). This change fires no notification.
+     * Step ③a hook: publishes EventReviewedEvent on confirm; GuardianNotificationService notifies
+     * guardians AFTER_COMMIT when result_status is ESCALATED (forced) or RESOLVED (with notifyGuardians).
      */
     @Transactional
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).EVENT_REVIEW_WRITE)")
@@ -64,6 +67,11 @@ public class EventReviewService {
 
         event.setStatus(dto.getResultStatus());
         detectionEventRepository.save(event);
+
+        eventPublisher.publishEvent(new EventReviewedEvent(
+                event.getId(), kindergartenId, dto.getResultStatus(),
+                event.getRooms().getId(), event.getDetectedAt(),
+                dto.getAffectedChildIds(), dto.getNotifyGuardians()));
 
         return mapper.toVO(saved);
     }
