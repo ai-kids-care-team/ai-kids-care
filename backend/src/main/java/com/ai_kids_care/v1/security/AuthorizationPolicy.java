@@ -85,6 +85,11 @@ public class AuthorizationPolicy {
             // 等价「任一已认证用户」，镜像 PLATFORM_ANNOUNCEMENT_READ）。
             // 细粒度「只能管自己的」由 PushSubscriptionService 的 user-scoped 查询强制。
             case PUSH_SUBSCRIPTION_MANAGE -> true;
+            // 检测事件复核——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity；
+            // 细粒度租户隔离由 EventReviewService(findByIdAndKindergarten_Id / kindergarten 谓词)强制。
+            case EVENT_REVIEW_WRITE, EVENT_REVIEW_READ ->
+                    tenantIdentity && (role == UserRoleEnum.KINDERGARTEN_ADMIN
+                            || role == UserRoleEnum.TEACHER);
         };
     }
 }

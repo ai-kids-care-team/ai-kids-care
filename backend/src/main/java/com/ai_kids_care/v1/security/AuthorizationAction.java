@@ -36,5 +36,9 @@ public enum AuthorizationAction {
     // push_subscriptions 自助管理粗粒度门——任一已认证用户均可管理自己的推送订阅
     // （push_subscriptions 无 kindergarten_id，纯 user-scoped）；细粒度「只能管自己的」
     // 由 PushSubscriptionService 用 EffectiveAuthorizationContext.userId() 在查询内强制。
-    PUSH_SUBSCRIPTION_MANAGE
+    PUSH_SUBSCRIPTION_MANAGE,
+    // 检测事件复核工作流粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity；
+    // 细粒度租户隔离由 EventReviewService 用 EffectiveAuthorizationContext + repository 强制。
+    EVENT_REVIEW_WRITE,
+    EVENT_REVIEW_READ
 }
