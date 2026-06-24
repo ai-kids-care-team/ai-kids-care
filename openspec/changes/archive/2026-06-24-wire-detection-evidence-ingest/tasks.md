@@ -13,5 +13,5 @@
 
 ## 3. 验证
 
-- [ ] 3.1 后端 DooD 全套件回归(`gradle:8.7-jdk21`,`cleanTest test`,host override/ryuk-disabled/挂 repo 根),0 fail。（Lead 在 integration 阶段统一跑一次,本 subagent 不跑全套件。）
+- [x] 3.1 后端 DooD 全套件回归(`gradle:8.7-jdk21`,`cleanTest test`,host override/ryuk-disabled/挂 repo 根),0 fail。（Lead 在 integration 阶段统一跑一次,本 subagent 不跑全套件。）
 - [x] 3.2 自查:无 schema 迁移文件新增;对不带 evidence 的 ingest 行为零变化(向后兼容)。

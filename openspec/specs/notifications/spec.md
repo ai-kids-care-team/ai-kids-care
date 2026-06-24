@@ -249,8 +249,13 @@ The backend SHALL notify the guardians of the affected children when a staff rev
 (`POST /api/v1/event_reviews`) sets a detection event's `result_status` to `ESCALATED`, or to
 `RESOLVED` with guardian notification opted in. This implements the "reviewed → MAY notify GUARDIAN"
 path of the guardian review-gate. Notification is dispatched over the `PUSH` channel via the existing
-`NotificationService.dispatch` (Pushover). All notifications are dispatched immediately in this
-capability slice; quiet-hours deferral is a separate later capability.
+`NotificationService.dispatch` (Pushover). For an `ESCALATED` confirmation the backend SHALL
+**additionally** dispatch the notification over the `SMS` channel to each affected guardian whose
+linked `users.phone` is non-blank, via the same `NotificationService.dispatch` (Solapi `SmsPort`); a
+`RESOLVED` confirmation notifies over `PUSH` only. The PUSH dispatch is unchanged — SMS is an
+additive, independent channel, and a guardian whose linked `users.phone` is null/blank still receives
+the `PUSH` notification only. All notifications are dispatched immediately in this capability slice;
+quiet-hours deferral is a separate later capability.
 
 Recipient resolution SHALL be relationship-graph based (PostgreSQL, not Neo4j): the event's `room_id`
 at its `detected_at` instant resolves to the active `class_room_assignment`(s) (`start_at <=
@@ -265,9 +270,13 @@ caller's kindergarten (the graph is filtered by `kindergarten_id`).
 The trigger matrix is: `ESCALATED` always notifies; `RESOLVED` notifies only when `notifyGuardians`
 is true; `ACKNOWLEDGED`, `IN_REVIEW`, and `DISMISSED` never notify guardians. Notification dispatch
 is a side effect of confirm executed after the review transaction commits; a dispatch or resolution
-failure MUST NOT roll back the review. Each guardian notification uses
-`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian'`, so repeated confirms of the same event do
-not produce duplicate notifications (enforced by `UNIQUE(kindergarten_id, dedupe_key)`).
+failure MUST NOT roll back the review. Each guardian PUSH notification uses
+`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian'` and each guardian SMS notification uses
+`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian-sms'` (distinct keys so PUSH and SMS for the
+same guardian and event coexist), so repeated confirms of the same event do not produce duplicate
+notifications (enforced by `UNIQUE(kindergarten_id, dedupe_key)`). SMS dispatch is per-recipient and
+per-channel best-effort: an SMS build or send failure for one guardian MUST NOT affect that guardian's
+PUSH notification or any other guardian's notifications.
 
 #### Scenario: ESCALATED confirm notifies guardians of the room's class children
 
@@ -277,11 +286,19 @@ not produce duplicate notifications (enforced by `UNIQUE(kindergarten_id, dedupe
 - **THEN** one `PUSH` `notifications` row is created and dispatched per distinct guardian `user_id`
   of those children, scoped to the event's kindergarten
 
-#### Scenario: RESOLVED notifies only when opted in
+#### Scenario: ESCALATED also sends SMS to guardians with a phone
+
+- **WHEN** an `ESCALATED` confirm notifies guardians and an affected guardian's linked `users.phone`
+  is non-blank
+- **THEN** that guardian receives both a `PUSH` and an `SMS` `notifications` row (distinct dedupe
+  keys `-guardian` and `-guardian-sms`), the SMS sent to that `users.phone`; **and WHEN** a notified
+  guardian's linked `users.phone` is null/blank, only the `PUSH` row is created (no SMS)
+
+#### Scenario: RESOLVED notifies only when opted in, over PUSH only
 
 - **WHEN** a confirm sets `result_status = RESOLVED` with `notifyGuardians = true`
-- **THEN** guardians are notified; **and WHEN** `notifyGuardians` is absent or false, no guardian
-  notification is created
+- **THEN** guardians are notified over `PUSH` only and no `SMS` notification is created; **and WHEN**
+  `notifyGuardians` is absent or false, no guardian notification is created
 
 #### Scenario: Non-notifying result statuses
 
@@ -312,6 +329,12 @@ not produce duplicate notifications (enforced by `UNIQUE(kindergarten_id, dedupe
 - **WHEN** a resolved guardian recipient has no `ACTIVE` `PUSHOVER` `push_subscriptions` row
 - **THEN** that guardian's notification is recorded `FAILED` with a non-null `fail_reason`, and other
   guardians' notifications are unaffected
+
+#### Scenario: One guardian's SMS failure does not affect other channels or recipients
+
+- **WHEN** the `SMS` send for one guardian fails (Solapi failure)
+- **THEN** that guardian's `SMS` notification is recorded `FAILED` with a non-null `fail_reason`,
+  while that guardian's `PUSH` notification and every other guardian's notifications remain unaffected
 
 #### Scenario: Notification failure does not roll back the review
 

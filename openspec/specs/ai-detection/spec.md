@@ -223,9 +223,11 @@ ingest response.
 
 To cover events ingested while a client was not connected, a client SHALL receive recent detection
 history on connect: the frontend dashboard loads the most recent N events via the read API before (or
-while) establishing the SSE stream, and de-duplicates by event id. A persistent "delivered-cursor"
-catch-up scan that replays events missed while *all* clients were offline is out of scope for this
-change (tracked as follow-up).
+while) establishing the SSE stream, and de-duplicates by event id. In addition, on an SSE **reconnect**
+the backend SHALL replay the events the client missed during the disconnect, keyed on the client's
+`Last-Event-ID` (see «Detection SSE reconnect replay via Last-Event-ID»). A server-persisted
+per-subscriber delivered-cursor (durable across a full backend restart with no client connected at
+all) and cross-instance live fanout remain out of scope for this change (tracked as follow-up).
 
 #### Scenario: Staff client receives a detection event at ingest
 
@@ -422,4 +424,82 @@ Staff with review authority SHALL be able to confirm a detection event review di
 
 - **WHEN** the review submission fails
 - **THEN** the card SHALL revert to its prior status and an error SHALL be surfaced to the user
+
+### Requirement: Backend accepts detection evidence on ingest and writes event_evidence_files
+
+The backend SHALL accept an **optional** evidence descriptor on the detection-event ingest request
+(`POST /api/v1/internal/detection-events`) and, when present, SHALL write exactly one
+`event_evidence_files` row for the newly persisted detection event. The evidence descriptor SHALL
+carry `uri` (stored as `storage_uri`), `hash` (stored as `hash`), `type` (an
+`evidence_file_type_enum` value: `IMAGE`/`VIDEO`) and `mimeType` (a `mime_type_enum` value); the
+written row SHALL set `hold = false` and leave `retention_until` null. The evidence descriptor is
+all-or-nothing: when supplied, all of `uri`/`hash`/`type`/`mimeType` SHALL be present, otherwise the
+request is rejected with `400`; an unknown `type`/`mimeType` enum value SHALL also be rejected with
+`400`. Because the AI does not yet send evidence, the field SHALL be optional and a request without it
+SHALL persist the detection event exactly as before with no evidence row. Evidence SHALL be written
+only on the fresh-event path: when ingest is an idempotent duplicate (`(kindergarten_id, dedup_key)`
+already exists), no second `event_evidence_files` row SHALL be written. The backend does not verify
+that the file at `uri` exists or that `hash` matches its contents (the caller is the trusted
+`ROLE_AI_SERVICE`); an evidence-write failure SHALL NOT roll back or fail the already-persisted
+detection event.
+
+#### Scenario: Ingest with evidence writes an event_evidence_files row
+
+- **WHEN** the AI submits a new (non-duplicate) detection event whose request includes an evidence descriptor `{uri, hash, type: VIDEO, mimeType: video/mp4}`
+- **THEN** the backend persists the detection event and writes exactly one `event_evidence_files` row for that `event_id` with `storage_uri = uri`, `hash = hash`, `type = VIDEO`, `mime_type = video/mp4`, `hold = false`, and `retention_until` null
+
+#### Scenario: Ingest without evidence persists the event with no evidence row
+
+- **WHEN** the AI submits a detection event whose request has no evidence descriptor
+- **THEN** the backend persists the detection event normally and writes no `event_evidence_files` row
+
+#### Scenario: Duplicate ingest does not write a second evidence row
+
+- **WHEN** a detection event whose `(kindergarten_id, dedup_key)` already exists is re-submitted with an evidence descriptor
+- **THEN** the backend returns the existing `event_id` idempotently and writes no additional `event_evidence_files` row
+
+#### Scenario: Partial or unknown-enum evidence is rejected
+
+- **WHEN** an ingest request supplies an evidence descriptor that is missing one of `uri`/`hash`/`type`/`mimeType`, or carries a `type`/`mimeType` value outside the database enum
+- **THEN** the backend rejects the request with `400` and writes neither a detection event nor an evidence row
+
+### Requirement: Detection SSE reconnect replay via Last-Event-ID
+
+The detection-event SSE stream SHALL set each pushed frame's SSE `id:` to the event's `event_id`, and
+on a new stream connection that presents a `Last-Event-ID` request header SHALL replay to that
+connection the detection events of the client's active kindergarten whose `event_id` is greater than
+the presented `Last-Event-ID`, in ascending `event_id` order, as normal `detection-event` frames
+(same `id:` and payload as a live push), before live pushes resume on that connection. The replay
+SHALL be tenant-scoped — filtered by the connecting client's active kindergarten; the `Last-Event-ID`
+is only a numeric lower bound and SHALL NOT widen tenant scope — and bounded by a configured maximum:
+when the missed range exceeds the bound, the backend SHALL replay only the most recent `max` missed
+events (older history is covered by the read-API load). A missing or non-numeric `Last-Event-ID`
+SHALL be treated as no replay, and the connection SHALL behave exactly as the pre-existing connect.
+No database schema and no server-persisted cursor are introduced: the `event_id` itself is the cursor
+and the client's `EventSource` supplies `Last-Event-ID` automatically across reconnects.
+
+#### Scenario: Reconnect replays missed events by Last-Event-ID
+
+- **WHEN** a staff client reconnects to the SSE stream presenting `Last-Event-ID: {n}` and its active kindergarten has detection events with `event_id > n`
+- **THEN** the backend replays those events to that connection in ascending `event_id` order as `detection-event` frames whose `id:` equals `event_id`, before resuming live pushes
+
+#### Scenario: Replay is tenant-scoped
+
+- **WHEN** a client reconnects with any `Last-Event-ID` value
+- **THEN** only detection events of that client's own active kindergarten are replayed; an event of another kindergarten is never replayed regardless of the numeric `Last-Event-ID`
+
+#### Scenario: Replay is bounded by the configured maximum
+
+- **WHEN** the number of missed events (`event_id` greater than `Last-Event-ID`) exceeds the configured maximum
+- **THEN** the backend replays at most the configured maximum most-recent missed events, relying on the read-API history load for anything older
+
+#### Scenario: Missing or non-numeric Last-Event-ID replays nothing
+
+- **WHEN** a client connects with no `Last-Event-ID` header or a non-numeric value
+- **THEN** no replay occurs and the connection behaves exactly as the pre-existing connect (recent-history via the read API plus the live stream)
+
+#### Scenario: Replayed and history-loaded events de-duplicate by id
+
+- **WHEN** a reconnecting client both loads recent history via the read API and receives replayed SSE frames for overlapping events
+- **THEN** the client de-duplicates by event id (the SSE `id:` equals the read-API `event_id`), so no event is rendered twice
 

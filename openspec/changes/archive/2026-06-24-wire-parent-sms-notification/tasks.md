@@ -13,5 +13,5 @@
 
 ## 3. 验证
 
-- [ ] 3.1 后端 DooD 全套件回归(`gradle:8.7-jdk21`,`cleanTest test`,host override/ryuk-disabled/挂 repo 根),0 fail;测试全程 mock `SmsPort`,不打真实 Solapi。（由 Lead 在整合时运行一次)
+- [x] 3.1 后端 DooD 全套件回归(`gradle:8.7-jdk21`,`cleanTest test`,host override/ryuk-disabled/挂 repo 根),0 fail;测试全程 mock `SmsPort`,不打真实 Solapi。（由 Lead 在整合时运行一次)
 - [x] 3.2 自查:无 schema 迁移;PUSH 路径行为零变化(既有 PUSH 测试仍绿)。
