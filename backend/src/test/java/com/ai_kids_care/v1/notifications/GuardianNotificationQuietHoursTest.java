@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.notifications;
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.service.GuardianNotificationService;
 import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.SmsPort;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ class GuardianNotificationQuietHoursTest extends BaseIntegrationTest {
     @Autowired private GuardianNotificationService service;
     @Autowired private JdbcTemplate jdbc;
     @MockBean private PushoverService pushoverService;
+    @MockBean private SmsPort smsPort; // mocked → the ESCALATED case's additive guardian SMS never hits real Solapi
 
     private OffsetDateTime detected;
 
@@ -67,15 +69,20 @@ class GuardianNotificationQuietHoursTest extends BaseIntegrationTest {
         jdbc.update("UPDATE kindergartens SET notification_quiet_hours_json = ? WHERE kindergarten_id = ?", json, KG);
     }
 
+    // Scoped to PUSH: this class verifies the PUSH quiet-hours lifecycle. The ESCALATED case also
+    // creates an additive SMS row (guardian 121 has a phone) dispatched via the mocked SmsPort; PUSH
+    // scoping keeps these single-row queries deterministic.
     private String status() {
         return jdbc.queryForObject(
-                "SELECT status FROM notifications WHERE event_id = ? AND recipient_user_id = ?",
+                "SELECT status FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
+                        + "AND channel = 'PUSH'::notification_channel_enum",
                 String.class, EVENT, GUARDIAN_USER);
     }
 
     private OffsetDateTime deferredUntil() {
         return jdbc.queryForObject(
-                "SELECT deferred_until FROM notifications WHERE event_id = ? AND recipient_user_id = ?",
+                "SELECT deferred_until FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
+                        + "AND channel = 'PUSH'::notification_channel_enum",
                 OffsetDateTime.class, EVENT, GUARDIAN_USER);
     }
 

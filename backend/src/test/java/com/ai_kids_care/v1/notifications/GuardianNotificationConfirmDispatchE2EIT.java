@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.notifications;
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.event.EventReviewedEvent;
 import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.SmsPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
@@ -69,6 +70,7 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
     @MockBean private PushoverService pushoverService; // sendToUser is a no-op → immediate dispatch reaches SENT
+    @MockBean private SmsPort smsPort; // mocked → ESCALATED guardian SMS never hits real Solapi
 
     @BeforeEach
     void setUp() {
@@ -169,21 +171,28 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
         jdbc.update("UPDATE kindergartens SET notification_quiet_hours_json = ? WHERE kindergarten_id = ?", json, KG);
     }
 
+    // Helpers are scoped to the PUSH channel: this class verifies the PUSH delivery lifecycle (the
+    // unchanged behavior). An ESCALATED confirm also creates an additive SMS row (guardian 121 has a
+    // phone) dispatched via the mocked SmsPort — covered by GuardianNotificationServiceTest — so PUSH
+    // scoping keeps these single-row queries deterministic.
     private int guardianCount(long eventId) {
         return jdbc.queryForObject(
-                "SELECT count(*) FROM notifications WHERE event_id = ? AND recipient_user_id = ?",
+                "SELECT count(*) FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
+                        + "AND channel = 'PUSH'::notification_channel_enum",
                 Integer.class, eventId, GUARDIAN_USER);
     }
 
     private String guardianStatus(long eventId) {
         return jdbc.queryForObject(
-                "SELECT status FROM notifications WHERE event_id = ? AND recipient_user_id = ?",
+                "SELECT status FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
+                        + "AND channel = 'PUSH'::notification_channel_enum",
                 String.class, eventId, GUARDIAN_USER);
     }
 
     private OffsetDateTime deferredUntil(long eventId) {
         return jdbc.queryForObject(
-                "SELECT deferred_until FROM notifications WHERE event_id = ? AND recipient_user_id = ?",
+                "SELECT deferred_until FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
+                        + "AND channel = 'PUSH'::notification_channel_enum",
                 OffsetDateTime.class, eventId, GUARDIAN_USER);
     }
 

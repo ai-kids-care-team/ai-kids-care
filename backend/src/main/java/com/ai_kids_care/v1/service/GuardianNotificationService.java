@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.entity.Kindergarten;
 import com.ai_kids_care.v1.entity.Notification;
+import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.event.EventReviewedEvent;
 import com.ai_kids_care.v1.repository.ChildClassAssignmentRepository;
 import com.ai_kids_care.v1.repository.ChildGuardianRelationshipRepository;
@@ -25,8 +26,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -99,27 +102,77 @@ public class GuardianNotificationService {
         boolean defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
         OffsetDateTime deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
 
+        // SMS is an additive channel only for ESCALATED (dual-channel PUSH+SMS); RESOLVED stays
+        // PUSH-only. To create an SMS row only for guardians who actually have a phone (mirrors the
+        // staff SMS gate, avoiding FAILED noise for phoneless guardians), batch-load the resolved
+        // guardian users once and map user_id → phone. RESOLVED skips the load entirely.
+        boolean escalated = resultStatus == EventStatusEnum.ESCALATED;
+        Map<Long, String> guardianPhones = escalated ? loadPhones(guardianUserIds) : Map.of();
+
         for (Long userId : guardianUserIds) {
-            try {
-                Notification notification = Notification.builder()
-                        .kindergarten(kindergarten)
-                        .detectionEvents(detectionEventRepository.getReferenceById(eventId))
-                        .recipientUser(userRepository.getReferenceById(userId))
-                        .channel(NotificationChannelEnum.PUSH)
-                        .title(title)
-                        .body(body)
-                        .status(defer ? NotificationStatusEnum.DEFERRED : NotificationStatusEnum.QUEUED)
-                        .deferredUntil(deferUntil)
-                        .dedupeKey("evt-" + eventId + "-u-" + userId + "-guardian")
-                        .build();
-                notificationRepository.save(notification);    // own (auto) commit, independent of others
-                if (!defer) {
-                    notificationService.dispatch(notification);  // immediate; deferred ones wait for the scanner
+            User recipient = userRepository.getReferenceById(userId);
+            // PUSH — unchanged behavior (every guardian; honors quiet-hours deferral for RESOLVED).
+            deliver(kindergarten, eventId, recipient,
+                    NotificationChannelEnum.PUSH, title, body,
+                    "evt-" + eventId + "-u-" + userId + "-guardian",
+                    defer, deferUntil);
+            // SMS — only for ESCALATED, only when this guardian's users.phone is non-blank. ESCALATED
+            // pierces quiet hours, so the SMS is always immediate (never deferred).
+            if (escalated) {
+                String phone = guardianPhones.get(userId);
+                if (phone != null && !phone.isBlank()) {
+                    deliver(kindergarten, eventId, recipient,
+                            NotificationChannelEnum.SMS, title, body,
+                            "evt-" + eventId + "-u-" + userId + "-guardian-sms",
+                            false, null);
                 }
-            } catch (RuntimeException e) {
-                // Best-effort: a dedupe-key clash (already notified) or one recipient's failure must
-                // not abort the rest. The review is already committed regardless.
             }
+        }
+    }
+
+    /**
+     * Batch-load the phone of each resolved guardian user (used to gate SMS creation). One query for
+     * the whole recipient set; users without a row simply have no entry (treated as no phone).
+     */
+    private Map<Long, String> loadPhones(Set<Long> guardianUserIds) {
+        Map<Long, String> phones = new HashMap<>();
+        for (User u : userRepository.findAllById(guardianUserIds)) {
+            phones.put(u.getId(), u.getPhone());
+        }
+        return phones;
+    }
+
+    /**
+     * Build + persist + dispatch a single guardian notification on one channel. Each channel call is
+     * wrapped in its own try/catch so a per-channel failure — a dedupe-key clash (already notified),
+     * a missing phone, or a delivery error — neither rolls back nor skips the guardian's other channel
+     * or any other guardian. PUSH and SMS use distinct dedupe keys, so {@code (kindergarten_id,
+     * dedupe_key)} stays unique across both rows for the same event + guardian. The review is already
+     * committed (AFTER_COMMIT) regardless. Deferred PUSH rows wait for the scanner; SMS is never
+     * deferred in this slice (ESCALATED only).
+     */
+    private void deliver(Kindergarten kindergarten, Long eventId, User recipient,
+                         NotificationChannelEnum channel, String title, String body,
+                         String dedupeKey, boolean defer, OffsetDateTime deferUntil) {
+        try {
+            Notification notification = Notification.builder()
+                    .kindergarten(kindergarten)
+                    .detectionEvents(detectionEventRepository.getReferenceById(eventId))
+                    .recipientUser(recipient)
+                    .channel(channel)
+                    .title(title)
+                    .body(body)
+                    .status(defer ? NotificationStatusEnum.DEFERRED : NotificationStatusEnum.QUEUED)
+                    .deferredUntil(deferUntil)
+                    .dedupeKey(dedupeKey)
+                    .build();
+            notificationRepository.save(notification);    // own (auto) commit, independent of others
+            if (!defer) {
+                notificationService.dispatch(notification);  // immediate; deferred ones wait for the scanner
+            }
+        } catch (RuntimeException e) {
+            // Best-effort (per-recipient + per-channel): a dedupe-key clash or one channel's failure
+            // must not abort the guardian's other channel or the rest of the recipients.
         }
     }
 
