@@ -163,8 +163,10 @@ class DetectionEventSseServiceTest {
         sse.replaySince(KG, lastId, emitter);
 
         verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class));
-        // emitter removed → a later live push for this KG does not reach it.
-        when(detectionEventService.getForPush(EVENT_ID, KG)).thenReturn(vo());
+        // emitter removed → a later live push for this KG does not reach it. lenient: if eviction
+        // works the evicted-emitter set is empty so onIngested returns before reading getForPush;
+        // the stub still fails the test (times(2)) if eviction regressed and the emitter is re-sent.
+        lenient().when(detectionEventService.getForPush(EVENT_ID, KG)).thenReturn(vo());
         sse.onIngested(new DetectionEventIngestedEvent(EVENT_ID, KG));
         verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class)); // still just the one
     }
@@ -184,6 +186,8 @@ class DetectionEventSseServiceTest {
         sse.replaySince(KG, lastId, dead);
 
         verify(dead, times(1)).send(any(SseEmitter.SseEventBuilder.class));
-        verifyNoInteractions(live);
+        // registerEmitter wires onCompletion/onTimeout/onError on `live`, so it is not interaction-free;
+        // the guarantee is that replay targeting `dead` never sends a frame to the other emitter.
+        verify(live, never()).send(any(SseEmitter.SseEventBuilder.class));
     }
 }
