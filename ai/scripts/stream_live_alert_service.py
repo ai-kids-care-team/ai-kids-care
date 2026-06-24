@@ -34,6 +34,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from ai_app.utils import backend_ingest
+from ai_app.utils.evidence_capture import EvidenceCaptureError, save_and_hash
 from ai_app.utils.event_type_mapper import map_label
 from realtime_persistence_demo import (
     frame_time_sec,
@@ -180,7 +181,6 @@ def run_stream_service(
         enable_black_screen_gate: bool = True,
         black_luma_threshold: float = 18.0,
         black_std_threshold: float = 8.0,
-        notification_title: str = "AI Alert",
         notification_cooldown_sec: float = 120.0,
         stream_id: str = "",
         model_id: int = 1,
@@ -397,12 +397,33 @@ def run_stream_service(
                             now_wall = time.monotonic()
                             if (now_wall - last_notification_wall) >= float(notification_cooldown_sec):
                                 if session_id is not None:
+                                    # Best-effort evidence capture (design D1): encode a short clip
+                                    # from the current alarm window's frames and hash it. If capture
+                                    # fails for any reason we submit the event WITHOUT evidence rather
+                                    # than drop it (downgrade, never lose the event).
+                                    evidence_descriptor = None
+                                    try:
+                                        evidence_dir = output_dir / "evidence"
+                                        clip_uri, clip_hash = save_and_hash(window_frames, str(evidence_dir))
+                                        evidence_descriptor = {
+                                            "uri": clip_uri,
+                                            "hash": clip_hash,
+                                            "type": "VIDEO",
+                                            "mimeType": "video/mp4",
+                                        }
+                                    except EvidenceCaptureError as capture_error:
+                                        print(
+                                            "[WARN] evidence capture failed; submitting event without it: "
+                                            f"{safe_log_text(str(capture_error))}"
+                                        )
                                     try:
                                         onset_epoch = time.time()
                                         now_iso = datetime.now(timezone.utc).isoformat()
                                         result = backend_ingest.submit_event(
                                             session_id,
                                             map_label(target_label),
+                                            # severity is derived from target_prob (the target-class
+                                            # softmax probability that drives this alarm), not pred_conf.
                                             backend_ingest.severity_from_confidence(target_prob),
                                             target_prob,
                                             now_iso,
@@ -410,6 +431,7 @@ def run_stream_service(
                                             backend_ingest.build_dedup_key(stream_id, onset_epoch),
                                             java_backend_url,
                                             ai_service_token,
+                                            evidence=evidence_descriptor,
                                         )
                                         print(
                                             "[INFO] Detection event ingested: "
@@ -524,7 +546,6 @@ if __name__ == "__main__":
     black_std_threshold = 8.0
 
     # Service behavior
-    notification_title = "AI Kids Care Alert"
     notification_cooldown_sec = 120.0
     reconnect_wait_sec = 3.0
     max_runtime_sec = None  # set seconds for local dry run, e.g. 600
@@ -551,7 +572,6 @@ if __name__ == "__main__":
         enable_black_screen_gate=enable_black_screen_gate,
         black_luma_threshold=black_luma_threshold,
         black_std_threshold=black_std_threshold,
-        notification_title=notification_title,
         notification_cooldown_sec=notification_cooldown_sec,
         stream_id=stream_id,
         model_id=model_id,
