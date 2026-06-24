@@ -38,6 +38,11 @@ type KindergartenLookupItem = {
   status: string | null;
 };
 
+/**
+ * ADR-0013: 코드 목록은 백엔드 enum 엔드포인트(`/enums/{name}`)에서, 라벨(한글)은
+ * 프론트엔드 i18n 에서 공급한다. 아래 상수가 그 i18n(코드→라벨 + 성별 분류) 원본이며,
+ * enum 엔드포인트가 비거나 실패해도 그대로 폴백으로 쓰인다.
+ */
 const FALLBACK_GENDER_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'GENDER', parentCode: null, code: 'MALE', codeName: '남자', sortOrder: 1 },
   { codeGroup: 'GENDER', parentCode: null, code: 'FEMALE', codeName: '여자', sortOrder: 2 },
@@ -54,6 +59,27 @@ const FALLBACK_TEACHER_LEVEL_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'teachers', parentCode: 'level', code: 'VICE_DIRECTOR', codeName: '부원장', sortOrder: 2 },
   { codeGroup: 'teachers', parentCode: 'level', code: 'TEACHER', codeName: '일반교사', sortOrder: 3 },
 ];
+
+/** ADR-0013 enum 엔드포인트 응답 항목: 코드 + 안정 정렬 인덱스(라벨 없음). */
+type EnumValue = { code: string; sortOrder?: number };
+
+/**
+ * enum 엔드포인트의 코드 목록을 i18n 라벨 테이블(`fallback`)과 병합한다.
+ * - 라벨/부모코드(parentCode)는 fallback 에서 코드로 매칭해 채운다(i18n 책임).
+ * - i18n 라벨이 없는 코드는 가입 드롭다운에서 제외한다. (예: `teacher_level` 의 `OTHER`
+ *   는 `LevelEnum` 에는 있으나 가입 직급 선택지가 아니므로 노출하지 않음 — 기존 동작 유지.)
+ * - enum 응답이 비거나 라벨 매칭이 하나도 없으면 fallback 전체를 그대로 사용.
+ */
+function mergeEnumWithLabels(codes: EnumValue[], fallback: CommonCodeItem[]): CommonCodeItem[] {
+  if (codes.length === 0) return fallback;
+  const byCode = new Map(fallback.map((item) => [item.code, item]));
+  const merged = codes
+    .slice()
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((entry) => byCode.get(entry.code))
+    .filter((item): item is CommonCodeItem => item != null);
+  return merged.length > 0 ? merged : fallback;
+}
 
 const LEGACY_TEACHER_LEVEL_CODE_MAP: Record<string, string> = {
   PRINCIPAL: 'DIRECTOR',
@@ -475,37 +501,32 @@ export function useSignupForm() {
   };
 
   useEffect(() => {
-    const fetchCommonCodes = async (group: string): Promise<CommonCodeItem[]> => {
-      const params = new URLSearchParams({
-        codeGroup: group,
-        isActive: 'true',
-        size: '100',
-        sort: 'sortOrder,asc',
-      });
-      const response = await fetch(`${API_BASE_URL}/common_codes?${params.toString()}`);
-      if (!response.ok) throw new Error(`공통코드 조회 실패: ${group}`);
-      const data = (await response.json()) as { content?: CommonCodeItem[] } | CommonCodeItem[];
-      return Array.isArray(data) ? data : (data.content ?? []);
+    // ADR-0013: 코드는 enum 엔드포인트에서, 라벨은 프론트엔드 i18n(FALLBACK_*)에서.
+    const fetchEnumCodes = async (name: string): Promise<EnumValue[]> => {
+      const response = await fetch(`${API_BASE_URL}/enums/${encodeURIComponent(name)}`);
+      if (!response.ok) throw new Error(`enum 조회 실패: ${name}`);
+      const data = (await response.json()) as EnumValue[];
+      return Array.isArray(data) ? data : [];
     };
 
-    const loadCommonCodes = async () => {
+    const loadEnumOptions = async () => {
       try {
         const [genderCodes, relationshipCodes, teacherLevelCodes] = await Promise.all([
-          fetchCommonCodes('GENDER'),
-          fetchCommonCodes('GUARDIAN_RELATIONSHIP'),
-          fetchCommonCodes('teachers'),
+          fetchEnumCodes('gender'),
+          fetchEnumCodes('guardian_relationship'),
+          fetchEnumCodes('teacher_level'),
         ]);
-        if (genderCodes.length > 0) setGenderOptions(genderCodes);
-        if (relationshipCodes.length > 0) setRelationshipOptions(relationshipCodes);
-        if (teacherLevelCodes.length > 0) {
-          setTeacherLevelOptions(normalizeTeacherLevelOptions(teacherLevelCodes));
-        }
+        setGenderOptions(mergeEnumWithLabels(genderCodes, FALLBACK_GENDER_OPTIONS));
+        setRelationshipOptions(mergeEnumWithLabels(relationshipCodes, FALLBACK_RELATIONSHIP_OPTIONS));
+        setTeacherLevelOptions(
+          normalizeTeacherLevelOptions(mergeEnumWithLabels(teacherLevelCodes, FALLBACK_TEACHER_LEVEL_OPTIONS))
+        );
       } catch {
-        // fallback
+        // enum 엔드포인트 실패 시 FALLBACK_* 초기값 유지
       }
     };
 
-    void loadCommonCodes();
+    void loadEnumOptions();
   }, []);
 
   useEffect(() => {

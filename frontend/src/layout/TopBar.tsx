@@ -12,7 +12,7 @@ import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
-import { useGetMenusQuery } from '@/services/apis/menu.api';
+import { getMenusForRole } from '@/config/menu';
 import { LoginModal } from '@/components/home/LoginModal';
 import { useLogoutMutation } from '@/services/apis/auth.api';
 import { clearCsrf } from '@/services/csrf';
@@ -20,7 +20,7 @@ import { clearCsrf } from '@/services/csrf';
 interface TopBarProps {
   currentRole: UserRole;
   username: string;
-  /** `/menus?roleType=` — 세션 없으면 ALL */
+  /** 역할 키 — 세션 없으면 'ANONYMOUS'. ADR-0013 정적 메뉴 설정의 키. */
   menuRoleType: string;
   hasSession: boolean;
 }
@@ -31,17 +31,8 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
   const [logoutSession] = useLogoutMutation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isGuest = !hasSession;
-  const { data: menuItems = [] } = useGetMenusQuery(menuRoleType, {
-    /** 라우트 이동·창 포커스마다 재조회하면 상단 메뉴가 잠깐 비거나 바뀌는 것처럼 보일 수 있음 */
-    refetchOnMountOrArgChange: false,
-    refetchOnFocus: false,
-    refetchOnReconnect: false,
-  });
-  const fallbackMenus = [
-    { menuId: -1, menuName: '홈', path: '/' },
-    { menuId: -2, menuName: '공지사항', path: '/announcements' },
-  ];
-  const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
+  /** ADR-0013: 백엔드 `/menus` 대신 프론트엔드 정적 설정에서 역할별 메뉴를 읽는다. */
+  const renderedMenus = getMenusForRole(menuRoleType);
 
   useEffect(() => {
     const handler = () => setIsLoginModalOpen(true);
@@ -104,14 +95,11 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         >
           <div className="flex items-center justify-start text-base">
             <div className="flex items-center gap-8">
-              {renderedMenus.map((menu) => {
-                if (!menu.path) return null;
-                return (
-                  <Link key={menu.menuId} href={menu.path} className="font-medium transition-colors hover:text-green-300">
-                    {menu.menuName}
-                  </Link>
-                );
-              })}
+              {renderedMenus.map((menu) => (
+                <Link key={menu.key} href={menu.path} className="font-medium transition-colors hover:text-green-300">
+                  {menu.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
