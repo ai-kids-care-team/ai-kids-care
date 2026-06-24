@@ -13,7 +13,8 @@ interface LoginModalProps {
   onClose: () => void;
 }
 
-const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
+// 로그인 입력은 기존/부트스트랩 계정의 login_id 를 그대로 받아야 한다(하이픈 포함 시드 계정 등).
+const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, '');
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const dispatch = useAppDispatch();

@@ -10,7 +10,9 @@ import { setCredentials } from '@/store/slices/userSlice';
 import { useLoginMutation } from '../../services/apis/auth.api';
 import { isUserRole } from '@/types/user-role';
 
-const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9]/g, '');
+// 로그인 입력은 기존/부트스트랩 계정의 login_id 를 그대로 받아야 한다(시드 demo 계정은
+// director-kg1 처럼 하이픈 포함). 영숫자만 남기면 하이픈 계정이 막히므로 하이픈/언더스코어 허용.
+const normalizeLoginId = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, '');
 
 const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS === 'true';
 
