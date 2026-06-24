@@ -137,27 +137,23 @@ export function LoginForm() {
 
         {showDemoHints && (
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center mb-3">데모 계정</p>
+          <p className="text-xs text-gray-500 text-center mb-3">데모 계정 (비밀번호 공통: admin123)</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-purple-50 p-2 rounded border border-purple-200">
               <p className="font-medium text-purple-900">슈퍼관리자</p>
-              <p className="text-purple-700">super / admin123</p>
-            </div>
-            <div className="bg-indigo-50 p-2 rounded border border-indigo-200">
-              <p className="font-medium text-indigo-900">시스템관리자</p>
-              <p className="text-indigo-700">system / admin123</p>
+              <p className="text-purple-700">admin / admin123</p>
             </div>
             <div className="bg-blue-50 p-2 rounded border border-blue-200">
               <p className="font-medium text-blue-900">원장(관리자)</p>
-              <p className="text-blue-700">admin / admin123</p>
+              <p className="text-blue-700">director-kg1 / admin123</p>
             </div>
             <div className="bg-green-50 p-2 rounded border border-green-200">
               <p className="font-medium text-green-900">선생님</p>
-              <p className="text-green-700">teacher / teacher123</p>
+              <p className="text-green-700">teacher-kg1 / admin123</p>
             </div>
-            <div className="bg-orange-50 p-2 rounded border border-orange-200 col-span-2">
+            <div className="bg-orange-50 p-2 rounded border border-orange-200">
               <p className="font-medium text-orange-900">학부모</p>
-              <p className="text-orange-700">guardian / parent123</p>
+              <p className="text-orange-700">guardian-kg1 / admin123</p>
             </div>
           </div>
         </div>
