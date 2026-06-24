@@ -1,5 +1,6 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.event.DetectionEventIngestedEvent;
 import com.ai_kids_care.v1.internal.DetectionEventIngestRequest;
 import com.ai_kids_care.v1.internal.DetectionEventIngestResponse;
 import com.ai_kids_care.v1.internal.DetectionSessionIngestRequest;
@@ -7,6 +8,7 @@ import com.ai_kids_care.v1.internal.DetectionSessionIngestResponse;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,6 +30,7 @@ public class DetectionIngestService {
 
     private final JdbcTemplate jdbc;
     private final StaffAlertService staffAlertService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DetectionSessionIngestResponse createSession(DetectionSessionIngestRequest req) {
         long[] kgCam = resolveStreamTenant(req.streamId());
@@ -74,6 +77,9 @@ public class DetectionIngestService {
 
         // event is committed (no surrounding tx) → async staff alert can read it
         staffAlertService.alertForEvent(eventId, kindergartenId, req.eventType().name());
+        // ⑥ realtime dashboard: notify SSE listeners of the fresh event (only on a new event, not a
+        // duplicate). Plain ApplicationEvent (not @TransactionalEventListener) since ingest is autocommit.
+        eventPublisher.publishEvent(new DetectionEventIngestedEvent(eventId, kindergartenId));
         return new DetectionEventIngestResponse(eventId, false);
     }
 

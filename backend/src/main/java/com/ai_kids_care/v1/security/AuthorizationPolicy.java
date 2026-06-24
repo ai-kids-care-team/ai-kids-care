@@ -43,6 +43,10 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             case TENANT_SURVEILLANCE_READ ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // ⑥ 检测事件实时看板——本园 KINDERGARTEN_ADMIN/TEACHER（与 staff 告警受众一致）。
+            case DETECTION_EVENT_READ ->
+                    tenantIdentity && (role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             // SPEC-0001 §3 / §349 / §351：粗粒度门——GUARDIAN 或 TEACHER + 有效 tenant identity；
             // 细粒度「GUARDIAN 仅 ACTIVE 关系儿童 / TEACHER 仅 ACTIVE assignment 班级内儿童」由 ChildRepository SQL 内强制。
             // KINDERGARTEN_ADMIN 不在此门内（不得访问 GuardianChildVO 端点）。

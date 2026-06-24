@@ -1,5 +1,5 @@
-import { DetectionEventsUnavailable } from '@/components/detectionEvents/DetectionEventsUnavailable';
+import { DetectionEventsDashboard } from '@/components/detectionEvents/DetectionEventsDashboard';
 
 export default function DetectionEventsReadRoutePage() {
-  return <DetectionEventsUnavailable />;
+  return <DetectionEventsDashboard />;
 }

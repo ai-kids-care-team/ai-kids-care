@@ -40,5 +40,9 @@ public enum AuthorizationAction {
     // 检测事件复核工作流粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity；
     // 细粒度租户隔离由 EventReviewService 用 EffectiveAuthorizationContext + repository 强制。
     EVENT_REVIEW_WRITE,
-    EVENT_REVIEW_READ
+    EVENT_REVIEW_READ,
+    // ⑥ 检测事件实时看板读取粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity
+    // （与 staff 告警受众一致）；细粒度租户隔离由 DetectionEventService 用
+    // EffectiveAuthorizationContext.requireActiveKindergartenId() + repository 强制。
+    DETECTION_EVENT_READ
 }

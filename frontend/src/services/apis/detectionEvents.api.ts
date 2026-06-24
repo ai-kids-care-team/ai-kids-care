@@ -1,3 +1,5 @@
+import { apiClient } from './apiClient';
+
 export type DetectionEventListItem = {
   eventId: number;
   kindergartenId: number | null;
@@ -54,8 +56,12 @@ export type PageResponse<T> = {
 /** 목록 화면 한 페이지당 건수 */
 export const DETECTION_EVENTS_LIST_PAGE_SIZE = 4;
 
+/** 대시보드가 연결 시 불러오는 최근 이력 건수(이후 SSE 증분). */
+export const DETECTION_EVENTS_RECENT_SIZE = 20;
+
 export type GetDetectionEventsParams = {
-  kindergartenId: number;
+  /** 백엔드가 세션의 active kindergarten으로 스코프하므로 클라이언트는 보낼 필요가 없습니다(선택). */
+  kindergartenId?: number;
   keyword?: string;
   page?: number;
   size?: number;
@@ -64,19 +70,25 @@ export type GetDetectionEventsParams = {
 
 export type DetectionEventDetail = DetectionEventListItem;
 
+/**
+ * 본인 유치원의 감지 이벤트 목록(최신순). 테넌트 스코프는 백엔드가 세션의 active kindergarten으로
+ * 강제하므로 kindergartenId는 전송하지 않습니다.
+ */
 export async function getDetectionEvents(
-  params: GetDetectionEventsParams,
+  params: GetDetectionEventsParams = {},
 ): Promise<PageResponse<DetectionEventListItem>> {
-  void params;
-  throw new Error('Detection event reads are unavailable until tenant authorization exists');
+  const { keyword, page, size, sort } = params;
+  const res = await apiClient.get<PageResponse<DetectionEventListItem>>('/detection-events', {
+    params: { keyword, page, size, sort },
+  });
+  return res.data;
 }
 
 export async function getDetectionEventDetail(
   id: number,
-  kindergartenId: number,
+  kindergartenId?: number,
 ): Promise<DetectionEventDetail> {
-  void id;
-  void kindergartenId;
-  throw new Error('Detection event reads are unavailable until tenant authorization exists');
+  void kindergartenId; // 백엔드가 세션 스코프로 강제 — 전송 불필요
+  const res = await apiClient.get<DetectionEventDetail>(`/detection-events/${id}`);
+  return res.data;
 }
-
