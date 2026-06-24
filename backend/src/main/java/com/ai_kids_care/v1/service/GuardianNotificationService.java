@@ -107,10 +107,20 @@ public class GuardianNotificationService {
         // staff SMS gate, avoiding FAILED noise for phoneless guardians), batch-load the resolved
         // guardian users once and map user_id → phone. RESOLVED skips the load entirely.
         boolean escalated = resultStatus == EventStatusEnum.ESCALATED;
-        Map<Long, String> guardianPhones = escalated ? loadPhones(guardianUserIds) : Map.of();
+        // For ESCALATED, eagerly load the full guardian User entities up front. The SMS path reads
+        // users.phone in NotificationService.dispatchSms, but this method runs on the @Async
+        // AFTER_COMMIT listener with no open persistence session — a lazy getReferenceById proxy
+        // would throw LazyInitializationException when phone is first touched there (swallowed by
+        // deliver()'s best-effort catch, leaving the SMS row stuck at QUEUED). A loaded entity
+        // carries the phone scalar, so getPhone() is safe on it even once detached. RESOLVED is
+        // PUSH-only and only needs the user id, where a proxy is fine.
+        Map<Long, User> guardianUsers = escalated ? loadUsers(guardianUserIds) : Map.of();
 
         for (Long userId : guardianUserIds) {
-            User recipient = userRepository.getReferenceById(userId);
+            User recipient = guardianUsers.get(userId);
+            if (recipient == null) {
+                recipient = userRepository.getReferenceById(userId);
+            }
             // PUSH — unchanged behavior (every guardian; honors quiet-hours deferral for RESOLVED).
             deliver(kindergarten, eventId, recipient,
                     NotificationChannelEnum.PUSH, title, body,
@@ -119,7 +129,7 @@ public class GuardianNotificationService {
             // SMS — only for ESCALATED, only when this guardian's users.phone is non-blank. ESCALATED
             // pierces quiet hours, so the SMS is always immediate (never deferred).
             if (escalated) {
-                String phone = guardianPhones.get(userId);
+                String phone = recipient.getPhone();
                 if (phone != null && !phone.isBlank()) {
                     deliver(kindergarten, eventId, recipient,
                             NotificationChannelEnum.SMS, title, body,
@@ -131,15 +141,16 @@ public class GuardianNotificationService {
     }
 
     /**
-     * Batch-load the phone of each resolved guardian user (used to gate SMS creation). One query for
-     * the whole recipient set; users without a row simply have no entry (treated as no phone).
+     * Batch-load the resolved guardian users (used to gate SMS creation and to supply a session-safe
+     * recipient entity whose phone scalar is already initialized). One query for the whole recipient
+     * set; users without a row simply have no entry (treated as no phone).
      */
-    private Map<Long, String> loadPhones(Set<Long> guardianUserIds) {
-        Map<Long, String> phones = new HashMap<>();
+    private Map<Long, User> loadUsers(Set<Long> guardianUserIds) {
+        Map<Long, User> users = new HashMap<>();
         for (User u : userRepository.findAllById(guardianUserIds)) {
-            phones.put(u.getId(), u.getPhone());
+            users.put(u.getId(), u);
         }
-        return phones;
+        return users;
     }
 
     /**
