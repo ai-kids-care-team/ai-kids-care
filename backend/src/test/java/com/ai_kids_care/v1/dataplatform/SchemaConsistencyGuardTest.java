@@ -109,6 +109,13 @@ class SchemaConsistencyGuardTest extends BaseIntegrationTest {
     }
 
     @Test
+    void v10_dictionaryTablesRetired() {
+        // ADR-0013: menu and common_codes are dropped (V10) / no longer seeded by db/initdb.
+        assertThat(tableExists("menu")).as("menu dropped (V10, ADR-0013)").isFalse();
+        assertThat(tableExists("common_codes")).as("common_codes dropped (V10, ADR-0013)").isFalse();
+    }
+
+    @Test
     void v9_quietHoursDeferralColumnsAndEnum() {
         assertThat(columnExists("notifications", "deferred_until")).as("notifications.deferred_until exists (V9)").isTrue();
         assertThat(columnNullable("notifications", "deferred_until")).as("deferred_until nullable (V9)").isTrue();

@@ -13,9 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * applies V2–V6 on top, and JPA ddl-auto=validate passes.
  *
  * Note: the "fresh empty DB, Flyway V1 builds the whole schema" path is covered separately
- * by {@code com.ai_kids_care.FlywayMigrationTest}, which stays @Disabled until ADR-0013
- * removes the legacy CommonCode JPA mapping (common_codes lives in db/initdb, not in a Flyway
- * migration, so fresh-Flyway + ddl-auto=validate currently fails).
+ * by {@code com.ai_kids_care.FlywayMigrationTest}. As of ADR-0013 the dictionary tables
+ * (menu/common_codes) are retired and the CommonCode JPA mapping removed, so that fresh-Flyway
+ * path with ddl-auto=validate now passes with neither table present.
  */
 class FlywayMigrationSmokeTest extends BaseIntegrationTest {
 
