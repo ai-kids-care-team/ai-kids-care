@@ -1,16 +1,21 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.mapper.DetectionEventMapper;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ⑥ 看板的检测事件读取。tenant-scoped(经 {@link EffectiveAuthorizationContextHolder} 的 active
@@ -49,5 +54,31 @@ public class DetectionEventService {
     @Transactional(readOnly = true)
     public DetectionEventVO getForPush(Long eventId, Long kindergartenId) {
         return repository.findByIdAndKindergarten_Id(eventId, kindergartenId).map(mapper::toVO).orElse(null);
+    }
+
+    /**
+     * SSE reconnect replay source — NOT user-facing, so NO {@code @PreAuthorize}: it is driven from
+     * the trusted connect path with the connecting client's own active {@code kindergartenId}, and
+     * tenant scope is enforced by the {@code (kindergartenId, event_id > lastEventId)} query.
+     *
+     * <p>Returns the detection events the client missed (those with {@code event_id} strictly greater
+     * than {@code lastEventId}) in <strong>ascending</strong> {@code event_id} order, bounded by
+     * {@code max}. Over-limit semantics: when more than {@code max} events were missed, the
+     * <em>most-recent</em> {@code max} are returned (older history is covered by the read API). This
+     * is implemented by querying descending with {@code Limit=max} and reversing back to ascending,
+     * so the client ends on the newest event.
+     */
+    @Transactional(readOnly = true)
+    public List<DetectionEventVO> replaySince(Long kindergartenId, Long lastEventId, int max) {
+        if (max <= 0) {
+            return List.of();
+        }
+        List<DetectionEvent> descMostRecent = repository
+                .findByKindergarten_IdAndIdGreaterThanOrderByIdDesc(kindergartenId, lastEventId, Limit.of(max));
+        List<DetectionEventVO> ascending = new ArrayList<>(descMostRecent.size());
+        for (int i = descMostRecent.size() - 1; i >= 0; i--) {
+            ascending.add(mapper.toVO(descMostRecent.get(i)));
+        }
+        return ascending;
     }
 }

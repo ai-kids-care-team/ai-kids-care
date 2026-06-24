@@ -56,16 +56,38 @@ public class DetectionEventController {
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).DETECTION_EVENT_READ)")
-    public SseEmitter stream(HttpServletResponse response) {
+    public SseEmitter stream(
+            @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
+            HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("X-Accel-Buffering", "no"); // belt-and-suspenders with nginx proxy_buffering off
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         SseEmitter emitter = sseService.register(kindergartenId);
+        // SSE reconnect catch-up: the browser EventSource auto-supplies Last-Event-ID (the id: of the
+        // last frame it received). When present and numeric, replay the events missed during the
+        // disconnect (event_id > lastId, this kindergarten only) BEFORE the connected frame / live
+        // pushes. Missing/blank/non-numeric → no replay; behaves exactly as the pre-existing connect.
+        Long lastId = parseLastEventId(lastEventId);
+        if (lastId != null) {
+            sseService.replaySince(kindergartenId, lastId, emitter);
+        }
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok")); // flush headers / confirm stream
         } catch (IOException e) {
             emitter.completeWithError(e);
         }
         return emitter;
+    }
+
+    /** Parse the SSE {@code Last-Event-ID} header to a cursor; null/blank/non-numeric → no replay. */
+    private static Long parseLastEventId(String lastEventId) {
+        if (lastEventId == null || lastEventId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(lastEventId.trim());
+        } catch (NumberFormatException e) {
+            return null; // non-numeric → silently skip replay
+        }
     }
 }

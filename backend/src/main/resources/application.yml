@@ -69,6 +69,10 @@ detection:
   sse:
     heartbeat-interval-ms: 25000
     heartbeat-initial-ms: 25000
+    # SSE reconnect catch-up: max events replayed on one reconnect via Last-Event-ID (event_id > cursor,
+    # this kindergarten only, ascending). Window beyond this → only the most-recent N replayed; older
+    # history is covered by the read-API load. Defaults to 200 (≈ one dashboard screen + typical gap).
+    replay-max: 200
 
 # ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
 internal:

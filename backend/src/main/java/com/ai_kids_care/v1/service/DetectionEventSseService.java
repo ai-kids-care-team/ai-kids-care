@@ -2,12 +2,14 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.event.DetectionEventIngestedEvent;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,8 +31,14 @@ public class DetectionEventSseService {
     private final DetectionEventService detectionEventService;
     private final Map<Long, Set<SseEmitter>> emittersByKindergarten = new ConcurrentHashMap<>();
 
-    public DetectionEventSseService(DetectionEventService detectionEventService) {
+    /** Upper bound on events replayed on a single reconnect (older history via the read API). */
+    private final int replayMax;
+
+    public DetectionEventSseService(
+            DetectionEventService detectionEventService,
+            @Value("${detection.sse.replay-max:200}") int replayMax) {
         this.detectionEventService = detectionEventService;
+        this.replayMax = replayMax;
     }
 
     /** Create + register an emitter for the given kindergarten and wire its cleanup callbacks. */
@@ -68,12 +76,43 @@ public class DetectionEventSseService {
         }
         for (SseEmitter emitter : set) {
             try {
-                emitter.send(SseEmitter.event()
-                        .id(String.valueOf(vo.eventId()))
-                        .name("detection-event")
-                        .data(vo));
+                sendEvent(emitter, vo);
             } catch (Exception ex) {
                 remove(event.kindergartenId(), emitter); // dead/slow client → evict
+            }
+        }
+    }
+
+    /**
+     * Write one detection-event frame to an emitter, with the SSE {@code id:} set to the event's
+     * {@code event_id} (the reconnect cursor) — shared by the live {@link #onIngested} push and the
+     * reconnect {@link #replaySince} path so both frames are byte-identical. Throws on send failure;
+     * the caller decides eviction.
+     */
+    private void sendEvent(SseEmitter emitter, DetectionEventVO vo) throws java.io.IOException {
+        emitter.send(SseEmitter.event()
+                .id(String.valueOf(vo.eventId()))
+                .name("detection-event")
+                .data(vo));
+    }
+
+    /**
+     * SSE reconnect replay: on a new connection presenting a {@code Last-Event-ID}, push the events
+     * the client missed during its disconnect — those of the connecting client's active kindergarten
+     * with {@code event_id > lastEventId} — to the just-registered {@code emitter}, in ascending
+     * {@code event_id} order, as normal {@code detection-event} frames, before live pushes resume.
+     * Bounded by {@code detection.sse.replay-max}; tenant scope comes from {@code kindergartenId}
+     * (the numeric {@code lastEventId} is only a lower bound). A send failure mid-replay evicts that
+     * emitter (same eviction as the live path) and stops the replay for it.
+     */
+    public void replaySince(Long kindergartenId, Long lastEventId, SseEmitter emitter) {
+        List<DetectionEventVO> missed = detectionEventService.replaySince(kindergartenId, lastEventId, replayMax);
+        for (DetectionEventVO vo : missed) {
+            try {
+                sendEvent(emitter, vo);
+            } catch (Exception ex) {
+                remove(kindergartenId, emitter); // dead/slow client → evict, abort replay
+                return;
             }
         }
     }

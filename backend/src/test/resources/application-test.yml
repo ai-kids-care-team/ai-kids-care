@@ -58,3 +58,5 @@ detection:
   sse:
     heartbeat-interval-ms: 3600000
     heartbeat-initial-ms: 3600000
+    # Small replay bound so the over-limit "only the most-recent N" path is exercised in tests.
+    replay-max: 5
