@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -182,8 +183,8 @@ class DetectionEventStreamReplayTest extends BaseIntegrationTest {
      */
     private String awaitBody(MvcResult result) {
         await().atMost(Duration.ofSeconds(10)).until(() ->
-                result.getResponse().getContentAsString().contains("connected"));
-        return result.getResponse().getContentAsString();
+                result.getResponse().getContentAsString(StandardCharsets.UTF_8).contains("connected"));
+        return result.getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     private List<Long> idsIn(String body) {
