@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -142,6 +143,118 @@ class DetectionIngestApiTest extends BaseIntegrationTest {
                                 "confidence", 0.5, "startTime", OffsetDateTime.now().toString(),
                                 "endTime", OffsetDateTime.now().toString(), "dedupKey", "dedup-badtype"))))
                 .andExpect(status().isBadRequest());
+    }
+
+    private Map<String, Object> eventPayloadWithEvidence(long sessionId, String dedupKey,
+                                                         Map<String, Object> evidence) {
+        Map<String, Object> p = new HashMap<>(eventPayload(sessionId, dedupKey));
+        p.put("evidence", evidence);
+        return p;
+    }
+
+    private Map<String, Object> evidenceVideo() {
+        Map<String, Object> ev = new HashMap<>();
+        ev.put("uri", "file:///evidence/ev-vid-1.mp4");
+        ev.put("hash", "sha256:deadbeefcafebabe");
+        ev.put("type", "VIDEO");
+        ev.put("mimeType", "video/mp4");
+        return ev;
+    }
+
+    @Test
+    void eventIngestWithEvidence_writesOneEvidenceRow() throws Exception {
+        long sessionId = createSession();
+        Map<String, Object> evidence = evidenceVideo();
+        String body = mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(
+                                eventPayloadWithEvidence(sessionId, "dedup-ev-1", evidence))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false))
+                .andReturn().getResponse().getContentAsString();
+        long eventId = objectMapper.readTree(body).get("eventId").asLong();
+
+        Map<String, Object> row = jdbc.queryForMap(
+                "SELECT * FROM event_evidence_files WHERE event_id = ?", eventId);
+        assertThat(row.get("kindergarten_id")).isEqualTo(kindergartenId);
+        assertThat(row.get("storage_uri")).isEqualTo("file:///evidence/ev-vid-1.mp4");
+        assertThat(row.get("hash")).isEqualTo("sha256:deadbeefcafebabe");
+        assertThat(row.get("type").toString()).isEqualTo("VIDEO");
+        assertThat(row.get("mime_type").toString()).isEqualTo("video/mp4");
+        assertThat(row.get("hold")).isEqualTo(false);
+        assertThat(row.get("retention_until")).isNull();
+
+        Integer cnt = jdbc.queryForObject(
+                "SELECT count(*) FROM event_evidence_files WHERE event_id = ?", Integer.class, eventId);
+        assertThat(cnt).isEqualTo(1);
+    }
+
+    @Test
+    void eventIngestWithoutEvidence_writesNoEvidenceRow() throws Exception {
+        long sessionId = createSession();
+        String body = mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(eventPayload(sessionId, "dedup-no-ev"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false))
+                .andReturn().getResponse().getContentAsString();
+        long eventId = objectMapper.readTree(body).get("eventId").asLong();
+
+        Integer cnt = jdbc.queryForObject(
+                "SELECT count(*) FROM event_evidence_files WHERE event_id = ?", Integer.class, eventId);
+        assertThat(cnt).isEqualTo(0);
+    }
+
+    @Test
+    void duplicateIngestWithEvidence_doesNotWriteSecondEvidenceRow() throws Exception {
+        long sessionId = createSession();
+        String first = mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(
+                                eventPayloadWithEvidence(sessionId, "dedup-ev-dup", evidenceVideo()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false))
+                .andReturn().getResponse().getContentAsString();
+        long firstId = objectMapper.readTree(first).get("eventId").asLong();
+
+        // Re-submit same (kindergarten, dedupKey) with evidence again → idempotent, no new row.
+        mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(
+                                eventPayloadWithEvidence(sessionId, "dedup-ev-dup", evidenceVideo()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(true))
+                .andExpect(jsonPath("$.eventId").value(firstId));
+
+        Integer cnt = jdbc.queryForObject(
+                "SELECT count(*) FROM event_evidence_files WHERE event_id = ?", Integer.class, firstId);
+        assertThat(cnt).isEqualTo(1);
+    }
+
+    @Test
+    void partialEvidence_missingHash_returns400AndWritesNothing() throws Exception {
+        long sessionId = createSession();
+        Map<String, Object> evidence = evidenceVideo();
+        evidence.remove("hash"); // all-or-nothing: missing inner field → @Valid → 400
+        mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(
+                                eventPayloadWithEvidence(sessionId, "dedup-ev-partial", evidence))))
+                .andExpect(status().isBadRequest());
+
+        Integer events = jdbc.queryForObject(
+                "SELECT count(*) FROM detection_events WHERE dedup_key = ?", Integer.class, "dedup-ev-partial");
+        assertThat(events).isEqualTo(0);
+    }
+
+    @Test
+    void unknownMimeTypeEvidence_returns400AndWritesNothing() throws Exception {
+        long sessionId = createSession();
+        Map<String, Object> evidence = evidenceVideo();
+        evidence.put("mimeType", "video/webm"); // outside mime_type_enum → 400
+        mockMvc.perform(ai(post("/api/v1/internal/detection-events"))
+                        .content(objectMapper.writeValueAsString(
+                                eventPayloadWithEvidence(sessionId, "dedup-ev-badmime", evidence))))
+                .andExpect(status().isBadRequest());
+
+        Integer events = jdbc.queryForObject(
+                "SELECT count(*) FROM detection_events WHERE dedup_key = ?", Integer.class, "dedup-ev-badmime");
+        assertThat(events).isEqualTo(0);
     }
 
     @Test

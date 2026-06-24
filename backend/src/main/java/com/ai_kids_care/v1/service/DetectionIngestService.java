@@ -8,6 +8,7 @@ import com.ai_kids_care.v1.internal.DetectionSessionIngestResponse;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
  *
  * Not @Transactional: each insert autocommits so the @Async staff alert sees the committed event.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DetectionIngestService {
@@ -73,6 +75,26 @@ public class DetectionIngestService {
                         "dedup uniqueness violated but no existing event found for key: " + req.dedupKey(), race);
             }
             return new DetectionEventIngestResponse(raced, true);
+        }
+
+        // Optional evidence: write exactly one event_evidence_files row for the fresh event only
+        // (idempotent duplicates returned early above, so they never reach here). Best-effort — a
+        // failure here must NOT roll back or fail the already-committed detection event, which is the
+        // alert closed-loop's main chain; evidence is supplementary. See design Risks D1.
+        if (req.evidence() != null) {
+            DetectionEventIngestRequest.EvidenceFile ev = req.evidence();
+            try {
+                jdbc.update("""
+                        INSERT INTO event_evidence_files
+                            (event_id, kindergarten_id, type, storage_uri, mime_type, hold, hash)
+                        VALUES (?, ?, ?::evidence_file_type_enum, ?, ?::mime_type_enum, false, ?)
+                        """,
+                        eventId, kindergartenId, ev.type().name(), ev.uri(), ev.mimeType().getValue(),
+                        ev.hash());
+            } catch (RuntimeException e) {
+                log.error("evidence insert failed for event {} (event persisted, evidence skipped)",
+                        eventId, e);
+            }
         }
 
         // event is committed (no surrounding tx) → async staff alert can read it
