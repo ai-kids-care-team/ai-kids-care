@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import type { EventStatusEnum } from './eventReviews.api';
 
 export type DetectionEventListItem = {
   eventId: number;
@@ -15,7 +16,7 @@ export type DetectionEventListItem = {
   detectedAt: string | null;
   startTime: string | null;
   endTime: string | null;
-  status: string | null;
+  status: EventStatusEnum | null;
   createdAt: string | null;
   updatedAt: string | null;
 };

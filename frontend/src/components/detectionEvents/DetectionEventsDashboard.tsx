@@ -8,6 +8,11 @@ import {
   DETECTION_EVENTS_RECENT_SIZE,
   type DetectionEventListItem,
 } from '@/services/apis/detectionEvents.api';
+import {
+  confirmEventReview,
+  type EventStatusEnum,
+  type ReviewResultStatus,
+} from '@/services/apis/eventReviews.api';
 import { useDetectionEventStream, type StreamStatus } from './useDetectionEventStream';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -21,6 +26,16 @@ const STATUS_BADGE: Record<string, string> = {
 
 const MAX_CARDS = 100;
 const HIGHLIGHT_MS = 4000;
+
+/** 카드에서 바로 확정 가능한 주요 처치(최소 집합). */
+const REVIEW_ACTIONS: { status: ReviewResultStatus; label: string; className: string }[] = [
+  { status: 'RESOLVED', label: '해결', className: 'bg-emerald-600 hover:bg-emerald-700' },
+  { status: 'ESCALATED', label: '에스컬레이션', className: 'bg-red-600 hover:bg-red-700' },
+  { status: 'DISMISSED', label: '기각', className: 'bg-slate-500 hover:bg-slate-600' },
+];
+
+/** 더 이상 동작을 노출하지 않는 종료 상태. */
+const TERMINAL_STATUSES = new Set(['RESOLVED', 'DISMISSED']);
 
 function formatTime(iso: string | null): string {
   if (!iso) return '-';
@@ -46,11 +61,18 @@ function streamLabel(status: StreamStatus): { dot: string; text: string } {
  */
 export function DetectionEventsDashboard() {
   const kindergartenId = useSelector((s: RootState) => s.user.user?.kindergartenId);
+  const role = useSelector((s: RootState) => s.user.user?.role);
+  // 후엔드가 권위 인증. 프론트 문지기는 UI 降噪용이며 stale 한 canResolveAnomaly 대신 role 直判.
+  const canReview = role === 'KINDERGARTEN_ADMIN' || role === 'TEACHER';
 
   const [events, setEvents] = useState<DetectionEventListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [highlighted, setHighlighted] = useState<Set<number>>(new Set());
+  // 카드별 코멘트 입력 / 제출 중 / 확정 오류(모두 onClick·onChange 콜백에서만 setState).
+  const [comments, setComments] = useState<Record<number, string>>({});
+  const [submitting, setSubmitting] = useState<Set<number>>(new Set());
+  const [reviewErrors, setReviewErrors] = useState<Record<number, string>>({});
 
   // collected highlight timers, cleared on unmount to avoid dangling timeouts
   const timersRef = useRef<number[]>([]);
@@ -95,6 +117,45 @@ export function DetectionEventsDashboard() {
     }, HIGHLIGHT_MS);
     timersRef.current.push(id);
   }, []);
+
+  // 카드 내 복合 확정. SSE 는 상태 변경을 다시 밀어주지 않으므로(신규 ingest 만 push)
+  // 성공 시 본 카드 status 를 낙관적으로 갱신하고, 실패 시 직전 status 로 롤백 + 오류 노출.
+  // 모든 setState 는 이 onClick 비동기 콜백 안에서만 호출된다(set-state-in-effect 회피).
+  const handleReview = useCallback(
+    async (eventId: number, resultStatus: ReviewResultStatus, prevStatus: EventStatusEnum | null) => {
+      setReviewErrors((prev) => {
+        if (!(eventId in prev)) return prev;
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+      setSubmitting((prev) => new Set(prev).add(eventId));
+      setEvents((prev) =>
+        prev.map((e) => (e.eventId === eventId ? { ...e, status: resultStatus } : e)),
+      );
+      try {
+        const comment = comments[eventId]?.trim();
+        await confirmEventReview({
+          eventId,
+          resultStatus,
+          ...(comment ? { comment } : {}),
+        });
+      } catch {
+        // 롤백: 직전 status 로 되돌리고 오류 메시지 노출.
+        setEvents((prev) =>
+          prev.map((e) => (e.eventId === eventId ? { ...e, status: prevStatus } : e)),
+        );
+        setReviewErrors((prev) => ({ ...prev, [eventId]: '검토 확정에 실패했습니다. 다시 시도해 주세요.' }));
+      } finally {
+        setSubmitting((prev) => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
+      }
+    },
+    [comments],
+  );
 
   // reconnect the SSE stream when the active kindergarten changes
   const streamStatus = useDetectionEventStream(onLive, { reconnectKey: kindergartenId });
@@ -155,6 +216,37 @@ export function DetectionEventsDashboard() {
                   <dd className="inline text-slate-700">{e.roomName ?? e.roomId ?? '-'}</dd>
                 </div>
               </dl>
+
+              {canReview && !TERMINAL_STATUSES.has(e.status ?? '') && (
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <input
+                    type="text"
+                    value={comments[e.eventId] ?? ''}
+                    onChange={(ev) =>
+                      setComments((prev) => ({ ...prev, [e.eventId]: ev.target.value }))
+                    }
+                    placeholder="검토 코멘트(선택)"
+                    disabled={submitting.has(e.eventId)}
+                    className="mb-2 w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none disabled:opacity-60"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {REVIEW_ACTIONS.map((action) => (
+                      <button
+                        key={action.status}
+                        type="button"
+                        disabled={submitting.has(e.eventId)}
+                        onClick={() => handleReview(e.eventId, action.status, e.status)}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-60 ${action.className}`}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                  {reviewErrors[e.eventId] && (
+                    <p className="mt-2 text-xs text-red-600">{reviewErrors[e.eventId]}</p>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
