@@ -9,11 +9,14 @@
 #      image: 键已在 base docker-compose.yml 中声明，故此处无需重复。
 #   2. 新增 watchtower 服务，轮询 :prod 镜像 digest 变化后自动 pull + 重建容器。
 #
-# ─── 演示数据策略（OQ-1 已定：持久）──────────────────────────────────────────
-#   db 使用 GHCR 的 db:prod（含 initdb 种子），首次启动灌种子一次；
-#   之后持久卷（postgres_data）保留数据，Flyway 管理 schema 增量。
-#   watchtower 重建容器时不清卷，演示数据持续存在。
-#   若需强制重灌种子，手动执行：
+# ─── 数据策略（持久卷）────────────────────────────────────────────────────────
+#   db 使用 GHCR 的 db:prod —— 该镜像由 db/Dockerfile.prod 构建（vanilla postgres,
+#   **无 initdb 种子**）；schema 由 Flyway 在首次启动时建立并管理增量。db/initdb 演示
+#   种子只在 dev/CI/test 镜像（db/Dockerfile）里加载,不进 db:prod（见 docs/runbook-
+#   production-reset.md、harden-auth-bootstrap-and-demo）。
+#   持久卷（postgres_data）跨 watchtower 重建保留数据；冷启动后无业务账号,首个 admin 由
+#   后端 AdminBootstrapRunner 从 BOOTSTRAP_ADMIN_* env 引导（login_id 非 'admin'）。
+#   若需彻底重置（清空旧卷后冷启动）,见 docs/runbook-production-reset.md:
 #     docker compose -f docker-compose.yml -f docker-compose.cd.yml down -v
 #     docker compose -f docker-compose.yml -f docker-compose.cd.yml up -d
 #
