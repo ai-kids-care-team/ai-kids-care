@@ -385,3 +385,41 @@ SHALL match the event pushed over SSE.
 - **WHEN** a `GUARDIAN` or unauthenticated caller calls the detection-event read API, or a staff member requests an event id belonging to another kindergarten
 - **THEN** the backend denies the read (403, or a hidden 404 for the foreign id) and returns no detection data
 
+### Requirement: Detection SSE connection keepalive
+
+The realtime detection event stream SHALL emit periodic keepalive frames to every registered SSE connection so that idle connections stay alive across intermediate proxy/NAT timeouts and dead connections are detected and evicted promptly, rather than persisting until the full stream timeout elapses.
+
+#### Scenario: Periodic heartbeat sent to live connections
+
+- **WHEN** the configured heartbeat interval elapses
+- **THEN** the service SHALL send a keepalive frame to every currently registered emitter
+
+#### Scenario: Failed heartbeat evicts a dead connection
+
+- **WHEN** sending a heartbeat frame to an emitter throws
+- **THEN** that emitter SHALL be removed from the registry immediately, without waiting for the stream timeout
+
+#### Scenario: Client data stream is unaffected by heartbeats
+
+- **WHEN** keepalive frames are emitted as SSE comment frames
+- **THEN** the browser `EventSource` SHALL NOT surface them as data events to application code
+
+### Requirement: Staff can confirm a detection review from the realtime dashboard
+
+Staff with review authority SHALL be able to confirm a detection event review directly from the realtime dashboard, reusing the existing event review workflow API, with the dashboard reflecting the resulting status immediately rather than waiting for a new ingest push.
+
+#### Scenario: Authorized staff confirms a review inline
+
+- **WHEN** a KINDERGARTEN_ADMIN or TEACHER selects a result status on a dashboard event card
+- **THEN** the dashboard SHALL submit to the existing `POST /api/v1/event_reviews` endpoint and optimistically update that card's status to the chosen result status
+
+#### Scenario: Review actions hidden for unauthorized roles
+
+- **WHEN** the current user's role is neither KINDERGARTEN_ADMIN nor TEACHER
+- **THEN** inline review actions SHALL NOT be rendered on dashboard cards
+
+#### Scenario: Failed confirmation rolls back the optimistic update
+
+- **WHEN** the review submission fails
+- **THEN** the card SHALL revert to its prior status and an error SHALL be surfaced to the user
+
