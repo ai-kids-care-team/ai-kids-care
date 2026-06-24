@@ -182,9 +182,16 @@ class DetectionEventStreamReplayTest extends BaseIntegrationTest {
      * so poll the buffered content until the terminal {@code connected} frame is visible.
      */
     private String awaitBody(MvcResult result) {
-        await().atMost(Duration.ofSeconds(10)).until(() ->
-                result.getResponse().getContentAsString(StandardCharsets.UTF_8).contains("connected"));
-        return result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        await().atMost(Duration.ofSeconds(10)).until(() -> bodyOf(result).contains("connected"));
+        return bodyOf(result);
+    }
+
+    private static String bodyOf(MvcResult result) {
+        try {
+            return result.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private List<Long> idsIn(String body) {
