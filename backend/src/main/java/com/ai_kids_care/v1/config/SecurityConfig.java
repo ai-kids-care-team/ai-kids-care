@@ -78,18 +78,18 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public surface required before a session exists: CSRF bootstrap,
-                        // registration availability, and S3 reference/directory reads used by
-                        // the signup forms (kindergarten directory, common codes, menus).
-                        // These carry no S0/S1; every mutating operation stays authenticated
-                        // and policy-gated. Closed/removed paths (e.g. /auth/refresh,
-                        // /children/rrn, /detection_events) are intentionally absent so they
-                        // fall through to default-deny instead of an anonymous existence oracle.
+                        // registration availability, the kindergarten directory used by the
+                        // signup forms, and the ADR-0013 enum metadata endpoint (replaces the
+                        // retired common_codes/menus dictionary reads). These carry no S0/S1;
+                        // every mutating operation stays authenticated and policy-gated.
+                        // Closed/removed paths (e.g. /auth/refresh, /children/rrn,
+                        // /detection_events) are intentionally absent so they fall through to
+                        // default-deny instead of an anonymous existence oracle.
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/auth/csrf",
                                 "/api/v1/auth/register/availability",
                                 "/api/v1/kindergartens/**",
-                                "/api/v1/common_codes/**",
-                                "/api/v1/menus/**"
+                                "/api/v1/enums/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/login",
