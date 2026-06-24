@@ -63,6 +63,13 @@ camera-stream:
     keys:
       v1: ${CAMERA_STREAM_AES_KEY_V1}
 
+# ⑥ 实时检测看板 SSE 心跳：周期向每个 emitter 发 comment 帧保活链路（击穿代理/NAT 空闲超时），
+# 发送失败即驱逐死连接（无需等 STREAM_TIMEOUT_MS 30min）。默认 25s ≪ nginx proxy_read_timeout 3600s。
+detection:
+  sse:
+    heartbeat-interval-ms: 25000
+    heartbeat-initial-ms: 25000
+
 # ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
 internal:
   ai:

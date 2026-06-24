@@ -4,6 +4,7 @@ import com.ai_kids_care.v1.event.DetectionEventIngestedEvent;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -73,6 +74,31 @@ public class DetectionEventSseService {
                         .data(vo));
             } catch (Exception ex) {
                 remove(event.kindergartenId(), emitter); // dead/slow client → evict
+            }
+        }
+    }
+
+    /**
+     * Periodic SSE keepalive: send a tiny comment frame to every registered emitter so idle
+     * connections survive intermediate proxy/NAT idle timeouts, and a silently-dead connection is
+     * detected and evicted within one heartbeat interval instead of lingering until
+     * {@link #STREAM_TIMEOUT_MS}. Comment frames are ignored by the browser {@code EventSource}
+     * (no {@code onmessage}). Send failure reuses the same {@link #remove} eviction as
+     * {@link #onIngested}. Interval/initial-delay are configurable so the test profile can disable
+     * auto-fire and call this method directly.
+     */
+    @Scheduled(
+            fixedDelayString = "${detection.sse.heartbeat-interval-ms:25000}",
+            initialDelayString = "${detection.sse.heartbeat-initial-ms:25000}")
+    public void sendHeartbeats() {
+        for (Map.Entry<Long, Set<SseEmitter>> entry : emittersByKindergarten.entrySet()) {
+            Long kindergartenId = entry.getKey();
+            for (SseEmitter emitter : entry.getValue()) {
+                try {
+                    emitter.send(SseEmitter.event().comment("hb"));
+                } catch (Exception ex) {
+                    remove(kindergartenId, emitter); // dead connection → evict promptly
+                }
             }
         }
     }

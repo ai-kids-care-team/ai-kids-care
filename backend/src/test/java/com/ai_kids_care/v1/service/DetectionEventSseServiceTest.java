@@ -68,4 +68,26 @@ class DetectionEventSseServiceTest {
 
         verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class));
     }
+
+    @Test
+    void sendHeartbeat_sendsKeepaliveFrameToRegisteredEmitter() throws Exception {
+        SseEmitter emitter = mock(SseEmitter.class);
+        sse.registerEmitter(KG, emitter);
+
+        sse.sendHeartbeats();
+
+        verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
+    }
+
+    @Test
+    void sendHeartbeat_evictsEmitterOnFailure() throws Exception {
+        SseEmitter emitter = mock(SseEmitter.class);
+        doThrow(new IOException("broken pipe")).when(emitter).send(any(SseEmitter.SseEventBuilder.class));
+        sse.registerEmitter(KG, emitter);
+
+        sse.sendHeartbeats(); // send throws → evicted
+        sse.sendHeartbeats(); // emitter gone → no 2nd send
+
+        verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class));
+    }
 }

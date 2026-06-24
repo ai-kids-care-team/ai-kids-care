@@ -52,3 +52,9 @@ solapi:
 notifications:
   deferred-scan-interval-ms: 3600000
   deferred-scan-initial-ms: 3600000
+
+# ⑥ SSE 心跳 — 测试 profile 禁止自动触发（大间隔/初始延迟）；单测直接调 sendHeartbeats()。
+detection:
+  sse:
+    heartbeat-interval-ms: 3600000
+    heartbeat-initial-ms: 3600000
