@@ -74,6 +74,25 @@ detection:
     # history is covered by the read-API load. Defaults to 200 (≈ one dashboard screen + typical gap).
     replay-max: 200
 
+# 生产 콜드 스타트 안전 부트스트랩(harden-auth-bootstrap-and-demo D1)。
+# 두 값이 모두 설정되고 users 테이블이 비어 있을 때만 첫 SUPERADMIN을 만든다.
+# 기본값 없음(미설정이면 러너 무동작 → 기본/추측 가능 계정을 절대 만들지 않는다).
+# login-id 는 operator 가 정하며 'admin' 이면 거부된다. password 는 operator 설정 강한 비밀번호(로그 미기록).
+bootstrap:
+  admin:
+    login-id: ${BOOTSTRAP_ADMIN_LOGIN_ID:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    # 선택: 부트스트랩 SUPERADMIN 프로필 이름/부서(미설정 시 아래 기본값).
+    name: ${BOOTSTRAP_ADMIN_NAME:Bootstrap Admin}
+    department: ${BOOTSTRAP_ADMIN_DEPARTMENT:Platform Operations}
+
+# 登录 暴力破解 防护(harden-auth-bootstrap-and-demo D2): Redis 失败计数 + TTL 锁定 阈值。
+login:
+  throttle:
+    max-attempts: ${LOGIN_THROTTLE_MAX_ATTEMPTS:5}
+    window-seconds: ${LOGIN_THROTTLE_WINDOW_SECONDS:300}
+    lock-seconds: ${LOGIN_THROTTLE_LOCK_SECONDS:900}
+
 # ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
 internal:
   ai:

@@ -56,6 +56,8 @@ class AuthServiceRegistrationTest {
     @Mock private ChildGuardianRelationshipRepository childGuardianRelationshipRepository;
     @Mock private UserKindergartenMembershipRepository userKindergartenMembershipRepository;
     @Mock private EffectiveAuthorizationContextService authorizationContextService;
+    @Mock private com.ai_kids_care.v1.security.LoginThrottleService loginThrottleService;
+    @Mock private com.ai_kids_care.v1.security.audit.SecurityAuditWriter securityAuditWriter;
 
     @InjectMocks
     private AuthService authService;
