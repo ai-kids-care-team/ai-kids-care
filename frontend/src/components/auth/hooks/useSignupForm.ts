@@ -51,6 +51,8 @@ const FALLBACK_GENDER_OPTIONS: CommonCodeItem[] = [
 const FALLBACK_RELATIONSHIP_OPTIONS: CommonCodeItem[] = [
   { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'FEMALE', code: 'MOTHER', codeName: '엄마', sortOrder: 1 },
   { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: 'MALE', code: 'FATHER', codeName: '아빠', sortOrder: 2 },
+  // OTHER has no parentCode → shown regardless of gender (filtered in filteredRelationshipOptions)
+  { codeGroup: 'GUARDIAN_RELATIONSHIP', parentCode: null, code: 'OTHER', codeName: '기타', sortOrder: 3 },
 ];
 
 /** DB `level_enum` 및 백엔드 `LevelEnum`과 동일한 코드 */

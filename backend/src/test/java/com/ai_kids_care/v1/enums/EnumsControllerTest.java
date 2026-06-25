@@ -38,7 +38,7 @@ class EnumsControllerTest extends BaseIntegrationTest {
     void guardianRelationshipReturnsRelationshipEnumCodes() throws Exception {
         mockMvc.perform(get("/api/v1/enums/guardian_relationship"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].code", containsInAnyOrder("FATHER", "MOTHER")));
+                .andExpect(jsonPath("$[*].code", containsInAnyOrder("FATHER", "MOTHER", "OTHER")));
     }
 
     @Test
