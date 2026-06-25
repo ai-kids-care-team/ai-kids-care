@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Bell, ChevronRight } from 'lucide-react';
 import { HeroSlider } from '@/components/home/HeroSlider';
+import { PushSubscriptionManager } from '@/components/notifications/PushSubscriptionManager';
 import { Footer } from '@/layout/Footer';
 import { ANNOUNCEMENTS_DEFAULT_SORT, getAnnouncements } from '@/services/apis/announcements.api';
 import {
@@ -136,6 +137,10 @@ export function HomePage() {
 
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-[clamp(0.875rem,1.1vw,1.25rem)]">
+                <PushSubscriptionManager />
               </div>
             </div>
           </div>
