@@ -51,7 +51,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthSessionVO> login(
-            @RequestBody AuthLoginDTO authLoginDTO,
+            @Valid @RequestBody AuthLoginDTO authLoginDTO,
             HttpServletRequest request,
             HttpServletResponse response
     ) {

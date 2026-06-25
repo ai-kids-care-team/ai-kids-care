@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.dto;
 
 import com.ai_kids_care.v1.entity.User;
+import com.ai_kids_care.v1.security.validation.ValidPassword;
 import com.ai_kids_care.v1.type.GenderEnum;
 import com.ai_kids_care.v1.type.LevelEnum;
 import com.ai_kids_care.v1.type.RelationshipEnum;
@@ -46,6 +47,7 @@ public class AuthRegisterDTO implements Serializable {
 
     @NotNull(message = "비밀번호를 입력해주세요.")
     @NotBlank(message = "비밀번호를 입력해주세요.")
+    @ValidPassword
     private String password;
 
     /** TEACHER/KINDERGARTEN_ADMIN only; Guardian scope is derived from the matched child. */

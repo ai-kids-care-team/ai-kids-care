@@ -126,6 +126,20 @@ bootstrap:
     name: ${BOOTSTRAP_ADMIN_NAME:Bootstrap Admin}
     department: ${BOOTSTRAP_ADMIN_DEPARTMENT:Platform Operations}
 
+# 密码复杂度策略：仅在「设置新密码」入口（注册、改密、重置）生效；登录路径不校验。
+# 全部规则通过 app.security.password.* 配置，可不重启地由 operator 调整。
+app:
+  security:
+    password:
+      # 最少字符数。默认 10，可由 operator 上调。
+      min-length: 10
+      # 至少包含一个字母 (a-z/A-Z)。
+      require-letter: true
+      # 至少包含一个数字 (0-9)。
+      require-digit: true
+      # 拒绝所有字符完全相同的密码（如 "aaaaaaaaaa"）。默认 false（保守）。
+      reject-all-same: false
+
 # 登录 暴力破解 防护(harden-auth-bootstrap-and-demo D2): Redis 失败计数 + TTL 锁定 阈值。
 login:
   throttle:
