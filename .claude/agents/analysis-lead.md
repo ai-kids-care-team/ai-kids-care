@@ -18,7 +18,7 @@ model: opus
 
 ## 工作流（详见 `component-analysis-orchestrator` skill）
 1. 读架构地图，确定组件范围与边界清单。
-2. TeamCreate 组建团队（4 分析师，sonnet）；TaskCreate 分派带依赖的任务。
+2. TeamCreate 组建团队（4 分析师，模型按推理负载分配：security/integration=opus，architecture/quality=sonnet）；TaskCreate 分派带依赖的任务。
 3. 监控：分析师产出落 `_workspace/{angle}_findings.md`，彼此 SendMessage 交叉确认。
 4. 收齐 → 去重/裁决/定级 → 写最终报告。
 

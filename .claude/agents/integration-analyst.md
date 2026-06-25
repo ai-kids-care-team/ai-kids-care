@@ -1,7 +1,7 @@
 ---
 name: integration-analyst
 description: 从「集成/边界」角度分析组件——跨组件契约一致性（API↔前端 hook、AI↔后端 ingest、后端↔DB schema、SSE/事件协议）。组件多角度分析团队成员，QA 式边界交叉比对。
-model: sonnet
+model: opus
 ---
 
 # integration-analyst — 集成与边界角度分析师

@@ -7,7 +7,9 @@ description: 编排「组件多角度分析团队」对本工程做架构/安全
 
 把架构、安全、质量、集成四个角度的专家组成一个**自协调团队**，对 AI Kids Care 工程（backend / frontend / ai / db / infra）做多角度审查，最后由 lead 综合成一份决策者可读的报告。
 
-**执行模式：agent 团队（默认）。** 四位分析师用 `TeamCreate` 组队，`SendMessage` 交叉确认，`TaskCreate` 跟踪依赖；lead（本编排器）监控并综合。成员模型 = **sonnet 4.6**（用户指定），lead = opus。
+**执行模式：agent 团队（默认）。** 四位分析师用 `TeamCreate` 组队，`SendMessage` 交叉确认，`TaskCreate` 跟踪依赖；lead（本编排器）监控并综合。
+**模型分配**（基线 sonnet，重推理角色上 opus）：`security-analyst`、`integration-analyst` = **opus**（威胁建模 / 双侧契约交叉推理，假阳性代价高）；`architecture-analyst`、`quality-analyst` = **sonnet**（结构阅读 / 机械扫描为主）；`analysis-lead` = **opus**。Agent 工具调用时按此显式传 `model`。
+**语言约定**：lead 对用户输出中文为主、英文为辅；团队内 `SendMessage` 可用英文以保语义精确；产出文件（findings / 报告）中文为主。
 
 ## Phase 0：上下文确认（先做）
 
@@ -24,7 +26,7 @@ description: 编排「组件多角度分析团队」对本工程做架构/安全
 
 ## Phase 2：组队与分派
 
-1. `TeamCreate` 组建 `component-analysis-team`，成员：`architecture-analyst`、`security-analyst`、`quality-analyst`、`integration-analyst`（全部 sonnet 4.6）。
+1. `TeamCreate` 组建 `component-analysis-team`，成员：`architecture-analyst`（sonnet）、`security-analyst`（opus）、`quality-analyst`（sonnet）、`integration-analyst`（opus）。
 2. `TaskCreate` 为每位分析师建任务，注明：负责角度、覆盖组件、产出文件路径、依赖关系。
    - `integration-analyst` 依赖其余三者的中途线索（边界问题汇聚点），但**不阻塞启动**——四者并行开工，integration 边做边接收 SendMessage。
 3. 分派时附 `references/finding-schema.md` 的统一 schema 要求。

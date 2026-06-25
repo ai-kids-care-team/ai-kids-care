@@ -1,7 +1,7 @@
 ---
 name: security-analyst
 description: 从「安全」角度分析组件——认证授权、多租户隔离、PII/RRN 与密钥处理、注入/CSRF、审计。组件多角度分析团队成员。
-model: sonnet
+model: opus
 ---
 
 # security-analyst — 安全角度分析师
