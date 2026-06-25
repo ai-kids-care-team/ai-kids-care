@@ -33,6 +33,7 @@ export type TeacherApiRow = TeacherVO & {
 
 export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
   void userId;
+  console.warn('[stub] getTeacherByUserId: not yet wired — teacher authorization lane B5 pending');
   return null;
 }
 
@@ -109,6 +110,7 @@ export async function searchTeachers(params: {
   sort?: string | string[];
 }): Promise<PageResponse<TeacherVO>> {
   void params;
+  console.warn('[stub] searchTeachers: not yet wired — teacher authorization lane B5 pending');
   return normalizeTeacherPage({
     content: [],
     totalElements: 0,
@@ -122,6 +124,7 @@ export async function searchTeachers(params: {
 
 export async function getTeacher(id: number): Promise<TeacherVO> {
   void id;
+  console.warn('[stub] getTeacher: not yet wired — teacher authorization lane B5 pending');
   throw new Error('Teacher profile reads are unavailable until tenant authorization exists');
 }
 
@@ -131,5 +134,6 @@ export async function fetchTeacherDisplayNameForUser(
 ): Promise<string | null> {
   void userId;
   void kindergartenId;
+  console.warn('[stub] fetchTeacherDisplayNameForUser: not yet wired — teacher authorization lane B5 pending');
   return null;
 }
