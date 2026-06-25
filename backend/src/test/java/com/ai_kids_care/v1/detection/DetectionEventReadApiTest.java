@@ -63,7 +63,11 @@ class DetectionEventReadApiTest extends BaseIntegrationTest {
     @Test
     void list_admin_returnsOwnKindergartenEvents() throws Exception {
         Cookie admin = login(ADMIN_LOGIN);
-        mockMvc.perform(get("/api/v1/detection-events").cookie(admin))
+        // size=1000: this asserts the seeded event (oldest by detectedAt) is in the tenant's list.
+        // Other suites ingest events into this kindergarten through the shared testcontainer, so the
+        // default DESC page-0 (size 20) can push the oldest seed event off the first page; request a
+        // large page so the assertion is robust to sibling-test data rather than ordering-fragile.
+        mockMvc.perform(get("/api/v1/detection-events").param("size", "1000").cookie(admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[?(@.eventId == " + eventId + ")]").exists());
     }
