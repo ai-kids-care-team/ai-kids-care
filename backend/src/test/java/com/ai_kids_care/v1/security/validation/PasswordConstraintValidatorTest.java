@@ -344,7 +344,7 @@ class PasswordConstraintValidatorTest {
                 @Override
                 public NodeBuilderDefinedContext addParameterNode(int index) { return null; }
                 @Override
-                public ConstraintValidatorContext addConstraintViolation() {
+                public jakarta.validation.ConstraintValidatorContext addConstraintViolation() {
                     return NoOpConstraintValidatorContext.this;
                 }
             };
