@@ -41,5 +41,7 @@ description: 从集成/边界角度审查组件——跨组件契约一致性（
 - 一侧缺失（如某 api 文件不存在）→ 这本身是 finding（疑似未接线），标 medium。
 - 必要时写小脚本提取两侧字段集合做 diff。
 
+> ⚠️ **gitignore 陷阱（务必）**：本工程 `frontend/` 整树在 repo `.gitignore` 内，Claude 的 **Grep / Glob 工具默认静默跳过被忽略的文件**。直接用它们搜前端会得到「0 命中 / 文件不存在」的**假象**，把「后端就绪、前端未接线」误判成「前端确实没有」——而前端其实存在、只是被忽略了。凡涉前端（或任何 .gitignore 内目录）的存在性/未接线判断，**必须用裸 `rg`/`ripgrep`（经 Bash）或 `rg --no-ignore` 绕过忽略规则**确证后再下结论。「一侧缺失」类 finding 不绕过验证不得出具。
+
 ## 协作
 你是边界问题汇聚点——接收其余三位转来的可疑边界点并验证。边界处鉴权缺口 → `security-analyst`；错位的结构根因 → `architecture-analyst`。完成写 `_workspace/integration_findings.md` 并通知 lead（附错位 top-3）。

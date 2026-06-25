@@ -17,6 +17,8 @@ description: 对抗式验证一条分析 finding——以反驳为默认假设�
 3. **是演示/seed 误报吗？** seed 账户、`test-pepper-not-secret-2026`、demo 注入脚本是预期产物；确认其**不进生产路径**即判 refuted。
 4. **位置/证据对得上吗？** finding 引的 `file:line` 与描述是否一致；引错位置即降为 unverified。
 
+> ⚠️ **gitignore 工具陷阱（复核「缺失/未接线」类时务必）**：Claude 的 **Grep / Glob 默认静默跳过 `.gitignore` 内的文件**——本工程 `frontend/` 整树被忽略。若用它们去「确认某前端文件不存在」，会得到**假空命中**，把站得住的「前端未接线」finding 误判成「目标根本不存在 → refuted」（假阴性，等于放走真问题）。复核任何涉及 .gitignore 内目录（前端/构建产物）的存在性结论，**必须改用裸 `rg`/`rg --no-ignore`（经 Bash）绕过忽略规则**，否则 verdict 不可信。本陷阱已在 2026-06-25 backend 验证跑实证。
+
 ## 何为"可动态验证"（深度档启用 DooD）
 能用一次实跑直接证实/证伪的，才上 DooD（贵，限深度档）：
 - **测试缺口**：实跑 testcontainers 套件，看声称缺失的测试是否真缺、相关路径是否真红。

@@ -22,3 +22,4 @@ Start a change with `/opsx:propose "<idea>"`; implement with `/opsx:apply`.
 | 2026-06-25 | 初始构建（5 agents + 5 skills） | 全部 | 组件多角度分析需求 |
 | 2026-06-25 | 模型按推理负载分配（非一刀切 sonnet）；文档改中文为主、去韩文 | 各 agent + 本文件 + orchestrator | 用户反馈：重推理角色用 opus；文档以中文为主英文为辅 |
 | 2026-06-25 | v2：6 角度（+performance/+experience）+ 对抗式 finding-verifier + 三档运行（轻量/标准/深度） | 全部（8 agents + 8 skills） | 首跑短板：可信度/角度粒度/验证手段/视角单一 |
+| 2026-06-25 | gitignore 静态复核陷阱告警（前端在 .gitignore，Grep/Glob 静默跳过→须裸 rg 绕过）；新增 Phase 4b 验证跑模式（打分前 lead 重核真值存活态 + 精度/召回/净增三栏记分卡） | analyze-integration + adversarial-verification + component-analysis-orchestrator | backend 验证跑实证：工具忽略前端致「未接线」误判，陈旧真值污染召回 |
