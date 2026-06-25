@@ -21,7 +21,7 @@ description: 从性能/可扩展性角度审查组件——N+1、事务内 IO、
 - 修向：事务外发 / outbox 模式。
 
 ### 线程模型
-- `@EnableAsync` 是否定义了有界 `ThreadPoolTaskExecutor`；否则默认 `SimpleAsyncTaskExecutor` 每任务起新线程、无队列无上限。
+- `@EnableAsync` 的实际执行器：**别想当然**。裸 Spring 缺 Executor bean 才回退 `SimpleAsyncTaskExecutor`（每任务新线程）；但 **Spring Boot 的 `TaskExecutionAutoConfiguration` 默认装配 `applicationTaskExecutor`（有界线程 core=8 + 无界 `LinkedBlockingQueue`）**——所以 Boot 工程里失效机制通常是「**无界队列堆积/无背压**」而非线程爆炸。判前先确认是否 Boot starter、`spring.task.execution.*` 是否配了队列上限。（本工程 PRF-01 实测即此池。）
 - `@Async` + AFTER_COMMIT 监听器内访问懒代理（LazyInitializationException / 懒代理 getPhone 坑）。
 
 ### 实时通道背压 / 多实例
@@ -37,6 +37,7 @@ description: 从性能/可扩展性角度审查组件——N+1、事务内 IO、
 - Grep：`@Transactional`、`@Scheduled`、`@Async`、`@EnableAsync`、`for`/`stream().map` 内的 repository 调用、`SseEmitter`、`ConcurrentHashMap`。
 - 读 `application.yml`、`docker-compose*.yml`、`Caddyfile` 理解拓扑与连接边界。
 - 本机无 JVM/容器 → 静态推断标 confidence=medium；**深度档**把可实测项（延迟、线程、查询计数）交 `finding-verifier` 走 DooD（见 `adversarial-verification/references/dood-recipe.md`）坐实。
+- ⚠️ **框架自动装配陷阱**：「grep 没有自定义 X bean ⇒ 退化到裸框架默认」是危险跳步——starter 的 auto-configuration 常已替你装配一个不同行为的默认（线程池、连接池、序列化器、错误处理器…）。凡此类「缺 bean → 默认行为」推断，**别凭静态下严重度/机制结论**，优先送 DooD 实测真实 bean（取 `applicationContext` 里的实际类型与参数）。机制错则严重度与修向都会错（PRF-01 实证）。
 
 ## 协作
 跨边界性能问题 → SendMessage 抄送 `integration-analyst`；结构根因 → `architecture-analyst`；缺测试覆盖 → `quality-analyst`。完成写 `_workspace/performance_findings.md` 并通知 lead（附 top-3 瓶颈）。
