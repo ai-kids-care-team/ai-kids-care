@@ -86,12 +86,12 @@ Expected: `PASS`
 Run:
 ```bash
 cd "C:/ai-kids-care/.claude/worktrees/harness-analysis-team"
-for f in .claude/agents/performance-analyst.md .claude/skills/analyze-performance/SKILL.md .claude/skills/analyze-architecture/SKILL.md; do python -c "import re,sys; sys.exit(1 if re.search(r'[가-힣]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || echo "KOREAN in $f"; done; echo done
+for f in .claude/agents/performance-analyst.md .claude/skills/analyze-performance/SKILL.md .claude/skills/analyze-architecture/SKILL.md; do python -c "import re,sys; sys.exit(1 if re.search(r'[\uAC00-\uD7A3]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || echo "KOREAN in $f"; done; echo done
 git add .claude/agents/performance-analyst.md .claude/skills/analyze-performance .claude/skills/analyze-architecture/SKILL.md
 git commit -m "feat(harness): split performance into its own analysis angle (v2 task 1)"
 ```
 Expected: 无 "KOREAN in" 输出；commit 成功。
-（注：若本机无 python，可改用 PowerShell `[regex]::Matches($c,'[가-힣]')` 等价扫描。）
+（注：若本机无 python，可改用 PowerShell `[regex]::Matches($c,'[\uAC00-\uD7A3]')` 等价扫描。）
 
 ---
 
@@ -148,7 +148,7 @@ description: 从用户/功能视角审查工程——角色化用户旅程、功
 Run: 同 Step 1（期望 `PASS`），随后：
 ```bash
 cd "C:/ai-kids-care/.claude/worktrees/harness-analysis-team"
-for f in .claude/agents/experience-analyst.md .claude/skills/analyze-experience/SKILL.md; do python -c "import re,sys; sys.exit(1 if re.search(r'[가-힣]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || echo "KOREAN in $f"; done
+for f in .claude/agents/experience-analyst.md .claude/skills/analyze-experience/SKILL.md; do python -c "import re,sys; sys.exit(1 if re.search(r'[\uAC00-\uD7A3]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || echo "KOREAN in $f"; done
 git add .claude/agents/experience-analyst.md .claude/skills/analyze-experience
 git commit -m "feat(harness): add experience (user/functional) analysis angle (v2 task 2)"
 ```
@@ -351,7 +351,7 @@ echo "=== agents 模型 ==="; for f in .claude/agents/*.md; do printf "%-42s " "
 echo "=== 期望: architecture/quality=sonnet; security/integration/performance/experience/finding-verifier/analysis-lead=opus ==="
 echo "=== skills 存在 ==="; ls -d .claude/skills/analyze-architecture .claude/skills/analyze-quality .claude/skills/analyze-security .claude/skills/analyze-integration .claude/skills/analyze-performance .claude/skills/analyze-experience .claude/skills/adversarial-verification .claude/skills/component-analysis-orchestrator
 echo "=== 无 commands 新增 ==="; git status --short .claude/commands 2>/dev/null
-echo "=== 全局韩文扫描 ==="; FOUND=0; for f in CLAUDE.md $(git ls-files '.claude/agents/*.md' '.claude/skills/**/*.md' 'docs/superpowers/**/*.md'); do python -c "import re,sys; sys.exit(1 if re.search(r'[가-힣]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || { echo "KOREAN in $f"; FOUND=1; }; done; [ $FOUND -eq 0 ] && echo "NO KOREAN"
+echo "=== 全局韩文扫描 ==="; FOUND=0; for f in CLAUDE.md $(git ls-files '.claude/agents/*.md' '.claude/skills/**/*.md' 'docs/superpowers/**/*.md'); do python -c "import re,sys; sys.exit(1 if re.search(r'[\uAC00-\uD7A3]', open(sys.argv[1],encoding='utf-8').read()) else 0)" "$f" || { echo "KOREAN in $f"; FOUND=1; }; done; [ $FOUND -eq 0 ] && echo "NO KOREAN"
 ```
 Expected: 8 个 agent 模型与期望一致；8 个 skill 目录在；commands 无新增；输出 `NO KOREAN`。
 
