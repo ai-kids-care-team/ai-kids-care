@@ -64,6 +64,8 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
     @Autowired private DetectionEventMapper mapper;
     @Autowired private TransactionTemplate txTemplate;
     @Autowired private EntityManagerFactory emf;
+    @Autowired @org.springframework.beans.factory.annotation.Qualifier("applicationTaskExecutor")
+    private org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor applicationTaskExecutor;
 
     private long kindergartenId;
     private long streamId;
@@ -162,6 +164,8 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
 
     /** Reset the prepared-statement counter, run the workload, return statements issued during it. */
     private long measure(Runnable workload) {
+        awaitAsyncQuiescence(); // drain ingest @Async staff-alert side-effects so their SQL (on the same
+                                // SessionFactory, another thread) can't inflate this global statement count
         stats.clear();
         long before = stats.getPrepareStatementCount();
         workload.run();
@@ -170,6 +174,25 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
 
     private <T> T txRead(Supplier<T> body) {
         return txTemplate.execute(s -> body.get());
+    }
+
+    /**
+     * Block until the @Async executor that runs the ingest staff-alert side-effects has fully drained
+     * (no active and no queued tasks), so {@link #measure} sees only the test thread's statements.
+     * Polling the global statement counter is unreliable here: queued-but-momentarily-idle tasks can
+     * make two samples read equal prematurely, after which the queue bursts into the measured window.
+     * Waiting on the executor itself is exact. Bounded to ~10s.
+     */
+    private void awaitAsyncQuiescence() {
+        java.util.concurrent.ThreadPoolExecutor exec = applicationTaskExecutor.getThreadPoolExecutor();
+        for (int i = 0; i < 200 && (exec.getActiveCount() > 0 || !exec.getQueue().isEmpty()); i++) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 
     // -- ingest helpers (mirror DetectionEventStreamReplayTest, real FK-linked rows) ---------------
