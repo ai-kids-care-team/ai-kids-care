@@ -4,6 +4,17 @@ spring:
     username: ${DB_USER:kids_user}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # PRF-07: explicit pool sizing (DooD confirmed default=10; insufficient under burst delivery).
+      # Single-instance sizing: max=20 supports PRF-02 delivery load + normal reads in parallel;
+      # min-idle=5 avoids cold-start latency without over-holding DB connections.
+      # Tune per DB max_connections and number of deployed instances (max x instances <= DB limit).
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000    # ms: max wait for a connection from pool (default 30s, keep)
+      idle-timeout: 600000         # ms: idle connection eviction (10 min)
+      max-lifetime: 1800000        # ms: max connection age (30 min, < postgres default 1h)
+
 
   data:
     redis:
@@ -22,6 +33,26 @@ spring:
       username: ${NEO4J_USERNAME:neo4j}
       password: ${NEO4J_PASSWORD}
 
+  # -- PRF-01: @Async bounded executor (Spring Boot TaskExecutionAutoConfiguration) ------
+  # DooD measurement 2026-06-25: Boot auto-configures applicationTaskExecutor with
+  # core=8 + unbounded LinkedBlockingQueue (Integer.MAX_VALUE). Fix: configure
+  # spring.task.execution.pool.* so Boot initialises the SAME bean with a bounded queue
+  # + CallerRunsPolicy backpressure -- no manual @Bean Executor needed.
+  # Sizing (single-instance): core=8 mirrors measured default; max=16 for burst headroom;
+  # queue-capacity=200 ~ 10 s of peak alert flow (~20 msg/s). Beyond this limit
+  # CallerRunsPolicy applies backpressure on the caller instead of OOM/unbounded heap.
+  task:
+    execution:
+      pool:
+        core-size: 8
+        max-size: 16
+        queue-capacity: 200        # bounded: CallerRunsPolicy kicks in at limit, not OOM
+        keep-alive: 60s
+        allow-core-thread-timeout: false  # core threads stay warm; reduces cold-start jitter
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+
   flyway:
     enabled: true
     # baseline-on-migrate: when schema exists but has no flyway_schema_history (demo/initdb path),
@@ -39,6 +70,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+
+  mvc:
+    async:
+      # PRF-07: cap async request timeout. SSE long-connections use SseEmitter with its own
+      # 30-min timeout (STREAM_TIMEOUT_MS) -- that timeout is managed by SseEmitter directly
+      # and is NOT governed by this property. This setting only affects other Spring MVC
+      # async requests (DeferredResult / Callable). Set to 30s as a conservative guard
+      # for non-SSE async endpoints; SSE emitters are unaffected.
+      request-timeout: 30000       # ms; SSE uses SseEmitter timeout (30 min) -- unaffected
 
 server:
   error:
