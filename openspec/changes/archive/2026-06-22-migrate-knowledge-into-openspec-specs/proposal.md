@@ -53,4 +53,4 @@ superpowers」最小化终态。原始内容保留在 git 历史与已归档 cha
 - **notifications**：Pushover 凭证硬编码空串（PUSH 运行时即抛错）、SMS 未接线、规则引擎→派发管道未实现、`DeviceTokenController`/`NotificationRuleController` 为空壳。
 - **ai-detection**：ADR-0015 闭环为目标态，当前仅 Pushover/SMS/CSV 告警、无 DB 写入；检测表已就绪但未接。
 - **data-platform**：loader 多数节点用 CSV 快照而非实时 PG 查询（与 ADR-0002「PG 派生视图」目标有偏差）。
-- **ai 环境**：架构文档称 Python 3.14/CUDA 13.2，Dockerfile 用 python:3.12-slim（源文档未解决的矛盾，未在 spec 断言版本）。
+- **ai 环境**：ai/README.md 已修正为 Python 3.12，与 Dockerfile python:3.12-slim 一致（矛盾已解决）；CUDA 13.2 为目标 GPU 环境，cu130 wheel index 向前兼容，未在 spec 断言版本。
