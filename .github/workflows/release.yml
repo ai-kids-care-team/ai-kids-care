@@ -168,7 +168,30 @@ jobs:
             sleep 5
           done
 
-      # ── 5b. Tier-2 release acceptance gate (deterministic Playwright).
+      # ── 5b. Wait for backend HTTP readiness before the E2E gate.
+      # The backend needs Flyway + Spring context to be fully up before the E2E suite
+      # tries to login/inject. Polls /api/v1/auth/csrf (permitAll CSRF-bootstrap
+      # endpoint, always returns 200 to anonymous callers) up to 120 s (24 × 5 s).
+      - name: Wait for backend HTTP readiness (/api/v1/auth/csrf)
+        run: |
+          echo "Polling backend at http://localhost:8080/api/v1/auth/csrf..."
+          for i in $(seq 1 24); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 \
+              http://localhost:8080/api/v1/auth/csrf 2>/dev/null || echo "000")
+            echo "  attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Backend is ready (HTTP 200)"
+              break
+            fi
+            if [ "$i" -eq 24 ]; then
+              echo "ERROR: backend did not become ready within 120 seconds"
+              docker compose -f docker-compose.yml logs backend
+              exit 1
+            fi
+            sleep 5
+          done
+
+      # ── 5c. Tier-2 release acceptance gate (deterministic Playwright).
       # Runs natively on the runner so the browser's localhost == the published
       # compose ports. Any assertion failure fails the job → :version is NOT pushed.
       - name: Set up Node for E2E
@@ -210,7 +233,7 @@ jobs:
       # Steps 3 built (load: true) into the local daemon; the smoke test ran against
       # them. `docker compose down -v` removes containers/volumes but NOT images, so
       # the local tags survive. :prod is intentionally NOT pushed here (ADR-0022 OQ-3).
-      - name: Push :version images to GHCR (only after smoke passed)
+      - name: Push :version images to GHCR (only after smoke + E2E passed)
         run: |
           for svc in db data-loader backend frontend; do
             docker push "${{ env.IMAGE_PREFIX }}/${svc}:${{ github.ref_name }}"

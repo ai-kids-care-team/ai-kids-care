@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginViaModal } from '../helpers/login';
+import { loginViaModal, openLoginModal } from '../helpers/login';
 
 // Role → nav discriminator (menu.ts:38-45). All roles land on '/'.
 const ROLES = [
@@ -22,18 +22,17 @@ for (const role of ROLES) {
 test('wrong password is rejected (sanity: the gate can actually fail)', async ({ page }) => {
   await page.goto('/');
   // The home page fires GET /announcements → 401 → apiClient auto-opens the modal.
-  // Wait for modal to appear; fall back to TopBar button click if it doesn't fire.
+  // openLoginModal waits for auto-open and falls back to the TopBar button.
+  await openLoginModal(page);
   const loginIdInput = page.locator('input[name="loginId"]');
-  try {
-    await loginIdInput.waitFor({ state: 'visible', timeout: 5_000 });
-  } catch {
-    await page.getByRole('button', { name: '로그인' }).first().click();
-    await loginIdInput.waitFor({ state: 'visible', timeout: 5_000 });
-  }
   await loginIdInput.fill('teacher-kg1');
   await page.locator('input[name="password"]').fill('definitely-wrong');
-  // Scope to form to avoid matching the TopBar "로그인" button.
-  await page.locator('form').getByRole('button', { name: /^로그인/ }).click();
+  // Scope to the form containing the loginId input to avoid matching the TopBar button.
+  await page
+    .locator('form')
+    .filter({ has: page.locator('input[name="loginId"]') })
+    .getByRole('button', { name: /^로그인/ })
+    .click();
   // Modal stays open (login failed): the input is still present.
   await expect(loginIdInput).toBeVisible();
 });

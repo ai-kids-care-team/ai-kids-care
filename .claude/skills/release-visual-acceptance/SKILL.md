@@ -19,12 +19,12 @@ Playwright 功能门禁）**完全解耦**——Tier-1 不写/不喂 CI 脚本�
 - Playwright MCP 已按 [B0 spike 笔记] 配好（`docs/superpowers/notes/2026-06-26-playwright-mcp-spike.md`）。
 
 ## v1 人物集（每个只给"我是谁+目标+账号+URL"，绝不给步骤）
-| 人物 | 账号 | 目标 |
-|------|------|------|
-| 家长 | guardian-kg1 / admin123 | 登录后想知道孩子今天在园里有没有异常/告警，并查看相关通知 |
-| 教师 | teacher-kg1 / admin123 | 想查看本班的检测事件，并对其中一个做复核 |
-| 园长 | director-kg1 / admin123 | 想了解本园概况、看待审批/管理项 |
-| 超管 | admin / admin123 | 想跨园查看平台层面的概况 |
+| 人物 | 账号 | URL | 目标 |
+|------|------|-----|------|
+| 家长 | guardian-kg1 / admin123 | http://localhost | 登录后想知道孩子今天在园里有没有异常/告警，并查看相关通知 |
+| 教师 | teacher-kg1 / admin123 | http://localhost | 想查看本班的检测事件，并对其中一个做复核 |
+| 园长 | director-kg1 / admin123 | http://localhost | 想了解本园概况、看待审批/管理项 |
+| 超管 | admin / admin123 | http://localhost | 想跨园查看平台层面的概况 |
 
 > 人物基于 seed 既有数据探索；真实用户不会自己注入事件（注入的因果验证归 Tier-2）。
 

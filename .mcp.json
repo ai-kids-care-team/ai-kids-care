@@ -9,7 +9,7 @@
         "-i",
         "--network",
         "host",
-        "mcr.microsoft.com/playwright/mcp:latest",
+        "mcr.microsoft.com/playwright/mcp:0.0.76",
         "--headless",
         "--browser",
         "chrome",
