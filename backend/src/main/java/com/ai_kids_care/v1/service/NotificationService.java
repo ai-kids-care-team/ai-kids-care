@@ -14,7 +14,6 @@ import com.ai_kids_care.v1.security.audit.AuditEvent;
 import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.NotificationChannelEnum;
-import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import com.ai_kids_care.v1.type.PushProviderEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
@@ -23,15 +22,20 @@ import com.ai_kids_care.v1.vo.NotificationReadVO;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,13 +47,14 @@ public class NotificationService {
     private final SmsPort smsPort;
     private final SecurityAuditWriter auditWriter;
     private final PushSubscriptionRepository pushSubscriptionRepository;
+    private final NotificationDeliveryStore deliveryStore;
 
-    // ── SPEC-0001 / ADR-0018 A3d：通知读取（tenant-scoped；细粒度作用域由 Repository SQL 强制）────
+    // PRF-01 SMS dispatch-layer timeout budget (ms). The Solapi SDK 4.3.0 exposes no OkHttp timeout
+    // hook (see SolapiClientConfig), so the SMS provider call is bounded here. A non-positive value
+    // disables the wrapper (call the port directly). Default 5000 ms.
+    @Value("${notifications.sms-send-timeout-ms:5000}")
+    private long smsSendTimeoutMs = 5000L;
 
-    /**
-     * GET /api/v1/notifications —— GUARDIAN/TEACHER 读取自己的通知列表；KINDERGARTEN_ADMIN 读取所在园的全部通知。
-     * 细粒度作用域（受体仅自己 / Admin 仅本园）由 NotificationRepository 的 JPQL 在 SQL 内强制。
-     */
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).NOTIFICATION_READ)")
     public List<NotificationReadVO> listNotifications() {
@@ -61,10 +66,6 @@ public class NotificationService {
         return notifications.stream().map(this::toReadVO).toList();
     }
 
-    /**
-     * GET /api/v1/notifications/{id} —— 受体读取自己的单条通知；KINDERGARTEN_ADMIN 读取本园的任意通知。
-     * 无访问权（跨租户 / 他人通知 / 不存在）→ AUTHORIZATION_DENIED 审计 + 隐藏 404（SPEC §3.4）。
-     */
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).NOTIFICATION_READ)")
     public NotificationReadVO getNotification(Long id) {
@@ -99,14 +100,7 @@ public class NotificationService {
         );
     }
 
-    // ── 内部 / 历史方法（不发布；保留供旧 CRUD 流程使用）────────────────────────────
-    // 注意：listNotifications(keyword, pageable) 和 getNotificationInternal(id) は
-    // NotificationController で公開されない（Phase 1A closed）。
-    // getNotification(Long id) は上記の NOTIFICATION_READ メソッドとシグネチャが重複するため
-    // 旧メソッドを getNotificationInternal に改名（内部用途のみ；旧 controller は空だったため呼び元なし）。
-
     public Page<NotificationVO> listNotifications(String keyword, Pageable pageable) {
-        // TODO: filter Notification by keyword
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
@@ -115,35 +109,30 @@ public class NotificationService {
                 .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
     }
 
-    /**
-     * Persist a notification (unpublished write path). Delivery is performed separately via
-     * {@link #dispatch(Notification)} — the previous inline hard-coded blank-credential
-     * Pushover call has been removed (it would always throw at runtime).
-     */
     public NotificationVO createNotification(NotificationCreateDTO createDTO) {
         return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
-    /**
-     * Deliver a persisted notification over its channel and record the delivery lifecycle
-     * (SENDING → SENT / FAILED, with sent_at / fail_reason / retry_count). PUSH (Pushover)
-     * and SMS (Solapi via {@link SmsPort}, sending to {@code users.phone}) have implemented
-     * delivery paths; EMAIL is not yet wired (see notifications spec). The trigger that decides
-     * WHEN to dispatch (rule engine) is out of scope — this is the delivery primitive it will call.
-     */
-    @Transactional
+    // Deliver a persisted notification over its channel and record the lifecycle (SENDING -> SENT/FAILED).
+    // PRF-02 delivery atomicity: this method is deliberately NOT @Transactional. The DB writes are
+    // isolated into short REQUIRES_NEW transactions owned by NotificationDeliveryStore: an IN_FLIGHT
+    // attempt + SENDING are committed BEFORE the provider call, and the terminal SENT/FAILED is committed
+    // AFTER it, so the provider network round-trip runs with NO transaction open and NO pooled connection
+    // held. The committed-before attempt is the at-most-once guard: a retry of a notification that already
+    // has an attempt row reconciles instead of re-sending (design Decision 2). Public signature unchanged.
     public void dispatch(Notification notification) {
-        if (notification.getChannel() == NotificationChannelEnum.SMS) {
+        NotificationChannelEnum channel = notification.getChannel();
+        if (channel == NotificationChannelEnum.SMS) {
             dispatchSms(notification);
             return;
         }
-        if (notification.getChannel() != NotificationChannelEnum.PUSH) {
+        if (channel != NotificationChannelEnum.PUSH) {
             return; // EMAIL delivery not implemented
         }
+        dispatchPush(notification);
+    }
 
-        notification.setStatus(NotificationStatusEnum.SENDING);
-        repository.save(notification);
-
+    private void dispatchPush(Notification notification) {
         Optional<PushSubscription> subscription = pushSubscriptionRepository
                 .findByUser_IdAndProviderAndStatus(
                         notification.getRecipientUser().getId(),
@@ -152,65 +141,88 @@ public class NotificationService {
                 .stream().findFirst();
 
         if (subscription.isEmpty()) {
-            markFailed(notification, "no active Pushover subscription for recipient");
+            // No delivery identity -> terminal FAILED. No attempt is recorded (provider never called),
+            // so a later retry simply re-evaluates the gate; there is no double-send risk.
+            deliveryStore.markFailed(notification, "no active Pushover subscription for recipient");
             return;
         }
 
-        // Delivery-atomicity gap (acceptable for this v1 primitive, no live trigger yet):
-        // the external Pushover call sits inside the @Transactional boundary. If the push
-        // succeeds but the subsequent SENT save fails, the transaction rolls back and the
-        // row is left at SENDING (the push already went out). A trigger added later (rule
-        // engine) should add an idempotency key / two-phase mark before relying on this at
-        // volume. We catch only IllegalStateException (the translated PushoverException) so
-        // that programming errors (IllegalArgumentException) and DataAccessException
-        // propagate and roll back rather than being recorded as a delivery FAILED.
+        NotificationDeliveryStore.DeliveryDecision decision =
+                deliveryStore.beginAttempt(notification, "PUSHOVER");
+        if (decision.alreadyAttempted()) {
+            deliveryStore.reconcile(notification, decision.existingOutcome());
+            return;
+        }
+
+        // Provider call: NO DB transaction open, NO pooled connection held (PRF-02). Pushover already
+        // enforces a hard per-call timeout at the client level (PushoverClientConfig), so no callsite
+        // timeout guard is needed here (unlike SMS / PRF-01).
         try {
             pushoverService.sendToUser(
                     subscription.get().getAddress(),
                     notification.getTitle(),
                     notification.getBody());
-            notification.setStatus(NotificationStatusEnum.SENT);
-            notification.setSentAt(OffsetDateTime.now());
-            repository.save(notification);
+            deliveryStore.markSucceeded(notification);
         } catch (IllegalStateException e) {
-            markFailed(notification, "Pushover delivery failed: " + e.getMessage());
+            deliveryStore.markFailed(notification, "Pushover delivery failed: " + e.getMessage());
         }
     }
 
-    /**
-     * Deliver an SMS notification via {@link SmsPort} to the recipient's {@code users.phone}.
-     * A missing/blank phone is recorded FAILED without calling the port (no SMS to an empty number);
-     * otherwise the row goes SENDING → SENT/sent_at on success, or FAILED on a delivery failure
-     * (the translated {@link IllegalStateException} from the adapter). Same lifecycle as the PUSH
-     * path — SMS has no title concept, so only the body is sent. Same delivery-atomicity caveat as
-     * PUSH applies (external call inside the @Transactional boundary).
-     */
+    // Deliver an SMS via SmsPort to users.phone. Missing/blank phone -> FAILED without calling the port.
+    // Otherwise SENDING -> SENT on success, or FAILED on a delivery failure or timeout (PRF-01).
     private void dispatchSms(Notification notification) {
         String phone = notification.getRecipientUser().getPhone();
         if (phone == null || phone.isBlank()) {
-            markFailed(notification, "no phone for SMS recipient");
+            deliveryStore.markFailed(notification, "no phone for SMS recipient");
             return;
         }
 
-        notification.setStatus(NotificationStatusEnum.SENDING);
-        repository.save(notification);
+        NotificationDeliveryStore.DeliveryDecision decision =
+                deliveryStore.beginAttempt(notification, "SOLAPI");
+        if (decision.alreadyAttempted()) {
+            deliveryStore.reconcile(notification, decision.existingOutcome());
+            return;
+        }
 
+        // Provider call outside any DB transaction. PRF-01: the Solapi SDK 4.3.0 exposes no OkHttp
+        // timeout hook, so bound the call here with a configurable wall-clock budget; a timeout is
+        // translated to a delivery failure (FAILED), never a stuck SENDING.
         try {
-            smsPort.send(phone, notification.getBody());
-            notification.setStatus(NotificationStatusEnum.SENT);
-            notification.setSentAt(OffsetDateTime.now());
-            repository.save(notification);
+            sendSmsWithinBudget(phone, notification.getBody());
+            deliveryStore.markSucceeded(notification);
         } catch (IllegalStateException e) {
-            markFailed(notification, "SMS delivery failed: " + e.getMessage());
+            deliveryStore.markFailed(notification, "SMS delivery failed: " + e.getMessage());
         }
     }
 
-    private void markFailed(Notification notification, String reason) {
-        notification.setStatus(NotificationStatusEnum.FAILED);
-        notification.setFailReason(reason);
-        notification.setRetryCount(
-                (notification.getRetryCount() == null ? 0 : notification.getRetryCount()) + 1);
-        repository.save(notification);
+    // PRF-01: invoke SmsPort.send under a bounded wall-clock budget. A delivery failure thrown by the
+    // adapter (IllegalStateException) propagates unchanged; a timeout is translated to an
+    // IllegalStateException so dispatchSms records it as FAILED. A non-positive budget disables the
+    // wrapper (direct call).
+    private void sendSmsWithinBudget(String phone, String body) {
+        if (smsSendTimeoutMs <= 0) {
+            smsPort.send(phone, body);
+            return;
+        }
+        try {
+            CompletableFuture
+                    .runAsync(() -> smsPort.send(phone, body))
+                    .orTimeout(smsSendTimeoutMs, TimeUnit.MILLISECONDS)
+                    .join();
+        } catch (CompletionException | CancellationException e) {
+            Throwable cause = (e instanceof CompletionException) ? e.getCause() : e;
+            if (cause instanceof IllegalStateException ise) {
+                throw ise; // provider delivery failure from the adapter
+            }
+            if (cause instanceof TimeoutException) {
+                throw new IllegalStateException(
+                        "Solapi SMS call timed out after " + smsSendTimeoutMs + "ms", cause);
+            }
+            if (cause instanceof RuntimeException re) {
+                throw re; // e.g. IllegalArgumentException (programming error) propagates unchanged
+            }
+            throw new IllegalStateException("Solapi SMS call failed", cause);
+        }
     }
 
     public NotificationVO updateNotification(Long id, NotificationUpdateDTO updateDTO) {
