@@ -24,3 +24,4 @@ Start a change with `/opsx:propose "<idea>"`; implement with `/opsx:apply`.
 | 2026-06-25 | v2：6 角度（+performance/+experience）+ 对抗式 finding-verifier + 三档运行（轻量/标准/深度） | 全部（8 agents + 8 skills） | 首跑短板：可信度/角度粒度/验证手段/视角单一 |
 | 2026-06-25 | gitignore 静态复核陷阱告警（前端在 .gitignore，Grep/Glob 静默跳过→须裸 rg 绕过）；新增 Phase 4b 验证跑模式（打分前 lead 重核真值存活态 + 精度/召回/净增三栏记分卡） | analyze-integration + adversarial-verification + component-analysis-orchestrator | backend 验证跑实证：工具忽略前端致「未接线」误判，陈旧真值污染召回 |
 | 2026-06-25 | 框架自动装配陷阱：修正「缺 Executor bean ⇒ SimpleAsyncTaskExecutor」误判，明确 Boot TaskExecutionAutoConfiguration 默认池；「缺 bean→默认行为」类推断优先送 DooD 实测机制 | analyze-performance | 深度档 DooD 实跑证伪 PRF-01 失效机制（实为无界队列堆积非线程爆炸） |
+| 2026-06-26 | 新增发版前双层验收:release-visual-validator(第 9 个 agent)+ release-visual-acceptance skill(Tier-1 真人体验官,Playwright MCP)+ 仓库根 e2e/ 确定性 Playwright(Tier-2,release.yml 硬门禁) | 新 agent/skill + e2e/ + release.yml + .mcp.json | 发版前需真人体验把关 + 功能硬门禁,两层解耦 |

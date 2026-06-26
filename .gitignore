@@ -318,3 +318,6 @@ lerna-debug.log*
 ######################################################################
 # docker-data/
 # volumes/
+
+# Tier-1 visual acceptance local artifacts (screenshots/reports)
+_workspace/visual-acceptance/
