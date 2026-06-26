@@ -28,7 +28,7 @@ import {
  * 필요 없다. 사용자는 자신의 Pushover user key 를 입력해 알림 채널을 켜고, 여기서
  * 상태 전환(ACTIVE↔DISABLED)·해지(DELETE)로 관리한다.
  *
- * menu.ts(내비게이션)에는 등록하지 않는다 — 홈/설정 영역에 카드로 끼워 쓴다.
+ * menu.ts(내비게이션)에는 등록하지 않는다 — 우상단 「개인설정」 모달(SettingsModal) 전용 카드다(홈 화면에는 노출하지 않는다).
  * 부수효과(목록 로드)는 effect 본문에서 직접 setState 하지 않고 async 함수로 분리한다.
  */
 export function PushSubscriptionManager() {

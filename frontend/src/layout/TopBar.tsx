@@ -1,9 +1,9 @@
 'use client';
 
-import { LogIn, LogOut, UserCircle } from 'lucide-react';
+import { ChevronDown, LogIn, LogOut, Settings, UserCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
 import { useAppDispatch } from '@/store/hook';
@@ -14,6 +14,7 @@ import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
 import { getMenusForRole } from '@/config/menu';
 import { LoginModal } from '@/components/home/LoginModal';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useLogoutMutation } from '@/services/apis/auth.api';
 import { clearCsrf } from '@/services/csrf';
 
@@ -30,6 +31,9 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
   const dispatch = useAppDispatch();
   const [logoutSession] = useLogoutMutation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isGuest = !hasSession;
   /** ADR-0013: 백엔드 `/menus` 대신 프론트엔드 정적 설정에서 역할별 메뉴를 읽는다. */
   const renderedMenus = getMenusForRole(menuRoleType);
@@ -39,6 +43,18 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
     window.addEventListener('open-login-modal', handler);
     return () => window.removeEventListener('open-login-modal', handler);
   }, []);
+
+  // 사용자 드롭다운: 바깥 클릭 시 닫는다(Radix 등 신규 의존성 없이 손수 처리).
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isMenuOpen]);
 
   const handleLogout = async () => {
     try {
@@ -66,26 +82,65 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
           </div>
 
           <div className="flex items-center gap-3">
-            {!isGuest && (
-              <div className="flex items-center gap-3 rounded-md px-4 py-2 text-base text-white">
-                <UserCircle className="h-7 w-7" />
-                <span className="font-medium">{username}</span>
+            {isGuest ? (
+              <Button
+                variant="ghost"
+                size="lg"
+                className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
+                onClick={() => setIsLoginModalOpen(true)}
+              >
+                <LogIn className="h-5 w-5" />
+                <span className="hidden text-base font-medium sm:inline-block">로그인</span>
+              </Button>
+            ) : (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-md px-4 py-2 text-base text-white transition-colors hover:bg-white/10"
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                >
+                  <UserCircle className="h-7 w-7" />
+                  <span className="font-medium">{username}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {isMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 text-gray-800 shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-100"
+                    >
+                      <Settings className="h-4 w-4" />
+                      개인설정
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        void handleLogout();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      로그아웃
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-
-            <div className="ml-2 flex items-center gap-2 border-l border-white/20 pl-4">
-              <Button
-                  variant="ghost"
-                  size="lg"
-                  className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
-                  onClick={isGuest ? () => setIsLoginModalOpen(true) : () => void handleLogout()}
-              >
-                {isGuest ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
-                <span className="hidden text-base font-medium sm:inline-block">
-                  {isGuest ? '로그인' : '로그아웃'}
-                </span>
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -105,6 +160,7 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         </div>
       </div>
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }
