@@ -1,11 +1,14 @@
 package com.ai_kids_care.v1.detection;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.SmsPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +41,14 @@ class DetectionIngestApiTest extends BaseIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
+
+    // De-flake: the staff alert dispatches on the shared @Async pool, and the SMS path blocks that
+    // thread on ForkJoinPool.commonPool() (cores-1 worker on a 2-core CI runner) for up to the 5s
+    // budget per send. Mocking the external providers (no real Solapi/Pushover call) removes that
+    // commonPool-blocking amplifier so the async staff-alert completes promptly — the in-app row is
+    // still written by real code. Mirrors GuardianNotificationConfirmDispatchE2EIT.
+    @MockBean private SmsPort smsPort;
+    @MockBean private PushoverService pushoverService;
 
     private long streamId;
     private long modelId;
@@ -265,8 +276,9 @@ class DetectionIngestApiTest extends BaseIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         long eventId = objectMapper.readTree(body).get("eventId").asLong();
 
-        // 30s ceiling: in-app staff alert is delivered on an AFTER_COMMIT async hook; a slow CI runner
-        // can exceed a tighter budget even though delivery completes well under it locally (CI-only flake).
+        // 30s ceiling (generous safety margin): in-app staff alert is written on an @Async hook. With
+        // the external providers mocked above the async task is fast, so this budget is no longer the
+        // fragile knob it was — it only absorbs @Async pool scheduling jitter under full-suite load.
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             Integer cnt = jdbc.queryForObject(
                     "SELECT count(*) FROM notifications WHERE recipient_user_id = ? AND event_id = ?",
