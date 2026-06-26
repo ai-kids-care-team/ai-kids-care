@@ -1,3 +1,4 @@
+﻿import { apiClient } from './apiClient';
 import type { PageResponse } from './appreciationLetters.api';
 
 export type Teacher = {
@@ -30,12 +31,6 @@ export type TeacherApiRow = TeacherVO & {
   created_at?: string | null;
   updated_at?: string | null;
 };
-
-export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
-  void userId;
-  console.warn('[stub] getTeacherByUserId: not yet wired — teacher authorization lane B5 pending');
-  return null;
-}
 
 function firstPositiveLong(...vals: unknown[]): number | undefined {
   for (const v of vals) {
@@ -101,6 +96,42 @@ function normalizeTeacherPage(p: PageResponse<TeacherVO>): PageResponse<TeacherV
   };
 }
 
+/**
+ * Fetch a teacher record by their user ID within the caller's active kindergarten.
+ *
+ * Backend: {@code GET /api/v1/teachers/by-user/{userId}}
+ * Authorization: TENANT_S2_READ (KINDERGARTEN_ADMIN + TEACHER); scoped to active
+ * kindergarten by the service layer.
+ *
+ * Returns {@code null} when no matching teacher record exists (404).
+ */
+export async function getTeacherByUserId(userId: number): Promise<Teacher | null> {
+  try {
+    const response = await apiClient.get<TeacherApiRow>(`/teachers/by-user/${userId}`);
+    const vo = normalizeTeacherVO(response.data);
+    return {
+      teacherId: vo.teacherId > 0 ? vo.teacherId : null,
+      userId: vo.userId,
+      name: vo.name,
+    };
+  } catch (err: unknown) {
+    if ((err as { response?: { status?: number } })?.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Search the teacher roster of the caller's active kindergarten.
+ *
+ * Backend: {@code GET /api/v1/teachers}
+ * Params: {@code keyword} (name filter), {@code userId}, standard Spring
+ * {@code Pageable} ({@code page}, {@code size}, {@code sort}).
+ * The {@code kindergartenId} param is accepted by this function for callers
+ * that carry the context, but the backend already enforces tenant scoping via
+ * the active-kindergarten session — it is NOT forwarded to the server.
+ */
 export async function searchTeachers(params: {
   keyword?: string;
   userId?: number;
@@ -109,31 +140,43 @@ export async function searchTeachers(params: {
   size?: number;
   sort?: string | string[];
 }): Promise<PageResponse<TeacherVO>> {
-  void params;
-  console.warn('[stub] searchTeachers: not yet wired — teacher authorization lane B5 pending');
-  return normalizeTeacherPage({
-    content: [],
-    totalElements: 0,
-    totalPages: 0,
-    size: 0,
-    number: 0,
-    first: true,
-    last: true,
+  const { keyword, userId, page = 0, size = 20, sort } = params;
+  const response = await apiClient.get<PageResponse<TeacherVO>>('/teachers', {
+    params: {
+      page,
+      size,
+      ...(keyword?.trim() ? { keyword: keyword.trim() } : {}),
+      ...(userId != null && userId > 0 ? { userId } : {}),
+      ...(sort != null ? { sort } : {}),
+    },
   });
+  return normalizeTeacherPage(response.data);
 }
 
+/**
+ * Fetch a single teacher by their teacher record ID within the caller's active kindergarten.
+ *
+ * Backend: {@code GET /api/v1/teachers/{id}}
+ * Authorization: TENANT_S2_READ; the service layer enforces same-kindergarten scope.
+ */
 export async function getTeacher(id: number): Promise<TeacherVO> {
-  void id;
-  console.warn('[stub] getTeacher: not yet wired — teacher authorization lane B5 pending');
-  throw new Error('Teacher profile reads are unavailable until tenant authorization exists');
+  const response = await apiClient.get<TeacherApiRow>(`/teachers/${id}`);
+  return normalizeTeacherVO(response.data);
 }
 
+/**
+ * Resolve a display name for a user who is a teacher in the caller's active kindergarten.
+ *
+ * Delegates to {@code getTeacherByUserId}. The {@code kindergartenId} argument is kept
+ * for call-site clarity but is not forwarded to the server — the backend already scopes
+ * results to the authenticated user's active kindergarten.
+ *
+ * Returns {@code null} when no teacher record is found for the given user.
+ */
 export async function fetchTeacherDisplayNameForUser(
   userId: number,
-  kindergartenId: number,
+  _kindergartenId: number,
 ): Promise<string | null> {
-  void userId;
-  void kindergartenId;
-  console.warn('[stub] fetchTeacherDisplayNameForUser: not yet wired — teacher authorization lane B5 pending');
-  return null;
+  const teacher = await getTeacherByUserId(userId);
+  return teacher?.name ?? null;
 }
