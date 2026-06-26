@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -217,7 +218,10 @@ class NotificationDispatchTest {
         ReflectionTestUtils.setField(service, "smsSendTimeoutMs", 100L);
         Notification n = smsNotification("01012345678");
         when(deliveryStore.beginAttempt(eq(n), eq("SOLAPI"))).thenReturn(DeliveryDecision.proceed());
-        doAnswer(inv -> {
+        // lenient: the async send runs on the common pool and may not be reached before the 100ms
+        // budget fires on a slow CI runner — the timeout path is what we assert, so the stub being
+        // unused on a given run must not trip strict-stubbing (UnnecessaryStubbingException, PRF-01 flake).
+        lenient().doAnswer(inv -> {
             Thread.sleep(2000); // overrun the 100ms budget
             return null;
         }).when(smsPort).send(any(), any());

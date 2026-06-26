@@ -265,7 +265,9 @@ class DetectionIngestApiTest extends BaseIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         long eventId = objectMapper.readTree(body).get("eventId").asLong();
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+        // 30s ceiling: in-app staff alert is delivered on an AFTER_COMMIT async hook; a slow CI runner
+        // can exceed a tighter budget even though delivery completes well under it locally (CI-only flake).
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             Integer cnt = jdbc.queryForObject(
                     "SELECT count(*) FROM notifications WHERE recipient_user_id = ? AND event_id = ?",
                     Integer.class, staffUserId, eventId);
