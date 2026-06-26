@@ -168,6 +168,40 @@ jobs:
             sleep 5
           done
 
+      # ── 5b. Tier-2 release acceptance gate (deterministic Playwright).
+      # Runs natively on the runner so the browser's localhost == the published
+      # compose ports. Any assertion failure fails the job → :version is NOT pushed.
+      - name: Set up Node for E2E
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install E2E deps + browsers
+        working-directory: ./e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run release acceptance E2E (hard gate)
+        working-directory: ./e2e
+        env:
+          BASE_URL: http://localhost
+          API_BASE_URL: http://localhost:8080
+          AI_SERVICE_TOKEN: ${{ env.AI_SERVICE_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: npx playwright test
+
+      - name: Upload E2E screenshots + report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-acceptance-${{ github.ref_name }}
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Tear down smoke stack
         if: always()
         run: docker compose -f docker-compose.yml down -v --remove-orphans
