@@ -1,0 +1,13 @@
+{
+  "name": "ai-kids-care-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Release acceptance E2E (Tier-2 hard gate). Deterministic Playwright suite authored from code understanding.",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
