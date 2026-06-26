@@ -17,7 +17,7 @@ MSYS_NO_PATHCONV=1 docker run --rm mcr.microsoft.com/playwright/mcp --version
 # → "Version 0.0.76"
 ```
 
-Image pulled successfully from `mcr.microsoft.com/playwright/mcp:latest`. No alternate image or npx fallback needed.
+Image pulled successfully from `mcr.microsoft.com/playwright/mcp:latest`. **No Node on PATH on this machine — Docker launch is mandatory; `npx @playwright/mcp` is NOT available as a fallback here** (it would silently fail).
 
 ### Relevant flags
 
@@ -48,7 +48,7 @@ A `--network host` container reaches BOTH:
 
 Because the static Next.js frontend's baked `NEXT_PUBLIC_API_BASE_URL` is `http://localhost:8080/api/v1`, a browser running inside a `--network host` container will resolve `localhost:8080` to the host backend directly. **No frontend rebuild is required.**
 
-**Why this works on Docker Desktop / WSL2:** On Linux Docker (`--network host`) shares the host network namespace directly. On Docker Desktop (Windows), the container runs in the Linux VM which has transparent port forwarding from the host for mapped ports, and `--network host` within that VM maps correctly to the host-level ports.
+**Why this works on Docker Desktop / WSL2:** `--network host` lets the container share the Docker Linux VM's network namespace. WSL2 forwards `localhost` to the Windows host by default, so the host's `:80` and `:8080` are reachable as `localhost` from inside the namespace-sharing container. (Conclusion proven by curl returning 200 on both ports.)
 
 **Alternatives NOT taken:**
 - `host.docker.internal` + default bridge: Would require a frontend rebuild with `NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:8080/api/v1` — deferred as unnecessary.
@@ -132,7 +132,7 @@ This validates: (1) Claude can get page snapshots, (2) Claude can click/fill/sub
 | `--network host` is Linux-only in native Docker | On Docker Desktop (Windows), the Linux VM has port-forwarding from Windows host; confirmed working. On WSL2 back-end the same applies. No issue on this machine. | If ever run on macOS: `--network host` doesn't work; use `host-gateway` extra-host instead. |
 | `--no-sandbox` reduces isolation | Acceptable for local dev/CI acceptance. Never use in production serving untrusted URLs. | Scope: acceptance tests only, stack runs trusted local content. |
 | Image has no `chromium` keyword in documented browser list | Could fail at launch if Playwright MCP rejects `chromium` as a browser name. | Fall back to omitting `--browser` (uses image default) or try `chrome`. |
-| Headless mode hides visual glitches | The acceptance test sees the DOM, not pixel-level rendering. Some CSS glitches may be missed. | For pixel-level checks, add `--caps vision` + screenshot comparison in the agent prompt. |
+| Headless may render differently from headed | Headless can differ from headed rendering (fonts / GPU-accelerated CSS); some visual glitches may be missed. | Accept DOM-level acceptance, or for pixel-accuracy run headed in an environment with a display. |
 | Session reload required after `.mcp.json` change | One-time cost per new machine setup. | Document in Task B1 onboarding notes. |
 | Stateless `--isolated` loses cookies between reconnects | Each Claude Code session starts fresh login state. | Pre-login step is included in the acceptance script. No persistent auth needed. |
 
