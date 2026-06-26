@@ -51,7 +51,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthSessionVO> login(
-            @RequestBody AuthLoginDTO authLoginDTO,
+            @Valid @RequestBody AuthLoginDTO authLoginDTO,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
@@ -59,13 +59,16 @@ public class AuthController {
         try {
             authenticatedSession = authService.login(authLoginDTO);
         } catch (ResponseStatusException e) {
-            // 登录失败：actor 未知（平台级事件，kindergarten_id NULL）。
-            // 不记录 identifier——可能为 S1 email/phone（SPEC §282）。
-            auditWriter.record(AuditEvent.builder()
-                    .action(AuditAction.LOGIN_FAILURE)
-                    .result(AuditResult.FAILURE)
-                    .scopeType(UserRoleAssignmentScopeType.PLATFORM)
-                    .build());
+            // 限流/临时锁定(429)는 LOGIN_THROTTLE 으로 service 에서 이미 감사함 — 여기서 LOGIN_FAILURE
+            // 로 이중 기록하지 않는다. 그 외(401 등) 는 LOGIN_FAILURE 로 기록한다.
+            // actor 未知（평台级事件, kindergarten_id NULL）; identifier 不记录——S1 email/phone 가능(SPEC §282)。
+            if (e.getStatusCode().value() != HttpStatus.TOO_MANY_REQUESTS.value()) {
+                auditWriter.record(AuditEvent.builder()
+                        .action(AuditAction.LOGIN_FAILURE)
+                        .result(AuditResult.FAILURE)
+                        .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                        .build());
+            }
             throw e;
         }
         Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(

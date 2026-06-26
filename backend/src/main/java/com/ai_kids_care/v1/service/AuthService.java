@@ -9,7 +9,12 @@ import com.ai_kids_care.v1.entity.*;
 import com.ai_kids_care.v1.repository.*;
 import com.ai_kids_care.v1.security.AuthenticatedSession;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextService;
+import com.ai_kids_care.v1.security.LoginThrottleService;
 import com.ai_kids_care.v1.security.RrnHashUtil;
+import com.ai_kids_care.v1.security.audit.AuditAction;
+import com.ai_kids_care.v1.security.audit.AuditEvent;
+import com.ai_kids_care.v1.security.audit.AuditResult;
+import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
@@ -44,6 +49,8 @@ public class AuthService {
     private final ChildGuardianRelationshipRepository childGuardianRelationshipRepository;
     private final UserKindergartenMembershipRepository userKindergartenMembershipRepository;
     private final EffectiveAuthorizationContextService authorizationContextService;
+    private final LoginThrottleService loginThrottleService;
+    private final SecurityAuditWriter securityAuditWriter;
 
     @Transactional
     public AuthRegisterResponse register(AuthRegisterDTO request) {
@@ -95,16 +102,36 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthenticatedSession login(AuthLoginDTO request) {
-        User user = userRepository.findByLoginIdOrEmailOrPhone(request.getIdentifier(), request.getIdentifier(), request.getIdentifier());
+        String identifier = request.getIdentifier();
+
+        // 暴力破解 防护(D2): 锁定中이면 비밀번호가 맞아도 429 先返回(锁优先于密码校验)。
+        if (loginThrottleService.isLocked(identifier)) {
+            throw loginThrottled();
+        }
+
+        User user = userRepository.findByLoginIdOrEmailOrPhone(identifier, identifier, identifier);
 
         if (user == null
                 || user.getStatus() != StatusEnum.ACTIVE
                 || user.getPasswordHash() == null
                 || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            // 실패 1회 기록 — 이번 실패로 잠금이 새로 발동되면 LOGIN_THROTTLE 을 1회만 감사한다
+            // (identifier/password 는 기록하지 않음 — SPEC §282).
+            boolean newlyLocked = loginThrottleService.recordFailure(identifier);
+            if (newlyLocked) {
+                securityAuditWriter.record(AuditEvent.builder()
+                        .action(AuditAction.LOGIN_THROTTLE)
+                        .result(AuditResult.DENIED)
+                        .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                        .build());
+            }
             throw authenticationFailure();
         }
 
-        return authorizationContextService.establishSession(user);
+        AuthenticatedSession session = authorizationContextService.establishSession(user);
+        // 로그인 성공 — 실패 카운터·lock 초기화(이전 실패가 누적되지 않게)。
+        loginThrottleService.reset(identifier);
+        return session;
     }
 
     @Transactional(readOnly = true)
@@ -309,6 +336,11 @@ public class AuthService {
 
     private ResponseStatusException authenticationFailure() {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication failed");
+    }
+
+    // 限流/临时锁定 — 429。理由不泄露 identifier/锁定时长 등 민감 정보(只回 generic 메시지)。
+    private ResponseStatusException loginThrottled() {
+        return new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts");
     }
 
     private record RegistrationContext(

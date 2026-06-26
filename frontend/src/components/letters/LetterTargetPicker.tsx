@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { getKindergarten, searchKindergartens, type KindergartenVO } from '@/services/apis/kindergartens.api';
 import {
   normalizeTeacherVO,
+  searchTeachers,
   type TeacherApiRow,
   type TeacherVO,
 } from '@/services/apis/teachers.api';
@@ -155,11 +156,17 @@ export function LetterTargetPicker({
           setTeacherRows([]);
           setTotalCount(page.totalElements ?? (page.content?.length ?? 0));
         } else if (teacherStepPickTeacher && pickedKgForTeacher) {
+          const page = await searchTeachers({
+            keyword: q,
+            kindergartenId: pickedKgForTeacher.kindergartenId,
+            page: 0,
+            size: LIST_PAGE_SIZE,
+            sort: 'name,asc',
+          });
           if (cancelled) return;
-          setError('교사 대상 조회는 인증된 유치원 범위 API가 마련된 뒤 제공됩니다.');
-          setTeacherRows([]);
+          setTeacherRows(page.content ?? []);
           setKindergartenRows([]);
-          setTotalCount(0);
+          setTotalCount(page.totalElements ?? (page.content?.length ?? 0));
         }
       } catch (e) {
         if (cancelled) return;

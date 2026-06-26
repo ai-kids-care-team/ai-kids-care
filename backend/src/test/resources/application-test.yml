@@ -35,3 +35,28 @@ camera-stream:
 internal:
   ai:
     service-token: test-ai-service-token-not-secret-2026
+
+# PUSH 通道：非生产 dev 测试 token（PushoverConfig fail-fast 需非空）
+pushover:
+  api-token: test-pushover-token-not-secret-2026
+
+# SMS 通道：非生产 dev 测试凭据（SolapiConfig fail-fast 需非空）。测试由 @MockBean/stub SmsPort
+# 取代真实发送，凭据仅用于满足 fail-fast 校验，绝不真实调用 Solapi。
+solapi:
+  api-key: test-solapi-key-not-secret-2026
+  api-secret: test-solapi-secret-not-secret-2026
+  sender: "0200000000"
+
+# ③b: deferred-notification scanner — disable auto-scan in the test profile (huge interval/initial
+# delay); tests invoke DeferredNotificationScanner.scan() directly for determinism.
+notifications:
+  deferred-scan-interval-ms: 3600000
+  deferred-scan-initial-ms: 3600000
+
+# ⑥ SSE 心跳 — 测试 profile 禁止自动触发（大间隔/初始延迟）；单测直接调 sendHeartbeats()。
+detection:
+  sse:
+    heartbeat-interval-ms: 3600000
+    heartbeat-initial-ms: 3600000
+    # Small replay bound so the over-limit "only the most-recent N" path is exercised in tests.
+    replay-max: 5

@@ -46,6 +46,13 @@ services:
       RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
       CAMERA_STREAM_AES_KEY_V1: ${CAMERA_STREAM_AES_KEY_V1:?CAMERA_STREAM_AES_KEY_V1 must be set}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?AI_SERVICE_TOKEN must be set}
+      # Cold-start admin bootstrap (harden-auth-bootstrap-and-demo D1). OPTIONAL: set both ONLY
+      # for the first seed-free cold start so the maintainer can sign in (login id must NOT be
+      # 'admin'). The runner creates one ACTIVE SUPERADMIN only when the users table is empty;
+      # it is a no-op otherwise. Per the production reset runbook, rotate the credential and
+      # clear these env vars after first login. Empty -> runner does nothing.
+      BOOTSTRAP_ADMIN_LOGIN_ID: ${BOOTSTRAP_ADMIN_LOGIN_ID:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
 
   frontend:
     # Behind Caddy in production: do not publish the frontend nginx to the host.

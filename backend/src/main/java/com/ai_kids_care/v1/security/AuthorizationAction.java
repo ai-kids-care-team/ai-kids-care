@@ -32,5 +32,17 @@ public enum AuthorizationAction {
     APPRECIATION_LETTER_READ,
     // SPEC-0003：感谢信写粗粒度门——仅 GUARDIAN + 有效 tenant identity；
     // 细粒度所有权（仅作者可改/删）由 Repository SQL 强制。
-    APPRECIATION_LETTER_WRITE
+    APPRECIATION_LETTER_WRITE,
+    // push_subscriptions 自助管理粗粒度门——任一已认证用户均可管理自己的推送订阅
+    // （push_subscriptions 无 kindergarten_id，纯 user-scoped）；细粒度「只能管自己的」
+    // 由 PushSubscriptionService 用 EffectiveAuthorizationContext.userId() 在查询内强制。
+    PUSH_SUBSCRIPTION_MANAGE,
+    // 检测事件复核工作流粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity；
+    // 细粒度租户隔离由 EventReviewService 用 EffectiveAuthorizationContext + repository 强制。
+    EVENT_REVIEW_WRITE,
+    EVENT_REVIEW_READ,
+    // ⑥ 检测事件实时看板读取粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity
+    // （与 staff 告警受众一致）；细粒度租户隔离由 DetectionEventService 用
+    // EffectiveAuthorizationContext.requireActiveKindergartenId() + repository 强制。
+    DETECTION_EVENT_READ
 }

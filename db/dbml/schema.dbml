@@ -71,6 +71,7 @@ Enum notification_status_enum{
   READ [note: "읽음(인앱/푸시 등)"]
   FAILED [note: "실패"]
   CANCELED [note: "취소"]
+  DEFERRED [note: "정숙시간(quiet hours) 지연 발송 대기 (③b)"]
 }
 
 Enum camera_stream_type_enum{
@@ -115,9 +116,8 @@ Enum mime_type_enum {
   "video/mp4"
 }
 
-Enum device_platform_enum{
-  IOS
-  ANDROID
+Enum push_provider_enum{
+  PUSHOVER
 }
 
 Enum notification_channel_enum{
@@ -164,6 +164,7 @@ Table kindergartens {
   contact_phone varchar [not null, note: "담당자 전화번호"]
   contact_email varchar [not null, note: "담당자 이메일"]
   status status_enum [not null, note: "운영 상태"]
+  notification_quiet_hours_json varchar [note: "전원 통일 정숙시간(quiet hours) 창 JSON {start,end}, Asia/Seoul; NULL=정숙시간 없음 (③b)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
   updated_at timestamptz [not null, default: "now()", note: "수정 일시"]
 }
@@ -505,11 +506,13 @@ Table detection_events {
   start_time timestamptz [not null, note: "이벤트 시작 시각"]
   end_time timestamptz [not null, note: "이벤트 종료 시각"]
   status event_status_enum [not null, note: "이벤트 상태(세분화)"]
+  dedup_key varchar [not null, note: "멱등성 키(AI 생성: camera+alarm 시작 시각; V8)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
   updated_at timestamptz [not null, default: "now()", note: "수정 일시"]
 
   Indexes {
     (kindergarten_id, event_id) [unique, name: "uq_event_kg_eventid"]
+    (kindergarten_id, dedup_key) [unique, name: "uq_detection_events_dedup"]
     (kindergarten_id, room_id, detected_at) [name: "idx_event_room_time"]
     (kindergarten_id, camera_id, detected_at) [name: "idx_event_camera_time"]
     (kindergarten_id, status, detected_at) [name: "idx_event_status_time"]
@@ -546,18 +549,19 @@ Table event_evidence_files {
   }
 }
 
-Table device_tokens {
-  device_id bigint [pk, increment, note: "디바이스 토큰 ID"]
+Table push_subscriptions {
+  push_subscription_id bigint [pk, increment, note: "PUSH 구독 ID"]
   user_id bigint [not null, note: "사용자 ID(USER_ACCOUNT.user_id)"]
-  platform device_platform_enum [not null, note: "플랫폼(IOS/ANDROID)"]
-  push_token varchar [not null, note: "푸시 토큰(APNs/FCM 등)"]
-  status status_enum [not null, note: "토큰 상태"]
-  last_seen_at timestamptz [note: "마지막 사용/갱신 일시"]
+  provider push_provider_enum [not null, note: "PUSH 제공자(현재 PUSHOVER)"]
+  address varchar [not null, note: "제공자 전송 주소(Pushover=user key)"]
+  device_label varchar [note: "선택: Pushover 디바이스명/사람용 라벨"]
+  status status_enum [not null, note: "구독 상태"]
+  last_verified_at timestamptz [note: "마지막 검증 일시"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
 
   Indexes {
-    (platform, push_token) [unique, name: "uq_device_tokens_platform_push_token"]
-    (user_id, status) [name: "idx_device_tokens_user_status"]
+    (user_id, provider, address) [unique, name: "uq_push_subscriptions_user_provider_address"]
+    (user_id, status) [name: "idx_push_subscriptions_user_status"]
   }
 }
 
@@ -589,9 +593,10 @@ Table notifications {
   status notification_status_enum [not null, note: "전송 상태(세분화)"]
 
   dedupe_key varchar [not null, note: "중복 방지 키(멱등성 키, 애플리케이션에서 생성)"]
-  sent_at timestamptz [not null, note: "전송 완료/시도 일시"]
-  fail_reason varchar [not null, note: "실패 사유"]
-  retry_count int [not null, note: "재시도 횟수"]
+  sent_at timestamptz [note: "전송 완료/시도 일시(전송 전 NULL; V3)"]
+  fail_reason varchar [note: "실패 사유(실패 없으면 NULL; V3)"]
+  retry_count int [not null, default: 0, note: "재시도 횟수(V3: DEFAULT 0)"]
+  deferred_until timestamptz [note: "정숙시간 지연 발송 예정 시각(DEFERRED일 때); 스캐너가 경과 후 dispatch (③b)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
 
   Indexes {
@@ -729,7 +734,7 @@ Ref: notifications.recipient_user_id > users.user_id
 Ref: notification_rules.kindergarten_id > kindergartens.kindergarten_id
 Ref: notification_rules.user_id > users.user_id
 
-Ref: device_tokens.user_id > users.user_id
+Ref: push_subscriptions.user_id > users.user_id
 
 Ref: audit_logs.kindergarten_id > kindergartens.kindergarten_id
 Ref: audit_logs.user_id > users.user_id

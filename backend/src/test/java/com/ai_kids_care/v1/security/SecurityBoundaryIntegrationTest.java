@@ -60,7 +60,12 @@ class SecurityBoundaryIntegrationTest extends BaseIntegrationTest {
                 "/api/v1/device_tokens",
                 "/api/v1/event_evidence_files",
                 "/api/v1/superadmins",
-                "/api/v1/graph/children/1"
+                "/api/v1/graph/children/1",
+                // ADR-0013: dictionary endpoints retired (controllers deleted, whitelist removed).
+                // No longer anonymously readable — they fall through to default-deny (401),
+                // never an anonymous 200 oracle.
+                "/api/v1/common_codes",
+                "/api/v1/menus"
         }) {
             mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
@@ -74,7 +79,8 @@ class SecurityBoundaryIntegrationTest extends BaseIntegrationTest {
                         .param("value", "boundary-" + UUID.randomUUID()))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/v1/kindergartens")).andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/common_codes")).andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/menus")).andExpect(status().isOk());
+        // ADR-0013: enum metadata endpoint replaces the retired common_codes/menus reads and
+        // is anonymously readable (codes only; labels are the front end's job).
+        mockMvc.perform(get("/api/v1/enums/gender")).andExpect(status().isOk());
     }
 }

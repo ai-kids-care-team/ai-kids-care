@@ -81,6 +81,10 @@ public class Notification {
     @Builder.Default
     private Integer retryCount = 0;
 
+    // ③b: 정숙시간(quiet hours) 지연 발송 예정 시각(DEFERRED일 때). NULL이면 지연 대상 아님.
+    @Column(name = "deferred_until")
+    private OffsetDateTime deferredUntil;
+
     @CreationTimestamp
     @ColumnDefault("now()")
     @Column(name = "created_at", nullable = false)

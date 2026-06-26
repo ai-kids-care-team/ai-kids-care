@@ -1,6 +1,6 @@
 ## Environment
 
-- Python: 3.14
+- Python: 3.12
 - CUDA: 13.2
 
 

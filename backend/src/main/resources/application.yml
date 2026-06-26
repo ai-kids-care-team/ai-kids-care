@@ -4,6 +4,17 @@ spring:
     username: ${DB_USER:kids_user}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # PRF-07: explicit pool sizing (DooD confirmed default=10; insufficient under burst delivery).
+      # Single-instance sizing: max=20 supports PRF-02 delivery load + normal reads in parallel;
+      # min-idle=5 avoids cold-start latency without over-holding DB connections.
+      # Tune per DB max_connections and number of deployed instances (max x instances <= DB limit).
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000    # ms: max wait for a connection from pool (default 30s, keep)
+      idle-timeout: 600000         # ms: idle connection eviction (10 min)
+      max-lifetime: 1800000        # ms: max connection age (30 min, < postgres default 1h)
+
 
   data:
     redis:
@@ -22,6 +33,26 @@ spring:
       username: ${NEO4J_USERNAME:neo4j}
       password: ${NEO4J_PASSWORD}
 
+  # -- PRF-01: @Async bounded executor (Spring Boot TaskExecutionAutoConfiguration) ------
+  # DooD measurement 2026-06-25: Boot auto-configures applicationTaskExecutor with
+  # core=8 + unbounded LinkedBlockingQueue (Integer.MAX_VALUE). Fix: configure
+  # spring.task.execution.pool.* so Boot initialises the SAME bean with a bounded queue
+  # + CallerRunsPolicy backpressure -- no manual @Bean Executor needed.
+  # Sizing (single-instance): core=8 mirrors measured default; max=16 for burst headroom;
+  # queue-capacity=200 ~ 10 s of peak alert flow (~20 msg/s). Beyond this limit
+  # CallerRunsPolicy applies backpressure on the caller instead of OOM/unbounded heap.
+  task:
+    execution:
+      pool:
+        core-size: 8
+        max-size: 16
+        queue-capacity: 200        # bounded: CallerRunsPolicy kicks in at limit, not OOM
+        keep-alive: 60s
+        allow-core-thread-timeout: false  # core threads stay warm; reduces cold-start jitter
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+
   flyway:
     enabled: true
     # baseline-on-migrate: when schema exists but has no flyway_schema_history (demo/initdb path),
@@ -39,6 +70,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+
+  mvc:
+    async:
+      # PRF-07: cap async request timeout. SSE long-connections use SseEmitter with its own
+      # 30-min timeout (STREAM_TIMEOUT_MS) -- that timeout is managed by SseEmitter directly
+      # and is NOT governed by this property. This setting only affects other Spring MVC
+      # async requests (DeferredResult / Callable). Set to 30s as a conservative guard
+      # for non-SSE async endpoints; SSE emitters are unaffected.
+      request-timeout: 30000       # ms; SSE uses SseEmitter timeout (30 min) -- unaffected
 
 server:
   error:
@@ -63,10 +103,66 @@ camera-stream:
     keys:
       v1: ${CAMERA_STREAM_AES_KEY_V1}
 
+# ⑥ 实时检测看板 SSE 心跳：周期向每个 emitter 发 comment 帧保活链路（击穿代理/NAT 空闲超时），
+# 发送失败即驱逐死连接（无需等 STREAM_TIMEOUT_MS 30min）。默认 25s ≪ nginx proxy_read_timeout 3600s。
+detection:
+  sse:
+    heartbeat-interval-ms: 25000
+    heartbeat-initial-ms: 25000
+    # SSE reconnect catch-up: max events replayed on one reconnect via Last-Event-ID (event_id > cursor,
+    # this kindergarten only, ascending). Window beyond this → only the most-recent N replayed; older
+    # history is covered by the read-API load. Defaults to 200 (≈ one dashboard screen + typical gap).
+    replay-max: 200
+
+# 生产 콜드 스타트 안전 부트스트랩(harden-auth-bootstrap-and-demo D1)。
+# 두 값이 모두 설정되고 users 테이블이 비어 있을 때만 첫 SUPERADMIN을 만든다.
+# 기본값 없음(미설정이면 러너 무동작 → 기본/추측 가능 계정을 절대 만들지 않는다).
+# login-id 는 operator 가 정하며 'admin' 이면 거부된다. password 는 operator 설정 강한 비밀번호(로그 미기록).
+bootstrap:
+  admin:
+    login-id: ${BOOTSTRAP_ADMIN_LOGIN_ID:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    # 선택: 부트스트랩 SUPERADMIN 프로필 이름/부서(미설정 시 아래 기본값).
+    name: ${BOOTSTRAP_ADMIN_NAME:Bootstrap Admin}
+    department: ${BOOTSTRAP_ADMIN_DEPARTMENT:Platform Operations}
+
+# 密码复杂度策略：仅在「设置新密码」入口（注册、改密、重置）生效；登录路径不校验。
+# 全部规则通过 app.security.password.* 配置，可不重启地由 operator 调整。
+app:
+  security:
+    password:
+      # 最少字符数。默认 10，可由 operator 上调。
+      min-length: 10
+      # 至少包含一个字母 (a-z/A-Z)。
+      require-letter: true
+      # 至少包含一个数字 (0-9)。
+      require-digit: true
+      # 拒绝所有字符完全相同的密码（如 "aaaaaaaaaa"）。默认 false（保守）。
+      reject-all-same: false
+
+# 登录 暴力破解 防护(harden-auth-bootstrap-and-demo D2): Redis 失败计数 + TTL 锁定 阈值。
+login:
+  throttle:
+    max-attempts: ${LOGIN_THROTTLE_MAX_ATTEMPTS:5}
+    window-seconds: ${LOGIN_THROTTLE_WINDOW_SECONDS:300}
+    lock-seconds: ${LOGIN_THROTTLE_LOCK_SECONDS:900}
+
 # ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
 internal:
   ai:
     service-token: ${AI_SERVICE_TOKEN}
+
+# PUSH 主通道：Pushover 应用级 API token（每收件人的 user-key 是投递地址，存 push_subscriptions.address）。
+# 空白则上下文启动即失败（PushoverConfig fail-fast）。
+pushover:
+  api-token: ${PUSHOVER_API_TOKEN}
+
+# SMS 通道：Solapi 应用级凭据 + 발신번호（每收件人手机号是投递地址，存 users.phone）。
+# 任一空白则上下文启动即失败（SolapiConfig fail-fast）。sender 须在 Solapi 控制台预注册（발신번호 사전등록）。
+solapi:
+  api-key: ${SOLAPI_API_KEY}
+  api-secret: ${SOLAPI_API_SECRET}
+  sender: ${SOLAPI_SENDER}
 
 logging:
   level:

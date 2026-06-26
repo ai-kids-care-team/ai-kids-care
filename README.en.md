@@ -8,7 +8,7 @@ AI Kids Care is an AI-assisted safety management platform for kindergarten envir
 
 The system is designed so kindergarten operators can manage cameras and classroom data, review AI-detected events, and communicate important information to guardians and staff. The main workflows are:
 
-- Sign-up, login, JWT authentication, and role-based menus
+- Sign-up, login, server-side session authentication (Spring Session + Redis + cookie + CSRF), and role-based menus
 - Kindergarten, class, room, child, guardian, and teacher management
 - CCTV camera and stream management
 - AI detection sessions, detected events, evidence files, and event reviews
@@ -20,7 +20,7 @@ The system is designed so kindergarten operators can manage cameras and classroo
 
 | Area | Details |
 | --- | --- |
-| Authentication and roles | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN`, JWT login/refresh/logout, role-based menus |
+| Authentication and roles | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN`, server-side session authentication (Spring Session + Redis + cookie + CSRF) login/refresh/logout, role-based menus (ADR-0016) |
 | Kindergarten operations | Kindergartens, classes, rooms, teachers, guardians, children, class assignments, guardian relationships, room assignments |
 | CCTV and events | Cameras, streams, AI models, detection sessions, detection events, reviews, evidence files |
 | Communication | Announcements, appreciation letters, notification rules, device tokens, notification history |
@@ -45,7 +45,7 @@ The system is designed so kindergarten operators can manage cameras and classroo
 |-- backend/              # Spring Boot API server
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
-|-- docs/db/ERD/          # ERD diagrams and rendered images
+|-- openspec/             # OpenSpec specs (openspec/specs) and change proposals
 |-- (pg-spring-crud-codegen/ retired 2026-06-18, ADR-0027)
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
@@ -169,7 +169,7 @@ The default `AI_MODEL_DIR` is `outputs/videomae_baseline/best_model`. Both Docke
 
 - PostgreSQL schema and seed SQL: `db/initdb/`
 - DBML schema: `db/dbml/schema.dbml`
-- ERD documentation: `docs/db/ERD/README.md`
+- ERD documentation: `openspec/specs/data-platform/spec.md`
 - Neo4j data loader: `db/ne4j_kindergartens/`
 - Code generation tool: ~~`pg-spring-crud-codegen/`~~ (retired 2026-06-18, ADR-0027; new domain objects are hand-written)
 

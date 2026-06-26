@@ -8,7 +8,7 @@ AI Kids Care는 유치원 환경에서 CCTV, 보호자, 교직원, 아동, 알�
 
 이 프로젝트는 유치원 운영자가 카메라와 반/교실 정보를 관리하고, AI가 감지한 이벤트를 검토하며, 보호자와 교직원에게 필요한 정보를 전달할 수 있도록 설계되었습니다. 주요 업무 흐름은 다음과 같습니다.
 
-- 회원가입, 로그인, JWT 인증, 역할 기반 메뉴 제공
+- 회원가입, 로그인, 서버 세션 인증(Spring Session + Redis + cookie + CSRF), 역할 기반 메뉴 제공
 - 유치원, 반, 교실, 아동, 보호자, 교직원 데이터 관리
 - CCTV 카메라와 스트림 정보 관리
 - AI 이상 감지 세션, 감지 이벤트, 증거 파일, 이벤트 리뷰 관리
@@ -20,7 +20,7 @@ AI Kids Care는 유치원 환경에서 CCTV, 보호자, 교직원, 아동, 알�
 
 | 영역 | 내용 |
 | --- | --- |
-| 인증과 권한 | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN` 역할, JWT 로그인/갱신/로그아웃, 역할별 메뉴 |
+| 인증과 권한 | `GUARDIAN`, `TEACHER`, `KINDERGARTEN_ADMIN`, `PLATFORM_IT_ADMIN`, `SUPERADMIN` 역할, 서버 세션 인증(Spring Session + Redis + cookie + CSRF) 로그인/갱신/로그아웃, 역할별 메뉴 |
 | 유치원 운영 데이터 | 유치원, 반, 교실, 교사, 보호자, 아동, 반 배정, 보호자 관계, 교실 배정 |
 | CCTV와 감지 이벤트 | 카메라, 스트림, AI 모델, 감지 세션, 감지 이벤트, 리뷰, 증거 파일 |
 | 커뮤니케이션 | 공지사항, 감사 편지, 알림 규칙, 디바이스 토큰, 알림 이력 |
@@ -45,7 +45,7 @@ AI Kids Care는 유치원 환경에서 CCTV, 보호자, 교직원, 아동, 알�
 |-- backend/              # Spring Boot API server
 |-- ai/                   # VideoMAE training, inference, serving, stream alert scripts
 |-- db/                   # PostgreSQL schema, seed data, Neo4j loader, DB utilities
-|-- docs/db/ERD/          # ERD diagrams and rendered images
+|-- openspec/             # OpenSpec specs (openspec/specs) and change proposals
 |-- （pg-spring-crud-codegen/ 已退役，2026-06-18，ADR-0027）
 |-- jenkins/              # Jenkins image and compose helper
 |-- docker-compose.yml    # Main stack: PostgreSQL, Neo4j, data loader, backend, frontend
@@ -169,7 +169,7 @@ AI 서비스 주요 엔드포인트:
 
 - PostgreSQL 스키마와 seed SQL: `db/initdb/`
 - DBML 스키마: `db/dbml/schema.dbml`
-- ERD 문서: `docs/db/ERD/README.md`
+- ERD 문서: `openspec/specs/data-platform/spec.md`
 - Neo4j 데이터 로더: `db/ne4j_kindergartens/`
 - 코드 생성 도구: ~~`pg-spring-crud-codegen/`~~ （퇴역, 2026-06-18, ADR-0027；신규 도메인 객체는 수작업으로 작성）
 

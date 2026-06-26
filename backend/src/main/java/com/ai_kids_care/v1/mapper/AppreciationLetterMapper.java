@@ -5,6 +5,7 @@ import com.ai_kids_care.v1.dto.AppreciationLetterUpdateDTO;
 import com.ai_kids_care.v1.entity.AppreciationLetter;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
@@ -21,7 +22,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
  * 读取侧（toVO）：因 senderName/targetName 需要额外的 Guardian/Teacher lookup，由 Service
  * 的 {@code buildVO()} 私有方法直接组装 VO，不在此 Mapper 中处理。
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface AppreciationLetterMapper {
 
     @Mapping(target = "id", ignore = true)

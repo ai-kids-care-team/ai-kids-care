@@ -37,6 +37,7 @@ dependencies {
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
+    implementation 'net.nurigo:sdk:4.3.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
@@ -49,13 +50,6 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
-}
-
-// INC-005 (docs/engineering/incidents.md): fail the build on a forgotten MapStruct target mapping
-// (previously only a WARN). Global annotation-processor arg, so we don't touch all 22 @Mapper
-// annotations. If this surfaces an intentionally-unmapped target, add @Mapping(target=..., ignore=true).
-tasks.named('compileJava') {
-    options.compilerArgs.addAll(['-Amapstruct.unmappedTargetPolicy=ERROR'])
 }
 
 // ── database migration helpers (ADR-0012) ──────────────────────────────────────

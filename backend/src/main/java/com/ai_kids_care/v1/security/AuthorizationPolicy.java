@@ -43,6 +43,10 @@ public class AuthorizationPolicy {
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             case TENANT_SURVEILLANCE_READ ->
                     tenantIdentity && role == UserRoleEnum.KINDERGARTEN_ADMIN;
+            // ⑥ 检测事件实时看板——本园 KINDERGARTEN_ADMIN/TEACHER（与 staff 告警受众一致）。
+            case DETECTION_EVENT_READ ->
+                    tenantIdentity && (role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             // SPEC-0001 §3 / §349 / §351：粗粒度门——GUARDIAN 或 TEACHER + 有效 tenant identity；
             // 细粒度「GUARDIAN 仅 ACTIVE 关系儿童 / TEACHER 仅 ACTIVE assignment 班级内儿童」由 ChildRepository SQL 内强制。
             // KINDERGARTEN_ADMIN 不在此门内（不得访问 GuardianChildVO 端点）。
@@ -81,6 +85,15 @@ public class AuthorizationPolicy {
             // SPEC-0003：感谢信写——仅 GUARDIAN + 有效 tenant identity。
             case APPRECIATION_LETTER_WRITE ->
                     tenantIdentity && role == UserRoleEnum.GUARDIAN;
+            // push_subscriptions 自助管理——任一已认证用户（context 存在即 true，
+            // 等价「任一已认证用户」，镜像 PLATFORM_ANNOUNCEMENT_READ）。
+            // 细粒度「只能管自己的」由 PushSubscriptionService 的 user-scoped 查询强制。
+            case PUSH_SUBSCRIPTION_MANAGE -> true;
+            // 检测事件复核——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity；
+            // 细粒度租户隔离由 EventReviewService(findByIdAndKindergarten_Id / kindergarten 谓词)强制。
+            case EVENT_REVIEW_WRITE, EVENT_REVIEW_READ ->
+                    tenantIdentity && (role == UserRoleEnum.KINDERGARTEN_ADMIN
+                            || role == UserRoleEnum.TEACHER);
         };
     }
 }

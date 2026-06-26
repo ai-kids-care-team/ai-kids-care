@@ -1,8 +1,7 @@
 [project]
 name = "ai-kids-care-ai"
 version = "0.1.0"
-# [推断] requires-python 取自 Dockerfile 实际基础镜像 python:3.12-slim；
-# ai/README.md 声明 Python 3.14（可能为目标版本，待维护者确认 — OQ-1）。
+# requires-python 取自 Dockerfile 实际基础镜像 python:3.12-slim；ai/README.md 已对齐为 3.12（OQ-1 已关闭）。
 requires-python = ">=3.12"
 dependencies = [
     "transformers==5.4.0",

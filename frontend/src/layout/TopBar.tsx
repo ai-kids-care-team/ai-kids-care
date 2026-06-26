@@ -1,9 +1,9 @@
 'use client';
 
-import { LogIn, LogOut, UserCircle } from 'lucide-react';
+import { ChevronDown, LogIn, LogOut, Settings, UserCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
 import { useAppDispatch } from '@/store/hook';
@@ -12,15 +12,16 @@ import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
 import type { UserRole } from '@/types/user-role';
 import { roleLabels } from '@/types/user-role';
-import { useGetMenusQuery } from '@/services/apis/menu.api';
+import { getMenusForRole } from '@/config/menu';
 import { LoginModal } from '@/components/home/LoginModal';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useLogoutMutation } from '@/services/apis/auth.api';
 import { clearCsrf } from '@/services/csrf';
 
 interface TopBarProps {
   currentRole: UserRole;
   username: string;
-  /** `/menus?roleType=` — 세션 없으면 ALL */
+  /** 역할 키 — 세션 없으면 'ANONYMOUS'. ADR-0013 정적 메뉴 설정의 키. */
   menuRoleType: string;
   hasSession: boolean;
 }
@@ -30,24 +31,30 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
   const dispatch = useAppDispatch();
   const [logoutSession] = useLogoutMutation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isGuest = !hasSession;
-  const { data: menuItems = [] } = useGetMenusQuery(menuRoleType, {
-    /** 라우트 이동·창 포커스마다 재조회하면 상단 메뉴가 잠깐 비거나 바뀌는 것처럼 보일 수 있음 */
-    refetchOnMountOrArgChange: false,
-    refetchOnFocus: false,
-    refetchOnReconnect: false,
-  });
-  const fallbackMenus = [
-    { menuId: -1, menuName: '홈', path: '/' },
-    { menuId: -2, menuName: '공지사항', path: '/announcements' },
-  ];
-  const renderedMenus = menuItems.length > 0 ? menuItems : fallbackMenus;
+  /** ADR-0013: 백엔드 `/menus` 대신 프론트엔드 정적 설정에서 역할별 메뉴를 읽는다. */
+  const renderedMenus = getMenusForRole(menuRoleType);
 
   useEffect(() => {
     const handler = () => setIsLoginModalOpen(true);
     window.addEventListener('open-login-modal', handler);
     return () => window.removeEventListener('open-login-modal', handler);
   }, []);
+
+  // 사용자 드롭다운: 바깥 클릭 시 닫는다(Radix 등 신규 의존성 없이 손수 처리).
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isMenuOpen]);
 
   const handleLogout = async () => {
     try {
@@ -75,26 +82,65 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
           </div>
 
           <div className="flex items-center gap-3">
-            {!isGuest && (
-              <div className="flex items-center gap-3 rounded-md px-4 py-2 text-base text-white">
-                <UserCircle className="h-7 w-7" />
-                <span className="font-medium">{username}</span>
+            {isGuest ? (
+              <Button
+                variant="ghost"
+                size="lg"
+                className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
+                onClick={() => setIsLoginModalOpen(true)}
+              >
+                <LogIn className="h-5 w-5" />
+                <span className="hidden text-base font-medium sm:inline-block">로그인</span>
+              </Button>
+            ) : (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-md px-4 py-2 text-base text-white transition-colors hover:bg-white/10"
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                >
+                  <UserCircle className="h-7 w-7" />
+                  <span className="font-medium">{username}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {isMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 text-gray-800 shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-gray-100"
+                    >
+                      <Settings className="h-4 w-4" />
+                      개인설정
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        void handleLogout();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      로그아웃
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-
-            <div className="ml-2 flex items-center gap-2 border-l border-white/20 pl-4">
-              <Button
-                  variant="ghost"
-                  size="lg"
-                  className="gap-2 rounded-lg px-4 text-white transition-colors hover:bg-red-500/80 hover:text-white"
-                  onClick={isGuest ? () => setIsLoginModalOpen(true) : () => void handleLogout()}
-              >
-                {isGuest ? <LogIn className="h-5 w-5" /> : <LogOut className="h-5 w-5" />}
-                <span className="hidden text-base font-medium sm:inline-block">
-                  {isGuest ? '로그인' : '로그아웃'}
-                </span>
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -104,19 +150,17 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
         >
           <div className="flex items-center justify-start text-base">
             <div className="flex items-center gap-8">
-              {renderedMenus.map((menu) => {
-                if (!menu.path) return null;
-                return (
-                  <Link key={menu.menuId} href={menu.path} className="font-medium transition-colors hover:text-green-300">
-                    {menu.menuName}
-                  </Link>
-                );
-              })}
+              {renderedMenus.map((menu) => (
+                <Link key={menu.key} href={menu.path} className="font-medium transition-colors hover:text-green-300">
+                  {menu.label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
       </div>
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }

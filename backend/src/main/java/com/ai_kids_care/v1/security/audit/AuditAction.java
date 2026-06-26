@@ -11,6 +11,8 @@ public enum AuditAction {
     // ── 会话生命周期 ──────────────────────────────────────────────────────────
     LOGIN_SUCCESS,
     LOGIN_FAILURE,
+    /** 登录限流/临时锁定（identifier 失败计数超阈值 → 429；不记录 identifier/password——D2）。 */
+    LOGIN_THROTTLE,
     LOGOUT,
     /** /auth/logout-all：用户主动吊销自身全部 session。 */
     SESSION_REVOKE_ALL,

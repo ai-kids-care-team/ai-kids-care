@@ -1,10 +1,12 @@
 package com.ai_kids_care.v1.repository;
 
 import com.ai_kids_care.v1.entity.Notification;
+import com.ai_kids_care.v1.type.NotificationStatusEnum;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +37,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      */
     @Query("select n from Notification n where n.id = :id and n.kindergarten.id = :kindergartenId")
     Optional<Notification> findKindergartenNotification(@Param("id") Long id, @Param("kindergartenId") Long kindergartenId);
+
+    /** ③b: deferred notifications whose quiet-hours delay has elapsed (for the scanner). */
+    @Query("select n from Notification n where n.status = :status and n.deferredUntil <= :now")
+    List<Notification> findByStatusAndDeferredUntilLessThanEqual(@Param("status") NotificationStatusEnum status,
+                                                                 @Param("now") OffsetDateTime now);
 }

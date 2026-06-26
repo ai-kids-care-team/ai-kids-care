@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Kids Care — Frontend
 
-## Getting Started
+Next.js 16 静态导出（`output: 'export'`），由 **Nginx** 托管。所有数据请求在浏览器端通过 Axios 调用后端 REST API（`/api/v1`）完成；没有 Next.js 运行时服务器、SSR 或 Server Actions。
 
-First, run the development server:
+认证采用**服务端会话**（Spring Session + Redis + httpOnly cookie + CSRF，ADR-0016）；前端使用 `withCredentials: true` + `X-XSRF-TOKEN` header，无 Bearer token。
+
+详细规格见 OpenSpec 能力规格（`openspec/specs/`，如 auth-authorization、appreciation-letters 等）。
+
+## 本地开发命令
+
+```bash
+# 安装依赖（存在 peer dependency 冲突，需加 --legacy-peer-deps）
+npm ci --legacy-peer-deps
+
+# Lint 检查
+npm run lint
+
+# 静态构建（产物输出到 /out）
+npm run build
+```
+
+开发时如需启动热重载服务器（仅本地调试，不等于生产形态）：
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 默认监听 http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+API 基础路径默认 `http://localhost:8080/api/v1`，可通过 `NEXT_PUBLIC_API_BASE_URL` 环境变量覆盖（参考 `.env.example`）。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 生产部署
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+生产环境通过根目录 `docker-compose.yml` 启动：多阶段构建将 `npm run build` 产物（`/out`）拷入 `nginx:alpine` 镜像，由 Nginx 提供静态服务并反代 `/api/` 到后端。详见根目录 `README.md` 与 `frontend/Dockerfile`。

@@ -6,7 +6,7 @@ import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.vo.NotificationVO;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface NotificationMapper {
 
     @Mapping(source = "id", target = "notificationId")
@@ -17,6 +17,7 @@ public interface NotificationMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "deferredUntil", ignore = true)
     // kindergarten は closed write パスでは不使用——tenant-scoped 読取は NotificationService の READ パスで処理
     @Mapping(target = "kindergarten", ignore = true)
     @Mapping(source = "eventId", target = "detectionEvents.id")
@@ -28,6 +29,7 @@ public interface NotificationMapper {
     @Mapping(source = "eventId", target = "detectionEvents.id")
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "deferredUntil", ignore = true)
     // kindergarten は closed write パスでは不使用
     @Mapping(target = "kindergarten", ignore = true)
     void updateEntity(NotificationUpdateDTO dto, @MappingTarget Notification entity);
