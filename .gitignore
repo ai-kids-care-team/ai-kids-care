@@ -319,5 +319,6 @@ lerna-debug.log*
 # docker-data/
 # volumes/
 
-# Tier-1 visual acceptance local artifacts (screenshots/reports)
-_workspace/visual-acceptance/
+# 组件多角度分析 harness 的本地中间产物（findings / 报告 / 截图）。
+# 整个 _workspace/ 是临时区，不入库；需长期留存的评估报告应规范化落到 docs/assessments/。
+_workspace/

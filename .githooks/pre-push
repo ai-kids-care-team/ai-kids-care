@@ -1,0 +1,77 @@
+#!/bin/sh
+# pre-push —— 前端 lint 本地门禁。
+#
+# 为何存在：lint 这类低级错误不该等到 CI 才暴露（push→等 CI→红→再修，浪费往返）。
+# 在本地、推送前把它拦下。
+# 为何选 pre-push 而非 pre-commit：commit 仍要快，只在真正进入 CI 前把关一次。
+# 仅当本次推送包含 frontend/ 改动时才跑，无前端改动的推送零额外耗时。
+#
+# 环境（2026-06-29）：本机 node 已在 PATH，直接本地 lint；无 node 的机器回退 node:20 容器。
+# 注意：本 hook 是 git hook（POSIX sh，经 Git Bash 跑），与 Claude settings hook（仅 git/powershell）无关。
+#
+# 启用：git config core.hooksPath .githooks  （随仓库分发，新克隆执行一次）
+
+REMOTE_DEFAULT="origin/main"
+
+is_zero() {
+  # 全零 sha 表示分支删除 / 新分支的占位
+  case "$1" in
+    *[!0]*) return 1 ;;
+    *)      return 0 ;;
+  esac
+}
+
+changed=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  is_zero "$local_sha" && continue            # 删除分支：无内容可查
+  if is_zero "$remote_sha"; then
+    # 新分支：与默认分支的 merge-base 起算，避免列出整段历史
+    base=$(git merge-base "$local_sha" "$REMOTE_DEFAULT" 2>/dev/null)
+    if [ -n "$base" ]; then
+      range="$base..$local_sha"
+    else
+      range="$local_sha"
+    fi
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  files=$(git diff --name-only "$range" 2>/dev/null)
+  changed="$changed
+$files"
+done
+
+# 不含 frontend/ 改动 → 放行，不拖慢
+if ! printf '%s\n' "$changed" | grep -q '^frontend/'; then
+  exit 0
+fi
+
+echo "[pre-push] 检测到 frontend/ 改动，运行 ESLint…"
+
+if command -v node >/dev/null 2>&1; then
+  # 跨平台：直接用 node 跑 eslint.js，绕开 node_modules/.bin shim 的平台差异。
+  # （WSL/Linux 下装的 node_modules 在 Windows Git Bash 里只有符号链接、没有 .cmd shim，
+  #   `npm run lint` / `npx eslint` 会报 "eslint is not recognized" 而误判失败。）
+  if [ -f frontend/node_modules/eslint/bin/eslint.js ]; then
+    ( cd frontend && node node_modules/eslint/bin/eslint.js )
+    status=$?
+  else
+    echo "[pre-push] frontend 依赖未安装（缺 eslint）；跳过本地 lint（CI 仍会校验）。" >&2
+    echo "[pre-push] 建议先：cd frontend && npm ci --legacy-peer-deps" >&2
+    exit 0
+  fi
+elif command -v docker >/dev/null 2>&1; then
+  echo "[pre-push] 本机无 node，回退 node:20 容器…"
+  docker run --rm -v "$(pwd)/frontend":/app -w /app node:20 sh -c "npm ci --legacy-peer-deps && npm run lint"
+  status=$?
+else
+  echo "[pre-push] 既无 node 也无 docker，无法本地 lint；放行（CI 仍会校验）。" >&2
+  exit 0
+fi
+
+if [ "$status" -eq 0 ]; then
+  echo "[pre-push] ESLint 通过。"
+  exit 0
+fi
+
+echo "[pre-push] ESLint 失败，已拦截 push。本地修复后重试（或 --no-verify 强行跳过，不建议）。" >&2
+exit 1

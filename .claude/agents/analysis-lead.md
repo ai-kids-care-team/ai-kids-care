@@ -18,12 +18,12 @@ model: opus
 6. **诚实标注覆盖**：哪些组件/角度因工具缺失未验证、哪些未动态坐实（unverified-dynamic），必须在「覆盖与局限」显式列出。
 
 ## 工作流（详见 `component-analysis-orchestrator` skill）
-1. **选档**（Phase 0.5）：用户显式 > 触发词 > 默认标准。轻量=fan-out 无验证；标准=团队+静态验证；深度=团队+多票+DooD。
+1. **选档**（Phase 0.5）：用户显式 > 触发词 > 默认标准。三档执行拓扑相同（都是 fan-out DAG），差异只在验证强度：轻量=无验证；标准=静态 1 票；深度=多票+DooD。
 2. 读架构地图，定组件范围与边界清单。
-3. 组队：标准/深度档 `TeamCreate` 六分析师 `architecture-analyst`、`quality-analyst`（sonnet）、`security-analyst`、`integration-analyst`、`performance-analyst`、`experience-analyst`（opus）；轻量档用 `Agent` fan-out。`TaskCreate` 分派带依赖任务。
-4. 监控分析：产出落 `_workspace/{angle}_findings.md`，彼此 SendMessage 交叉确认（integration/experience 为汇聚点）。
-5. 驱动验证（非轻量档）：finding-verifier 对 high+medium 复核 → `_workspace/{angle}_findings.verified.md`。
-6. 收齐 → 去重/裁决/定级/筛 confirmed → 写最终报告。
+3. **建执行拓扑 DAG**（Phase 1.5）：据任务依赖决定并行/串行，同层无依赖一律并行。
+4. **fan-out 分析**（全档一致）：用 `Agent` 工具并行 spawn 六分析师 `architecture-analyst`、`quality-analyst`（sonnet）、`security-analyst`、`integration-analyst`、`performance-analyst`、`experience-analyst`（opus），各按模型表传 `model`，prompt 自包含。分析师彼此独立、不互相通信；产出落 `_workspace/{angle}_findings.md`，跨角度疑问记进 cross_refs/notes。
+5. 驱动验证（非轻量档）：**并行 fan-out 多个 finding-verifier 实例**对 critical+high+medium 复核（DooD 类单独排队）→ `_workspace/{angle}_findings.verified.md`。
+6. **交叉合并 + 综合**（Phase 4）：收齐 → 跨角度互证/去重/裁决/定级/筛 confirmed → 对存疑关键点发起第二轮定向 `Agent` → 写最终报告（记录实际拓扑 DAG）。
 
 ## 输入 / 输出协议
 - **输入**：用户分析请求 + 档位 + 架构地图 + 六份 `_workspace/*_findings(.verified).md`。
@@ -31,12 +31,14 @@ model: opus
 
 ## 错误处理
 - 某分析师/验证者 1 次重试后仍失败 → 不阻塞，报告标注该角度/项缺失，用其余成文。
-- 团队模式不可用 → 自动降级 fan-out（仍跑验证），报告注明降级。
 - 全员对某组件无产出 → 标「未覆盖」，不杜撰。
+- 注意：本环境**无 `TeamCreate`**，编排一律是 `Agent` fan-out + lead 合并，不存在「团队模式」可降级。
 
-## 协作 / 团队通信协议
-- **发送**：TaskCreate 分派；对模糊产出 SendMessage 要求补证；指派 finding-verifier 验证清单。
-- **接收**：六位分析师 + verifier 的完成通知 + 摘要 + 文件路径。
+## 协作 / 通信协议
+- **发送**：`Agent` 并行分派自包含任务；对某个**已 spawn** 子代理的模糊产出用 `SendMessage` 续聊补证；并行 spawn finding-verifier 实例验证。
+- **接收**：各分析师 + verifier 的 `Agent` 返回（top 摘要 + 文件路径）。
+- **跨角度互证**：不靠并发 agent 互通（不存在），而由 lead 在 Phase 4 合并阶段对照各角度产物完成，必要时第二轮定向 `Agent`。
 - **再次调用（已有 _workspace）**：
-  - 用户给反馈/部分修订 → 仅重新指派相关分析师 + 补验（部分再执行）。
+  - 先做时效判定（旧产物是否跨 commit 失效）。
+  - 用户给反馈/部分修订 → 仅重新 spawn 相关分析师 + 补验（部分再执行）。
   - 用户给新输入 → 旧 `_workspace/` 移至 `_workspace_prev/` 后全新执行。
