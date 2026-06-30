@@ -1,6 +1,8 @@
 package com.ai_kids_care.v1.repository;
 
 import com.ai_kids_care.v1.vo.graph.ChildGraphVO;
+import com.ai_kids_care.v1.vo.graph.TeacherGraphVO;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Result;
@@ -14,24 +16,33 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
+/**
+ * The only hand-written Cypher repository. Reads exclusively from the Neo4j derived graph (which
+ * holds no S0/PII per INC-003) and maps driver node/relationship values straight into VOs; it MUST
+ * NOT depend on any JPA repository or otherwise join back to PostgreSQL (that would let PII re-enter
+ * via the read path). Tenant isolation is enforced INSIDE the Cypher: every query anchors on
+ * {@code {kindergarten_id: $kgId}} (supplied by the service from the ThreadLocal active tenant, never
+ * from the request) and constrains the traversed nodes to the same tenant. A miss — non-existent id
+ * or an id that exists only in another tenant — raises {@link EntityNotFoundException}, mapped to a
+ * 404 by {@code ApiExceptionHandler} so cross-tenant existence is hidden.
+ */
 @Repository
 @RequiredArgsConstructor
 public class GraphRepository {
 
     private final Driver driver;
 
-    public ChildGraphVO findChildGraph(Long childId) {
+    public ChildGraphVO findChildGraph(Long childId, Long kindergartenId) {
         try (Session session = driver.session()) {
             return session.executeRead(tx -> {
 
                 Result result = tx.run("""
-                    MATCH (ch:Child {child_id: $childId})
-                    OPTIONAL MATCH (c:Class)-[:HAS_CHILD]->(ch)
-                    OPTIONAL MATCH (t:Teacher)-[:HAS_CLASS]->(c)
-                    OPTIONAL MATCH (k:Kindergarten)-[:HAS_TEACHER]->(t)
-                    OPTIONAL MATCH (ch)-[rg:HAS_GUARDIAN]->(g:Guardian)
+                    MATCH (ch:Child {child_id: $childId, kindergarten_id: $kgId})
+                    OPTIONAL MATCH (c:Class {kindergarten_id: $kgId})-[:HAS_CHILD]->(ch)
+                    OPTIONAL MATCH (t:Teacher {kindergarten_id: $kgId})-[:HAS_CLASS]->(c)
+                    OPTIONAL MATCH (k:Kindergarten {kindergarten_id: $kgId})-[:HAS_TEACHER]->(t)
+                    OPTIONAL MATCH (ch)-[rg:HAS_GUARDIAN]->(g:Guardian {kindergarten_id: $kgId})
                     RETURN ch, c, t, k,
                            collect({
                                guardian: g,
@@ -39,14 +50,37 @@ public class GraphRepository {
                                is_primary: rg.is_primary,
                                priority: rg.priority
                            }) AS guardians
-                    """, Values.parameters("childId", childId));
+                    """, Values.parameters("childId", childId, "kgId", kindergartenId));
 
                 if (!result.hasNext()) {
-                    throw new NoSuchElementException("Child graph not found. childId=" + childId);
+                    throw new EntityNotFoundException("Child graph not found");
                 }
 
                 Record record = result.single();
                 return mapToChildGraphVO(record);
+            });
+        }
+    }
+
+    public TeacherGraphVO findTeacherGraph(Long teacherId, Long kindergartenId) {
+        try (Session session = driver.session()) {
+            return session.executeRead(tx -> {
+
+                Result result = tx.run("""
+                    MATCH (t:Teacher {teacher_id: $teacherId, kindergarten_id: $kgId})
+                    OPTIONAL MATCH (k:Kindergarten {kindergarten_id: $kgId})-[:HAS_TEACHER]->(t)
+                    OPTIONAL MATCH (t)-[:HAS_CLASS]->(c:Class {kindergarten_id: $kgId})
+                    OPTIONAL MATCH (c)-[:HAS_CHILD]->(ch:Child {kindergarten_id: $kgId})
+                    WITH t, k, c, collect(ch) AS children
+                    RETURN t, k, collect({ class: c, children: children }) AS classes
+                    """, Values.parameters("teacherId", teacherId, "kgId", kindergartenId));
+
+                if (!result.hasNext()) {
+                    throw new EntityNotFoundException("Teacher graph not found");
+                }
+
+                Record record = result.single();
+                return mapToTeacherGraphVO(record);
             });
         }
     }
@@ -66,6 +100,58 @@ public class GraphRepository {
                 .kindergarten(mapKindergartenNode(kindergartenNode))
                 .guardians(guardians)
                 .build();
+    }
+
+    private TeacherGraphVO mapToTeacherGraphVO(Record record) {
+        Node teacherNode = getNode(record, "t");
+        Node kindergartenNode = getNullableNode(record, "k");
+
+        return TeacherGraphVO.builder()
+                .teacher(mapTeacherNode(teacherNode))
+                .kindergarten(mapKindergartenNode(kindergartenNode))
+                .classes(mapClassesWithChildren(record.get("classes")))
+                .build();
+    }
+
+    private List<TeacherGraphVO.ClassWithChildrenVO> mapClassesWithChildren(Value classesValue) {
+        if (classesValue == null || classesValue.isNull()) {
+            return List.of();
+        }
+
+        List<TeacherGraphVO.ClassWithChildrenVO> list = new ArrayList<>();
+
+        for (Value item : classesValue.values()) {
+            if (item == null || item.isNull()) continue;
+
+            Value classValue = item.get("class");
+            // A teacher with no assigned class yields a single {class: null, children: []} entry; skip it.
+            if (classValue == null || classValue.isNull()) continue;
+
+            Node classNode = classValue.asNode();
+
+            List<ChildGraphVO.ChildNodeVO> children = new ArrayList<>();
+            Value childrenValue = item.get("children");
+            if (childrenValue != null && !childrenValue.isNull()) {
+                for (Value childValue : childrenValue.values()) {
+                    if (childValue == null || childValue.isNull()) continue;
+                    children.add(mapChildNode(childValue.asNode()));
+                }
+            }
+            children.sort(Comparator.comparing(
+                    ChildGraphVO.ChildNodeVO::getChildId,
+                    Comparator.nullsLast(Long::compareTo)));
+
+            list.add(TeacherGraphVO.ClassWithChildrenVO.builder()
+                    .classInfo(mapClassNode(classNode))
+                    .children(children)
+                    .build());
+        }
+
+        list.sort(Comparator.comparing(
+                c -> c.getClassInfo().getClassId(),
+                Comparator.nullsLast(Long::compareTo)));
+
+        return list;
     }
 
     private ChildGraphVO.ChildNodeVO mapChildNode(Node node) {
