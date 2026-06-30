@@ -105,10 +105,10 @@ SELECT setval(pg_get_serial_sequence('"event_evidence_files"', 'evidence_id'),
               MAX("evidence_id") IS NOT NULL)
 FROM "event_evidence_files";
 
-SELECT setval(pg_get_serial_sequence('"device_tokens"', 'device_id'),
-              COALESCE(MAX("device_id"), 1),
-              MAX("device_id") IS NOT NULL)
-FROM "device_tokens";
+SELECT setval(pg_get_serial_sequence('"push_subscriptions"', 'push_subscription_id'),
+              COALESCE(MAX("push_subscription_id"), 1),
+              MAX("push_subscription_id") IS NOT NULL)
+FROM "push_subscriptions";
 
 SELECT setval(pg_get_serial_sequence('"notification_rules"', 'rule_id'),
               COALESCE(MAX("rule_id"), 1),

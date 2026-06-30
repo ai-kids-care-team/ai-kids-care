@@ -11,10 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * schema-digest guardrail, rebuilt as a data-platform capability test (was a removed
  * digest-script + CI-diff harness).
  *
- * Asserts structural invariants of the fully-migrated schema (db/initdb baseline + Flyway
- * V2..Vn, the path BaseIntegrationTest boots). Both deploy paths (fresh-V1 and initdb+baseline)
- * converge here because the migrations are idempotent (IF NOT EXISTS / DROP NOT NULL). This
- * catches a migration regression that would leave the live schema in the wrong final shape.
+ * Asserts structural invariants of the terminal schema (the path BaseIntegrationTest boots:
+ * db/initdb creates the consolidated schema, Flyway baselines V1). After the
+ * squash-flyway-to-single-baseline change the historical V2..V12 chain is folded into the single
+ * V1__initial_baseline.sql, so both deploy paths (fresh-V1 and initdb+baseline) are generated from
+ * db/dbml/schema.dbml and converge to the same terminal shape. The method names below reference the
+ * historical migration (V3/V4../V12) that originally introduced each invariant, for traceability.
+ * This catches a regression that would leave the live schema in the wrong final shape.
  *
  * (Entity↔schema alignment is separately enforced by ddl-auto=validate at context load.)
  */
