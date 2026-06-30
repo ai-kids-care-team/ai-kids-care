@@ -169,6 +169,13 @@ class DetectionEventStreamReplayTest extends BaseIntegrationTest {
 
     /** Open the SSE stream (async). Replay + connected frames are written in the request thread. */
     private MvcResult openStream(Cookie cookie, String lastEventId) throws Exception {
+        // Drain the ingest @Async fan-out before opening. Each ingested event publishes an @Async SSE
+        // push (DetectionEventSseService.onIngested); openStream replays-then-registers the emitter, so
+        // a pre-open push still in flight would land AFTER registration and add a live frame on top of
+        // the bounded replay set — non-deterministically inflating the replayed-id count (the
+        // windowExceedingMax 6>5 / stray-id flakes). Quiescing the executor first models the real
+        // reconnect (the disconnect window's pushes have drained before the client returns).
+        awaitAsyncQuiescence();
         MockHttpServletRequestBuilder req = get("/api/v1/detection-events/stream").cookie(cookie);
         if (lastEventId != null) {
             req = req.header("Last-Event-ID", lastEventId);

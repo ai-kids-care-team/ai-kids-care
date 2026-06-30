@@ -64,8 +64,6 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
     @Autowired private DetectionEventMapper mapper;
     @Autowired private TransactionTemplate txTemplate;
     @Autowired private EntityManagerFactory emf;
-    @Autowired @org.springframework.beans.factory.annotation.Qualifier("applicationTaskExecutor")
-    private org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor applicationTaskExecutor;
 
     private long kindergartenId;
     private long streamId;
@@ -176,24 +174,7 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
         return txTemplate.execute(s -> body.get());
     }
 
-    /**
-     * Block until the @Async executor that runs the ingest staff-alert side-effects has fully drained
-     * (no active and no queued tasks), so {@link #measure} sees only the test thread's statements.
-     * Polling the global statement counter is unreliable here: queued-but-momentarily-idle tasks can
-     * make two samples read equal prematurely, after which the queue bursts into the measured window.
-     * Waiting on the executor itself is exact. Bounded to ~10s.
-     */
-    private void awaitAsyncQuiescence() {
-        java.util.concurrent.ThreadPoolExecutor exec = applicationTaskExecutor.getThreadPoolExecutor();
-        for (int i = 0; i < 200 && (exec.getActiveCount() > 0 || !exec.getQueue().isEmpty()); i++) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-    }
+    // awaitAsyncQuiescence() is inherited from BaseIntegrationTest (shared by the SSE replay test too).
 
     // -- ingest helpers (mirror DetectionEventStreamReplayTest, real FK-linked rows) ---------------
 

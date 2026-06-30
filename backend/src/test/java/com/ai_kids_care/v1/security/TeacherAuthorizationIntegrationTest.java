@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.security;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,7 +101,17 @@ class TeacherAuthorizationIntegrationTest extends BaseIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         assertThat(body).contains("Home Teacher");
         assertThat(body).doesNotContain("Foreign Teacher");
-        assertThat(body).doesNotContain(String.valueOf(otherKgTeacher));
+        // Precisely assert the foreign-KG teacher row is absent from the page content. A raw
+        // substring check on the JSON (doesNotContain("226")) is brittle: a sequence-allocated id
+        // can coincidentally appear inside a timestamp/other id (e.g. "...13:23:24.02267..."),
+        // failing even though tenant isolation is correct.
+        JsonNode content = objectMapper.readTree(body).get("content");
+        assertThat(content).isNotNull();
+        for (JsonNode teacher : content) {
+            assertThat(teacher.get("teacherId").asLong())
+                    .as("foreign-KG teacher must not appear in the home-KG roster")
+                    .isNotEqualTo(otherKgTeacher);
+        }
 
         // detail of cross-tenant teacher leaks nothing — 404, not 200
         mockMvc.perform(get("/api/v1/teachers/{id}", otherKgTeacher).cookie(session))

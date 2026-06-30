@@ -1,6 +1,9 @@
 package com.ai_kids_care;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -10,6 +13,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import java.nio.file.Paths;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Base class for integration tests.
@@ -73,5 +77,32 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
+    }
+
+    /** Shared Boot {@code @Async} executor — the one every {@code @Async} method runs on. */
+    @Autowired
+    @Qualifier("applicationTaskExecutor")
+    private ThreadPoolTaskExecutor applicationTaskExecutor;
+
+    /**
+     * Block until the shared {@code @Async} executor has fully drained (no active and no queued
+     * tasks). Use this in tests that ingest detection events and then assert on a side-effect path
+     * (SSE replay frames, Hibernate {@code Statistics} counts, …): the ingest publishes
+     * {@code @Async} listeners (SSE live push, staff-alert) that run on this shared executor on
+     * other threads, so a task still in flight when the test proceeds can interleave an extra frame
+     * or extra SQL into the assertion window. Waiting on the executor itself is exact (polling a
+     * derived counter is not — a momentarily-idle queue can read quiescent prematurely). Bounded to
+     * ~10s; if it ever exhausts the budget the test proceeds (and will fail loudly) rather than hang.
+     */
+    protected void awaitAsyncQuiescence() {
+        ThreadPoolExecutor exec = applicationTaskExecutor.getThreadPoolExecutor();
+        for (int i = 0; i < 200 && (exec.getActiveCount() > 0 || !exec.getQueue().isEmpty()); i++) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 }
