@@ -7,7 +7,6 @@ import com.ai_kids_care.v1.vo.graph.TeacherGraphVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Read-only queries over the Neo4j derived relationship graph. tenant-scoped (the active
@@ -28,14 +27,14 @@ public class GraphService {
 
     private final GraphRepository graphRepository;
 
-    @Transactional(readOnly = true)
+    // No @Transactional: these reads hit only the Neo4j driver (its own session), never JPA — wrapping
+    // them in a PG transaction would needlessly hold a pooled connection across the Neo4j call.
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).GRAPH_READ)")
     public ChildGraphVO getChildGraph(Long childId) {
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
         return graphRepository.findChildGraph(childId, kindergartenId);
     }
 
-    @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).GRAPH_READ)")
     public TeacherGraphVO getTeacherGraph(Long teacherId) {
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
