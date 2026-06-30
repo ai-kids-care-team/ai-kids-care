@@ -64,10 +64,10 @@ class GraphReadApiTest extends GraphIntegrationTest {
                 "SELECT kindergarten_id FROM kindergartens WHERE kindergarten_id <> ? ORDER BY kindergarten_id LIMIT 1",
                 Long.class, kgA);
 
-        seedTenantUser(ADMIN_A, "graph-admin-a@test.local", "010-0000-7701", "KINDERGARTEN_ADMIN", kgA);
-        seedTenantUser(TEACHER_A, "graph-teacher-a@test.local", "010-0000-7702", "TEACHER", kgA);
-        seedTenantUser(GUARDIAN_A, "graph-guardian-a@test.local", "010-0000-7703", "GUARDIAN", kgA);
-        seedTenantUser(ADMIN_B, "graph-admin-b@test.local", "010-0000-7704", "KINDERGARTEN_ADMIN", kgB);
+        seedTenantUser(ADMIN_A, "graph-admin-a@test.local", "KINDERGARTEN_ADMIN", kgA);
+        seedTenantUser(TEACHER_A, "graph-teacher-a@test.local", "TEACHER", kgA);
+        seedTenantUser(GUARDIAN_A, "graph-guardian-a@test.local", "GUARDIAN", kgA);
+        seedTenantUser(ADMIN_B, "graph-admin-b@test.local", "KINDERGARTEN_ADMIN", kgB);
 
         clearGraph();
         seedGraphTenant(kgA, "유치원A", TEACHER_NODE_A, "김교사", CLASS_A, "햇님반", CHILD_A, "아이A", "A-001", GUARDIAN_A_ID, "엄마A");
@@ -221,12 +221,16 @@ class GraphReadApiTest extends GraphIntegrationTest {
         return request.cookie(csrf.getResponse().getCookie("XSRF-TOKEN")).header("X-XSRF-TOKEN", token);
     }
 
-    private void seedTenantUser(String loginId, String email, String phone, String role, long kgId) {
+    private void seedTenantUser(String loginId, String email, String role, long kgId) {
+        // phone is left NULL: uq_user_account_phone is unique, the PG testcontainer is shared across
+        // test classes (no rollback), and a synthetic phone like 010-0000-770x is also used by other
+        // fixtures — a non-null value here collides. These graph reads don't need a phone; NULLs do
+        // not conflict under a unique index in PostgreSQL.
         jdbc.update("""
                 INSERT INTO users (login_id, email, phone, password_hash, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'ACTIVE', NOW(), NOW())
+                VALUES (?, ?, NULL, ?, 'ACTIVE', NOW(), NOW())
                 ON CONFLICT (login_id) DO UPDATE SET password_hash = EXCLUDED.password_hash, status = 'ACTIVE'
-                """, loginId, email, phone, passwordEncoder.encode(PW));
+                """, loginId, email, passwordEncoder.encode(PW));
         jdbc.update("DELETE FROM user_role_assignments WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)", loginId);
         jdbc.update("DELETE FROM user_kindergarten_memberships WHERE user_id = (SELECT user_id FROM users WHERE login_id = ?)", loginId);
         jdbc.update("""
