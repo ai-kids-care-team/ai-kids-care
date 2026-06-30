@@ -170,7 +170,7 @@ AI 服务主要端点：
 - PostgreSQL schema 和 seed SQL：`db/initdb/`
 - DBML schema：`db/dbml/schema.dbml`
 - ERD 文档：`openspec/specs/data-platform/spec.md`
-- Neo4j 数据加载器：`db/ne4j_kindergartens/`
+- Neo4j 数据加载器：`db/ne4j_kindergartens/`（直接查询 PostgreSQL 一次性重建派生图；不使用 CSV）
 - 代码生成工具：~~`pg-spring-crud-codegen/`~~（已退役，2026-06-18，ADR-0027；新增领域对象改为手写）
 
 后端以 Hibernate `ddl-auto=validate` 模式运行，因此应用启动前数据库 schema 必须已经存在。使用根目录 Docker Compose 时，PostgreSQL 容器创建阶段会自动应用 `db/initdb`。

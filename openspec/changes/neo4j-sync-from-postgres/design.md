@@ -45,7 +45,9 @@ INC-003 安全约束：loader 绝不能把 S0/PII 字段（`password_hash`/`rrn_
 
 ### D2：节点/关系属性集 = 当前图的逐字段镜像，PII 列永不进 SELECT
 新 ETL 的每个实体用**显式列白名单**从 PG 查询，白名单逐字段抄录自当前 insert 脚本的 `SET` 子句，
-确保图形状不变：
+确保图形状不变。**完整图（实现期核实，比初稿多 User/Role/HAS_ROLE）**：节点 User/Kindergarten/
+Teacher/Class/Child/Guardian/**Role**；关系 **HAS_ROLE**(User→Role, 源 `user_role_assignments`)/
+HAS_TEACHER(由 Teacher.kindergarten_id 导出)/HAS_CLASS/HAS_CHILD/HAS_GUARDIAN。各节点白名单：
 - `User`: user_id, login_id, status, last_login_at, created_at, updated_at（PG `users`）
 - `Kindergarten`: kindergarten_id, name, region_code, code, business_registration_no, contact_name,
   status, created_at, updated_at（PG `kindergartens`；**不取** address/contact_phone/contact_email）
@@ -66,10 +68,12 @@ ETL 起始 `MATCH (n) DETACH DELETE n` 全清，再建。Neo4j 是纯派生副�
 相比当前"MERGE-only + 仅删 tree 关系"，全清能消除 PG 已删实体在图中残留为孤儿节点的问题，使一次 sync
 后图与 PG 完全一致。节点仍按 id 键 MERGE/CREATE，唯一约束（`*_id IS UNIQUE`）保留。
 
-### D4：PG 驱动用 psycopg(v3)
-`requirements.txt` 增 `psycopg[binary]`。原生 datetime/date 类型由驱动直接返回，**省去** CSV 路径里
-`fix_datetime`/`fix_date` 字符串补丁逻辑，Neo4j Python driver 也原生接受 temporal 类型。
-- **替代**：psycopg2 —— 否决（v3 是当前主线，binary wheel 装载更省事）。
+### D4：PG 驱动复用已有的 psycopg2（实现期修正）
+`requirements.txt` **已含** `psycopg2-binary==2.9.9`，且退役脚本 `db100_insert_users.py` 已用它
+（RealDictCursor + UNWIND 批量 MERGE）成功查 PG——新 ETL 直接沿用这一既有、已验证的模式，无需引入新驱动。
+温度/日期列经 `value.isoformat()` 归一为字符串（与既有图存储一致）。`requirements.txt` 顺带删去未再被
+任何留存脚本引用的 `pandas`。
+- **修正说明**：提案初稿曾写"增 psycopg(v3)"，实现期发现 psycopg2 已在用 → 改为复用，少一个依赖变更。
 
 ### D5：失败即非零退出，依赖顺序确保 PG 就绪
 `load_graph.py` 任一步异常 → 进程非零退出（compose 里 `data-loader` 显红，便于发现），不吞错继续。
