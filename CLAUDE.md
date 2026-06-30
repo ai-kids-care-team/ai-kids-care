@@ -57,7 +57,7 @@
 
 - **REST 基线**：所有业务 API 在 `/api/v1/**`，Cookie 会话 + CSRF 头（非 Bearer）。分页 Spring `Page` ↔ 前端 `PageResponse`。
 - **AI → backend ingest**：`POST /api/v1/internal/detection-{sessions,events}`，**Bearer `AI_SERVICE_TOKEN`（ROLE_AI_SERVICE）**；payload camelCase 两侧对齐；幂等键 `dedupKey="{streamId}-{epochSec}"` 按 `(kindergarten_id, dedup_key)` 去重；AI 侧 bounded retry 3 次/指数退避/10s 超时。**backend 是 detection_events 唯一写入者**（ADR-0026）。
-- **数据存储三分**：**PostgreSQL** 权威（JPA `validate` + Flyway 到 **V12** + `db/initdb` baseline，靠 `baseline-on-migrate` 协调两条装配路径）；**Neo4j** 是关系图**只读派生副本**（原生 Driver + Cypher，靠 compose `data-loader` 从 PG 装填，**不含 PII**）；**Redis** 管 Spring Session（租户上下文载体）+ 登录限流，无业务缓存。
+- **数据存储三分**：**PostgreSQL** 权威（JPA `validate` + Flyway 单一 `V1__initial_baseline.sql` 基线〔DB-1 已 squash V1–V12，未来从 **V2** 续起〕，`db/initdb/01_create_schema.sql` 与 baseline 同源自 `db/dbml/schema.dbml`，靠 `baseline-on-migrate` 协调两条装配路径）；**Neo4j** 是关系图**只读派生副本**（原生 Driver + Cypher，靠 compose `data-loader` 从 PG 装填，**不含 PII**）；**Redis** 管 Spring Session（租户上下文载体）+ 登录限流，无业务缓存。
 - **enum 单一真源**：`GET /api/v1/enums/{name}`（ADR-0013 退役 `common_codes`/`menus`，label 归前端 i18n）；改 enum 须同步 DB / 后端 `type.*` / 前端三处。
 - **内部事件链**：ingest → `DetectionEventIngestedEvent` → SSE 推送；review → `EventReviewedEvent`(AFTER_COMMIT) → `GuardianNotificationService` 家长通知。
 - **通知渠道**：PUSH(Pushover via `push_subscriptions`) + SMS(Solapi via `users.phone`)；EMAIL 已注册未实现。教职员告警 ingest 后即发；家长通知须复核后（ESCALATED 穿透 / RESOLVED 受 quiet_hours 约束，DEFERRED 由 `@Scheduled` 60s 扫描器补发）。
