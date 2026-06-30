@@ -41,9 +41,19 @@ public class DetectionEventSseService {
         this.replayMax = replayMax;
     }
 
-    /** Create + register an emitter for the given kindergarten and wire its cleanup callbacks. */
-    public SseEmitter register(Long kindergartenId) {
+    /**
+     * Open a stream emitter with correct frame ordering: create the emitter, replay the missed
+     * events (when a numeric reconnect cursor is given) to it BEFORE it joins the live fan-out set,
+     * then register it for live pushes. Registering only after replay guarantees replay frames
+     * precede any live frame, so a reconnecting client never receives the same event both as a
+     * replay frame and as a live push on the same connection (the prior order — register, then
+     * replay — left a window where an in-flight async push could interleave a duplicate frame).
+     */
+    public SseEmitter openStream(Long kindergartenId, Long lastEventId) {
         SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MS);
+        if (lastEventId != null) {
+            replaySince(kindergartenId, lastEventId, emitter);
+        }
         registerEmitter(kindergartenId, emitter);
         return emitter;
     }

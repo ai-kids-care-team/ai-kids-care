@@ -62,15 +62,14 @@ public class DetectionEventController {
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("X-Accel-Buffering", "no"); // belt-and-suspenders with nginx proxy_buffering off
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        SseEmitter emitter = sseService.register(kindergartenId);
         // SSE reconnect catch-up: the browser EventSource auto-supplies Last-Event-ID (the id: of the
-        // last frame it received). When present and numeric, replay the events missed during the
-        // disconnect (event_id > lastId, this kindergarten only) BEFORE the connected frame / live
-        // pushes. Missing/blank/non-numeric → no replay; behaves exactly as the pre-existing connect.
+        // last frame it received). When present and numeric, the events missed during the disconnect
+        // (event_id > lastId, this kindergarten only) are replayed to the emitter BEFORE it joins the
+        // live fan-out, so replay frames always precede live pushes and the same event is never
+        // delivered twice on one connection. Missing/blank/non-numeric → no replay; behaves exactly
+        // as the pre-existing connect. (Ordering is owned by SseService#openStream.)
         Long lastId = parseLastEventId(lastEventId);
-        if (lastId != null) {
-            sseService.replaySince(kindergartenId, lastId, emitter);
-        }
+        SseEmitter emitter = sseService.openStream(kindergartenId, lastId);
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok")); // flush headers / confirm stream
         } catch (IOException e) {
