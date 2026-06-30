@@ -20,7 +20,7 @@ import sys
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import av
@@ -34,8 +34,8 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from ai_app.utils import backend_ingest
+from ai_app.utils.alarm_event import build_alarm_event_params
 from ai_app.utils.evidence_capture import EvidenceCaptureError, save_and_hash
-from ai_app.utils.event_type_mapper import map_label
 from realtime_persistence_demo import (
     frame_time_sec,
     label_for_id,
@@ -62,6 +62,9 @@ class PersistenceState:
     history: deque[tuple[float, int]] = field(default_factory=deque)
     alarm_on: bool = False
     alarm_start_sec: float | None = None
+    # Wall-clock instant the current alarm window began, captured at the alarm_on transition (D4).
+    # Drives the ingest dedupKey + startTime so a debounce/re-trigger of the same alarm is stable.
+    alarm_onset_wall: datetime | None = None
 
 
 def detect_black_screen(
@@ -394,6 +397,18 @@ def run_stream_service(
                         print(f"[INFO] {event_message}")
 
                         if event_type == "alarm_on":
+                            # D4: capture the wall-clock alarm window at the transition instant.
+                            # The alarm crosses the persistence threshold *now* (window end); the
+                            # window began when the rolling evidence started, i.e. now minus the
+                            # current history span. Both the dedupKey and startTime are derived from
+                            # this captured onset (NOT the submission time), so a debounce/re-trigger
+                            # of the same alarm yields the same key and the event carries a real,
+                            # non-zero time window. Stored on state so a same-episode re-submit reuses
+                            # it; cleared on alarm_off / reconnect (fresh PersistenceState).
+                            transition_wall = datetime.now(timezone.utc)
+                            history_span_sec = float(persistence["history_span_sec"])
+                            state.alarm_onset_wall = transition_wall - timedelta(seconds=history_span_sec)
+
                             now_wall = time.monotonic()
                             if (now_wall - last_notification_wall) >= float(notification_cooldown_sec):
                                 if session_id is not None:
@@ -417,18 +432,26 @@ def run_stream_service(
                                             f"{safe_log_text(str(capture_error))}"
                                         )
                                     try:
-                                        onset_epoch = time.time()
-                                        now_iso = datetime.now(timezone.utc).isoformat()
+                                        # D4: dedupKey + startTime from the captured onset, endTime
+                                        # from the transition instant. severity is derived from
+                                        # target_prob (the target-class softmax probability driving
+                                        # this alarm), not pred_conf. event_type/severity/dedupKey are
+                                        # built by the pure helper (unit-tested in isolation).
+                                        event_params = build_alarm_event_params(
+                                            stream_id=stream_id,
+                                            target_label=target_label,
+                                            target_prob=target_prob,
+                                            alarm_onset=state.alarm_onset_wall,
+                                            window_end=transition_wall,
+                                        )
                                         result = backend_ingest.submit_event(
                                             session_id,
-                                            map_label(target_label),
-                                            # severity is derived from target_prob (the target-class
-                                            # softmax probability that drives this alarm), not pred_conf.
-                                            backend_ingest.severity_from_confidence(target_prob),
-                                            target_prob,
-                                            now_iso,
-                                            now_iso,
-                                            backend_ingest.build_dedup_key(stream_id, onset_epoch),
+                                            event_params["event_type"],
+                                            event_params["severity"],
+                                            event_params["confidence"],
+                                            event_params["start_time"],
+                                            event_params["end_time"],
+                                            event_params["dedup_key"],
                                             java_backend_url,
                                             ai_service_token,
                                             evidence=evidence_descriptor,

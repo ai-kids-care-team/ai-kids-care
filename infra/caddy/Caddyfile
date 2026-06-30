@@ -16,7 +16,23 @@
 }
 
 {$DOMAIN} {
-	encode gzip
+	# Compress everything EXCEPT the SSE live-dashboard stream. Caddy's `encode`
+	# buffers a response to compress it, which holds SSE frames until the buffer
+	# fills or the connection idles — worst case the "live" detection-events board
+	# only updates at the 25s heartbeat interval (see CLAUDE.md "Caddy 全局 encode
+	# gzip 会缓冲 SSE 帧"). A negated request matcher keeps gzip on for the static
+	# export + normal /api JSON while leaving GET /api/v1/detection-events/stream
+	# (text/event-stream) uncompressed and unbuffered.
+	@not_sse not path /api/v1/detection-events/stream*
+	encode @not_sse gzip
+
+	# No path-scoped `reverse_proxy ... { flush_interval -1 }` is needed: Caddy's
+	# reverse_proxy auto-detects text/event-stream responses and flushes them
+	# immediately (effective flush_interval -1), and the downstream frontend nginx
+	# already serves this route with `proxy_buffering off` + `chunked_transfer_encoding
+	# off`. Once gzip is excluded above, nothing on the Caddy hop re-buffers the
+	# stream, so a single default reverse_proxy stays correct and avoids duplicating
+	# the proxy/header config.
 
 	# HSTS (ADR-0017). Only sent over HTTPS; remove `preload` until the domain is
 	# actually submitted to the preload list.

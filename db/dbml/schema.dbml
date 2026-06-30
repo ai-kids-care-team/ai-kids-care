@@ -26,6 +26,7 @@ Enum level_enum{
 Enum relationship_enum{
   FATHER [note: "부"]
   MOTHER [note: "모"]
+  OTHER [note: "기타(조부모/후견인 등); INT-03a"]
 }
 
 Enum user_role_enum{
@@ -607,6 +608,24 @@ Table notifications {
   }
 }
 
+Table notification_delivery_attempts {
+  attempt_id bigint [pk, increment, note: "전송 시도 ID"]
+  notification_id bigint [not null, note: "대상 알림 ID(NOTIFICATION.notification_id)"]
+  idempotency_key varchar [not null, note: "멱등성 키(at-most-once 보장; PRF-02)"]
+  channel notification_channel_enum [not null, note: "전송 채널(PUSH/SMS/EMAIL)"]
+  provider varchar [note: "외부 제공자 식별(varchar, enum 아님)"]
+  outcome varchar [not null, note: "결과(IN_FLIGHT/SUCCEEDED/FAILED 등; varchar)"]
+  detail varchar [note: "상세/오류 메시지"]
+  created_at timestamptz [not null, default: `now()`, note: "생성 일시"]
+  updated_at timestamptz [not null, default: `now()`, note: "수정 일시"]
+
+  Indexes {
+    (notification_id) [unique, name: "uq_notif_delivery_attempt_notification"]
+    (idempotency_key) [unique, name: "uq_notif_delivery_attempt_idem"]
+    (outcome) [name: "idx_notif_delivery_attempt_outcome"]
+  }
+}
+
 Table audit_logs {
   audit_id bigint [pk, increment, note: "감사/추적 로그 ID"]
   scope_type user_role_assignment_scope_type [not null, note: "이벤트 범위(PLATFORM/KINDERGARTEN); CHECK: PLATFORM→kindergarten_id NULL, KINDERGARTEN→NOT NULL (ADR-0021)"]
@@ -733,6 +752,9 @@ Ref: notifications.recipient_user_id > users.user_id
 
 Ref: notification_rules.kindergarten_id > kindergartens.kindergarten_id
 Ref: notification_rules.user_id > users.user_id
+
+// notification_delivery_attempts (V12) — ON DELETE CASCADE
+Ref: notification_delivery_attempts.notification_id > notifications.notification_id [delete: cascade]
 
 Ref: push_subscriptions.user_id > users.user_id
 

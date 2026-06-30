@@ -43,7 +43,7 @@ columns from PostgreSQL MUST be projected.
 
 #### Scenario: Graph relationship edges carry required attributes
 
-- **WHEN** `no1000_create_relationships.py` runs
+- **WHEN** the data-loader builds the graph relationships from PostgreSQL (`load_graph.py`)
 - **THEN** the following relationships are established with the stated properties:
   `(Class)-[:HAS_CHILD]->(Child)`,
   `(Teacher)-[:HAS_CLASS]->(Class)`,
@@ -55,73 +55,96 @@ columns from PostgreSQL MUST be projected.
 
 ### Requirement: Neo4j loader MUST NOT project S0 or PII fields into the graph (INC-003)
 
-The data-loader scripts in `db/ne4j_kindergartens/` MUST NOT write any S0 or S1/PII fields
-into Neo4j node properties. Specifically, the following fields SHALL be absent from all graph
-nodes: `password_hash`, `rrn_hash`, `rrn_first6`, `rrn_encrypted`, `birth_date`, `address`,
-`email`, `phone`, `emergency_contact_name`, `emergency_contact_phone`, `contact_phone`,
-`contact_email`, `stream_password_encrypted`, `stream_password_ciphertext`. A scrub script
-(`no000_scrub_sensitive.py`) SHALL be run before any loader re-execution to remove previously
-projected sensitive attributes from existing nodes.
+The data-loader in `db/ne4j_kindergartens/` MUST NOT write any S0 or S1/PII fields into Neo4j
+node properties. Specifically, the following fields SHALL be absent from all graph nodes:
+`password_hash`, `rrn_hash`, `rrn_first6`, `rrn_encrypted`, `birth_date`, `address`, `email`,
+`phone`, `emergency_contact_name`, `emergency_contact_phone`, `contact_phone`, `contact_email`,
+`stream_password_encrypted`, `stream_password_ciphertext`.
 
-#### Scenario: Child loader omits PII fields
+The loader sources graph data by querying PostgreSQL (the system of record) directly. For each
+node label it SHALL `SELECT` only an explicit allowlist of non-PII columns, so that PII columns
+never enter the loader's row data and therefore cannot be bound into any Cypher write (allowlist
+at the source is the primary INC-003 control, not a post-hoc scrub). As defense-in-depth, a scrub
+script (`no000_scrub_sensitive.py`) SHALL run before the load to `REMOVE` any sensitive attributes
+that may remain on pre-existing nodes from a prior run. The static guard `LoaderPiiProjectionGuardTest`
+SHALL continue to scan the loader's Python source and assert that no forbidden field is bound into a
+node property.
 
-- **WHEN** `no500_insert_children.py` writes a `Child` node via `MERGE … SET`
-- **THEN** the SET clause does NOT include `rrn_first6`, `rrn_encrypted`, `rrn_hash`,
-  `birth_date`, or `address`; these columns from the source data are silently dropped before
-  the Cypher write
+#### Scenario: Loader selects only non-PII columns from PostgreSQL
 
-#### Scenario: Teacher loader omits PII fields
+- **WHEN** the data-loader builds a `Child`, `Teacher`, `User`, `Kindergarten`, `Class`, or
+  `Guardian` node from PostgreSQL
+- **THEN** the SQL query `SELECT`s only that label's allowlisted non-PII columns (e.g. for `Child`:
+  `child_id`, `kindergarten_id`, `name`, `child_no`, `gender`, `enroll_date`, `leave_date`,
+  `status`, `created_at`, `updated_at`), so PII columns such as `rrn_first6`, `rrn_encrypted`,
+  `rrn_hash`, `birth_date`, `address`, `emergency_contact_*`, `email`, `phone`, `password_hash`,
+  `contact_*` are never read into the loader and never written to the graph
 
-- **WHEN** `no300_insert_teachers.py` writes a `Teacher` node
-- **THEN** the SET clause does NOT include `rrn_encrypted`, `rrn_first6`,
-  `emergency_contact_name`, or `emergency_contact_phone`
+#### Scenario: Graph nodes contain no PII property after a load
 
-#### Scenario: User loader omits credential and contact fields
+- **WHEN** the loader completes and `MATCH (n) UNWIND keys(n) AS k RETURN DISTINCT k` is run
+  against Neo4j
+- **THEN** the returned property-key set contains none of the forbidden S0/PII field names
 
-- **WHEN** `no100_insert_users.py` writes a `User` node
-- **THEN** the SET clause does NOT include `password_hash`, `email`, or `phone`
+#### Scenario: Static guard detects a forbidden binding
 
-#### Scenario: Kindergarten loader omits contact PII fields
-
-- **WHEN** `no200_insert_kindergarter.py` writes a `Kindergarten` node
-- **THEN** the SET clause does NOT include `address`, `contact_phone`, or `contact_email`
-
-#### Scenario: Guardian loader omits PII fields
-
-- **WHEN** `no600_insert_guardians.py` writes a `Guardian` node
-- **THEN** the SET clause does NOT include `rrn_encrypted`, `rrn_first6`, or `address`
+- **WHEN** `LoaderPiiProjectionGuardTest` scans the `db/ne4j_kindergartens/*.py` loader source
+- **THEN** it finds at least one loader file and reports zero bindings of a forbidden field into a
+  graph node property (`SET node.<field> = $param` or a `{ <field>: $param }` map entry)
 
 #### Scenario: Scrub script removes previously projected sensitive attributes
 
-- **WHEN** `no000_scrub_sensitive.py` is executed against a Neo4j instance that has existing
-  nodes from a prior loader run
+- **WHEN** `no000_scrub_sensitive.py` is executed against a Neo4j instance that has existing nodes
+  from a prior loader run
 - **THEN** `REMOVE` Cypher statements strip `password_hash`, `email`, `phone` from `User`;
-  `address`, `contact_phone`, `contact_email` from `Kindergarten`; `rrn_encrypted`,
-  `rrn_first6`, `emergency_contact_phone`, `emergency_contact_name` from `Teacher`;
-  `rrn_first6`, `rrn_encrypted`, `birth_date`, `address` from `Child`; `rrn_encrypted`,
-  `rrn_first6`, `address` from `Guardian`
+  `address`, `contact_phone`, `contact_email` from `Kindergarten`; `rrn_encrypted`, `rrn_first6`,
+  `emergency_contact_phone`, `emergency_contact_name` from `Teacher`; `rrn_first6`, `rrn_encrypted`,
+  `birth_date`, `address` from `Child`; `rrn_encrypted`, `rrn_first6`, `address` from `Guardian`
 
 ---
 
-### Requirement: Neo4j sync SHALL be one-shot; no incremental sync is implemented
+### Requirement: Neo4j sync SHALL be one-shot from PostgreSQL; no incremental sync is implemented
 
 The data-loader (`run_all.sh`) SHALL execute as a one-shot operation at container startup
-(`restart: no` in Compose). Neo4j MUST NOT be assumed to reflect PostgreSQL changes made after
-the loader run. An incremental or live-sync mechanism is not implemented.
+(`restart: no` in Compose) that **queries PostgreSQL directly** to (re)build the derived graph; it
+SHALL NOT read static CSV snapshots. The graph reflects the PostgreSQL state **as of the loader's
+run time**. Neo4j MUST NOT be assumed to reflect PostgreSQL changes made after the loader run; an
+incremental or live-sync mechanism is not implemented. To guarantee the graph strictly mirrors the
+current source, the loader SHALL clear the existing graph before rebuilding (`MATCH (n) DETACH
+DELETE n`), which is safe because Neo4j holds no authoritative data (it is a read-only derived
+view).
 
-#### Scenario: Graph data becomes stale after a PostgreSQL write
+#### Scenario: Loader builds the graph from PostgreSQL, not CSV
 
-- **WHEN** a business write (e.g. new child enrollment) is committed to PostgreSQL after the
-  loader has completed
-- **THEN** the Neo4j graph does NOT automatically reflect the change; a full or partial
-  loader re-run is required to re-sync
+- **WHEN** the data-loader runs
+- **THEN** it connects to PostgreSQL using the injected `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`
+  configuration and reads node/relationship data via SQL queries; it does not open any
+  `db/ne4j_kindergartens/data/*.csv` file (those CSV snapshots no longer exist)
+
+#### Scenario: Graph reflects PostgreSQL at run time and clears stale state
+
+- **WHEN** the loader runs after rows have been deleted from PostgreSQL since a prior run
+- **THEN** the loader first clears the graph and rebuilds it, so deleted entities do not linger as
+  orphan nodes; node counts per label match the corresponding PostgreSQL `SELECT count(*)`
+
+#### Scenario: Graph data becomes stale after a later PostgreSQL write
+
+- **WHEN** a business write (e.g. new child enrollment) is committed to PostgreSQL after the loader
+  has completed
+- **THEN** the Neo4j graph does NOT automatically reflect the change; a loader re-run is required to
+  re-sync
 
 #### Scenario: Loader runs as a one-time Compose task
 
 - **WHEN** Docker Compose starts the data-loader service
 - **THEN** the service has `restart: no`, depends on PostgreSQL being healthy and Neo4j being
-  started, and exits after `run_all.sh` completes; it does not run again unless explicitly
-  re-invoked
+  started, and exits after `run_all.sh` completes; it does not run again unless explicitly re-invoked
+
+#### Scenario: Loader fails loudly when PostgreSQL is unreachable
+
+- **WHEN** the loader cannot connect to PostgreSQL or a required query errors
+- **THEN** the loader process exits with a non-zero status rather than silently producing an empty or
+  partial graph
 
 ---
 
@@ -152,27 +175,31 @@ the SQL, then applying the change via Flyway migration.
 ### Requirement: Flyway manages production schema evolution; initdb is for demo/CI only
 
 Production schema evolution SHALL use Flyway migrations versioned as `VN__description.sql` in
-`backend/src/main/resources/db/migration/`. `db/initdb/01_create_schema.sql` serves as the V1
-baseline snapshot and as the demo/CI initialization script only; it MUST NOT be edited to
-evolve the schema after the baseline is established.
+`backend/src/main/resources/db/migration/`. The migration set is **squashed to a single
+consolidated baseline** `V1__initial_baseline.sql` that creates the full terminal schema in one
+step; the historical `V2..V12` migration chain has been folded into V1 and removed. Future schema
+changes SHALL resume at `V2` and append forward (append-only after V1). `db/initdb/01_create_schema.sql`
+is regenerated from `db/dbml/schema.dbml` to the same terminal schema and serves as the demo/CI
+initialization script only; it MUST NOT be edited to evolve the schema after the baseline is
+established (edit DBML → regenerate → add a new `VN` migration instead).
 
-#### Scenario: Fresh production deployment runs Flyway from V1
+#### Scenario: Fresh production deployment runs the consolidated V1 baseline
 
 - **WHEN** the backend connects to an empty production database for the first time
-- **THEN** Flyway executes V1 (`V1__initial_baseline.sql`) to create the base schema, then
-  applies V2 through VN in order
+- **THEN** Flyway executes the single `V1__initial_baseline.sql` to create the full terminal
+  schema; no `V2..V12` chain exists (any future migrations are applied as `V2+` once added)
 
 #### Scenario: Demo environment with existing initdb tables is baselined
 
 - **WHEN** Flyway starts against a database already initialized by `initdb/*.sql`
-- **THEN** `baseline-on-migrate=true` marks V1 as completed without re-executing it, and Flyway
-  applies V2+ migrations on top
+- **THEN** `baseline-on-migrate=true` marks V1 as completed without re-executing it; with no `V2+`
+  migrations present, no further migrations are applied and the schema already matches the V1 terminal shape
 
 #### Scenario: Flyway history is auditable
 
 - **WHEN** an operator runs `SELECT * FROM flyway_schema_history`
-- **THEN** each applied migration version, checksum, installed-on timestamp, and execution
-  status is visible
+- **THEN** the applied/baselined version (single V1), checksum, installed-on timestamp, and
+  execution status are visible
 
 ---
 
@@ -221,29 +248,28 @@ which is disallowed by the testing-and-ci capability).
 
 ### Requirement: Schema source artifacts are guarded against drift
 
-The schema source artifacts SHALL stay aligned with the Flyway migrations (V1..Vn), which are the
-source of truth for the deployed schema. A capability test SHALL assert structural invariants
-against the fully-migrated schema (initdb baseline + V2..Vn applied to a PostgreSQL Testcontainer)
-so that a migration regression leaving the live schema in the wrong terminal shape is caught. `db/dbml/schema.dbml` SHALL reflect the cumulative migrated
-schema and SHALL be reconciled whenever a migration changes a column/type/constraint (verified at
-review); `db/initdb/01_create_schema.sql` is the demo/CI seed baseline and need not be a strict
-textual mirror of `V1__initial_baseline.sql` — the migrations are written idempotently
-(`IF NOT EXISTS` / `DROP NOT NULL`) so the fresh-V1 and initdb+baseline paths converge to the same
-terminal schema.
+The schema source artifacts SHALL stay aligned with the consolidated Flyway baseline `V1`, which is
+the source of truth for the deployed schema. A capability test SHALL assert structural invariants
+against the fully-initialized schema (fresh `V1` on an empty Testcontainer, and the
+`initdb` baseline path) so that a regression leaving the live schema in the wrong terminal shape is
+caught. `db/dbml/schema.dbml` SHALL reflect the terminal schema and SHALL be reconciled whenever a
+future migration changes a column/type/constraint (verified at review); `db/dbml/schema.dbml` is the
+DB-first source from which both `db/initdb/01_create_schema.sql` and `V1__initial_baseline.sql` are
+generated, so the fresh-V1 and initdb+baseline paths converge to the same terminal schema.
 
-#### Scenario: Migrated schema matches structural invariants
+#### Scenario: Initialized schema matches structural invariants
 
-- **WHEN** the backend test suite runs Flyway migrations against a PostgreSQL Testcontainer
-- **THEN** structural assertions hold — e.g. `push_subscriptions` exists and `device_tokens` / `device_platform_enum` do not after V7; `notifications.sent_at` and `fail_reason` are nullable after V3; `children`/`guardians`/`teachers` have `rrn_hash` NOT NULL and no `rrn_encrypted` after V4–V6
+- **WHEN** the backend test suite initializes the schema against a PostgreSQL Testcontainer (V1 baseline)
+- **THEN** structural assertions hold in the V1 terminal schema — e.g. `push_subscriptions` exists and `device_tokens` / `device_platform_enum` do not; `notifications.sent_at` and `fail_reason` are nullable; `children`/`guardians`/`teachers` have `rrn_hash` NOT NULL and no `rrn_encrypted`; `detection_events.dedup_key` exists with the `uq_detection_events_dedup` unique index
 
-#### Scenario: Migration regression is caught
+#### Scenario: Schema regression is caught
 
-- **WHEN** a change to a migration would leave the terminal schema in the wrong shape (missing table, wrong nullability, dropped guard)
+- **WHEN** a change would leave the terminal schema in the wrong shape (missing table, wrong nullability, dropped guard)
 - **THEN** the schema-consistency test fails before the change can merge through the backend test gate
 
-#### Scenario: DBML is reconciled when a migration changes the schema
+#### Scenario: DBML is reconciled when a future migration changes the schema
 
-- **WHEN** a Flyway migration changes a column's nullability/type/constraint
+- **WHEN** a future Flyway migration (`V2+`) changes a column's nullability/type/constraint
 - **THEN** `db/dbml/schema.dbml` is updated in the same change to reflect the new terminal schema (kept aligned by process and review, since the DBML is the DB-first design source)
 
 ### Requirement: Detection event idempotency key (dedup_key)
@@ -370,4 +396,119 @@ migration SHALL drop both tables so that a fresh Flyway-only production database
 
 - **WHEN** the front-end renders navigation for any role (including the anonymous/no-session case)
 - **THEN** the menu items come from a TypeScript static config keyed by role, with no call to `/api/v1/menus`
+
+### Requirement: Graph query API is reachable and gated by tenant-scoped authorization
+
+The backend relationship-graph read API SHALL be reachable by authenticated tenant staff and SHALL
+replace the dormant `@PreAuthorize("denyAll()")` guard on `GraphService` with a method-level
+authorization gate. The gate SHALL be a new `AuthorizationAction.GRAPH_READ` evaluated by
+`AuthorizationPolicy`, granting access only to a caller with an effective KINDERGARTEN-scoped tenant
+identity AND role `TEACHER` or `KINDERGARTEN_ADMIN` (mirroring the detection-event dashboard
+audience). The `@PreAuthorize` annotation SHALL be placed on the `GraphService` method (not the
+controller), and the controller endpoint SHALL be served under `/api/v1/**` (session + CSRF posture),
+NOT under `/api/v1/internal/**` and NOT in any CSRF exemption.
+
+#### Scenario: Authenticated tenant staff reads a child graph
+
+- **WHEN** a user with role `TEACHER` or `KINDERGARTEN_ADMIN` and an active kindergarten identity
+  calls `GET /api/v1/graph/children/{childId}` for a child in their own kindergarten
+- **THEN** the request is authorized via `GRAPH_READ`, `GraphService.getChildGraph` executes, and the
+  child's class/teacher/kindergarten/guardian graph is returned
+
+#### Scenario: denyAll is no longer the guard
+
+- **WHEN** the backend builds after this change
+- **THEN** `GraphService.getChildGraph` is annotated with
+  `@PreAuthorize("@authorizationPolicy.isAllowed(... GRAPH_READ)")` and no longer carries
+  `@PreAuthorize("denyAll()")`
+
+#### Scenario: Wrong role or no tenant identity is denied
+
+- **WHEN** a caller without an effective KINDERGARTEN-scoped tenant identity (e.g. an unauthenticated
+  request, or a platform-scoped role such as `SUPERADMIN`/`PLATFORM_IT_ADMIN`, or a `GUARDIAN` under
+  the default policy) calls the graph endpoint
+- **THEN** `AuthorizationPolicy.isAllowed(GRAPH_READ)` returns false and the request is denied (no
+  graph data is returned)
+
+### Requirement: Graph query enforces tenant isolation inside Cypher and hides cross-tenant existence
+
+The active `kindergarten_id` SHALL be obtained from
+`EffectiveAuthorizationContextHolder.requireActiveKindergartenId()` (the ThreadLocal tenant context),
+NEVER from a URL path/query parameter or request body. The `kindergarten_id` predicate SHALL be
+written into the Cypher query itself (anchor `MATCH (ch:Child {child_id: $childId, kindergarten_id:
+$kgId})`, with the traversed `Class`/`Teacher`/`Kindergarten`/`Guardian` nodes constrained to the same
+`kindergarten_id`); load-then-filter in Java is prohibited. A child that does not exist, or exists only
+in another tenant, or is absent for the caller's kindergarten SHALL all yield HTTP 404 (existence
+hidden), never 403, 200-with-empty, or 500.
+
+#### Scenario: Cross-tenant child id returns 404
+
+- **WHEN** a `TEACHER`/`KINDERGARTEN_ADMIN` in kindergarten A requests
+  `GET /api/v1/graph/children/{childId}` for a `childId` that exists only in kindergarten B
+- **THEN** the Cypher anchor `MATCH (ch:Child {child_id: $childId, kindergarten_id: $kgId})` does not
+  match, `GraphRepository` raises `jakarta.persistence.EntityNotFoundException`, and the API responds
+  HTTP 404 — the same response as for a non-existent child (existence is not disclosed)
+
+#### Scenario: Tenant id comes from context, not the request
+
+- **WHEN** the graph endpoint is invoked
+- **THEN** the kindergarten scope is read via `requireActiveKindergartenId()` and bound as the Cypher
+  `$kgId` parameter; the client does not (and cannot) supply `kindergartenId` to widen scope
+
+#### Scenario: Tenant predicate is in the query, not post-filtered
+
+- **WHEN** the child graph is resolved
+- **THEN** the `kindergarten_id` predicate is present in the executed Cypher (on the `Child` anchor and
+  the traversed nodes); the repository does not fetch a broader result and filter it in Java
+
+### Requirement: Graph query responses contain no PII and never join back to PostgreSQL
+
+The graph read API SHALL project only the non-PII node/edge properties already present in the Neo4j
+derived graph (which holds no S0/PII fields per INC-003). VO mapping SHALL read exclusively from Neo4j
+driver `Node`/relationship values; it MUST NOT join back to PostgreSQL (no JPA/SQL lookup) to enrich
+the response, so that no PII column (`rrn_hash`, `rrn_first6`, `rrn_encrypted`, `birth_date`,
+`address`, `email`, `phone`, `emergency_contact_*`, `password_hash`, `contact_*`) can re-enter via the
+read path. This requirement does not weaken the loader-side INC-003 control; it extends the no-PII
+invariant to the query/response path.
+
+#### Scenario: Response carries only graph node properties
+
+- **WHEN** `GET /api/v1/graph/children/{childId}` succeeds
+- **THEN** the `ChildGraphVO` contains only graph-projected fields (e.g. child `name`/`childNo`/
+  `gender`/`status`, class, teacher, kindergarten, and guardians with edge `relationship`/`isPrimary`/
+  `priority`) and no S0/PII field
+
+#### Scenario: VO mapping does not re-read PostgreSQL
+
+- **WHEN** the graph traversal result is mapped to `ChildGraphVO`
+- **THEN** the mapping uses only Neo4j driver values returned by `GraphRepository`; it performs no JPA
+  repository call or SQL query against PostgreSQL to populate any field
+
+### Requirement: Teacher-centric graph query is reachable and enforces the same tenant isolation
+
+The backend SHALL expose a teacher-centric graph read at `GET /api/v1/graph/teachers/{teacherId}`
+returning a `TeacherGraphVO` of the teacher's classes and the children in those classes
+(`(Teacher)-[:HAS_CLASS]->(Class)-[:HAS_CHILD]->(Child)`), gated by the same `GRAPH_READ`
+authorization action and `@PreAuthorize` on the `GraphService` method (not the controller). The active
+`kindergarten_id` SHALL be obtained from `requireActiveKindergartenId()` (ThreadLocal), never from the
+URL, and the `kindergarten_id` predicate SHALL be written into the Cypher anchor
+`MATCH (t:Teacher {teacher_id: $teacherId, kindergarten_id: $kgId})` with traversed nodes constrained
+to the same tenant; load-then-filter is prohibited. A teacher that does not exist or exists only in
+another tenant SHALL yield HTTP 404 (existence hidden), and the response SHALL contain no PII and SHALL
+NOT join back to PostgreSQL, identical to the child-centric path.
+
+#### Scenario: Authenticated tenant staff reads a teacher graph
+
+- **WHEN** a user with role `TEACHER` or `KINDERGARTEN_ADMIN` and an active kindergarten identity calls
+  `GET /api/v1/graph/teachers/{teacherId}` for a teacher in their own kindergarten
+- **THEN** the request is authorized via `GRAPH_READ`, `GraphService.getTeacherGraph` executes, and the
+  teacher's classes and the children in those classes are returned with no PII fields
+
+#### Scenario: Cross-tenant teacher id returns 404
+
+- **WHEN** a `TEACHER`/`KINDERGARTEN_ADMIN` in kindergarten A requests
+  `GET /api/v1/graph/teachers/{teacherId}` for a `teacherId` that exists only in kindergarten B
+- **THEN** the Cypher anchor `MATCH (t:Teacher {teacher_id: $teacherId, kindergarten_id: $kgId})` does
+  not match, the repository raises `jakarta.persistence.EntityNotFoundException`, and the API responds
+  HTTP 404 — the same response as for a non-existent teacher
 

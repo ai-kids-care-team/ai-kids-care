@@ -33,3 +33,36 @@ services:
       - "8001"
     volumes:
       - ./outputs:/app/outputs:ro
+
+  # ⚠️ BREAKING (deployment) — maintainer-review-gated (tasks 1.3 / 5.1).
+  # Long-lived live-detection supervisor: enumerates the active streams this deployment is
+  # responsible for (backend GET /api/v1/internal/streams, Scheme A) and runs one detection worker
+  # subprocess per stream (detection → backend ingest). Runs ALONGSIDE ai-inference (:8001) — it
+  # does NOT replace the FastAPI serving path; it is the process that finally makes the ingest loop
+  # run in the deployed stack. Reuses the same image (build context) with a command override.
+  #
+  # Network reachability to the Java backend is required (JAVA_BACKEND_URL). The AI subStack is
+  # independent of the root docker-compose.yml; in production attach this service to a network that
+  # can reach the backend and inject AI_SERVICE_TOKEN (must match the backend's AI_SERVICE_TOKEN).
+  ai-live-supervisor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-kids-live-supervisor
+    restart: unless-stopped
+    command: ["python", "scripts/stream_supervisor.py"]
+    environment:
+      PYTHONPATH: /app/src
+      AI_MODEL_DIR: /app/outputs/videomae_baseline/best_model
+      # Backend ingest + active-stream registry (Scheme A). AI_SERVICE_TOKEN is required: the
+      # supervisor fails fast (RuntimeError) if it is absent or empty.
+      JAVA_BACKEND_URL: ${JAVA_BACKEND_URL:-http://backend:8080}
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      # Per-stream modelId is returned by the registry; MODEL_ID is the worker-side fallback.
+      MODEL_ID: ${MODEL_ID:-1}
+      # Capacity guard (design Risk GPU/CPU): max concurrent worker subprocesses.
+      MAX_WORKERS: ${MAX_WORKERS:-8}
+      # How often the supervisor re-polls the registry and reconciles (seconds).
+      STREAM_POLL_INTERVAL_SEC: ${STREAM_POLL_INTERVAL_SEC:-30}
+    volumes:
+      - ./outputs:/app/outputs:ro

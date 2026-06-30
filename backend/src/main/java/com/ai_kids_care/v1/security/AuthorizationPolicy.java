@@ -47,6 +47,12 @@ public class AuthorizationPolicy {
             case DETECTION_EVENT_READ ->
                     tenantIdentity && (role == UserRoleEnum.TEACHER
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // Neo4j 关系图只读查询——本园 KINDERGARTEN_ADMIN/TEACHER（与 detection 看板受众一致）。
+            // GUARDIAN 被排除（完整关系图会外溢共同监护人/教师，属隐私）；平台角色无 tenant identity 天然被拒。
+            // 细粒度租户隔离由 GraphRepository 的 Cypher kindergarten_id 谓词强制（load-then-filter 禁止）。
+            case GRAPH_READ ->
+                    tenantIdentity && (role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             // SPEC-0001 §3 / §349 / §351：粗粒度门——GUARDIAN 或 TEACHER + 有效 tenant identity；
             // 细粒度「GUARDIAN 仅 ACTIVE 关系儿童 / TEACHER 仅 ACTIVE assignment 班级内儿童」由 ChildRepository SQL 内强制。
             // KINDERGARTEN_ADMIN 不在此门内（不得访问 GuardianChildVO 端点）。

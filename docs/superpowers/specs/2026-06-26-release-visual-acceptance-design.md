@@ -1,3 +1,5 @@
+> ⚠️ **历史档案（2026-06-29 部分退役）**：本文记录 2026-06-26 的原始设计。其中 **Tier-1 真人体验官（release-visual-validator agent + release-visual-acceptance skill）已退役**（盲探索又慢又高假阴险、当前不可执行；详见 OpenSpec change `fix-analysis-harness-design-flaws`）。**Tier-2 确定性 Playwright（`e2e/` + release.yml 硬门禁）仍在用**，并已吸收原 Tier-1 的可发现性/无死胡同断言。本文仅作历史保留，勿据 Tier-1 部分行动。
+
 # 发版前双层验收设计（Release Visual Acceptance）
 
 - **日期**：2026-06-26

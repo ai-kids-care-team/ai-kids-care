@@ -1,78 +1,53 @@
-1.
-.venv 만들기
+# Neo4j data-loader (PG → 派生关系图 ETL)
 
-2. python -m pip install -r requirements.txt
+PostgreSQL 是 system-of-record；Neo4j 是**只读派生关系图**。本目录是 compose 中的
+`data-loader` 服务：容器启动时一次性运行，**直接查询 PostgreSQL** 重建图，跑完即退出
+（`restart: no`）。不再使用 CSV 快照。
 
-docker rm neo4j
+## 文件
 
-폴더 안에 파일 삭제
-먼저 도커 삭제 먼저 하고, 실제 데이터 삭제하기
+| 文件 | 作用 |
+|------|------|
+| `config.py` | 从环境变量读取 PG / Neo4j 连接配置（单一出处） |
+| `neo4j_connect.py` | 共享 Neo4j 驱动（供 `no000` 使用） |
+| `no000_scrub_sensitive.py` | **防御层**：REMOVE 历史节点上残留的 S0/PII 属性（幂等，先跑） |
+| `load_graph.py` | **核心 ETL**：清空旧图 → 按非 PII 列白名单从 PG 重建节点与关系 |
+| `run_all.sh` | 容器入口：`no000` → `load_graph` |
+| `Dockerfile` | python:3.11-slim + neo4j/psycopg2 驱动 |
 
-```
-cd neo4j
-rmdir /s /q data
-```
-
-3. 도커를 실행
-
-3-1. 디렉토리 이동
-```
-cd neo4j
-```
-
-3-2.컨테이너 + 볼륨 완전 제거 (데이터 초기화)
-- 컨테이너 종료
-- 네트워크 제거
-- 볼륨 삭제 (⚠️ DB 데이터 완전 삭제)
+## 图模型
 
 ```
-docker compose down -v
+节点:  User · Kindergarten · Teacher · Class · Child · Guardian · Role
+关系:  (User)-[:HAS_ROLE]->(Role)
+       (Kindergarten)-[:HAS_TEACHER]->(Teacher)
+       (Teacher)-[:HAS_CLASS]->(Class)
+       (Class)-[:HAS_CHILD]->(Child)
+       (Child)-[:HAS_GUARDIAN]->(Guardian)
 ```
 
-3-2-1.
+## INC-003：图中绝不含 PII
+
+`load_graph.py` 对每个实体只 `SELECT` **非 PII 列白名单**（见各 `*_COLUMNS` 常量），PII 列
+（`rrn_*` / `birth_date` / `address` / `email` / `phone` / `password_hash` /
+`emergency_contact_*` / `contact_*`）根本不进 SQL 结果，无从写入图。`no000` 与后端
+`LoaderPiiProjectionGuardTest`（源码扫描）为纵深防御。
+
+## 运行
+
+```bash
+# 全栈（data-loader 在 db/neo4j healthy 后自动跑一次）
+docker compose up -d --build
+
+# 仅重跑 loader（PG 数据变化后重新同步）
+docker compose run --rm data-loader
+
+# 校验
+docker exec -it neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" \
+  "MATCH (n) RETURN labels(n)[0] AS label, count(*) ORDER BY label"
 ```
-docker rm neo4j
-```
 
-3-2-2.(선택) 남아있는 컨테이너 강제 삭제
-```
-docker ps -a | grep neo4j
-docker rm -f neo4j
-```
+## 同步语义
 
-3-4. 컨테이너 재실행
-```
-docker compose up -d
-```
-
-4. main 실행
-neo4j_connect.py 실행
-
-5. 데이터 적재
-no10~no100 실행
-
-6. 관계설정(쿼리)
-
-7. backend
-https://github.com/mathkogogany1490/sales_project
-
-7-1) api check
-- https://github.com/mathkogogany1490/sales_project/blob/main/backend/sales/urls.py
-
-7-2)views.py
- https://github.com/mathkogogany1490/sales_project/blob/main/backend/sales/views.py
-CustomerGraphAPIView 함수
-
-7-3) java21  jap 로 controller 로 변환 및 설정
-
-
-5. url
-http://localhost:7474
-
-6.파이썬 코드로 CSV 파일을 가져와서 NEO4J에 데이터를 넣고 관계를 작성한 모듈 10개를 
-자바 서버가 실행될 때 자동으로 실행되도록 파이썬 모듈 10개를 자바 코드로 전환하고 
-싶습니다. 
-
-파일 10개를 chatGPT에 주고 명령을 내려주세요
-
-
+One-shot：图反映 **loader 运行时刻**的 PG 状态；PG 后续写入需重跑 loader 才反映（无增量/实时 sync）。
+每次运行先 `DETACH DELETE` 全清再重建，保证图严格镜像当前 PG（不残留已删实体的孤儿节点）。

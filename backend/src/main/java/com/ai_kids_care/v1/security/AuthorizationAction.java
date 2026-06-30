@@ -44,5 +44,9 @@ public enum AuthorizationAction {
     // ⑥ 检测事件实时看板读取粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity
     // （与 staff 告警受众一致）；细粒度租户隔离由 DetectionEventService 用
     // EffectiveAuthorizationContext.requireActiveKindergartenId() + repository 强制。
-    DETECTION_EVENT_READ
+    DETECTION_EVENT_READ,
+    // Neo4j 派生关系图只读查询粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity
+    // （与 detection 看板受众一致）；细粒度租户隔离由 GraphRepository 的 Cypher kindergarten_id 谓词强制
+    // （锚点 + 沿途节点约束），kindergartenId 取自 requireActiveKindergartenId()（ThreadLocal，非 URL）。
+    GRAPH_READ
 }

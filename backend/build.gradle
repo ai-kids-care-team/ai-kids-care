@@ -45,6 +45,9 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
+    // Neo4j Testcontainer — scoped to graph integration tests (GraphIntegrationTest) for real-Cypher
+    // tenant-isolation verification. Non-graph tests never start it (see GraphIntegrationTest).
+    testImplementation 'org.testcontainers:neo4j'
     implementation 'org.neo4j.driver:neo4j-java-driver:5.19.0'
 }
 

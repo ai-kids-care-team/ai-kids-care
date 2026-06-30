@@ -1,6 +1,8 @@
 # DooD（Docker-out-of-Docker）动态验证配方
 
-仅**深度档**用。把"可动态验证"的 finding 交给一次真实跑动来坐实/证伪。本机无 Java/Node，故全程通过容器跑。
+仅**深度档**用。把"可动态验证"的 finding 交给一次真实跑动来坐实/证伪。
+
+> **环境事实（2026-06-29 核实）**：本机 **node 已在 PATH**（v24.x，`which node` 命中），前端 lint/build 可**直接本地跑**，`node:20` 容器仅作回退（无 node 的机器才需要）。**Java 仍无**，故后端 testcontainers 套件继续走容器。注意区分两件事：Claude *settings hook* 的解释器仅支持 git/powershell（node/bash hook 会静默失效），与 *Bash 工具* 能否看到 node 无关——后者看得到。
 
 ## 后端：testcontainers 全套件
 关键点（漏一个就会卡在 redis 端口等待 / initdb 路径失败，且真因藏在 `build/test-results/**/*.xml` 而非控制台）：
@@ -12,7 +14,8 @@
 - 失败诊断：读 `build/test-results/test/*.xml` 里的 `<failure>`，不要只看 stdout。
 
 ## 前端：lint / build
-- 用 `node:20` 容器 DooD 跑 `npm ci` + `npm run lint` / `npm run build`。
+- **首选本地 node**（已在 PATH）：`cd frontend && npm ci && npm run lint` / `npm run build`。
+- **回退**：无 node 的机器用 `node:20` 容器 DooD 跑同样命令。
 - 注意 React 19 / Next 16 的 lint 坑（见项目记忆）。
 - **提交前还原 `next-env.d.ts`**（build 会改写它，勿把该改动带进提交）。
 

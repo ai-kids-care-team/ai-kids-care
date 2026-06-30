@@ -1,14 +1,12 @@
 package com.ai_kids_care.v1.detection;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.support.ThreadLocalStatementInspector;
 import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.mapper.DetectionEventMapper;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManagerFactory;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +37,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code @EntityGraph} fix this was an N+1 (LIST/REPLAY about 1 + up to 3*N SQL); after the fix each
  * path loads in a constant number of statements regardless of N.
  *
- * <p>SQL count is measured with Hibernate {@link Statistics#getPrepareStatementCount()} (JDBC
- * round-trips), enabled at runtime on the {@link SessionFactory}. Each repository call plus the VO
- * mapping (which is what actually triggers the lazy loads) runs inside one transaction via
- * {@link TransactionTemplate}, so an unfixed N+1 would inflate the count inside the measured window.
+ * <p>SQL count is measured with {@link ThreadLocalStatementInspector}, a test-only Hibernate
+ * {@code StatementInspector} that counts JDBC statements into a <em>thread-local</em> rather than the
+ * process-wide Hibernate statistics counter. {@code inspect()} runs on the thread that executes the
+ * SQL, and the measured workload runs synchronously on the test thread (each repository call plus the
+ * VO mapping that triggers the lazy loads runs inside one transaction via {@link TransactionTemplate},
+ * which is same-thread). Concurrent {@code @Async} ingest side-effects therefore increment their own
+ * thread's counter and cannot pollute this measurement, so an unfixed N+1 would still inflate the count
+ * inside the measured window but unrelated background SQL cannot.
  *
  * <p>The assertion is on <em>growth</em>, not an absolute number: we run each path at a small N and a
  * large N and require the statement count to stay essentially flat (a tiny constant slack absorbs any
@@ -63,14 +65,10 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
     @Autowired private DetectionEventRepository repository;
     @Autowired private DetectionEventMapper mapper;
     @Autowired private TransactionTemplate txTemplate;
-    @Autowired private EntityManagerFactory emf;
-    @Autowired @org.springframework.beans.factory.annotation.Qualifier("applicationTaskExecutor")
-    private org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor applicationTaskExecutor;
 
     private long kindergartenId;
     private long streamId;
     private long modelId;
-    private Statistics stats;
 
     @BeforeEach
     void setUp() {
@@ -85,9 +83,6 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
         streamId = ((Number) row.get("sid")).longValue();
         kindergartenId = ((Number) row.get("kg")).longValue();
         modelId = jdbc.queryForObject("SELECT model_id FROM ai_models LIMIT 1", Long.class);
-
-        stats = emf.unwrap(SessionFactory.class).getStatistics();
-        stats.setStatisticsEnabled(true);
     }
 
     @Test
@@ -162,38 +157,21 @@ class DetectionEventEntityGraphNPlusOneTest extends BaseIntegrationTest {
         });
     }
 
-    /** Reset the prepared-statement counter, run the workload, return statements issued during it. */
+    /** Reset the thread-local statement counter, run the workload, return statements issued during it. */
     private long measure(Runnable workload) {
-        awaitAsyncQuiescence(); // drain ingest @Async staff-alert side-effects so their SQL (on the same
-                                // SessionFactory, another thread) can't inflate this global statement count
-        stats.clear();
-        long before = stats.getPrepareStatementCount();
+        awaitAsyncQuiescence(); // settle ingest @Async staff-alert side-effects before measuring; the
+                                // thread-local inspector already isolates us from their SQL, but draining
+                                // keeps the system quiet around the measured window
+        ThreadLocalStatementInspector.reset();
         workload.run();
-        return stats.getPrepareStatementCount() - before;
+        return ThreadLocalStatementInspector.count();
     }
 
     private <T> T txRead(Supplier<T> body) {
         return txTemplate.execute(s -> body.get());
     }
 
-    /**
-     * Block until the @Async executor that runs the ingest staff-alert side-effects has fully drained
-     * (no active and no queued tasks), so {@link #measure} sees only the test thread's statements.
-     * Polling the global statement counter is unreliable here: queued-but-momentarily-idle tasks can
-     * make two samples read equal prematurely, after which the queue bursts into the measured window.
-     * Waiting on the executor itself is exact. Bounded to ~10s.
-     */
-    private void awaitAsyncQuiescence() {
-        java.util.concurrent.ThreadPoolExecutor exec = applicationTaskExecutor.getThreadPoolExecutor();
-        for (int i = 0; i < 200 && (exec.getActiveCount() > 0 || !exec.getQueue().isEmpty()); i++) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-    }
+    // awaitAsyncQuiescence() is inherited from BaseIntegrationTest (shared by the SSE replay test too).
 
     // -- ingest helpers (mirror DetectionEventStreamReplayTest, real FK-linked rows) ---------------
 

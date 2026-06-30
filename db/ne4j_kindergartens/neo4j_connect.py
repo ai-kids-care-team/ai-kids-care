@@ -1,11 +1,8 @@
+"""공유 Neo4j 드라이버. no000_scrub_sensitive.py 가 import 하여 사용한다.
+자격증명/URI 는 config.py(환경변수 주입) 단일 출처에서 가져온다."""
+
 from neo4j import GraphDatabase
-import os
 
-driver = GraphDatabase.driver(
-    "bolt://neo4j:7687",
-    auth=(os.getenv("NEO4J_USER", "neo4j"), os.getenv("NEO4J_PASSWORD", "rose100!"))
-)
+from config import NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD
 
-with driver.session() as session:
-    result = session.run("RETURN 'connected' AS msg")
-    print(result.single()["msg"])
+driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))

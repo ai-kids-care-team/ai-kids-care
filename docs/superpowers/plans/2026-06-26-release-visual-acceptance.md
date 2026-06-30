@@ -1,5 +1,7 @@
 # Release Visual Acceptance Implementation Plan
 
+> ⚠️ **历史档案（2026-06-29 部分退役）**：本计划的 **Tier-1「experience officer」（release-visual-validator + release-visual-acceptance）已退役**——盲探索又慢又高假阴险、当前不可执行（详见 OpenSpec change `fix-analysis-harness-design-flaws`）。**Tier-2 确定性 Playwright CI 门禁仍在用**。本文仅作历史保留。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a two-tier pre-release acceptance system — a deterministic Playwright CI gate (Tier-2, hard-blocks releases) and a Claude "experience officer" agent that drives the browser via Playwright MCP to judge real-user UX (Tier-1).

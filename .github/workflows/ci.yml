@@ -1,0 +1,162 @@
+name: CI
+
+# Single CI workflow for develop/main. One "CI" entry in the checks UI that fans
+# out into independent, parallel sub-jobs (backend / frontend / ai / compose).
+# The tag-triggered release pipeline lives separately in release.yml.
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Gradle, Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Make Gradle wrapper executable
+        working-directory: backend
+        run: chmod +x ./gradlew
+
+      - name: Run backend tests
+        working-directory: backend
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-java-test-reports
+          path: |
+            backend/build/reports/tests/test/
+            backend/build/test-results/test/
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend:
+    name: Frontend (lint & build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build (static export)
+        working-directory: frontend
+        run: npm run build
+
+  ai:
+    name: AI (pytest, Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest httpx numpy fastapi==0.115.12 uvicorn python-multipart==0.0.20
+
+      - name: Run AI pytest suite
+        working-directory: ai
+        env:
+          PYTHONPATH: src
+        run: python -m pytest tests/ -v --junit-xml=.pytest-results/results.xml
+
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-pytest-report
+          path: ai/.pytest-results/
+          # .pytest-results is a dot-prefixed (hidden) dir; upload-artifact excludes
+          # hidden files by default, so opt in explicitly or the report is dropped.
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  compose:
+    name: Compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Validates that the demo, CD registry, and merged production compose files
+    # resolve (SPEC-0001 / ADR-0022 release-gate check). This only checks
+    # structure — it does not start containers, issue TLS certificates, or bind
+    # host ports. These are required (fail-fast) variables in the compose files
+    # (no weak defaults, per SPEC-0001 N-1); this job only validates structure,
+    # so dummy values are sufficient and intentionally non-secret.
+    env:
+      POSTGRES_PASSWORD: ci-structure-check
+      NEO4J_PASSWORD: ci-structure-check
+      REDIS_PASSWORD: ci-structure-check
+      RRN_HASH_PEPPER: ci-structure-check
+      CAMERA_STREAM_AES_KEY_V1: ci-structure-check
+      AI_SERVICE_TOKEN: ci-structure-check
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate base (demo) compose
+        run: docker compose -f docker-compose.yml config -q
+
+      - name: Validate CD registry compose (ADR-0022)
+        run: docker compose -f docker-compose.yml -f docker-compose.cd.yml config -q
+
+      - name: Validate merged production compose
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config -q

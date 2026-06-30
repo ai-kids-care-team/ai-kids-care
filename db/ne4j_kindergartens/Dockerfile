@@ -6,9 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 스크립트 복사
+# 스크립트 복사 (CSV 스냅샷 없음 — 데이터는 PostgreSQL 에서 직접 조회)
 COPY *.py .
-COPY data ./data
 
 # 실행 스크립트
 COPY run_all.sh .

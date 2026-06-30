@@ -19,6 +19,15 @@ spring:
     redis:
       password:
 
+  # Test-only: route Hibernate statement inspection through a thread-isolated counter so the N+1
+  # regression guard (DetectionEventEntityGraphNPlusOneTest) measures only SQL on the test thread,
+  # immune to cross-thread @Async pollution that flaked the global Hibernate Statistics counter.
+  jpa:
+    properties:
+      hibernate:
+        session_factory:
+          statement_inspector: com.ai_kids_care.support.ThreadLocalStatementInspector
+
 rrn:
   hash:
     pepper: test-pepper-not-secret-2026

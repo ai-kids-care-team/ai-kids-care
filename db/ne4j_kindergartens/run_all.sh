@@ -1,19 +1,13 @@
 #!/bin/bash
+set -euo pipefail
 
-echo "=== Neo4j 데이터 적재 시작 ==="
+echo "=== Neo4j 派生图重建 시작 (source: PostgreSQL) ==="
 
+# 1) 防御层：清除历史节点上可能残留的 S0/PII 属性（幂等）。新 ETL 从源头白名单
+#    SELECT、不投影 PII，此步是 INC-003 的纵深防御。
 python no000_scrub_sensitive.py
-python no100_insert_users.py
-python db100_insert_users.py
-python no200_insert_kindergarter.py
-python no300_insert_teachers.py
-python no400_insert_classes.py
-python no500_insert_children.py
-python no600_insert_guardians.py
-python no700_insert_user_role_assignments.py
-python no800_child_guadian_relationships.py
-python no900_class_teacher_assignments.py
-python no950_child_class_assignments.py
-python no1000_create_relationships.py
 
-echo "=== Neo4j 데이터 적재 완료 ==="
+# 2) 一次性 PG → Neo4j ETL：清空旧图并按非 PII 白名单从 PostgreSQL 重建。
+python load_graph.py
+
+echo "=== Neo4j 派生图重建 완료 ==="

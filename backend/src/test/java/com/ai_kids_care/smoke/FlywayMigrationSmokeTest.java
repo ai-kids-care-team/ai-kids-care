@@ -9,8 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Migration smoke test for the real deploy/demo path (the one every integration test boots):
- * the database is initialised from db/initdb (schema + seed), Flyway then baselines V1 and
- * applies V2–V6 on top, and JPA ddl-auto=validate passes.
+ * the database is initialised from db/initdb (schema + seed), Flyway then baselines V1, and JPA
+ * ddl-auto=validate passes.
+ *
+ * As of the squash-flyway-to-single-baseline change, the historical V2..V12 chain is folded into a
+ * single consolidated V1__initial_baseline.sql; there are no incremental migrations to apply on top
+ * of the baseline (future changes resume at V2). So on this path Flyway records exactly one history
+ * row: V1 as the baseline (type=BASELINE), and nothing else runs.
  *
  * Note: the "fresh empty DB, Flyway V1 builds the whole schema" path is covered separately
  * by {@code com.ai_kids_care.FlywayMigrationTest}. As of ADR-0013 the dictionary tables
@@ -31,7 +36,7 @@ class FlywayMigrationSmokeTest extends BaseIntegrationTest {
     }
 
     @Test
-    void baselineAndIncrementalMigrationsApplied() {
+    void baselineRecordedAndNoIncrementalMigrations() {
         // baseline-on-migrate records V1 as the baseline (type=BASELINE, not a re-run SQL
         // migration) against the initdb-seeded schema.
         Integer baseline = jdbc.queryForObject(
@@ -39,13 +44,16 @@ class FlywayMigrationSmokeTest extends BaseIntegrationTest {
                 Integer.class);
         assertThat(baseline).as("V1 recorded as Flyway baseline").isEqualTo(1);
 
-        // V2–V6 must each be applied successfully as SQL migrations on top of the baseline.
-        for (String version : new String[]{"2", "3", "4", "5", "6"}) {
-            Integer applied = jdbc.queryForObject(
-                    "SELECT count(*) FROM flyway_schema_history "
-                            + "WHERE version = ? AND success = true AND type = 'SQL'",
-                    Integer.class, version);
-            assertThat(applied).as("migration V%s applied successfully", version).isEqualTo(1);
-        }
+        // After the squash there is no V2..Vn chain: the baseline is the only history row, and no
+        // SQL migration is applied on top of it on the initdb+baseline path.
+        Integer sqlMigrations = jdbc.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE type = 'SQL'",
+                Integer.class);
+        assertThat(sqlMigrations).as("no incremental SQL migrations applied on the baseline path").isZero();
+
+        Integer total = jdbc.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history",
+                Integer.class);
+        assertThat(total).as("only the single V1 baseline row exists").isEqualTo(1);
     }
 }

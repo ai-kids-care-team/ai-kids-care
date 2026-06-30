@@ -9,5 +9,94 @@
   },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\block-published-migration.ps1\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\block-secret-write.ps1\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\block-commit-secret.ps1\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\block-protected-push.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\remind-seed-cleantest.ps1\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\remind-enum-sync.ps1\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\warn-source-edit.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\remind-frontend-gitignore.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\stop-completion-check.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\session-banner.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }
