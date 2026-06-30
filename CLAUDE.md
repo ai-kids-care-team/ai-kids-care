@@ -3,7 +3,7 @@
 **多租户幼儿园 AI 安全看护平台**（长期生产系统，monorepo）。核心价值是一条告警闭环：
 **CCTV → AI（VideoMAE）实时检测异常行为 → 教职员复核 → 通知家长**。附带教职员/家长沟通工具（公告、感谢信、通知收件箱）、园所运营数据管理、儿童关系图查询。
 
-> **当前 interim 状态（重要）**：AI 层仍直发 Pushover/SMS demo，**尚未接入** `POST /api/v1/internal/detection-events`；数据库中的 `detection_events` 全部来自 seed，**非实时 AI 产出**。目标架构（ADR-0015 V1：AI→backend ingest→SSE+通知）待实现。
+> **闭环状态**：ADR-0015 V1 链路（AI 检测 → `POST /api/v1/internal/detection-{sessions,events}` → SSE + 通知，backend 为 `detection_events` 唯一写入者）**两侧已实现**；AI 子栈以**长生命周期 supervisor**（`scripts/stream_supervisor.py`，多摄像头 process-per-stream）运行检测→ingest 循环，与 :8001 FastAPI 推理端点**并存**。supervisor 经只读 `GET /api/v1/internal/streams`（`ROLE_AI_SERVICE`）枚举活跃流并 reconcile；实时 `detection_events` 由**后端从 AI 推理写入**（非 seed）。注：worker/supervisor 的 compose service（`ai/docker-compose.yml`）是部署面变更，须经维护者批准上线。
 
 ---
 

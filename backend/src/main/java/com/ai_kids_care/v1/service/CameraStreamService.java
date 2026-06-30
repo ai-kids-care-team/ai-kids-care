@@ -6,11 +6,14 @@ import com.ai_kids_care.v1.dto.CameraStreamUpdateRequest;
 import com.ai_kids_care.v1.entity.CameraStream;
 import com.ai_kids_care.v1.entity.CctvCamera;
 import com.ai_kids_care.v1.mapper.CameraStreamMapper;
+import com.ai_kids_care.v1.repository.AiModelRepository;
 import com.ai_kids_care.v1.repository.CameraStreamRepository;
 import com.ai_kids_care.v1.repository.CctvCameraRepository;
+import com.ai_kids_care.v1.internal.ActiveStreamVO;
 import com.ai_kids_care.v1.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.security.AesGcmCryptoUtil;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
+import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.vo.CameraStreamVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class CameraStreamService {
     private final CameraStreamMapper mapper;
     private final CctvCameraRepository cctvCameraRepository;
     private final CameraStreamCryptoConfig cryptoConfig;
+    private final AiModelRepository aiModelRepository;
 
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).TENANT_SURVEILLANCE_READ)")
@@ -143,6 +148,21 @@ public class CameraStreamService {
                 entity.getSourceUrl(),
                 entity.getStreamUser(),
                 plainPassword);
+    }
+
+    // 方案 A：内部「活跃流清单」读路径。供 AI 多摄像头 supervisor 枚举本部署应消费的活跃流。
+    // 鉴权同样在 HTTP 层强制（hasRole("AI_SERVICE")）；AI 调用无 session/tenant 上下文，故不叠加会话级
+    // @PreAuthorize（与 getStreamCredential 一致：AI 为平台级基建，处理全部园所的流）。租户归属
+    // (kindergartenId) 由 repository 在 JPQL 内从关系投影得出（非加载后过滤），响应不含任何凭据。
+    @Transactional(readOnly = true)
+    public List<ActiveStreamVO> listActiveStreamsForAi() {
+        // Open Question 4：当前无 per-stream 模型映射；V1 取平台活跃模型的最低 id 作为每路流的 modelId。
+        // 无活跃模型时返回 null，由 supervisor/worker 端的 MODEL_ID env 兜底。
+        Long activeModelId = aiModelRepository.findModelIdsByStatusOrderById(StatusEnum.ACTIVE)
+                .stream().findFirst().orElse(null);
+        return repository.findActiveStreamsForAi().stream()
+                .map(p -> new ActiveStreamVO(p.streamId(), activeModelId, p.kindergartenId()))
+                .toList();
     }
 
     /**
