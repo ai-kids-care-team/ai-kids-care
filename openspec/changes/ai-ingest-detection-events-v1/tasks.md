@@ -26,7 +26,7 @@
 - [x] 4.1 新增内部只读端点 `GET /api/v1/internal/streams`（加到 `@Hidden` 的 `StreamCredentialController`，`hasRole("AI_SERVICE")` 既有规则覆盖），返回 `[{streamId, modelId, kindergartenId}]`，不含解密凭据（`ActiveStreamVO`）
 - [x] 4.2 端点查询 `CameraStreamRepository#findActiveStreamsForAi`：`enabled = true` 活跃谓词 + `kindergartenId` 在 JPQL 内从 `cctvCameras.kindergarten.id` 投影（禁加载后过滤）；modelId 由 service 取活跃 `ai_models`
 - [x] 4.3 后端测试 `InternalStreamListApiTest`：`ROLE_AI_SERVICE` 可读、无/错 token 4xx；只返回 `enabled` 流、disabled 排除；响应无凭据字段；无 schema 迁移
-- [ ] 4.4 后端 `./gradlew test`：本机无 Java —— **未本地运行**，留 Lead 走 DooD 串行收口（已写代码+测试）
+- [x] 4.4 后端 `./gradlew test`：Lead 走 DooD 串行运行——**全套件绿（BUILD SUCCESSFUL）**，`InternalStreamListApiTest` 通过、零回归
 
 ## 5. 部署（维护者批准后落地）
 

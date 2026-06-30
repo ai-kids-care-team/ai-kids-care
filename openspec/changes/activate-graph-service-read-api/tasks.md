@@ -46,6 +46,6 @@
 
 ## 8. 验收
 
-- [ ] 8.1 `cd backend && ./gradlew test` 通过（含新增 graph 测试）— 本机无 Java，待 Lead DooD 串行运行
+- [x] 8.1 `cd backend && ./gradlew test` 通过（含新增 graph 测试）— Lead DooD 串行运行：**全套件绿**，`GraphReadApiTest` 11/11、`GraphIntegrationTest`/no-PG-join guard 通过、零回归（修了一处 fixture phone 冲突 `bb1ce61`）
 - [x] 8.2 `openspec validate activate-graph-service-read-api --strict` 通过
 - [x] 8.3 自审：未新增 Neo4j 写路径、未实现增量同步、响应无 PII、无 schema 迁移
