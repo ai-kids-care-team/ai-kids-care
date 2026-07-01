@@ -56,7 +56,9 @@
 
 **为何不用 token→租户映射（原方案，已废）**：那是 tenant-based 绑定分片，正是维护者否决的「按园所分导致失衡」；Claim/Lease 按容量而非租户分发，且无需 schema。
 
-> 既有 `GET /api/v1/internal/streams`（ai-ingest 引入，返回全活跃集）：supervisor 不再据其驱动，改用 claim 端点。该 GET 可留作管理/诊断视图（`ROLE_AI_SERVICE`），或后续退役——本 change 不依赖它驱动分发。
+> **机制演进说明**：ai-ingest design D3 曾选「supervisor 经 `GET /api/v1/internal/streams` 枚举活跃流」作为分发来源。本 change 将该来源演进为 claim 端点——两者在 ai-ingest **spec 级** requirement（措辞为「enumerate the active streams it's responsible for」，未硬绑端点）下**不矛盾**，`GET /streams` 仅出现在 ai-ingest 的 design（不进主 spec）。既有 `GET /api/v1/internal/streams` 可留作管理/诊断视图（`ROLE_AI_SERVICE`）或后续退役（OQ-3），本 change 不依赖它驱动分发。
+
+> **V1 modelId 解析**：claim 返回 `[{streamId, modelId, kindergartenId}]`。V1 单类 assault 单模型，`modelId` 即当前唯一活跃 assault 模型（后端由活跃 `ai_models` 解析）；per-camera 多模型映射为 later（ai-ingest OQ-4），本 change 不做。
 
 ### D3：GPU 直通只放 opt-in overlay + supervisor 归 compose profile
 
