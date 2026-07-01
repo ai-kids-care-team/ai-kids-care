@@ -85,7 +85,7 @@ docker compose up -d --build
 # Backend：测试需 Docker（testcontainers 自起 PG+Redis）
 cd backend && ./gradlew test --no-daemon --stacktrace
 cd backend && ./gradlew bootJar          # 构建 fat jar
-# 本机无 Java → testcontainers 走 DooD：挂仓库根(非 backend) + TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+# 本机有 Java 21 可原生跑；也可走 DooD 干净环境：挂仓库根(非 backend) + TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
 
 # Frontend：本机有 node
 cd frontend && npm run lint && npm run build    # next build → /out（静态导出）
@@ -117,8 +117,8 @@ cd e2e && npx playwright test
 
 ## 本机环境与已知陷阱
 
-- **本机**：Windows，仓库在 `C:\ai-kids-care`（无 D 盘）；**node 已在 PATH**（前端 lint/build 可本地跑）；**无 Java** → 后端 testcontainers 走 DooD 容器。Claude hook 解释器仅 git/powershell（node 不在 hook PATH、bash=WSL）。
-- **前端整树在 `.gitignore` 中** → `Grep`/`Glob` 会静默跳过前端文件；需用裸 `rg --no-ignore`（Bash）核实前端代码。
+- **本机**：Windows，仓库在 `C:\ai-kids-care`（无 D 盘）；**node（v24）与 Java（21）均已在 PATH** → 前端 lint/build、后端 gradle 皆可本地跑；testcontainers 需 Docker，亦可走 DooD 容器作干净隔离环境。Claude hook 解释器仅 git/powershell（bash=WSL；node 是否在 hook 执行 PATH 未确证，hook 内保守勿依赖）。
+- **前端代码已被 git 追踪**（根 `.gitignore` 只忽略 `node_modules`/`.next`/`out`/env 变体，**非整树**）→ `Grep`/`Glob` 对 `frontend/` 正常可见，无需 `rg --no-ignore`。
 - **REST 路径命名不统一**：`detection-events`（连字符）vs `detection_sessions` / `cctv_cameras`（下划线）——以实际 controller 为准。
 - **Caddy 全局 `encode gzip` 会缓冲 SSE 帧**，最坏延迟退化到心跳间隔（25s）；SSE 路径需在 Caddy 排除 gzip。
 - **时区**：全部服务 `TZ=Asia/Seoul`，JVM 加 `-Duser.timezone=Asia/Seoul`。
