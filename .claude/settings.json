@@ -94,6 +94,11 @@
             "type": "command",
             "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\session-banner.ps1\"",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\gc-orphan-worktrees.ps1\"",
+            "timeout": 20
           }
         ]
       }
