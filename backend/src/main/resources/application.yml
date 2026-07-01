@@ -152,6 +152,12 @@ internal:
   ai:
     service-token: ${AI_SERVICE_TOKEN}
 
+# shard-live-detection-deployments D2：Claim/Lease 跨 GPU 栈流分发租约 TTL（Redis，无 schema）。
+# 须 ≥ ~3x AI supervisor poll 周期（poll 默认 20s → TTL 默认 60s），容忍 1-2 次丢包不误判 failover。
+ai:
+  stream-lease:
+    ttl-seconds: ${STREAM_LEASE_TTL_SECONDS:60}
+
 # PUSH 主通道：Pushover 应用级 API token（每收件人的 user-key 是投递地址，存 push_subscriptions.address）。
 # 空白则上下文启动即失败（PushoverConfig fail-fast）。
 pushover:
