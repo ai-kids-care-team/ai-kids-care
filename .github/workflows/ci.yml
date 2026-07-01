@@ -9,6 +9,15 @@ on:
     branches:
       - develop
       - main
+    # 纯文档/规格提交跳过重型 CI（后端 testcontainer 套件等）。仅作用于 push——
+    # pull_request 故意不加过滤：required status check 是裸 job 名，若 PR 上 job 被
+    # paths 过滤 skip，required check 会永远 pending 从而死锁 merge。
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'openspec/**'
+      - '.githooks/**'
+      - 'LICENSE'
   pull_request:
     branches:
       - develop

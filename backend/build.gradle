@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.gradle.test-retry' version '1.6.0'
 }
 
 group = 'com.dashboard'
@@ -53,6 +54,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 后端集成套件是 testcontainer(PG+Redis)+@Async 密集型,CI runner CPU 争用下会有
+    // 基础设施性 flaky(如 Lettuce 共享连接 release 阶段的 CancellationException,与被测
+    // 逻辑无关)。仅在 CI 重试:真回归会连续 N 次全挂照样 red(不掩盖),单次瞬时抖动则转绿。
+    // 本地 maxRetries=0,避免掩盖开发期引入的真问题。
+    retry {
+        maxRetries = System.getenv('CI') ? 2 : 0
+        maxFailures = 5                  // 同一次 run 挂超过 5 个 → 不是抖动,停止重试
+        failOnPassedAfterRetry = false
+    }
 }
 
 // ── database migration helpers (ADR-0012) ──────────────────────────────────────
