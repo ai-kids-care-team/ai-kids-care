@@ -3,7 +3,7 @@
 **多租户幼儿园 AI 安全看护平台**（长期生产系统，monorepo）。核心价值是一条告警闭环：
 **CCTV → AI（VideoMAE）实时检测异常行为 → 教职员复核 → 通知家长**。附带教职员/家长沟通工具（公告、感谢信、通知收件箱）、园所运营数据管理、儿童关系图查询。
 
-> **闭环状态**：ADR-0015 V1 链路（AI 检测 → `POST /api/v1/internal/detection-{sessions,events}` → SSE + 通知，backend 为 `detection_events` 唯一写入者）**两侧已实现**；AI 子栈以**长生命周期 supervisor**（`scripts/stream_supervisor.py`，多摄像头 process-per-stream）运行检测→ingest 循环，与 :8001 FastAPI 推理端点**并存**。supervisor 经只读 `GET /api/v1/internal/streams`（`ROLE_AI_SERVICE`）枚举活跃流并 reconcile；实时 `detection_events` 由**后端从 AI 推理写入**（非 seed）。注：worker/supervisor 的 compose service（`ai/docker-compose.yml`）是部署面变更，须经维护者批准上线。
+> **闭环状态**：ADR-0015 V1 链路（AI 检测 → `POST /api/v1/internal/detection-{sessions,events}` → SSE + 通知，backend 为 `detection_events` 唯一写入者）**两侧已实现**；AI 子栈以**长生命周期 supervisor**（`ai/scripts/stream_supervisor.py`，多摄像头 process-per-stream）运行检测→ingest 循环，与 :8001 FastAPI 推理端点**并存**。supervisor 经只读 `GET /api/v1/internal/streams`（`ROLE_AI_SERVICE`）枚举活跃流并 reconcile；实时 `detection_events` 由**后端从 AI 推理写入**（非 seed）。注：worker/supervisor 的 compose service（`ai/docker-compose.yml` 的 `ai-live-supervisor`）**已定义入库**，但生产实际启用仍属部署面变更，须经维护者批准。
 
 ---
 
@@ -20,7 +20,7 @@
 
 | 组件 | 技术 | 关键版本 |
 |------|------|----------|
-| `backend/` | Spring Boot REST API + Spring Security + Spring Session(Redis) + Data JPA/Hibernate + Flyway + MapStruct + Neo4j Java Driver | Java 21, Spring Boot 3.2.5, Gradle 8.5 |
+| `backend/` | Spring Boot REST API + Spring Security + Spring Session(Redis) + Data JPA/Hibernate + Flyway + MapStruct + Neo4j Java Driver | Java 21, Spring Boot 3.2.5, Gradle 8.7 |
 | `frontend/` | Next.js（`output: 'export'` 纯静态导出，无 SSR）+ React + Redux Toolkit(RTK Query) + Axios + Tailwind | Next 16.1.6, React 19.2.3, Tailwind 4.2.1, TS 5 |
 | `ai/` | FastAPI 推理服务（端口 8001）+ VideoMAE（HuggingFace Transformers）+ PyTorch + PyAV；独立 compose 栈 | Python ≥3.12, FastAPI 0.115.12 |
 | `db/` | PostgreSQL（system-of-record）+ Neo4j（只读派生关系图）+ Redis（会话/限流） | Neo4j 5.19, Redis 7 |
@@ -102,7 +102,7 @@ cd e2e && npx playwright test
 - **必填环境变量**（无弱默认，缺失则 compose 报错，从 `.env.example` 复制）：`POSTGRES_PASSWORD`、`NEO4J_PASSWORD`、`REDIS_PASSWORD`、`RRN_HASH_PEPPER`、`CAMERA_STREAM_AES_KEY_V1`（32 字节 Base64）、`AI_SERVICE_TOKEN`。
 - **演示登录**：所有 demo 账号统一密码 `admin123`（来源 `db/initdb/` seed，见 `docs/demo-accounts.md`）。
 
-**CI（`.github/workflows/`）**：`backend-java-tests` / `ai-tests` / `frontend-lint-build` / `compose-config`（develop/main 触发）；`release.yml` 构建 4 镜像 → `docker compose` smoke → 等 `/api/v1/auth/csrf` 200 → **Playwright E2E 硬门禁** → 推 `:version`（`:prod` 需 GitHub Environment 人工审批）。**后端 Gradle test 不在 release 链路**。
+**CI（`.github/workflows/`）**：单一 `ci.yml`（`name: CI`，4 并行 job：`Backend (Gradle, Java 21)` / `Frontend (lint & build)` / `AI (pytest, Python 3.12)` / `Compose config`；develop/main push + PR + workflow_dispatch 触发）；`release.yml` 独立，构建 4 镜像 → `docker compose` smoke → 等 `/api/v1/auth/csrf` 200 → **Playwright E2E 硬门禁** → 推 `:version`（`:prod` 需 GitHub Environment 人工审批）。**后端 Gradle test 不在 release 链路**。
 
 ---
 
