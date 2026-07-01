@@ -76,12 +76,17 @@ services:
       DB_NAME: ${POSTGRES_DB:-kids_postgres_db}
       DB_USER: ${POSTGRES_USER:-kids_user}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      # 增量 sync 轮询参数（长生命周期 loader）
+      POLL_INTERVAL_SEC: ${GRAPH_SYNC_POLL_INTERVAL_SEC:-30}
+      RECONCILE_EVERY: ${GRAPH_SYNC_RECONCILE_EVERY:-1}
     depends_on:
       db:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-    restart: "no"
+    # 长生命周期增量 sync（ADR: neo4j-incremental-sync）：从 one-shot 跑完即退改为常驻
+    # 进程持续把 PG 增量 upsert 进 Neo4j。unless-stopped 保证崩溃/重启后恢复轮询。
+    restart: unless-stopped
 
   backend:
     image: ghcr.io/ai-kids-care-team/ai-kids-care/backend:prod

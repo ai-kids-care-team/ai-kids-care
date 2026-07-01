@@ -1,15 +1,18 @@
 """
-PG → Neo4j 一次性 ETL（one-shot derived-graph loader）。
+PG → Neo4j 派生图 loader（增量 sync + bootstrap 全量重建）。
 
-PostgreSQL 是 system-of-record；Neo4j 是只读派生关系图。本脚本连接 PG、清空旧图、按
-非 PII 列白名单重建节点与关系，使图严格反映**运行时刻**的 PG 状态。退役了原先按实体拆分、
-从 ./data/*.csv 静态快照建图的一堆脚本。
+PostgreSQL 是 system-of-record；Neo4j 是**只读派生关系图**，loader 是 Neo4j 唯一写入者。
+本脚本以**长生命周期循环**运行：启动时若图为空 / 无水位则做一次 `DETACH DELETE` 全量重建
+（bootstrap），随后进入稳态——每 tick 以每表 high-water mark 拉取 `updated_at >= :wm` 的增量行
+`MERGE` upsert，并周期性做全量 id 对账清孤儿（传播硬删除）。软删除经 `updated_at` 增量被
+upsert 捕获、节点 status 更新并保留。
 
-INC-003（data-platform spec）：S0/PII 字段绝不投影进图节点。主防线是每个实体只 SELECT
-白名单内的非 PII 列——PII 列根本不进 SQL 结果、不进 Python 行、无从绑定到 Cypher。
+INC-003（data-platform spec）：S0/PII 字段绝不投影进图。主防线是每个实体只 SELECT 白名单内的
+非 PII 列——全量重建与增量拉取**共用同一份白名单**，增量 SELECT 仅在 WHERE 上加水位谓词、不多取
+任何列。水位 meta-node `(:_GraphSyncState {table, watermark})` 仅存表名 + 时间戳（非 PII）。
 no000_scrub_sensitive.py（run_all.sh 中先跑）与 LoaderPiiProjectionGuardTest 为防御层。
 
-图模型（保持与既有 CSV-loader 逐字段一致）：
+图模型（保持与既有 loader 逐字段一致）：
   节点:  User, Kindergarten, Teacher, Class, Child, Guardian, Role
   关系:  (User)-[:HAS_ROLE]->(Role)
          (Kindergarten)-[:HAS_TEACHER]->(Teacher)
@@ -19,7 +22,9 @@ no000_scrub_sensitive.py（run_all.sh 中先跑）与 LoaderPiiProjectionGuardTe
 """
 
 import sys
-from typing import Any, Dict, List
+import time
+import traceback
+from typing import Any, Callable, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -36,7 +41,12 @@ from config import (
     NEO4J_USERNAME,
     NEO4J_PASSWORD,
     BATCH_SIZE,
+    POLL_INTERVAL_SEC,
+    RECONCILE_EVERY,
 )
+
+# 空表 / 无水位时的哨兵水位：早于任何真实行，首个增量 tick 会拉取全部行（MERGE 幂等）。
+EPOCH_WATERMARK = "1970-01-01T00:00:00+00:00"
 
 
 # ============================================================
@@ -109,11 +119,48 @@ def get_pg_connection():
 
 
 def fetch(conn, table: str, columns: List[str]) -> List[Dict[str, Any]]:
-    """table 에서 columns(비-PII 화이트리스트)만 SELECT 하여 정규화된 dict 리스트 반환."""
+    """table 에서 columns(비-PII 화이트리스트)만 SELECT 하여 정규화된 dict 리스트 반환(全量)."""
     query = "SELECT {cols} FROM {table}".format(cols=", ".join(columns), table=table)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
         cursor.execute(query)
         return [normalize(dict(r)) for r in cursor.fetchall()]
+
+
+def fetch_incremental(
+    conn, table: str, columns: List[str], watermark_expr: str, watermark: str
+) -> List[Dict[str, Any]]:
+    """增量拉取：只多在 WHERE 上加水位谓词，SELECT 列集与全量完全一致（INC-003：不多取任何列）。
+    边界用 `>=` + 幂等 MERGE，避免同秒多行在重启/重叠重放时丢失。"""
+    query = (
+        "SELECT {cols} FROM {table} WHERE {wm_expr} >= %(wm)s ORDER BY {wm_expr}".format(
+            cols=", ".join(columns), table=table, wm_expr=watermark_expr,
+        )
+    )
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+        cursor.execute(query, {"wm": watermark})
+        return [normalize(dict(r)) for r in cursor.fetchall()]
+
+
+def fetch_max_watermark(conn, table: str, watermark_expr: str) -> str:
+    """SELECT max(<watermark_expr>)：初始化 / 校准该表水位。空表 → EPOCH 哨兵。"""
+    query = "SELECT max({wm_expr}) AS wm FROM {table}".format(wm_expr=watermark_expr, table=table)
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+        value = cursor.fetchone()[0]
+    if value is None:
+        return EPOCH_WATERMARK
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
+def fetch_ids(conn, table: str, id_columns: List[str]) -> List[Any]:
+    """对账用：只取 id 列（极轻）。单列返回标量列表，多列返回 tuple 列表。"""
+    query = "SELECT {cols} FROM {table}".format(cols=", ".join(id_columns), table=table)
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    if len(id_columns) == 1:
+        return [r[0] for r in rows]
+    return [tuple(r) for r in rows]
 
 
 def run_batched(session, cypher: str, rows: List[Dict[str, Any]], label: str) -> None:
@@ -123,6 +170,19 @@ def run_batched(session, cypher: str, rows: List[Dict[str, Any]], label: str) ->
         batch = rows[start:start + BATCH_SIZE]
         session.execute_write(lambda tx: tx.run(cypher, rows=batch))
     print(f"[{label}] {total} rows loaded")
+
+
+# ============================================================
+# 每行有效变更时刻（水位推进用）——不额外 SELECT，从已白名单化的列派生
+# ============================================================
+def effective_watermark(table: str, row: Dict[str, Any]) -> Optional[str]:
+    """从行内已选列派生「变更时刻」（ISO 字符串，同一 TZ Asia/Seoul → 可字典序比较）。
+    user_role_assignments 无 updated_at：用 max(granted_at, revoked_at)。"""
+    if table == "user_role_assignments":
+        candidates = [row.get("granted_at"), row.get("revoked_at")]
+        present = [c for c in candidates if c]
+        return max(present) if present else None
+    return row.get("updated_at")
 
 
 # ============================================================
@@ -136,12 +196,13 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT child_id_unique IF NOT EXISTS FOR (c:Child) REQUIRE c.child_id IS UNIQUE",
     "CREATE CONSTRAINT guardian_id_unique IF NOT EXISTS FOR (g:Guardian) REQUIRE g.guardian_id IS UNIQUE",
     "CREATE CONSTRAINT role_role_key_unique IF NOT EXISTS FOR (r:Role) REQUIRE r.role_key IS UNIQUE",
+    "CREATE CONSTRAINT graph_sync_state_table_unique IF NOT EXISTS FOR (s:_GraphSyncState) REQUIRE s.table IS UNIQUE",
 ]
 
 
 def clear_graph(session) -> None:
-    """전체 그래프 삭제. Neo4j 는 권위 데이터가 없는 파생 복제본이므로 안전하며,
-    PG 에서 삭제된 엔티티가 고아 노드로 남지 않도록 매 실행 시 클린 슬레이트로 재구축한다."""
+    """전체 그래프 삭제(水位 meta-node 포함). Neo4j 는 권위 데이터가 없는 파생 복제본이므로 안전하며,
+    bootstrap 시 클린 슬레이트로 재구축한다."""
     session.execute_write(lambda tx: tx.run("MATCH (n) DETACH DELETE n"))
     print("[clear] existing graph removed")
 
@@ -153,87 +214,85 @@ def ensure_constraints(session) -> None:
 
 
 # ============================================================
-# 노드 적재 (UNWIND 배치 MERGE; SET 절은 화이트리스트의 명시적 복제)
+# 노드 적재 Cypher (UNWIND 배치 MERGE; SET 절은 화이트리스트의 명시적 복제)
 # ============================================================
-NODE_LOADERS = [
-    ("users", USER_COLUMNS, "User", """
-        UNWIND $rows AS row
-        MERGE (u:User {user_id: row.user_id})
-        SET u.login_id = row.login_id,
-            u.status = row.status,
-            u.last_login_at = row.last_login_at,
-            u.created_at = row.created_at,
-            u.updated_at = row.updated_at
-    """),
-    ("kindergartens", KINDERGARTEN_COLUMNS, "Kindergarten", """
-        UNWIND $rows AS row
-        MERGE (k:Kindergarten {kindergarten_id: row.kindergarten_id})
-        SET k.name = row.name,
-            k.region_code = row.region_code,
-            k.code = row.code,
-            k.business_registration_no = row.business_registration_no,
-            k.contact_name = row.contact_name,
-            k.status = row.status,
-            k.created_at = row.created_at,
-            k.updated_at = row.updated_at
-    """),
-    ("teachers", TEACHER_COLUMNS, "Teacher", """
-        UNWIND $rows AS row
-        MERGE (t:Teacher {teacher_id: row.teacher_id})
-        SET t.kindergarten_id = row.kindergarten_id,
-            t.user_id = row.user_id,
-            t.staff_no = row.staff_no,
-            t.name = row.name,
-            t.gender = row.gender,
-            t.level = row.level,
-            t.start_date = row.start_date,
-            t.end_date = row.end_date,
-            t.status = row.status,
-            t.created_at = row.created_at,
-            t.updated_at = row.updated_at
-    """),
-    ("classes", CLASS_COLUMNS, "Class", """
-        UNWIND $rows AS row
-        MERGE (c:Class {class_id: row.class_id})
-        SET c.kindergarten_id = row.kindergarten_id,
-            c.name = row.name,
-            c.grade = row.grade,
-            c.academic_year = row.academic_year,
-            c.start_date = row.start_date,
-            c.end_date = row.end_date,
-            c.status = row.status,
-            c.created_at = row.created_at,
-            c.updated_at = row.updated_at
-    """),
-    ("children", CHILD_COLUMNS, "Child", """
-        UNWIND $rows AS row
-        MERGE (c:Child {child_id: row.child_id})
-        SET c.kindergarten_id = row.kindergarten_id,
-            c.name = row.name,
-            c.child_no = row.child_no,
-            c.gender = row.gender,
-            c.enroll_date = row.enroll_date,
-            c.leave_date = row.leave_date,
-            c.status = row.status,
-            c.created_at = row.created_at,
-            c.updated_at = row.updated_at
-    """),
-    ("guardians", GUARDIAN_COLUMNS, "Guardian", """
-        UNWIND $rows AS row
-        MERGE (g:Guardian {guardian_id: row.guardian_id})
-        SET g.kindergarten_id = row.kindergarten_id,
-            g.user_id = row.user_id,
-            g.name = row.name,
-            g.gender = row.gender,
-            g.status = row.status,
-            g.created_at = row.created_at,
-            g.updated_at = row.updated_at
-    """),
-]
+USER_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (u:User {user_id: row.user_id})
+    SET u.login_id = row.login_id,
+        u.status = row.status,
+        u.last_login_at = row.last_login_at,
+        u.created_at = row.created_at,
+        u.updated_at = row.updated_at
+"""
+KINDERGARTEN_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (k:Kindergarten {kindergarten_id: row.kindergarten_id})
+    SET k.name = row.name,
+        k.region_code = row.region_code,
+        k.code = row.code,
+        k.business_registration_no = row.business_registration_no,
+        k.contact_name = row.contact_name,
+        k.status = row.status,
+        k.created_at = row.created_at,
+        k.updated_at = row.updated_at
+"""
+TEACHER_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (t:Teacher {teacher_id: row.teacher_id})
+    SET t.kindergarten_id = row.kindergarten_id,
+        t.user_id = row.user_id,
+        t.staff_no = row.staff_no,
+        t.name = row.name,
+        t.gender = row.gender,
+        t.level = row.level,
+        t.start_date = row.start_date,
+        t.end_date = row.end_date,
+        t.status = row.status,
+        t.created_at = row.created_at,
+        t.updated_at = row.updated_at
+"""
+CLASS_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (c:Class {class_id: row.class_id})
+    SET c.kindergarten_id = row.kindergarten_id,
+        c.name = row.name,
+        c.grade = row.grade,
+        c.academic_year = row.academic_year,
+        c.start_date = row.start_date,
+        c.end_date = row.end_date,
+        c.status = row.status,
+        c.created_at = row.created_at,
+        c.updated_at = row.updated_at
+"""
+CHILD_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (c:Child {child_id: row.child_id})
+    SET c.kindergarten_id = row.kindergarten_id,
+        c.name = row.name,
+        c.child_no = row.child_no,
+        c.gender = row.gender,
+        c.enroll_date = row.enroll_date,
+        c.leave_date = row.leave_date,
+        c.status = row.status,
+        c.created_at = row.created_at,
+        c.updated_at = row.updated_at
+"""
+GUARDIAN_NODE_CYPHER = """
+    UNWIND $rows AS row
+    MERGE (g:Guardian {guardian_id: row.guardian_id})
+    SET g.kindergarten_id = row.kindergarten_id,
+        g.user_id = row.user_id,
+        g.name = row.name,
+        g.gender = row.gender,
+        g.status = row.status,
+        g.created_at = row.created_at,
+        g.updated_at = row.updated_at
+"""
 
 
 # ============================================================
-# 관계 적재
+# 관계 적재 Cypher
 # ============================================================
 HAS_ROLE_CYPHER = """
     UNWIND $rows AS row
@@ -330,55 +389,277 @@ def build_role_rows(raw: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return rows
 
 
+def identity(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return rows
+
+
 # ============================================================
-# 메인
+# 表 → (白名单列 / 水位 / label / id / MERGE Cypher) 单一注册表
+# ------------------------------------------------------------
+# 全量重建(bootstrap) 与 增量 tick 共用同一份配置，保证白名单/Cypher 单一真源。
 # ============================================================
-def main() -> None:
-    pg_conn = None
-    neo4j_driver = None
-    try:
-        print("1) PostgreSQL 연결")
-        pg_conn = get_pg_connection()
+# 节点表: (table, columns, label, id_key, node_cypher)
+NODE_SPECS = [
+    ("users", USER_COLUMNS, "User", "user_id", USER_NODE_CYPHER),
+    ("kindergartens", KINDERGARTEN_COLUMNS, "Kindergarten", "kindergarten_id", KINDERGARTEN_NODE_CYPHER),
+    ("teachers", TEACHER_COLUMNS, "Teacher", "teacher_id", TEACHER_NODE_CYPHER),
+    ("classes", CLASS_COLUMNS, "Class", "class_id", CLASS_NODE_CYPHER),
+    ("children", CHILD_COLUMNS, "Child", "child_id", CHILD_NODE_CYPHER),
+    ("guardians", GUARDIAN_COLUMNS, "Guardian", "guardian_id", GUARDIAN_NODE_CYPHER),
+]
 
-        print("2) PostgreSQL 조회 (비-PII 화이트리스트)")
-        nodes = {table: fetch(pg_conn, table, cols) for table, cols, _, _ in NODE_LOADERS}
-        user_roles = build_role_rows(fetch(pg_conn, "user_role_assignments", USER_ROLE_COLUMNS))
-        class_teachers = fetch(pg_conn, "class_teacher_assignments", CLASS_TEACHER_COLUMNS)
-        child_classes = fetch(pg_conn, "child_class_assignments", CHILD_CLASS_COLUMNS)
-        child_guardians = fetch(pg_conn, "child_guardian_relationships", CHILD_GUARDIAN_COLUMNS)
+# 关系表: (table, columns, watermark_expr, transform, cypher, label)
+# watermark_expr 是 SQL 表达式；user_role_assignments 无 updated_at → 用 granted/revoked 派生。
+REL_SPECS = [
+    ("user_role_assignments", USER_ROLE_COLUMNS,
+     "GREATEST(granted_at, COALESCE(revoked_at, granted_at))", build_role_rows,
+     HAS_ROLE_CYPHER, "HAS_ROLE"),
+    ("class_teacher_assignments", CLASS_TEACHER_COLUMNS,
+     "updated_at", identity, HAS_CLASS_CYPHER, "HAS_CLASS"),
+    ("child_class_assignments", CHILD_CLASS_COLUMNS,
+     "updated_at", identity, HAS_CHILD_CYPHER, "HAS_CHILD"),
+    ("child_guardian_relationships", CHILD_GUARDIAN_COLUMNS,
+     "updated_at", identity, HAS_GUARDIAN_CYPHER, "HAS_GUARDIAN"),
+]
 
-        print("3) Neo4j 연결 및 그래프 재구축")
-        neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
-        with neo4j_driver.session() as session:
-            clear_graph(session)
-            ensure_constraints(session)
+# 节点表水位表达式统一 = updated_at（6 表均有）。
+NODE_WATERMARK_EXPR = "updated_at"
 
-            for table, _cols, label, cypher in NODE_LOADERS:
-                run_batched(session, cypher, nodes[table], label)
 
-            run_batched(session, HAS_ROLE_CYPHER, user_roles, "HAS_ROLE")
+# ============================================================
+# 水位 meta-node 读写 (:_GraphSyncState {table, watermark}) —— 仅非 PII 记账属性
+# ============================================================
+def read_watermark(session, table: str) -> Optional[str]:
+    rec = session.execute_read(
+        lambda tx: tx.run(
+            "MATCH (s:_GraphSyncState {table: $t}) RETURN s.watermark AS wm", t=table
+        ).single()
+    )
+    return rec["wm"] if rec else None
+
+
+def write_watermark(session, table: str, watermark: str) -> None:
+    session.execute_write(
+        lambda tx: tx.run(
+            "MERGE (s:_GraphSyncState {table: $t}) SET s.watermark = $wm",
+            t=table, wm=watermark,
+        )
+    )
+
+
+def graph_needs_bootstrap(session) -> bool:
+    """空图（无数据节点）或无任何水位 meta-node → 需要 bootstrap 全量重建。"""
+    data_nodes = session.execute_read(
+        lambda tx: tx.run(
+            "MATCH (n) WHERE NOT n:_GraphSyncState RETURN count(n) AS c"
+        ).single()["c"]
+    )
+    sync_states = session.execute_read(
+        lambda tx: tx.run("MATCH (s:_GraphSyncState) RETURN count(s) AS c").single()["c"]
+    )
+    return data_nodes == 0 or sync_states == 0
+
+
+# ============================================================
+# Bootstrap: one-shot 全量重建 + 初始化各表水位
+# ============================================================
+def full_rebuild(session, pg_conn) -> None:
+    print("[bootstrap] 全量重建开始（DETACH DELETE + 白名单重载）")
+    nodes = {table: fetch(pg_conn, table, cols) for table, cols, _, _, _ in NODE_SPECS}
+    rel_rows = {
+        table: transform(fetch(pg_conn, table, cols))
+        for table, cols, _wm, transform, _cy, _lbl in REL_SPECS
+    }
+
+    clear_graph(session)
+    ensure_constraints(session)
+
+    for table, _cols, label, _id, cypher in NODE_SPECS:
+        run_batched(session, cypher, nodes[table], label)
+
+    session.execute_write(lambda tx: tx.run(HAS_TEACHER_CYPHER))
+    print("[HAS_TEACHER] derived from Teacher.kindergarten_id")
+    for table, _cols, _wm, _tf, cypher, label in REL_SPECS:
+        run_batched(session, cypher, rel_rows[table], label)
+
+    init_watermarks(session, pg_conn)
+    print("[bootstrap] 全量重建完成")
+
+
+def init_watermarks(session, pg_conn) -> None:
+    for table, _cols, _label, _id, _cy in NODE_SPECS:
+        wm = fetch_max_watermark(pg_conn, table, NODE_WATERMARK_EXPR)
+        write_watermark(session, table, wm)
+    for table, _cols, wm_expr, _tf, _cy, _lbl in REL_SPECS:
+        wm = fetch_max_watermark(pg_conn, table, wm_expr)
+        write_watermark(session, table, wm)
+    print("[watermark] 各表水位已初始化")
+
+
+# ============================================================
+# 稳态：增量 tick + 周期对账
+# ============================================================
+def _sync_one(
+    session, pg_conn, table: str, columns: List[str], watermark_expr: str,
+    transform: Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]],
+    cypher: str, label: str,
+) -> int:
+    """单表增量 upsert：拉取 >= 水位的行 → MERGE → 推进水位到本批 max。
+    失败语义：抛异常则不推进水位（调用方捕获），下 tick 重试（MERGE 幂等）。返回处理行数。"""
+    watermark = read_watermark(session, table) or EPOCH_WATERMARK
+    raw = fetch_incremental(pg_conn, table, columns, watermark_expr, watermark)
+    if not raw:
+        return 0
+    rows = transform(raw)
+    run_batched(session, cypher, rows, f"{label}·incr")
+    batch_max = max(
+        (wm for wm in (effective_watermark(table, r) for r in raw) if wm),
+        default=None,
+    )
+    if batch_max is not None:
+        write_watermark(session, table, batch_max)
+    return len(raw)
+
+
+def incremental_tick(session, pg_conn) -> int:
+    """一个增量 tick：各表独立 try/except——某表失败仅记录、不推进该表水位、不影响其他表。"""
+    changed = 0
+    teachers_changed = False
+    for table, columns, _label, _id, cypher in NODE_SPECS:
+        try:
+            n = _sync_one(session, pg_conn, table, columns, NODE_WATERMARK_EXPR,
+                          identity, cypher, table)
+            changed += n
+            if table == "teachers" and n:
+                teachers_changed = True
+        except Exception as exc:  # noqa: BLE001 — 单表隔离：记录并继续，不推进该表水位
+            print(f"[tick][{table}] 失败（水位不前进，下 tick 重试）: {exc}", file=sys.stderr)
+
+    # Teacher 行变更 → 重建 HAS_TEACHER（由 Teacher.kindergarten_id 导出，MERGE 幂等）
+    if teachers_changed:
+        try:
             session.execute_write(lambda tx: tx.run(HAS_TEACHER_CYPHER))
-            print("[HAS_TEACHER] derived from Teacher.kindergarten_id")
-            run_batched(session, HAS_CLASS_CYPHER, class_teachers, "HAS_CLASS")
-            run_batched(session, HAS_CHILD_CYPHER, child_classes, "HAS_CHILD")
-            run_batched(session, HAS_GUARDIAN_CYPHER, child_guardians, "HAS_GUARDIAN")
+            print("[HAS_TEACHER·incr] re-derived")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[tick][HAS_TEACHER] 失败: {exc}", file=sys.stderr)
 
-        print("4) 완료: PG → Neo4j 동기화 성공")
+    for table, columns, wm_expr, transform, cypher, label in REL_SPECS:
+        try:
+            changed += _sync_one(session, pg_conn, table, columns, wm_expr,
+                                 transform, cypher, label)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[tick][{table}] 失败（水位不前进，下 tick 重试）: {exc}", file=sys.stderr)
+    return changed
 
+
+def reconcile_deletes(session, pg_conn) -> None:
+    """全量 id 对账清孤儿——传播 PG 硬删除（updated_at 观测不到已删行）。图极小，可每 tick 跑。"""
+    # 1) 节点孤儿：live id 集合外的节点 DETACH DELETE
+    for table, _cols, label, id_key, _cy in NODE_SPECS:
+        live_ids = fetch_ids(pg_conn, table, [id_key])
+        session.execute_write(
+            lambda tx, lbl=label, k=id_key, ids=live_ids: tx.run(
+                f"MATCH (n:{lbl}) WHERE NOT n.{k} IN $ids DETACH DELETE n", ids=ids
+            )
+        )
+
+    # 2) HAS_ROLE 边：按 role_assignment_id 对账；随后清理无入边的孤儿 Role 节点
+    live_role_ids = fetch_ids(pg_conn, "user_role_assignments", ["role_assignment_id"])
+    session.execute_write(
+        lambda tx: tx.run(
+            "MATCH ()-[r:HAS_ROLE]->() WHERE NOT r.role_assignment_id IN $ids DELETE r",
+            ids=live_role_ids,
+        )
+    )
+    session.execute_write(
+        lambda tx: tx.run("MATCH (r:Role) WHERE NOT ()-[:HAS_ROLE]->(r) DETACH DELETE r")
+    )
+
+    # 3) HAS_CLASS / HAS_CHILD 边：按 assignment_id 对账
+    for table, edge in [("class_teacher_assignments", "HAS_CLASS"),
+                        ("child_class_assignments", "HAS_CHILD")]:
+        live = fetch_ids(pg_conn, table, ["assignment_id"])
+        session.execute_write(
+            lambda tx, e=edge, ids=live: tx.run(
+                f"MATCH ()-[r:{e}]->() WHERE NOT r.assignment_id IN $ids DELETE r", ids=ids
+            )
+        )
+
+    # 4) HAS_GUARDIAN 边：无单一 id → 按 (child_id, guardian_id) 存在性对账
+    live_pairs = fetch_ids(pg_conn, "child_guardian_relationships", ["child_id", "guardian_id"])
+    live_pair_keys = [f"{c}-{g}" for c, g in live_pairs]
+    session.execute_write(
+        lambda tx: tx.run(
+            "MATCH (ch:Child)-[r:HAS_GUARDIAN]->(g:Guardian) "
+            "WHERE NOT (toString(ch.child_id) + '-' + toString(g.guardian_id)) IN $pairs "
+            "DELETE r",
+            pairs=live_pair_keys,
+        )
+    )
+
+    # 5) HAS_TEACHER 边：Teacher 换园后旧边过时 → 清理 kindergarten 不匹配的边
+    session.execute_write(
+        lambda tx: tx.run(
+            "MATCH (k:Kindergarten)-[r:HAS_TEACHER]->(t:Teacher) "
+            "WHERE k.kindergarten_id <> t.kindergarten_id DELETE r"
+        )
+    )
+    print("[reconcile] 孤儿节点/边对账完成")
+
+
+# ============================================================
+# 메인 —— 长生命周期循环
+# ============================================================
+def run_sync_loop() -> None:
+    neo4j_driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
+    tick = 0
+    try:
+        # Bootstrap 判定（独立短连接）
+        boot_conn = get_pg_connection()
+        try:
+            with neo4j_driver.session() as session:
+                ensure_constraints(session)
+                if graph_needs_bootstrap(session):
+                    full_rebuild(session, boot_conn)
+                else:
+                    print("[startup] 已有图 + 水位，跳过 bootstrap，进入增量稳态")
+        finally:
+            boot_conn.close()
+
+        print(f"[loop] 进入稳态：POLL_INTERVAL_SEC={POLL_INTERVAL_SEC} RECONCILE_EVERY={RECONCILE_EVERY}")
+        while True:
+            tick += 1
+            pg_conn = None
+            try:
+                pg_conn = get_pg_connection()
+                with neo4j_driver.session() as session:
+                    changed = incremental_tick(session, pg_conn)
+                    if RECONCILE_EVERY > 0 and tick % RECONCILE_EVERY == 0:
+                        reconcile_deletes(session, pg_conn)
+                    if changed:
+                        print(f"[tick {tick}] {changed} rows upserted")
+            except Exception as exc:  # noqa: BLE001 — tick 级兜底：记录、退避、下 tick 重试
+                print(f"[tick {tick}] 异常（退避后重试）: {exc}", file=sys.stderr)
+                traceback.print_exc()
+            finally:
+                if pg_conn is not None:
+                    pg_conn.close()
+            time.sleep(POLL_INTERVAL_SEC)
+    finally:
+        neo4j_driver.close()
+
+
+def main() -> None:
+    try:
+        run_sync_loop()
+    except KeyboardInterrupt:
+        print("\n[shutdown] 收到中断，退出 sync loop")
     except psycopg2.Error as exc:
         print("PostgreSQL 오류:", exc, file=sys.stderr)
         sys.exit(1)
     except Neo4jError as exc:
         print("Neo4j 오류:", exc, file=sys.stderr)
         sys.exit(1)
-    except Exception as exc:  # noqa: BLE001 — one-shot loader: any failure must exit non-zero
-        print("알 수 없는 오류:", exc, file=sys.stderr)
-        sys.exit(1)
-    finally:
-        if pg_conn is not None:
-            pg_conn.close()
-        if neo4j_driver is not None:
-            neo4j_driver.close()
 
 
 if __name__ == "__main__":

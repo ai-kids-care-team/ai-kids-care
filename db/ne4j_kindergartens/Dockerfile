@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# 长生命周期 sync：关闭 stdout 缓冲，保证 tick / reconcile 日志实时刷出（docker logs 可见）
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 # requirements.txt 설치

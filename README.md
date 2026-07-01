@@ -170,7 +170,7 @@ AI 서비스 주요 엔드포인트:
 - PostgreSQL 스키마와 seed SQL: `db/initdb/`
 - DBML 스키마: `db/dbml/schema.dbml`
 - ERD 문서: `openspec/specs/data-platform/spec.md`
-- Neo4j 데이터 로더: `db/ne4j_kindergartens/` (PostgreSQL 을 직접 조회해 派生 그래프를 일회성 재구축; CSV 미사용)
+- Neo4j 데이터 로더: `db/ne4j_kindergartens/` (PostgreSQL 을 직접 조회해 派生 그래프를 **증분 sync**; 최초엔 bootstrap 전체 재구축, 이후 워터마크 증분 upsert + 주기 대조로 폴링 간격 내 수렴; 상주 프로세스, CSV 미사용)
 - 코드 생성 도구: ~~`pg-spring-crud-codegen/`~~ （퇴역, 2026-06-18, ADR-0027；신규 도메인 객체는 수작업으로 작성）
 
 백엔드는 Hibernate `ddl-auto=validate`로 실행되므로, DB 스키마는 애플리케이션 시작 전에 SQL init script로 준비되어 있어야 합니다. 루트 Docker Compose를 사용하면 PostgreSQL 컨테이너 생성 시 `db/initdb`가 적용됩니다.

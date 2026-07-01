@@ -170,7 +170,7 @@ The default `AI_MODEL_DIR` is `outputs/videomae_baseline/best_model`. Both Docke
 - PostgreSQL schema and seed SQL: `db/initdb/`
 - DBML schema: `db/dbml/schema.dbml`
 - ERD documentation: `openspec/specs/data-platform/spec.md`
-- Neo4j data loader: `db/ne4j_kindergartens/` (rebuilds the derived graph one-shot by querying PostgreSQL directly; no CSV)
+- Neo4j data loader: `db/ne4j_kindergartens/` (keeps the derived graph converged with PostgreSQL via **incremental sync**: a bootstrap full rebuild on first/empty graph, then watermark incremental upserts plus periodic reconcile within the polling interval; long-lived process, no CSV)
 - Code generation tool: ~~`pg-spring-crud-codegen/`~~ (retired 2026-06-18, ADR-0027; new domain objects are hand-written)
 
 The backend runs with Hibernate `ddl-auto=validate`, so the database schema must exist before the application starts. The root Docker Compose setup applies `db/initdb` when the PostgreSQL container is created.
