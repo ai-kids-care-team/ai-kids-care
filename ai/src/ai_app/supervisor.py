@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Multi-camera live-detection supervisor (design D2 / Scheme A).
+Multi-camera live-detection supervisor (ai-ingest design D2 / Scheme A execution model,
+shard-live-detection-deployments design D1/D2 for cross-stack distribution).
 
-Enumerates the active camera streams this AI deployment is responsible for (via the backend
-``GET /api/v1/internal/streams`` registry) and runs **one detection worker subprocess per stream**
-(the existing single-stream ``run_stream_service``). Process isolation means one stream's crash or
-memory leak does not affect the others and sidesteps the GIL for parallel PyAV decode (design D2).
+Periodically claims/renews its share of active camera streams from the backend's Redis-backed
+claim/lease endpoint (``POST /api/v1/internal/streams/claim``, see
+``ai_app.utils.stream_claim.claim_streams`` and ``make_claim_based_lister``) and runs **one
+detection worker subprocess per assigned stream** (the existing single-stream
+``run_stream_service``). Process isolation means one stream's crash or memory leak does not
+affect the others and sidesteps the GIL for parallel PyAV decode (design D2).
 
 The supervisor core (this class) is intentionally **thin and ML-free at import time**: the heavy
 PyAV/torch worker code is imported lazily, only inside the child process entrypoint. All
@@ -14,10 +17,14 @@ collaborators are injectable so the reconcile/restart/cap logic is unit-tested w
 subprocesses, streams, or a backend.
 
 Responsibilities:
-- start one worker per active stream, up to ``MAX_WORKERS``;
+- start one worker per assigned stream, up to ``MAX_WORKERS`` (this deployment's claim
+  ``capacity``);
 - restart a worker that has exited, with a backoff gate (no tight crash loop);
-- reconcile when the active-stream set changes — add new, stop removed, leave the rest untouched;
-- never let one worker's failure (or an enumeration failure) terminate the supervisor.
+- reconcile when the assigned-stream set changes (claimed, lost lease, or disabled upstream) —
+  add new, stop removed, leave the rest untouched;
+- never let one worker's failure (or a claim failure) terminate the supervisor — a claim failure
+  is logged and the current worker set is kept until the next successful poll (also renews the
+  lease, acting as a heartbeat).
 """
 
 from __future__ import annotations
@@ -29,7 +36,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 DEFAULT_MAX_WORKERS = 8
 DEFAULT_RESTART_BACKOFF_SEC = 5.0
-DEFAULT_POLL_INTERVAL_SEC = 30.0
+# shard-live-detection-deployments design D2: claim doubles as heartbeat/lease-renewal; TTL
+# (backend-side, default 60s) is sized as a multiple of this poll interval.
+DEFAULT_POLL_INTERVAL_SEC = 20.0
 
 # A stream descriptor as returned by the backend registry: {"streamId", "modelId", "kindergartenId"}.
 StreamInfo = Dict[str, Any]
@@ -86,6 +95,17 @@ class StreamSupervisor:
     @property
     def workers(self) -> Dict[int, _Worker]:
         return self._workers
+
+    def set_stream_source(self, list_active_streams: Callable[[], List[StreamInfo]]) -> None:
+        """Replace the desired-stream-set source after construction.
+
+        Used to wire the claim/lease-based lister (``make_claim_based_lister``), which needs a
+        reference to *this* supervisor's currently-running worker ids (to send as ``running`` on
+        each claim call) — a reference only available once the supervisor instance exists. Purely
+        additive: the constructor-supplied source keeps working unchanged for callers/tests that
+        never call this.
+        """
+        self._list_active_streams = list_active_streams
 
     def _desired(self) -> Dict[int, StreamInfo]:
         """Resolve the desired stream set; on enumeration failure keep the current workers' set."""
@@ -181,6 +201,82 @@ class StreamSupervisor:
             self._stop(stream_id)
 
 
+def make_claim_based_lister(
+    *,
+    get_running_ids: Callable[[], List[int]],
+    claim_fn: Callable[[List[int]], List[StreamInfo]],
+) -> Callable[[], List[StreamInfo]]:
+    """Build a zero-arg ``list_active_streams`` callable backed by the claim/lease endpoint.
+
+    Adapts ``ai_app.utils.stream_claim.claim_streams`` (which needs a ``running`` list to renew
+    leases) to the zero-arg ``list_active_streams`` shape ``StreamSupervisor`` expects, by pulling
+    the *current* running stream ids from ``get_running_ids`` (typically
+    ``lambda: list(supervisor.workers)``) on every call.
+
+    ``claim_fn`` is expected to already be bound to ``deploymentId``/``capacity`` (a closure over
+    ``claim_streams(backend_url, token, deployment_id, capacity, running)``); this factory only
+    handles the "what are we running right now" plumbing so ``StreamSupervisor`` itself needs no
+    claim-specific knowledge.
+
+    A ``claim_fn`` failure (backend unreachable, non-2xx) propagates unchanged — the caller
+    (``StreamSupervisor._desired()``) already treats a raised exception from the stream source as
+    "keep the current workers, log, retry next poll" (design D2's "claim 失败不 crash"), so this
+    function does not swallow errors itself.
+    """
+
+    def _lister() -> List[StreamInfo]:
+        running = list(get_running_ids())
+        return list(claim_fn(running))
+
+    return _lister
+
+
+@dataclass
+class SupervisorConfig:
+    """Resolved supervisor configuration (see ``_load_config_from_env``)."""
+    backend_url: str
+    token: str
+    deployment_id: str
+    max_workers: int
+    poll_interval_sec: float
+
+
+def _load_config_from_env(env: Optional[Dict[str, str]] = None) -> SupervisorConfig:
+    """Resolve supervisor configuration from environment variables.
+
+    Fail-fast (``ValueError``) on missing required secrets/identity — ``AI_SERVICE_TOKEN`` (shared
+    auth) and ``DEPLOYMENT_ID`` (this stack's lease-ownership identity, shard-live-detection-
+    deployments design D2) follow the same contract: absent or empty is a startup error, never a
+    silent default.
+
+    Args:
+        env: Injectable environment mapping (defaults to ``os.environ``); lets tests exercise the
+            fail-fast paths without mutating real process environment.
+    """
+    source = os.environ if env is None else env
+
+    backend_url = source.get("JAVA_BACKEND_URL", "http://backend:8080")
+
+    token = source.get("AI_SERVICE_TOKEN", "")
+    if not token:
+        raise ValueError("AI_SERVICE_TOKEN must be set for the live-detection supervisor")
+
+    deployment_id = source.get("DEPLOYMENT_ID", "")
+    if not deployment_id:
+        raise ValueError("DEPLOYMENT_ID must be set for the live-detection supervisor")
+
+    max_workers = int(source.get("MAX_WORKERS", str(DEFAULT_MAX_WORKERS)))
+    poll_interval_sec = float(source.get("STREAM_POLL_INTERVAL_SEC", str(DEFAULT_POLL_INTERVAL_SEC)))
+
+    return SupervisorConfig(
+        backend_url=backend_url,
+        token=token,
+        deployment_id=deployment_id,
+        max_workers=max_workers,
+        poll_interval_sec=poll_interval_sec,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Production wiring (lazy ML import — only runs in the child process)
 # ---------------------------------------------------------------------------
@@ -211,8 +307,13 @@ def _worker_entry(info: StreamInfo) -> None:  # pragma: no cover — runs only i
     token = os.getenv("AI_SERVICE_TOKEN", "")
     if not token:
         raise ValueError("AI_SERVICE_TOKEN must be set for the live-detection worker")
+    deployment_id = os.getenv("DEPLOYMENT_ID", "")
+    if not deployment_id:
+        raise ValueError("DEPLOYMENT_ID must be set for the live-detection worker")
 
-    cred = fetch_stream_credentials(stream_id, backend_url, token)
+    # X-Deployment-Id lets the backend verify this stack currently holds the stream's
+    # claim/lease before releasing credentials (defense-in-depth, design Risk "凭据端点越权").
+    cred = fetch_stream_credentials(stream_id, backend_url, token, deployment_id=deployment_id)
     stream_url = build_stream_url(cred)
 
     project_root = pathlib.Path(__file__).resolve().parents[2]
@@ -245,27 +346,41 @@ def _default_spawn_worker(info: StreamInfo) -> Any:  # pragma: no cover — need
 
 
 def main() -> None:  # pragma: no cover — process entrypoint, exercised by integration only
-    """Long-lived supervisor entrypoint (the deployed live-detection service)."""
-    backend_url = os.getenv("JAVA_BACKEND_URL", "http://backend:8080")
-    token = os.getenv("AI_SERVICE_TOKEN", "")
-    if not token:
-        raise ValueError("AI_SERVICE_TOKEN must be set for the live-detection supervisor")
-    max_workers = int(os.getenv("MAX_WORKERS", str(DEFAULT_MAX_WORKERS)))
-    poll_interval = float(os.getenv("STREAM_POLL_INTERVAL_SEC", str(DEFAULT_POLL_INTERVAL_SEC)))
+    """Long-lived supervisor entrypoint (the deployed live-detection service).
 
-    from ai_app.utils.stream_registry import fetch_active_streams
+    Desired-stream source is the claim/lease endpoint (design D2): each poll, claim renews the
+    lease for the streams currently running here and claims spare capacity, returning the
+    complete ``assigned`` set this deployment should run this round; the existing bounded-pool
+    ``reconcile()`` (add new / stop removed / restart dead, capped at ``MAX_WORKERS``) is reused
+    unchanged.
+    """
+    config = _load_config_from_env()
+
+    from ai_app.utils.stream_claim import claim_streams
 
     supervisor = StreamSupervisor(
-        list_active_streams=lambda: fetch_active_streams(backend_url, token),
+        # Placeholder until replaced by set_stream_source() below — make_claim_based_lister
+        # needs a reference to this supervisor instance (to read its running worker ids), which
+        # only exists after construction.
+        list_active_streams=lambda: [],
         spawn_worker=_default_spawn_worker,
-        max_workers=max_workers,
+        max_workers=config.max_workers,
+    )
+    supervisor.set_stream_source(
+        make_claim_based_lister(
+            get_running_ids=lambda: list(supervisor.workers.keys()),
+            claim_fn=lambda running: claim_streams(
+                config.backend_url, config.token, config.deployment_id, config.max_workers, running
+            ),
+        )
     )
     print(
-        f"[INFO] live-detection supervisor starting: backend={backend_url}, "
-        f"max_workers={max_workers}, poll_interval_sec={poll_interval}"
+        f"[INFO] live-detection supervisor starting: backend={config.backend_url}, "
+        f"deployment_id={config.deployment_id}, max_workers={config.max_workers}, "
+        f"poll_interval_sec={config.poll_interval_sec}"
     )
     try:
-        supervisor.run_forever(poll_interval_sec=poll_interval)
+        supervisor.run_forever(poll_interval_sec=config.poll_interval_sec)
     finally:
         supervisor.stop_all()
 

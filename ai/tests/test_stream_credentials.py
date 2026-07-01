@@ -91,6 +91,46 @@ class TestFetchAndBuildWithCredentials:
         assert parsed.port == 554
         assert parsed.path == "/live"
 
+    def test_deployment_id_sent_as_header_when_given(self):
+        """shard-live-detection-deployments: X-Deployment-Id lets the backend verify the caller
+        currently holds the stream's claim/lease before releasing credentials."""
+        cred_body = {
+            "streamId": "cam-001",
+            "sourceUrl": "rtsp://192.168.1.100:554/live",
+            "streamUser": None,
+            "streamPassword": None,
+        }
+        mock_get = MagicMock(return_value=_mock_response(200, cred_body))
+
+        fetch_stream_credentials(
+            "cam-001",
+            "http://backend:8080",
+            "test-token",
+            deployment_id="dep-a",
+            http_get=mock_get,
+        )
+
+        assert mock_get.call_args[1]["headers"]["X-Deployment-Id"] == "dep-a"
+
+    def test_deployment_id_omitted_when_not_given(self):
+        """Backward compatible: no deployment_id -> no X-Deployment-Id header at all."""
+        cred_body = {
+            "streamId": "cam-001",
+            "sourceUrl": "rtsp://192.168.1.100:554/live",
+            "streamUser": None,
+            "streamPassword": None,
+        }
+        mock_get = MagicMock(return_value=_mock_response(200, cred_body))
+
+        fetch_stream_credentials(
+            "cam-001",
+            "http://backend:8080",
+            "test-token",
+            http_get=mock_get,
+        )
+
+        assert "X-Deployment-Id" not in mock_get.call_args[1]["headers"]
+
 
 class TestBuildWithoutCredentials:
     """Null user/password: sourceUrl should be returned unchanged."""

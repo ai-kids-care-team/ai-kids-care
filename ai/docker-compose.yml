@@ -34,12 +34,18 @@ services:
     volumes:
       - ./outputs:/app/outputs:ro
 
-  # ⚠️ BREAKING (deployment) — maintainer-review-gated (tasks 1.3 / 5.1).
-  # Long-lived live-detection supervisor: enumerates the active streams this deployment is
-  # responsible for (backend GET /api/v1/internal/streams, Scheme A) and runs one detection worker
-  # subprocess per stream (detection → backend ingest). Runs ALONGSIDE ai-inference (:8001) — it
-  # does NOT replace the FastAPI serving path; it is the process that finally makes the ingest loop
-  # run in the deployed stack. Reuses the same image (build context) with a command override.
+  # ⚠️ BREAKING (deployment) — maintainer-review-gated (tasks 1.3 / 5.1/5.2).
+  # Long-lived live-detection supervisor: periodically claims/renews its share of active streams
+  # from the backend's Redis-backed claim/lease endpoint (POST /api/v1/internal/streams/claim,
+  # shard-live-detection-deployments design D2) and runs one detection worker subprocess per
+  # assigned stream (detection → backend ingest). Runs ALONGSIDE ai-inference (:8001) — it does NOT
+  # replace the FastAPI serving path; it is the process that finally makes the ingest loop run in
+  # the deployed stack. Reuses the same image (build context) with a command override.
+  #
+  # `profiles: [live]`: this service does NOT start on a bare `docker compose up` (no GPU
+  # requirement in this base file either way, but a supervisor without DEPLOYMENT_ID/AI_SERVICE_TOKEN
+  # would crash-loop) — it only starts with `--profile live` (see docker-compose.gpu.yml for the
+  # GPU-host overlay that also carries this profile).
   #
   # Network reachability to the Java backend is required (JAVA_BACKEND_URL). The AI subStack is
   # independent of the root docker-compose.yml; in production attach this service to a network that
@@ -50,19 +56,26 @@ services:
       dockerfile: Dockerfile
     container_name: ai-kids-live-supervisor
     restart: unless-stopped
+    profiles: ["live"]
     command: ["python", "scripts/stream_supervisor.py"]
     environment:
       PYTHONPATH: /app/src
       AI_MODEL_DIR: /app/outputs/videomae_baseline/best_model
-      # Backend ingest + active-stream registry (Scheme A). AI_SERVICE_TOKEN is required: the
+      # Backend ingest + claim/lease endpoint (design D2). AI_SERVICE_TOKEN is required: the
       # supervisor fails fast (RuntimeError) if it is absent or empty.
       JAVA_BACKEND_URL: ${JAVA_BACKEND_URL:-http://backend:8080}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
-      # Per-stream modelId is returned by the registry; MODEL_ID is the worker-side fallback.
+      # This GPU stack's lease-ownership identity (design D2); required, fails fast if absent or
+      # empty — every stream this deployment claims/renews is leased to this id.
+      DEPLOYMENT_ID: ${DEPLOYMENT_ID:-}
+      # Per-stream modelId is returned by the claim response; MODEL_ID is the worker-side fallback.
       MODEL_ID: ${MODEL_ID:-1}
-      # Capacity guard (design Risk GPU/CPU): max concurrent worker subprocesses.
-      MAX_WORKERS: ${MAX_WORKERS:-8}
-      # How often the supervisor re-polls the registry and reconciles (seconds).
-      STREAM_POLL_INTERVAL_SEC: ${STREAM_POLL_INTERVAL_SEC:-30}
+      # Capacity guard (design D1/D4): max concurrent worker subprocesses, also sent as the claim
+      # `capacity`. Benchmark on the target GPU host (scripts/benchmark_max_workers.md) before
+      # overriding in production.
+      MAX_WORKERS: ${MAX_WORKERS:-2}
+      # How often the supervisor re-claims/renews and reconciles (seconds); doubles as the lease
+      # heartbeat (design OQ-1: poll 20s / backend lease TTL 60s).
+      STREAM_POLL_INTERVAL_SEC: ${STREAM_POLL_INTERVAL_SEC:-20}
     volumes:
       - ./outputs:/app/outputs:ro

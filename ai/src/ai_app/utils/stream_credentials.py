@@ -26,6 +26,7 @@ def fetch_stream_credentials(
     backend_url: str,
     token: str,
     *,
+    deployment_id: Optional[str] = None,
     http_get: Optional[Callable[..., Any]] = None,
 ) -> dict:
     """Call the Java internal credential endpoint and return the credential dict.
@@ -34,6 +35,12 @@ def fetch_stream_credentials(
         stream_id: The camera stream ID to retrieve credentials for.
         backend_url: Base URL of the Java backend, e.g. ``http://backend:8080``.
         token: Shared Bearer token for AI service authentication (``AI_SERVICE_TOKEN``).
+        deployment_id: This AI stack's lease-ownership identity (``DEPLOYMENT_ID``). When
+            given, sent as the ``X-Deployment-Id`` header so the backend can verify the
+            caller currently holds the stream's claim/lease before releasing credentials
+            (shard-live-detection-deployments design, defense-in-depth: a caller without a
+            valid lease for this stream gets 404). ``None``/empty omits the header entirely
+            (backward compatible with callers that predate the lease model).
         http_get: Optional injectable HTTP GET callable with signature
             ``(url, headers, timeout) -> Response``.  Defaults to
             ``requests.get`` at call time so the module can be imported without
@@ -57,6 +64,8 @@ def fetch_stream_credentials(
 
     url = f"{backend_url.rstrip('/')}/api/v1/internal/streams/{stream_id}/credentials"
     headers = {"Authorization": f"Bearer {token}"}
+    if deployment_id:
+        headers["X-Deployment-Id"] = deployment_id
 
     response = http_get(url, headers=headers, timeout=10)
 

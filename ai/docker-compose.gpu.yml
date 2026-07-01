@@ -1,0 +1,27 @@
+services:
+  # GPU-host overlay (shard-live-detection-deployments design D3) — the ONLY compose file in this
+  # repo that carries an nvidia device reservation. Layer on top of the base ai/docker-compose.yml:
+  #
+  #   docker compose -f ai/docker-compose.yml -f ai/docker-compose.gpu.yml --profile live up
+  #
+  # Requires the NVIDIA Container Toolkit installed on the host (nvidia-ctk / nvidia-container-
+  # runtime) so the Docker daemon can honor `deploy.resources.reservations.devices`. Without a GPU
+  # host, do NOT apply this overlay — the base file alone is CPU-only and `compose up` (no
+  # `--profile live`) starts only `ai-inference`, unaffected by this file's existence.
+  ai-inference:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ai-live-supervisor:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
