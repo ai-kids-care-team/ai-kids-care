@@ -76,9 +76,9 @@ worker 内 `create_session`/`submit_event` 已是有界重试 + 耗尽后 log �
 ## Open Questions
 
 1. ~~**流枚举方案 A vs. B（D3）**~~ **已定（2026-06-30）：方案 A**，后端新增只读 `GET /api/v1/internal/streams`；tasks 第 4 节转为必做。
-2. **本 AI 部署的租户/流范围**：单一 AI 部署是否服务所有租户的所有摄像头，还是按租户/园所分片部署多个 AI 栈？影响 supervisor 枚举与 `MAX_WORKERS`。
+2. ~~**本 AI 部署的租户/流范围**~~ **已消解（2026-07-01，见 change `shard-live-detection-deployments`）**：多 GPU 多 AI 栈，但流分发**按容量均衡、不按租户/园所**（Claim/Lease 动态租约池）——无「本部署固定租户范围」概念，故本问题不再适用。
 3. **GPU 容量与模型副本**：单机/单 GPU 能并行承载几路 VideoMAE 流？是否需要共享模型副本或集中推理服务（复用 :8001）而非每 worker 各加载一份？
 4. **`MODEL_ID` 的每流归属**：当前单值 env=1；多流多模型时，`modelId` 由列流端点随流返回，还是另有 camera→model 映射？
-5. **`target_label` 单类**：状态机当前只盯 `assault`，12 类映射表存在但未全用——V1 是否只检测 assault？多类告警是否本期范围外？
+5. ~~**`target_label` 单类**~~ **已定（2026-07-01，见 change `shard-live-detection-deployments`）：V1 只检测 `assault`**，其余类型 later version。
 6. **重连去重彻底性（D4/Risk）**：是否需要后端补一层基于时间窗的二级去重，以覆盖跨重连无法复原同一 onset 秒的情况？
 7. **worker 凭据获取频率与轮转**：流凭据 AES 版本化可轮转；supervisor/worker 多久重取一次凭据、轮转时如何不中断？

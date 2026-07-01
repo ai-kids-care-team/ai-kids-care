@@ -30,6 +30,14 @@ kindergartens.
 - **THEN** the backend renews those leases (extends their TTL) and does not assign them to any other
   deployment, and fills only the caller's remaining spare capacity with new streams
 
+#### Scenario: Capacity bounds the assigned set including renewals
+
+- **WHEN** a deployment claims with a `capacity` smaller than the number of streams it lists in
+  `running` (e.g. its `MAX_WORKERS` was lowered), including `capacity = 0`
+- **THEN** the backend renews at most `capacity` of those leases and returns at most `capacity`
+  streams in `assigned` (an empty `assigned` when `capacity = 0`); the excess leases are not renewed
+  and expire by TTL, so `assigned.size()` never exceeds `capacity`
+
 #### Scenario: A failed deployment's streams are reassigned
 
 - **WHEN** a deployment stops calling the claim endpoint (crash or network partition) and its stream

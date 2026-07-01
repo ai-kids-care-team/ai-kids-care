@@ -71,8 +71,8 @@ services:
       # Per-stream modelId is returned by the claim response; MODEL_ID is the worker-side fallback.
       MODEL_ID: ${MODEL_ID:-1}
       # Capacity guard (design D1/D4): max concurrent worker subprocesses, also sent as the claim
-      # `capacity`. Benchmark on the target GPU host (scripts/benchmark_max_workers.md) before
-      # overriding in production.
+      # `capacity`. Benchmark on the target GPU host before overriding in production —
+      # run scripts/benchmark_max_workers.py per docs/max-workers-benchmark-runbook.md.
       MAX_WORKERS: ${MAX_WORKERS:-2}
       # How often the supervisor re-claims/renews and reconciles (seconds); doubles as the lease
       # heartbeat (design OQ-1: poll 20s / backend lease TTL 60s).

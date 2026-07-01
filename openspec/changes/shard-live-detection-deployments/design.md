@@ -39,7 +39,7 @@
 把「所有活跃流」看成工作池，「所有 GPU 栈」是按容量认领的消费者。后端（单实例，协调者）持全集流 + Redis 租约表。
 
 **端点** `POST /api/v1/internal/streams/claim`，body `{deploymentId, capacity, running: [streamId...]}` → resp `{assigned: [{streamId, modelId, kindergartenId}...]}`。后端逻辑：
-1. **续租**：对 `running` 中仍活跃（`enabled=true`）且租约属主为 `deploymentId` 的流，compare-and-renew 刷新 TTL；已不活跃的不续租（→ 不在 assigned，supervisor 停之）。
+1. **续租（受 capacity 约束）**：对 `running` 中仍活跃（`enabled=true`）且租约属主为 `deploymentId` 的流，compare-and-renew 刷新 TTL；已不活跃的不续租（→ 不在 assigned，supervisor 停之）。续租数不超过 `capacity`——`capacity` 下调（含 0=排空）时超额旧租约随 TTL 过期，保证 `assigned ≤ capacity` 恒成立。
 2. **认领补位**：`spare = capacity - 已续租数`；若 `spare>0`，从**活跃且无有效租约（未认领或租约已过期）**的流里，原子 `SET stream_lease:{id} depId NX EX <ttl>` 认领至多 `spare` 个。
 3. **返回** assigned = 续租 + 新认领。
 

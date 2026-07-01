@@ -126,6 +126,29 @@ class InternalStreamClaimApiTest extends BaseIntegrationTest {
     }
 
     @Test
+    void claim_capacityLoweredBelowRunning_renewalIsCappedToCapacity() throws Exception {
+        // Deployment first claims the whole active set...
+        List<Long> first = claimAssignedIds("dep-shrink", allStreamIds.size(), List.of());
+        assertThat(first).containsExactlyInAnyOrderElementsOf(allStreamIds);
+
+        // ...then re-claims with a lowered capacity while still reporting all of them as running.
+        // Renewal must be bounded by capacity, so assigned never exceeds the new (smaller) capacity —
+        // the excess leases are simply not renewed (they expire by TTL) and drop out of assigned.
+        List<Long> shrunk = claimAssignedIds("dep-shrink", 1, first);
+        assertThat(shrunk).as("renewal path is capacity-bounded (assigned <= capacity)").hasSize(1);
+    }
+
+    @Test
+    void claim_capacityZeroWithRunning_drainsDeployment() throws Exception {
+        List<Long> first = claimAssignedIds("dep-drain", allStreamIds.size(), List.of());
+        assertThat(first).containsExactlyInAnyOrderElementsOf(allStreamIds);
+
+        // capacity=0 must drain: no renewals, empty assigned — the stack stops all its workers.
+        List<Long> drained = claimAssignedIds("dep-drain", 0, first);
+        assertThat(drained).isEmpty();
+    }
+
+    @Test
     void claim_runningStreamNoLongerActive_isNotRenewed() throws Exception {
         long disabledId = allStreamIds.get(0);
         jdbc.update("UPDATE camera_streams SET enabled = false WHERE stream_id = ?", disabledId);

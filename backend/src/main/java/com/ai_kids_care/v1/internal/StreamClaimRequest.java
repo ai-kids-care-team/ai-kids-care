@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.internal;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -18,7 +19,7 @@ import java.util.List;
  * no stream previously claimed by this stack).
  */
 public record StreamClaimRequest(
-        @NotBlank String deploymentId,
+        @NotBlank @Size(max = 128) String deploymentId,
         @Min(0) int capacity,
         List<Long> running
 ) {

@@ -37,9 +37,9 @@
 
 ### 后端认领算法（service 层，须实现）
 1. 取活跃流全集（`enabled = true`，谓词进 JPQL）。
-2. **续租**：对 `running` 中「仍活跃 且 当前租约属主 == `deploymentId`」的流，compare-and-renew 刷新 TTL（Lua：`if GET==depId then PEXPIRE`，防误抢他栈租约）。
+2. **续租（受 capacity 约束）**：对 `running` 中「仍活跃 且 当前租约属主 == `deploymentId`」的流，compare-and-renew 刷新 TTL（Lua：`if GET==depId then PEXPIRE`，防误抢他栈租约）；**续租数不超过 `capacity`**——当 `capacity` 下调（含降为 0=排空）时，超出上限的旧租约不再续租、随 TTL 自然过期。保证 `assigned.size() ≤ capacity` 恒成立。
 3. **认领补位**：`spare = capacity - 已续租数`；从「活跃 且 无有效租约（未认领/已过期）」的流中，原子 `SET stream_lease:{streamId} deploymentId NX EX <ttl>` 认领**至多** `spare` 个。
-4. 返回 `assigned` = 续租集 ∪ 新认领集，逐个组装为 `ActiveStreamVO`。
+4. 返回 `assigned` = 续租集 ∪ 新认领集，逐个组装为 `ActiveStreamVO`。`capacity = 0` → `assigned` 为空（该栈排空）。
 
 ### 租约存储（Redis，无 schema）
 - key：`stream_lease:{streamId}`，value：`deploymentId`，TTL：`<ttl>`（配置项，默认 **60s**）。

@@ -183,6 +183,7 @@ public class CameraStreamService {
     // 算法（design D2）：
     //   1) 续租：running 中仍活跃（enabled=true）且租约属主==deploymentId 的流，compare-and-renew 刷新 TTL；
     //      不再活跃 / 租约已属他栈的，不续租（不进 assigned，调用方据此停掉本地 worker）。
+    //      续租受 capacity 上限约束（capacity=0 即排空），保证 assigned ≤ capacity。
     //   2) 认领补位：spare = capacity - 已续租数；从活跃流全集里（跳过刚续租的）逐个尝试原子 SET NX 认领，
     //      至多 spare 个——已被他栈持有有效租约的流会因 SET NX 失败被自然跳过，无需显式先查 owner。
     //   3) 返回 assigned = 续租 ∪新认领，逐个组装为与 GET /internal/streams 同型的 ActiveStreamVO。
@@ -195,7 +196,12 @@ public class CameraStreamService {
         Set<Long> renewedIds = new HashSet<>();
 
         // 1) 续租：仅对仍活跃的 running 流尝试；不活跃的直接跳过（不进 assigned）。
+        //    续租同样受 capacity 约束：capacity 下调（含降为 0=排空）时，超出上限的旧租约不再续租、
+        //    随 TTL 自然过期，调用方据 assigned 停掉对应 worker。保证「assigned ≤ capacity」恒成立。
         for (ActiveStreamProjection projection : activeStreams) {
+            if (renewedIds.size() >= request.capacity()) {
+                break;
+            }
             if (!request.runningOrEmpty().contains(projection.streamId())) {
                 continue;
             }
