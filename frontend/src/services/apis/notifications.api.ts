@@ -3,7 +3,7 @@ import { apiClient } from './apiClient';
 /**
  * 백엔드 `NotificationReadVO` (SPEC-0001 / ADR-0018 A3d) 와 필드명·타입을 맞춘 최소 VO.
  * - notificationId, title, body, status, createdAt (5 필드)
- * - status: 'PENDING' | 'SENT' | 'FAILED' — 미읽음 판정에 사용
+ * - status: 백엔드 NotificationStatusEnum 문자열 그대로 — 미읽음 판정에 사용
  */
 export type NotificationReadVO = {
   notificationId: number;
@@ -16,12 +16,15 @@ export type NotificationReadVO = {
 };
 
 /**
- * 미읽음(unread) 기준: status 가 'SENT' 가 아닌 항목.
- * 현재 백엔드 enum 은 PENDING / SENT / FAILED 세 값.
- * SENT 를 「수신 완료·읽음 가능」으로 간주하고, PENDING/FAILED 는 미읽음 배지에 포함한다.
+ * 미읽음(unread) 기준: 아직 최종 전달/열람되지 않은 상태의 명시적 allowlist.
+ * 백엔드 NotificationStatusEnum 8값: QUEUED, SENDING, SENT, DELIVERED, READ, FAILED, CANCELED, DEFERRED.
+ * QUEUED/SENDING/FAILED/DEFERRED 는 미읽음으로 간주하고,
+ * SENT/DELIVERED/READ/CANCELED 는 미읽음이 아니다.
  */
+const UNREAD_NOTIFICATION_STATUSES = ['QUEUED', 'SENDING', 'FAILED', 'DEFERRED'];
+
 export function isNotificationUnread(n: NotificationReadVO): boolean {
-  return n.status !== 'SENT';
+  return UNREAD_NOTIFICATION_STATUSES.includes(n.status);
 }
 
 /**
