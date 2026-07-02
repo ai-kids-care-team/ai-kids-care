@@ -4,6 +4,7 @@ import com.ai_kids_care.v1.entity.DetectionEvent;
 import com.ai_kids_care.v1.mapper.DetectionEventMapper;
 import com.ai_kids_care.v1.repository.DetectionEventRepository;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
+import com.ai_kids_care.v1.type.EventTypeEnum;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,9 +34,35 @@ public class DetectionEventService {
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).DETECTION_EVENT_READ)")
     public Page<DetectionEventVO> listDetectionEvents(String keyword, Pageable pageable) {
-        // TODO: filter DetectionEvent by keyword
         Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
-        return repository.findByKindergarten_Id(kindergartenId, pageable).map(mapper::toVO);
+        // Normalize whitespace-only keywords to null so both the LIKE branch (":keyword is null or
+        // :keyword = ''") and the event-type resolution below treat "no meaningful keyword" the same
+        // way -- a keyword of all spaces is not equal to '' and would otherwise silently match nothing.
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        List<EventTypeEnum> matchingEventTypes = matchingEventTypes(normalizedKeyword);
+        return repository.searchByKindergarten(kindergartenId, normalizedKeyword, matchingEventTypes, pageable)
+                .map(mapper::toVO);
+    }
+
+    /**
+     * Resolves which {@link EventTypeEnum} constants' names contain {@code keyword} (case-insensitive),
+     * so the repository query can match the event-type enum value via a bound {@code IN} list instead
+     * of an HQL {@code cast(... as string)} against the Postgres custom enum column type (see
+     * {@code DetectionEventRepository#searchByKindergarten} javadoc). A blank keyword resolves to an
+     * empty list — the keyword's blank/absent short-circuit inside the query already covers that case.
+     */
+    private List<EventTypeEnum> matchingEventTypes(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
+        }
+        String needle = keyword.toLowerCase();
+        List<EventTypeEnum> matches = new ArrayList<>();
+        for (EventTypeEnum type : EventTypeEnum.values()) {
+            if (type.name().toLowerCase().contains(needle)) {
+                matches.add(type);
+            }
+        }
+        return matches;
     }
 
     @Transactional(readOnly = true)

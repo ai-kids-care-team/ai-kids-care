@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +23,12 @@ public class AiModelService {
 
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_READ)")
     public Page<AiModelVO> listAiModels(String keyword, Pageable pageable) {
-        // TODO: filter AiModel by keyword
-        return repository.findAll(pageable).map(mapper::toVO);
+        // Matches AiModel.name only — no `description` column exists on ai_models (see
+        // AiModelRepository#searchAll javadoc); adding one is a schema change, out of scope.
+        // Whitespace-only keywords normalize to null so they short-circuit as "no filter" (mirrors
+        // DetectionEventService.listDetectionEvents).
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        return repository.searchAll(normalizedKeyword, pageable).map(mapper::toVO);
     }
 
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).PLATFORM_METADATA_READ)")
