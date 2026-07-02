@@ -17,4 +17,4 @@
 - [x] 4.1 None — `keyword` already plumbed end-to-end (`detectionEvents.api.ts`). Confirmed no change needed.
 
 ## 5. Docs / archive readiness
-- [ ] 5.1 On completion, ensure the `ai-detection` delta spec (keyword search requirement) is ready to sync/archive via `/opsx:archive`. — Implementation complete + suite green; ready for maintainer review → archive.
+- [x] 5.1 On completion, ensure the `ai-detection` delta spec (keyword search requirement) is ready to sync/archive via `/opsx:archive`. — Implementation complete + suite green; archived 2026-07-02 (delta synced into main ai-detection spec).
