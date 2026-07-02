@@ -1,14 +1,28 @@
 import os
 
+
+def _require_env(name: str) -> str:
+    """Fail-fast secret loader: no hardcoded default, aborts if unset.
+
+    Mirrors backend's @NotBlank fail-fast intent (see CLAUDE.md 安全 invariant #5)
+    and the compose-level `${VAR:?...}` guard — the loader must not silently
+    fall back to a guessable literal when invoked outside compose.
+    """
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} is required but not set (no default permitted for secrets)")
+    return value
+
+
 PG_HOST = os.getenv("DB_HOST", "localhost")
 PG_PORT = int(os.getenv("DB_PORT", "5432"))
 PG_NAME = os.getenv("DB_NAME", "kids_postgres_db")
 PG_USER = os.getenv("DB_USER", "kids_user")
-PG_PASSWORD = os.getenv("DB_PASSWORD", "kids_pass")
+PG_PASSWORD = _require_env("DB_PASSWORD")
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "math1106")
+NEO4J_PASSWORD = _require_env("NEO4J_PASSWORD")
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "500"))
 
