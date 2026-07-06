@@ -4,16 +4,27 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { CameraStreamCreatePayload, CameraStreamVO } from '@/services/apis/cctv.api';
 import { useCameraStreamsManagement } from './functions/useCameraStreamsManagement';
+import { useEnumOptions } from './functions/useEnumOptions';
 
 /**
- * 백엔드 `type.CameraStreamTypeEnum`/`type.ProtocolEnum` 그대로 하드코딩한 값.
- * `EnumMetadataService.REGISTRY`(ADR-0013) 에는 `gender`/`guardian_relationship`/
- * `teacher_level`/`status`/`event_type`/`event_status` 만 등록돼 있고 이 두 enum 은
- * `GET /api/v1/enums/{name}` 로 조회할 방법이 없다 — director-operations-ui 컨트랙트 갭으로
- * dev-lead 에 별도 보고(백엔드가 REGISTRY 확장하거나, 이 값을 그대로 두는지 결정 필요).
+ * camera-endpoint-hygiene (C6-gap-b): `EnumMetadataService.REGISTRY`에 `camera_stream_type`/
+ * `protocol`이 등록되어 `GET /api/v1/enums/{name}`로 조회 가능해졌다 — 아래 값은 더 이상
+ * 1차 소스가 아니라 fetch 실패 시에만 쓰는 fallback(백엔드 `type.CameraStreamTypeEnum`/
+ * `type.ProtocolEnum`과 동일해야 함; enum 값 자체를 바꿀 땐 DB·백엔드·프론트 세 곳을 함께 고친다).
  */
-const STREAM_TYPE_OPTIONS = ['MAIN', 'SUB', 'SNAPSHOT', 'RECORDING', 'OTHER'] as const;
-const PROTOCOL_OPTIONS = ['RTSP', 'ONVIF', 'HTTP', 'HTTPS'] as const;
+const STREAM_TYPE_FALLBACK_LABELS: Record<string, string> = {
+  MAIN: '메인',
+  SUB: '보조',
+  SNAPSHOT: '스냅샷',
+  RECORDING: '녹화',
+  OTHER: '기타',
+};
+const PROTOCOL_FALLBACK_LABELS: Record<string, string> = {
+  RTSP: 'RTSP',
+  ONVIF: 'ONVIF',
+  HTTP: 'HTTP',
+  HTTPS: 'HTTPS',
+};
 
 type FormState = {
   cameraId: string;
@@ -70,8 +81,10 @@ function toFormStateForEdit(item: CameraStreamVO): FormState {
  * `streamPassword` 는 제출만 하고 절대 화면에 되돌려 표시하지 않는다(VO 자체가 값을 안 돌려줌).
  */
 export function CameraStreamsSection() {
-  const { items, cameras, loading, error, page, totalPages, setPage, submitting, handleCreate, handleUpdate, hasSession } =
+  const { items, cameras, loading, error, page, totalPages, setPage, submitting, handleCreate, handleUpdate } =
     useCameraStreamsManagement();
+  const streamTypeOptions = useEnumOptions('camera_stream_type', STREAM_TYPE_FALLBACK_LABELS);
+  const protocolOptions = useEnumOptions('protocol', PROTOCOL_FALLBACK_LABELS);
 
   const [formMode, setFormMode] = useState<'closed' | 'create' | 'edit'>('closed');
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -134,14 +147,6 @@ export function CameraStreamsSection() {
     if (ok) closeForm();
   };
 
-  if (!hasSession) {
-    return (
-      <p className="flex min-h-[200px] items-center justify-center text-center text-gray-500">
-        세션 정보를 확인할 수 없습니다. 다시 로그인한 뒤 시도해 주세요.
-      </p>
-    );
-  }
-
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -193,9 +198,9 @@ export function CameraStreamsSection() {
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="">선택 안 함</option>
-                {STREAM_TYPE_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
+                {streamTypeOptions.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -208,9 +213,9 @@ export function CameraStreamsSection() {
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="">선택 안 함</option>
-                {PROTOCOL_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
+                {protocolOptions.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -223,9 +228,9 @@ export function CameraStreamsSection() {
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
                 <option value="">선택 안 함</option>
-                {PROTOCOL_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
+                {protocolOptions.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

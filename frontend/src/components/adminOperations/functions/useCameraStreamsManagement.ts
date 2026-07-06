@@ -13,24 +13,21 @@ import {
 } from '@/services/apis/cctv.api';
 import type { CctvCameraVO } from '@/types/cctv.vo';
 import { getApiErrorMessage } from '@/components/letters/api-error-message';
-import { useAppSelector } from '@/store/hook';
-import { resolveViewerSessionKindergartenId } from '@/utils/session-kindergarten';
 
 const PAGE_SIZE = 20;
 
 /**
  * director-operations-ui (C6/UX-05): 카메라 스트림(camera_streams) 목록 + 건/개(create/update).
  *
- * `GET /camera_streams`·`GET /cctv_cameras` 는 컨트롤러 시그니처상 `kindergartenId` 가
- * **필수 쿼리 파라미터**다(서비스가 값이 다르면 404 로 재검증하므로 위조는 불가능하지만, 파라미터
- * 자체는 요구된다) — `CctvDashboardPage.tsx` 가 이미 세션의 `user.kindergartenId` 를 그대로
- * 넘기는 동일 선례를 따른다(신규 도입 아님, 기존 컨트롤러 제약). 반면 create/update 바디에는
- * `kindergartenId` 필드 자체가 없어 절대 전송하지 않는다.
+ * camera-endpoint-hygiene (C6-gap-a): `GET /camera_streams`·`GET /cctv_cameras` 는 이제
+ * `kindergartenId` 없이 호출한다 — 세션의 ThreadLocal `activeKindergartenId` 가 테넌트를
+ * 강제하므로 프론트가 값을 결정/전송할 필요가 없다(이전엔 `resolveViewerSessionKindergartenId`
+ * 로 세션 값을 끌어와 쿼리 파라미터로 넘기는 workaround 였음 — 제거). 화면 진입 자체는 부모
+ * `OperationsManagementPage`가 이미 `isAuthenticated && role===KINDERGARTEN_ADMIN`로 게이트
+ * 하므로 이 훅에서 별도 세션 가드는 두지 않는다(`useClassesManagement`/`useRoomsManagement`와
+ * 동일한 패턴). create/update 바디에는 애초에 `kindergartenId` 필드 자체가 없다.
  */
 export function useCameraStreamsManagement() {
-  const { user } = useAppSelector((state) => state.user);
-  const sessionKindergartenId = resolveViewerSessionKindergartenId(user);
-
   const [items, setItems] = useState<CameraStreamVO[]>([]);
   const [cameras, setCameras] = useState<CctvCameraVO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,18 +37,12 @@ export function useCameraStreamsManagement() {
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    if (sessionKindergartenId == null) {
-      setItems([]);
-      setCameras([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError('');
     try {
       const [streamsPage, camerasPage] = await Promise.all([
-        getCameraStreamsPage(sessionKindergartenId, page, PAGE_SIZE),
-        getCctvCamerasPage(0, 200, sessionKindergartenId),
+        getCameraStreamsPage(page, PAGE_SIZE),
+        getCctvCamerasPage(0, 200),
       ]);
       setItems(streamsPage.content ?? []);
       setTotalPages(streamsPage.totalPages ?? 1);
@@ -62,7 +53,7 @@ export function useCameraStreamsManagement() {
     } finally {
       setLoading(false);
     }
-  }, [page, sessionKindergartenId]);
+  }, [page]);
 
   useEffect(() => {
     void load();
@@ -116,6 +107,5 @@ export function useCameraStreamsManagement() {
     submitting,
     handleCreate,
     handleUpdate,
-    hasSession: sessionKindergartenId != null,
   };
 }

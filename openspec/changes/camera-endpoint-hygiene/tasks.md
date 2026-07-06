@@ -10,9 +10,9 @@
 - [x] A5 `gradlew test` 全绿
 
 ## Lane B — frontend
-- [ ] B1 `useCameraStreamsManagement`（及相关 GET 调用）去掉 `resolveViewerSessionKindergartenId` 传 kindergartenId 的 workaround（这两个 camera GET 不再发 kindergartenId）
-- [ ] B2 `CameraStreamsSection` 改走 `/api/v1/enums/camera_stream_type`、`/protocol`（复用 `useStatusOptions` fetch+FALLBACK 模式），移除硬编码为纯 fallback
-- [ ] B3 `npm run lint && npm run build` + `npm run test:run` 全绿；还原 next-env.d.ts
+- [x] B1 `useCameraStreamsManagement`（及相关 GET 调用）去掉 `resolveViewerSessionKindergartenId` 传 kindergartenId 的 workaround（这两个 camera GET 不再发 kindergartenId）——顺带清理了共享 `cctv.api.ts` 的 `getCctvCamerasPage`/`getCameraStreamsPage` 签名（去掉 kindergartenId 形参），并同步修正了另一调用点 `useCctvCameras.ts`（`CctvDashboardPage` 用，之前也传了 kindergartenId）
+- [x] B2 `CameraStreamsSection` 改走 `/api/v1/enums/camera_stream_type`、`/protocol`（复用 `useStatusOptions` fetch+FALLBACK 模式，新增通用 `useEnumOptions` hook），移除硬编码为纯 fallback
+- [x] B3 `npm run lint && npm run build` + `npm run test:run` 全绿；还原 next-env.d.ts
 
 ## 门禁
 - [ ] G1 backend gradlew + frontend test/lint/build 全绿

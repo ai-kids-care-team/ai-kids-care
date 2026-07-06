@@ -18,24 +18,21 @@ export interface CameraStreamVO {
   updatedAt: string | null;
 }
 
-export async function getCctvCamerasPage(page = 0, size = 100, kindergartenId?: number) {
+/**
+ * camera-endpoint-hygiene (C6-gap-a): `kindergartenId` 는 이제 백엔드 컨트롤러 시그니처상
+ * `required=false`로 남아 있을 뿐 — 프론트는 세션의 ThreadLocal `activeKindergartenId`가
+ * 테넌트를 강제하므로 절대 전송하지 않는다(「전면 kindergartenId 미전송」invariant).
+ */
+export async function getCctvCamerasPage(page = 0, size = 100) {
   const { data } = await apiClient.get<SpringPage<CctvCameraVO>>('/cctv_cameras', {
-    params: {
-      page,
-      size,
-      ...(kindergartenId != null && Number.isFinite(kindergartenId) ? { kindergartenId } : {}),
-    },
+    params: { page, size },
   });
   return data;
 }
 
-export async function getCameraStreamsPage(
-  kindergartenId: number,
-  page = 0,
-  size = 200,
-) {
+export async function getCameraStreamsPage(page = 0, size = 200) {
   const { data } = await apiClient.get<SpringPage<CameraStreamVO>>('/camera_streams', {
-    params: { kindergartenId, page, size },
+    params: { page, size },
   });
   return data;
 }

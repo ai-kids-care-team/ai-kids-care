@@ -14,7 +14,10 @@ export type UseCctvCamerasResult = {
 /**
  * CCTV 카메라 목록 + `camera_streams` 조회(원본 CctvDashboardPage :333-350 카메라 부분 +
  * :484-514 스트림 부분을 통합). `canView=false`(live-stream 권한 없는 역할) 또는
- * kindergartenId 미확정이면 두 조회 모두 건너뛰고 빈 상태를 유지한다.
+ * kindergartenId 미확정이면 두 조회 모두 건너뛰고 빈 상태를 유지한다 — 이 `kindergartenId`
+ * 는 "이 역할에 조회할 유치원이 있는가"를 판단하는 UX 게이트일 뿐, camera-endpoint-hygiene
+ * (C6-gap-a) 이후로는 `getCctvCamerasPage`/`getCameraStreamsPage` 요청 자체에는 실리지
+ * 않는다(세션의 ThreadLocal `activeKindergartenId`가 테넌트를 강제).
  *
  * 원본의 `window.setTimeout(..., 0)` 래핑은 제거했다 — 실제로는 데드 코드가 아니라
  * `react-hooks/set-state-in-effect`(React 19 lint 규칙, effect 본문에서 직접 setState 호출을
@@ -44,7 +47,7 @@ export function useCctvCameras(
       }
       setLoading(true);
       try {
-        const cameraPage = await getCctvCamerasPage(0, 200, kindergartenId);
+        const cameraPage = await getCctvCamerasPage(0, 200);
         if (!cancelled) setCameras(cameraPage?.content ?? []);
       } catch {
         if (!cancelled) {
@@ -68,7 +71,7 @@ export function useCctvCameras(
         return;
       }
       try {
-        const page = await getCameraStreamsPage(kindergartenId, 0, 500);
+        const page = await getCameraStreamsPage(0, 500);
         if (cancelled) return;
         const source = page?.content ?? [];
         const m = new Map<number, CameraStreamVO[]>();
