@@ -107,3 +107,24 @@ def test_masks_credentials_embedded_in_exception_message():
     masked = mask_url_credentials(msg)
     assert "s3cret" not in masked
     assert "***:***@cam.local:554/live" in masked
+
+
+def test_masks_userinfo_with_embedded_literal_at_sign():
+    # SEC-10: userinfo containing an unescaped literal "@" (e.g. an unescaped password
+    # character) must be masked in full up to the LAST "@" before the host, not just the
+    # first "@" encountered — otherwise the tail of the userinfo (here "ss") leaks in
+    # plaintext before the host.
+    masked = mask_url_credentials("rtsp://user:pa@ss@host/x")
+    assert masked == "rtsp://***:***@host/x"
+    assert "user" not in masked
+    assert "pa@ss" not in masked
+    assert "ss@host" not in masked
+
+
+def test_path_with_at_sign_is_not_masked():
+    # The masking must only ever consume the userinfo component (before the host), never
+    # bleed into the path — a literal "@" appearing in the path must be preserved untouched.
+    url = "rtsp://u:p@host/a@b"
+    masked = mask_url_credentials(url)
+    assert masked == "rtsp://***:***@host/a@b"
+    assert "a@b" in masked

@@ -24,9 +24,9 @@
 ## Lane B — ai（Python）
 
 ### 5. SEC-10 修掩码正则
-- [ ] 5.1 `ai/src/ai_app/live/alert_service.py::mask_url_credentials`：改为掩到 host 前**最后一个 `@`**（贪婪到最后一个 userinfo 分隔符），保留「正则、不 parse round-trip、不动 query/path」设计约束
-- [ ] 5.2 扩展 `ai/tests/test_mask_url_credentials.py`：加 `rtsp://user:pa@ss@host/x` 等内嵌字面 `@` 对抗 case，断言无明文残留；既有 4 case 仍绿
-- [ ] 5.3 `cd ai && PYTHONPATH=src python -m pytest tests/ -v` 全绿
+- [x] 5.1 `ai/src/ai_app/live/alert_service.py::mask_url_credentials`：改为掩到 host 前**最后一个 `@`**（贪婪到最后一个 userinfo 分隔符），保留「正则、不 parse round-trip、不动 query/path」设计约束
+- [x] 5.2 扩展 `ai/tests/test_mask_url_credentials.py`：加 `rtsp://user:pa@ss@host/x` 等内嵌字面 `@` 对抗 case，断言无明文残留；既有 4 case 仍绿
+- [x] 5.3 `cd ai && PYTHONPATH=src python -m pytest tests/ -v` 全绿
 
 ## 门禁
 - [ ] G1 backend `./gradlew test` 全绿；ai `pytest` 全绿

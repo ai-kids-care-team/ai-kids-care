@@ -64,8 +64,15 @@ def mask_url_credentials(url: str) -> str:
     Uses a regex so that no urllib parse/unparse round-trip can alter query
     strings or path components.  Returns the original string unchanged if no
     userinfo pattern is detected.
+
+    Userinfo may itself contain unescaped literal "@" characters (e.g. an
+    unescaped password character), so the match greedily spans to the LAST
+    "@" that precedes the host — the userinfo component is delimited from the
+    host/path by that final "@", and userinfo never contains "/". Matching
+    stops at the first "/" after the scheme, so a literal "@" appearing later
+    in the path (after the host) is never consumed (SEC-10).
     """
-    return re.sub(r"(://)[^@/]+@", r"\1***:***@", url)
+    return re.sub(r"(://)[^/@]+(?:@[^/@]+)*@", r"\1***:***@", url)
 
 
 @dataclass
