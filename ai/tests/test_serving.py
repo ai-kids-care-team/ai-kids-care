@@ -18,6 +18,17 @@ from ai_app.serving.app import app
 from ai_app.inference.predictor import PredictionResult, PredictionScore
 from ai_app.serving.deps import get_predictor as _original_get_predictor
 
+# SEC-03: /predict/upload now requires Authorization: Bearer <AI_INFERENCE_TOKEN>.
+# These pre-existing tests are not about auth, so every test in this module gets a
+# valid token configured (autouse fixture below) and every request carries the header.
+_TEST_TOKEN = "test-inference-token-for-serving-tests"
+_AUTH_HEADERS = {"Authorization": f"Bearer {_TEST_TOKEN}"}
+
+
+@pytest.fixture(autouse=True)
+def _inference_token(monkeypatch):
+    monkeypatch.setenv("AI_INFERENCE_TOKEN", _TEST_TOKEN)
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -74,6 +85,7 @@ def test_upload_file_too_large(monkeypatch):
             "/predict/upload",
             files={"file": ("test.mp4", io.BytesIO(large_content), "video/mp4")},
             data={"top_k": "3"},
+            headers=_AUTH_HEADERS,
         )
     finally:
         app.dependency_overrides.clear()
@@ -91,6 +103,7 @@ def test_upload_invalid_extension():
             "/predict/upload",
             files={"file": ("malware.exe", io.BytesIO(b"MZ" + b"\x00" * 100), "application/octet-stream")},
             data={"top_k": "3"},
+            headers=_AUTH_HEADERS,
         )
     finally:
         app.dependency_overrides.clear()
@@ -110,6 +123,7 @@ def test_upload_invalid_magic_bytes():
             "/predict/upload",
             files={"file": ("disguised.mp4", io.BytesIO(fake_content), "video/mp4")},
             data={"top_k": "3"},
+            headers=_AUTH_HEADERS,
         )
     finally:
         app.dependency_overrides.clear()
@@ -129,6 +143,7 @@ def test_upload_valid_mp4_mock():
             "/predict/upload",
             files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
             data={"top_k": "3"},
+            headers=_AUTH_HEADERS,
         )
     finally:
         app.dependency_overrides.clear()
@@ -154,6 +169,7 @@ def test_upload_top_k_out_of_range():
                 "/predict/upload",
                 files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
                 data={"top_k": str(bad_top_k)},
+                headers=_AUTH_HEADERS,
             )
             assert response.status_code == 422, (
                 f"top_k={bad_top_k} should return 422, got {response.status_code}"
@@ -171,6 +187,7 @@ def test_upload_num_frames_out_of_range():
             "/predict/upload",
             files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
             data={"top_k": "3", "num_frames": "0"},
+            headers=_AUTH_HEADERS,
         )
         assert response.status_code == 422, (
             f"num_frames=0 should return 422, got {response.status_code}"
@@ -188,6 +205,7 @@ def test_upload_sampling_rate_out_of_range():
             "/predict/upload",
             files={"file": ("clip.mp4", io.BytesIO(_VALID_MP4_CONTENT), "video/mp4")},
             data={"top_k": "3", "sampling_rate": "0"},
+            headers=_AUTH_HEADERS,
         )
         assert response.status_code == 422, (
             f"sampling_rate=0 should return 422, got {response.status_code}"

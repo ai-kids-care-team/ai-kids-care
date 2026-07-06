@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from ai_app.inference.predictor import PredictionResult, VideoPredictor
+from ai_app.serving.auth import get_inference_token, require_bearer_token
 from ai_app.serving.deps import get_predictor
 from ai_app.serving.schemas import (
     HealthResponse,
@@ -18,6 +19,9 @@ from ai_app.serving.schemas import (
 
 _ALLOWED_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
 _MAGIC_BYTES_LEN = 12
+# SEC-04: bound how much memory a single read() call can consume so an over-limit
+# upload is rejected well before the whole payload is buffered.
+_UPLOAD_CHUNK_BYTES = 1024 * 1024  # 1 MiB
 
 _VIDEO_MAGIC_CHECKS = [
     (0, b"RIFF"),                # AVI
@@ -66,6 +70,9 @@ def _predict_or_raise(
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     get_predictor()
+    # SEC-03: fail fast at process startup if AI_INFERENCE_TOKEN is missing/blank,
+    # rather than silently starting an unauthenticated inference endpoint.
+    get_inference_token()
     yield
 
 
@@ -76,6 +83,13 @@ app = FastAPI(
 )
 
 
+# SEC-03 trade-off (harden-ai-serving, C3): /health intentionally stays unauthenticated.
+# It is read-only liveness/readiness metadata (no PII, no inference execution) consumed by
+# container orchestration/health probes that typically don't carry application secrets;
+# requiring a bearer token here would complicate ops tooling for little security benefit,
+# since the network is already scoped by compose `expose:` (not a public port). The
+# write/inference-triggering endpoint below (`/predict/upload`) is the one that requires
+# authentication.
 @app.get("/health", response_model=HealthResponse)
 def health(predictor: VideoPredictor = Depends(get_predictor)) -> HealthResponse:
     return HealthResponse(
@@ -88,7 +102,37 @@ def health(predictor: VideoPredictor = Depends(get_predictor)) -> HealthResponse
     )
 
 
-@app.post("/predict/upload", response_model=PredictResponse)
+async def _read_upload_within_limit(file: UploadFile, max_upload_mb: int) -> bytes:
+    """Read ``file`` incrementally, rejecting an over-limit upload before it is fully buffered.
+
+    SEC-04: the previous implementation called ``await file.read()`` (whole-file read) and
+    only checked the size afterwards, so an oversized upload was fully pulled into memory
+    before being rejected (DoS surface, compounded by SEC-03 if the caller is unauthenticated).
+    This reads in bounded chunks and checks the running total after each one, aborting with
+    413 as soon as the cumulative size crosses ``max_upload_mb`` — the tail of an oversized
+    payload is never read.
+    """
+    max_bytes = max_upload_mb * 1024 * 1024
+    buffer = bytearray()
+    while True:
+        chunk = await file.read(_UPLOAD_CHUNK_BYTES)
+        if not chunk:
+            break
+        buffer.extend(chunk)
+        if len(buffer) > max_bytes:
+            await file.close()
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds {max_upload_mb} MB limit",
+            )
+    return bytes(buffer)
+
+
+@app.post(
+    "/predict/upload",
+    response_model=PredictResponse,
+    dependencies=[Depends(require_bearer_token)],
+)
 async def predict_from_upload(
         file: UploadFile = File(...),
         # top_k: 1–50。上限保守取 50（模型标签数通常远小于此值；
@@ -101,15 +145,9 @@ async def predict_from_upload(
         sampling_rate: int | None = Form(default=None, ge=1, le=128),
         predictor: VideoPredictor = Depends(get_predictor),
 ) -> PredictResponse:
-    # Layer 1: file size limit
-    content = await file.read()
+    # Layer 1: streamed file size limit (SEC-04) — see _read_upload_within_limit.
     max_upload_mb = int(os.getenv("AI_MAX_UPLOAD_MB", "512"))
-    if len(content) > max_upload_mb * 1024 * 1024:
-        await file.close()
-        raise HTTPException(
-            status_code=413,
-            detail=f"File exceeds {max_upload_mb} MB limit",
-        )
+    content = await _read_upload_within_limit(file, max_upload_mb)
 
     # Layer 2: extension whitelist
     suffix = Path(file.filename or "").suffix.lower()
