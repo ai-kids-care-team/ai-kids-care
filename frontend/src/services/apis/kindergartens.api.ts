@@ -12,7 +12,7 @@ export type KindergartenVO = {
   updatedAt: string | null;
 };
 
-function normalizeKindergartenVO(raw: unknown): KindergartenVO {
+export function normalizeKindergartenVO(raw: unknown): KindergartenVO {
   const r = raw as Record<string, unknown>;
   const id = Number(r.kindergartenId ?? r.kindergarten_id);
   const name = String(r.name ?? '').trim();
@@ -27,7 +27,7 @@ function normalizeKindergartenVO(raw: unknown): KindergartenVO {
   };
 }
 
-function normalizeKindergartenPage(p: PageResponse<unknown>): PageResponse<KindergartenVO> {
+export function normalizeKindergartenPage(p: PageResponse<unknown>): PageResponse<KindergartenVO> {
   return {
     ...p,
     content: (p.content ?? []).map((row) => normalizeKindergartenVO(row)),
