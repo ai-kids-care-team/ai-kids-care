@@ -15,6 +15,8 @@ export type UseQuickPlaylistResult = {
   /** 카메라를 전용 전체화면 순회 플레이리스트로 열고, 해당 페이지로 이동한다. */
   openPlaylistAt: (index: number) => void;
   goQuickPlaylistStep: (delta: number) => void;
+  /** 순회 전체화면 오버레이를 닫는다(인덱스를 null 로 되돌림 + 방어적 exitFullscreen). */
+  closePlaylist: () => void;
 };
 
 /**
@@ -90,6 +92,27 @@ export function useQuickPlaylist(
     [itemsPerPage, setCurrentPage],
   );
 
+  // 전체화면 순회 오버레이는 CSS 오버레이(fixed inset-0)로 그려지며 브라우저
+  // Fullscreen API 로 진입하지 않는다. 따라서 닫기는 `document.exitFullscreen()`(진입한
+  // 적이 없으면 no-op)에 의존하면 안 되고, 인덱스를 직접 null 로 되돌려야 오버레이가 닫힌다.
+  // (브라우저 전체화면에 실제로 들어가 있었다면 방어적으로 함께 종료한다.)
+  const closePlaylist = useCallback(() => {
+    setQuickPlaylistIndex(null);
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      void document.exitFullscreen?.();
+    }
+  }, []);
+
+  // 오버레이가 열려 있는 동안 Esc 로도 닫을 수 있게 한다(전체화면류 UX 기대치).
+  useEffect(() => {
+    if (quickPlaylistIndex === null || typeof document === 'undefined') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePlaylist();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [quickPlaylistIndex, closePlaylist]);
+
   const goQuickPlaylistStep = useCallback(
     (delta: number) => {
       if (quickPlaylistIndex == null || filteredCameras.length === 0) return;
@@ -110,5 +133,6 @@ export function useQuickPlaylist(
     playlistSubLine,
     openPlaylistAt,
     goQuickPlaylistStep,
+    closePlaylist,
   };
 }

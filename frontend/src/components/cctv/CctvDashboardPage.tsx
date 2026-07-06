@@ -102,6 +102,7 @@ export function CctvDashboardPage() {
     playlistSubLine,
     openPlaylistAt,
     goQuickPlaylistStep,
+    closePlaylist,
   } = useQuickPlaylist(filteredCameras, itemsPerPage, setCurrentPage, canViewLiveStreams);
 
   const selectedCameraKindergartenName = useKindergartenName(selectedCamera?.kindergartenId);
@@ -231,9 +232,7 @@ export function CctvDashboardPage() {
           isVideoPaused={isVideoPaused}
           quickPlaylistIndex={quickPlaylistIndex}
           totalCount={filteredCameras.length}
-          onClose={() => {
-            if (typeof document !== 'undefined') void document.exitFullscreen();
-          }}
+          onClose={closePlaylist}
           onStep={goQuickPlaylistStep}
         />
       )}
