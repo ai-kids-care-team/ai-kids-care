@@ -45,6 +45,6 @@ const baseQueryWithSession: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithSession,
-  tagTypes: ['AuthSession'],
+  tagTypes: ['AuthSession', 'NotificationPreference'],
   endpoints: () => ({}),
 });
