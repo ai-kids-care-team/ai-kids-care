@@ -133,8 +133,10 @@ export function LoginForm() {
             아직 계정이 없으신가요? 회원가입 하러가기
           </Link>
         </div>
-        <div className="mt-2 text-center text-sm text-gray-500">
-          비밀번호 재설정은 아직 제공되지 않습니다.
+        <div className="mt-2 text-center text-sm">
+          <Link href="/forgot-password" className="text-gray-500 hover:text-purple-600 font-medium transition-colors">
+            비밀번호를 잊으셨나요?
+          </Link>
         </div>
 
         {showDemoHints && (
