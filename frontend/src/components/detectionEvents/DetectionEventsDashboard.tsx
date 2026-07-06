@@ -14,6 +14,7 @@ import {
   type ReviewResultStatus,
 } from '@/services/apis/eventReviews.api';
 import { useDetectionEventStream, type StreamStatus } from './useDetectionEventStream';
+import { severityClasses, severityLevel } from '@/lib/severity';
 
 const STATUS_BADGE: Record<string, string> = {
   OPEN: 'bg-red-100 text-red-700',
@@ -205,7 +206,17 @@ export function DetectionEventsDashboard() {
                 </div>
                 <div>
                   <dt className="inline">심각도: </dt>
-                  <dd className="inline text-slate-700">{e.severity ?? '-'}</dd>
+                  <dd className="inline text-slate-700">
+                    {e.severity != null ? (
+                      <span
+                        className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${severityClasses(severityLevel(e.severity))}`}
+                      >
+                        {e.severity}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt className="inline">카메라: </dt>
