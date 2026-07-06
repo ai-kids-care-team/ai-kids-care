@@ -216,6 +216,36 @@ class InternalStreamClaimApiTest extends BaseIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // --- SEC-07: capacity upper bound -----------------------------------------
+
+    @Test
+    void claim_capacityOverMaxBound_isRejectedAndClaimsNothing() throws Exception {
+        // Over-bound capacity must be rejected by request validation before any lease is touched —
+        // no partial-claim side effect.
+        mockMvc.perform(post(CLAIM_PATH)
+                        .header("Authorization", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deploymentId\":\"dep-over-max\",\"capacity\":"
+                                + (StreamClaimRequest.MAX_CAPACITY + 1) + ",\"running\":[]}"))
+                .andExpect(status().isBadRequest());
+
+        for (Long id : allStreamIds) {
+            assertThat(redisTemplate.opsForValue().get("stream_lease:" + id))
+                    .as("rejected over-capacity request must not have claimed any stream")
+                    .isNull();
+        }
+    }
+
+    @Test
+    void claim_capacityAtMaxBound_isAccepted() throws Exception {
+        mockMvc.perform(post(CLAIM_PATH)
+                        .header("Authorization", TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deploymentId\":\"dep-at-max\",\"capacity\":"
+                                + StreamClaimRequest.MAX_CAPACITY + ",\"running\":[]}"))
+                .andExpect(status().isOk());
+    }
+
     @Test
     void claim_withoutToken_isRejected() throws Exception {
         mockMvc.perform(post(CLAIM_PATH)
