@@ -45,6 +45,16 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Read|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -File \"${CLAUDE_PROJECT_DIR}\\.claude\\hooks\\disclose-path-rules.ps1\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write",
         "hooks": [
           {
