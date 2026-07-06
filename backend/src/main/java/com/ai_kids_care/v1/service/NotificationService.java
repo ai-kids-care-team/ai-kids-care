@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.service;
 
-import com.ai_kids_care.v1.dto.NotificationCreateDTO;
 import com.ai_kids_care.v1.dto.NotificationUpdateDTO;
 import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.mapper.NotificationMapper;
@@ -23,8 +22,6 @@ import com.ai_kids_care.v1.vo.NotificationVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -98,19 +95,6 @@ public class NotificationService {
                 n.getStatus() == null ? null : n.getStatus().name(),
                 n.getCreatedAt()
         );
-    }
-
-    public Page<NotificationVO> listNotifications(String keyword, Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toVO);
-    }
-
-    public NotificationVO getNotificationInternal(Long id) {
-        return repository.findById(id).map(mapper::toVO)
-                .orElseThrow(() -> new EntityNotFoundException("Notification not found"));
-    }
-
-    public NotificationVO createNotification(NotificationCreateDTO createDTO) {
-        return mapper.toVO(repository.save(mapper.toEntity(createDTO)));
     }
 
     // Deliver a persisted notification over its channel and record the lifecycle (SENDING -> SENT/FAILED).

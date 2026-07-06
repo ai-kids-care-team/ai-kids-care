@@ -1,6 +1,5 @@
 package com.ai_kids_care.v1.mapper;
 
-import com.ai_kids_care.v1.dto.NotificationCreateDTO;
 import com.ai_kids_care.v1.dto.NotificationUpdateDTO;
 import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.vo.NotificationVO;
@@ -14,15 +13,6 @@ public interface NotificationMapper {
     @Mapping(source = "detectionEvents.id", target = "eventId")
     @Mapping(source = "recipientUser.id", target = "recipientUserId")
     NotificationVO toVO(Notification entity);
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "deferredUntil", ignore = true)
-    // kindergarten は closed write パスでは不使用——tenant-scoped 読取は NotificationService の READ パスで処理
-    @Mapping(target = "kindergarten", ignore = true)
-    @Mapping(source = "eventId", target = "detectionEvents.id")
-    @Mapping(source = "recipientUserId", target = "recipientUser.id")
-    Notification toEntity(NotificationCreateDTO dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

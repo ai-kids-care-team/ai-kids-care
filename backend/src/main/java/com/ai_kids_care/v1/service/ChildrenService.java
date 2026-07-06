@@ -2,7 +2,6 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.config.RrnHashConfig;
 import com.ai_kids_care.v1.entity.Child;
-import com.ai_kids_care.v1.mapper.ChildMapper;
 import com.ai_kids_care.v1.repository.ChildRepository;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContext;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
@@ -13,12 +12,9 @@ import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.type.UserRoleEnum;
-import com.ai_kids_care.v1.vo.ChildVO;
 import com.ai_kids_care.v1.vo.GuardianChildVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +28,6 @@ import java.util.Optional;
 public class ChildrenService {
 
     private final ChildRepository repository;
-    private final ChildMapper mapper;
     private final RrnHashConfig rrnHashConfig;
     private final SecurityAuditWriter auditWriter;
 
@@ -101,16 +96,6 @@ public class ChildrenService {
 
     private GuardianChildVO toGuardianChildVO(Child child) {
         return new GuardianChildVO(child.getId(), child.getName(), child.getStatus().name());
-    }
-
-    // ── 内部 / 历史方法（不发布；保留供注册流程与契约测试使用） ─────────────────────
-
-    public Page<ChildVO> listChildren(String keyword, Pageable pageable) {
-        return repository.findByNameContains(keyword, pageable).map(mapper::toVO);
-    }
-
-    public ChildVO getChild(Long id) {
-        return repository.findById(id).map(mapper::toVO).orElseThrow(() -> new EntityNotFoundException("Children not found"));
     }
 
     /**
