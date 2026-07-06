@@ -58,6 +58,20 @@ import java.util.Set;
  * {@code resourceId}. Renewals of an already-held lease are not re-audited on every poll — only a
  * newly-claimed stream (a lease this deployment did not already hold) triggers a new record, so
  * steady-state polling (the common case) writes nothing.
+ *
+ * <p><b>PRF-09 / PRF-11 (harden-claim-lease-internal C2)</b>: {@link #claimStreams} reads the active
+ * stream projection via one short, Spring-Data-JPA-managed transaction (the repository call opens
+ * and closes its own transaction because this method itself is not {@code @Transactional}), then
+ * performs its Redis renew/claim work with no open transaction / Hikari connection held across the
+ * external IO. That Redis work is batched: {@link StreamLeaseService#renewBatch} and
+ * {@link StreamLeaseService#tryClaimBatch} each execute as a single Lua script covering every
+ * candidate, instead of one Redis round trip per stream — collapsing the previous
+ * O(capacity + activeStreamCount) round trips down to O(1) per {@code claimStreams} call, while
+ * keeping the exact same per-key atomicity (each candidate is still an independent
+ * compare-and-renew / {@code SET NX}). {@link #getStreamCredential} drops the same blanket
+ * {@code @Transactional} for the same reason (its Redis {@code isOwnedBy} check and the audit
+ * write are each independent of any DB transaction; the entity fetch gets its own short
+ * transaction from Spring Data).
  */
 @Service
 @RequiredArgsConstructor
@@ -80,7 +94,11 @@ public class CameraStreamInternalService {
     // shard-live-detection-deployments D2 defense-in-depth：因 AI_SERVICE_TOKEN 为多栈共享 Bearer，
     // 额外校验调用方（X-Deployment-Id 头）当前持有该流的 Redis 租约；不持有/租约不存在 → 404
     // （隐藏存在性，同多租户 404 约定），不透露凭据。正常路径 = worker 刚 claim 完该流即取凭据。
-    @Transactional(readOnly = true)
+    //
+    // 不再用 @Transactional 包住整个方法（PRF-11 立场同 claimStreams）：leaseService.isOwnedBy 是单次
+    // Redis GET，与事务无关；repository.findById 由 Spring Data 自身的短事务管理；随后的 AES-GCM 解密
+    // 是纯 CPU 运算；最后的审计写入走 SecurityAuditWriter 自己的 REQUIRES_NEW 事务。全程没有一段代码
+    // 需要跨越 DB 事务持有连接。
     public StreamCredentialDTO getStreamCredential(Long id, String deploymentId) {
         if (!leaseService.isOwnedBy(id, deploymentId)) {
             throw new EntityNotFoundException("CameraStream not found");
@@ -122,15 +140,18 @@ public class CameraStreamInternalService {
     // HTTP 层 hasRole("AI_SERVICE") 已强制，不叠加会话级 @PreAuthorize，不做 kindergarten 过滤——AI 处理
     // 全部园所的流，kindergartenId 只是从关系投影出的归属展示字段）。
     //
-    // 算法（design D2）：
-    //   1) 续租：running 中仍活跃（enabled=true）且租约属主==deploymentId 的流，compare-and-renew 刷新 TTL；
+    // 算法（design D2，harden-claim-lease-internal C2 批量化为 PRF-09/PRF-11）：
+    //   1) 续租：running 中仍活跃（enabled=true）且租约属主==deploymentId 的流，批量 compare-and-renew
+    //      刷新 TTL（一次 Redis 往返覆盖全部候选，capacity 上限在 Lua 脚本内维持，语义与逐个调用等价）。
     //      不再活跃 / 租约已属他栈的，不续租（不进 assigned，调用方据此停掉本地 worker）。
-    //      续租受 capacity 上限约束（capacity=0 即排空），保证 assigned ≤ capacity。
-    //   2) 认领补位：spare = capacity - 已续租数；从活跃流全集里（跳过刚续租的）逐个尝试原子 SET NX 认领，
-    //      至多 spare 个——已被他栈持有有效租约的流会因 SET NX 失败被自然跳过，无需显式先查 owner。
+    //   2) 认领补位：spare = capacity - 已续租数；对活跃流全集里跳过刚续租的候选做批量 SET NX 认领，
+    //      至多 spare 个——已被他栈持有有效租约的流仍会因 SET NX 失败被自然跳过。
     //   3) 新认领（非续租）的每个 streamId 各写一条 S1_EVIDENCE_READ 审计（SEC-05）。
-    //   4) 返回 assigned = 续租 ∪新认领，逐个组装为与 GET /internal/streams 同型的 ActiveStreamVO。
-    @Transactional(readOnly = true)
+    //   4) 返回 assigned = 续租 ∪ 新认领，逐个组装为与 GET /internal/streams 同型的 ActiveStreamVO。
+    //
+    // PRF-11：本方法不再是 @Transactional —— repository.findActiveStreamsForAi() 由 Spring Data 自身
+    // 短事务管理，取回投影后即关闭；随后的批量 Redis 调用与审计写入都在该短事务之外执行，不跨外部 IO
+    // 持有 Hikari 连接。
     public StreamClaimResponse claimStreams(StreamClaimRequest request) {
         Long activeModelId = resolveActiveModelId();
         List<ActiveStreamProjection> activeStreams = repository.findActiveStreamsForAi();
@@ -138,37 +159,36 @@ public class CameraStreamInternalService {
         List<ActiveStreamVO> assigned = new ArrayList<>();
         Set<Long> renewedIds = new HashSet<>();
 
-        // 1) 续租：仅对仍活跃的 running 流尝试；不活跃的直接跳过（不进 assigned）。
-        //    续租同样受 capacity 约束：capacity 下调（含降为 0=排空）时，超出上限的旧租约不再续租、
-        //    随 TTL 自然过期，调用方据 assigned 停掉对应 worker。保证「assigned ≤ capacity」恒成立。
+        // 1) 续租（批量）：候选 = 活跃流全集里被调用方报告为 running 的那些，保持 activeStreams 的
+        //    id 顺序（与逐条实现的迭代顺序一致）。capacity 上限由批量脚本内部维持。
+        List<Long> renewCandidates = activeStreams.stream()
+                .map(ActiveStreamProjection::streamId)
+                .filter(id -> request.runningOrEmpty().contains(id))
+                .toList();
+        Set<Long> renewed = leaseService.renewBatch(renewCandidates, request.deploymentId(), request.capacity());
         for (ActiveStreamProjection projection : activeStreams) {
-            if (renewedIds.size() >= request.capacity()) {
-                break;
-            }
-            if (!request.runningOrEmpty().contains(projection.streamId())) {
-                continue;
-            }
-            if (leaseService.renew(projection.streamId(), request.deploymentId())) {
+            if (renewed.contains(projection.streamId())) {
                 renewedIds.add(projection.streamId());
                 assigned.add(new ActiveStreamVO(projection.streamId(), activeModelId, projection.kindergartenId()));
             }
         }
 
-        // 2) 认领补位：按活跃流全集顺序（JPQL order by id，确定性），跳过刚续租的，至多认领 spare 个。
+        // 2) 认领补位（批量）：候选 = 活跃流全集里跳过刚续租的，同样保持 id 顺序。
         int spare = request.capacity() - renewedIds.size();
+        List<Long> claimCandidates = activeStreams.stream()
+                .map(ActiveStreamProjection::streamId)
+                .filter(id -> !renewedIds.contains(id))
+                .toList();
+        Set<Long> claimed = leaseService.tryClaimBatch(claimCandidates, request.deploymentId(), spare);
         for (ActiveStreamProjection projection : activeStreams) {
-            if (spare <= 0) {
-                break;
-            }
-            if (renewedIds.contains(projection.streamId())) {
-                continue;
-            }
-            if (leaseService.tryClaim(projection.streamId(), request.deploymentId())) {
+            if (claimed.contains(projection.streamId())) {
                 assigned.add(new ActiveStreamVO(projection.streamId(), activeModelId, projection.kindergartenId()));
-                spare--;
-                // SEC-05：仅新认领（非续租）的流写审计——稳态轮询（全是续租）不产生任何审计写入。
-                recordEvidenceRead(projection.streamId(), request.deploymentId(), RESOURCE_TYPE_CLAIM);
             }
+        }
+
+        // 3) SEC-05：仅新认领（非续租）的流各写一条审计——稳态轮询（全是续租）不产生任何审计写入。
+        for (Long newlyClaimedId : claimed) {
+            recordEvidenceRead(newlyClaimedId, request.deploymentId(), RESOURCE_TYPE_CLAIM);
         }
 
         return new StreamClaimResponse(assigned);
