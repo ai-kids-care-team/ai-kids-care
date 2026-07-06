@@ -38,8 +38,8 @@ columns from PostgreSQL MUST be projected.
 - **WHEN** the data-loader writes a `Child`, `Class`, `Teacher`, `Kindergarten`, or `Guardian`
   node
 - **THEN** each node contains only the properties required for graph traversal and display (e.g.
-  `child_id`, `name`, `kindergarten_id`, `status`, `gender`, `enroll_date`, `leave_date` for
-  Child); S0/PII fields are absent
+  `child_id`, `name`, `kindergarten_id`, `status`, `enroll_date`, `leave_date` for
+  Child); S0/PII fields are absent (SEC-12: `gender`/성별 is treated as PII and is NOT projected)
 
 #### Scenario: Graph relationship edges carry required attributes
 
@@ -79,10 +79,10 @@ loader's Python source and assert that no forbidden field is bound into a node p
 - **WHEN** the data-loader builds a `Child`, `Teacher`, `User`, `Kindergarten`, `Class`, or
   `Guardian` node from PostgreSQL (full rebuild or incremental upsert)
 - **THEN** the SQL query `SELECT`s only that label's allowlisted non-PII columns (e.g. for `Child`:
-  `child_id`, `kindergarten_id`, `name`, `child_no`, `gender`, `enroll_date`, `leave_date`,
+  `child_id`, `kindergarten_id`, `name`, `child_no`, `enroll_date`, `leave_date`,
   `status`, `created_at`, `updated_at`), so PII columns such as `rrn_first6`, `rrn_encrypted`,
-  `rrn_hash`, `birth_date`, `address`, `emergency_contact_*`, `email`, `phone`, `password_hash`,
-  `contact_*` are never read into the loader and never written to the graph
+  `rrn_hash`, `birth_date`, `address`, `gender`, `emergency_contact_*`, `email`, `phone`,
+  `password_hash`, `contact_*` are never read into the loader and never written to the graph
 
 #### Scenario: Incremental fetch reuses the same non-PII allowlist
 
@@ -547,8 +547,8 @@ invariant to the query/response path.
 
 - **WHEN** `GET /api/v1/graph/children/{childId}` succeeds
 - **THEN** the `ChildGraphVO` contains only graph-projected fields (e.g. child `name`/`childNo`/
-  `gender`/`status`, class, teacher, kindergarten, and guardians with edge `relationship`/`isPrimary`/
-  `priority`) and no S0/PII field
+  `status`, class, teacher, kindergarten, and guardians with edge `relationship`/`isPrimary`/
+  `priority`) and no S0/PII field (SEC-12: `gender` is not projected)
 
 #### Scenario: VO mapping does not re-read PostgreSQL
 

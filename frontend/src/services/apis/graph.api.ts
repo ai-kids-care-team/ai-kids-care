@@ -5,7 +5,6 @@ export type ChildNode = {
   childId: number;
   name: string;
   childNo: string | null;
-  gender: string | null;
   status: string | null;
 };
 
@@ -33,7 +32,6 @@ export type KindergartenNode = {
 export type GuardianNode = {
   guardianId: number;
   name: string;
-  gender: string | null;
   status: string | null;
   relationship: string | null;
   isPrimary: boolean | null;

@@ -161,7 +161,6 @@ public class GraphRepository {
                 .childId(getLong(node, "child_id"))
                 .name(getString(node, "name"))
                 .childNo(getString(node, "child_no"))
-                .gender(getString(node, "gender"))
                 .status(getString(node, "status"))
                 .build();
     }
@@ -218,7 +217,6 @@ public class GraphRepository {
                     ChildGraphVO.GuardianNodeVO.builder()
                             .guardianId(getLong(guardianNode, "guardian_id"))
                             .name(getString(guardianNode, "name"))
-                            .gender(getString(guardianNode, "gender"))
                             .status(getString(guardianNode, "status"))
                             .relationship(getNullableString(item, "relationship"))
                             .isPrimary(getNullableBoolean(item, "is_primary"))

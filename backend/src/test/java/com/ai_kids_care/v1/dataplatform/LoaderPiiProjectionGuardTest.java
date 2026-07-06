@@ -40,7 +40,7 @@ class LoaderPiiProjectionGuardTest {
 
     private static final List<String> FORBIDDEN_FIELDS = List.of(
             "password_hash", "rrn_hash", "rrn_first6", "rrn_encrypted",
-            "birth_date", "address", "email", "phone",
+            "birth_date", "address", "email", "phone", "gender",
             "emergency_contact_name", "emergency_contact_phone",
             "contact_name", "contact_phone", "contact_email",
             "stream_password_encrypted", "stream_password_ciphertext");
@@ -56,10 +56,11 @@ class LoaderPiiProjectionGuardTest {
             "(?<![A-Za-z_])(" + FORBIDDEN_ALT + ")\\s*:\\s*\\$[A-Za-z_]");
 
     // PII property-name family matcher (name-based, so a NEW forbidden projection is caught even if
-    // it is not in FORBIDDEN_FIELDS): contact_*, rrn_*, phone, email, address, birth_date, password*
-    // (substring so emergency_contact_phone / password_hash / rrn_hash are all covered).
+    // it is not in FORBIDDEN_FIELDS): contact_*, rrn_*, phone, email, address, birth_date, password*,
+    // gender (SEC-12: 성별 is PII, not projected to the graph). (substring so
+    // emergency_contact_phone / password_hash / rrn_hash are all covered.)
     private static final Pattern FORBIDDEN_PROP_NAME = Pattern.compile(
-            "(?i).*(?:contact|rrn|phone|email|address|birth_date|password).*");
+            "(?i).*(?:contact|rrn|phone|email|address|birth_date|password|gender).*");
 
     // Node property WRITE in the live UNWIND loader form: alias.<prop> = row.<x>  (also = $param).
     // RHS is restricted to `row.`/`$` so REMOVE clauses (scrub whitelist) and WHERE equality on

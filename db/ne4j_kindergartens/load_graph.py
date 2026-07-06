@@ -55,9 +55,10 @@ EPOCH_WATERMARK = "1970-01-01T00:00:00+00:00"
 # 每个标签只 SELECT 这些列。被刻意排除的 PII 列（不在此即不投影）：
 #   users:        email, phone, password_hash
 #   kindergartens:address, contact_name, contact_phone, contact_email
-#   teachers:     emergency_contact_name/phone, rrn_hash, rrn_first6
-#   children:     rrn_first6, rrn_hash, birth_date, address
-#   guardians:    rrn_hash, rrn_first6, address
+#   teachers:     gender, emergency_contact_name/phone, rrn_hash, rrn_first6
+#   children:     gender, rrn_first6, rrn_hash, birth_date, address
+#   guardians:    gender, rrn_hash, rrn_first6, address
+# 注: gender(성별) 为 PII，SEC-12 决策不投影到关系图（保留真名，删性别）。
 # ============================================================
 USER_COLUMNS = ["user_id", "login_id", "status", "last_login_at", "created_at", "updated_at"]
 KINDERGARTEN_COLUMNS = [
@@ -65,7 +66,7 @@ KINDERGARTEN_COLUMNS = [
     "status", "created_at", "updated_at",
 ]
 TEACHER_COLUMNS = [
-    "teacher_id", "kindergarten_id", "user_id", "staff_no", "name", "gender",
+    "teacher_id", "kindergarten_id", "user_id", "staff_no", "name",
     "level", "start_date", "end_date", "status", "created_at", "updated_at",
 ]
 CLASS_COLUMNS = [
@@ -73,11 +74,11 @@ CLASS_COLUMNS = [
     "start_date", "end_date", "status", "created_at", "updated_at",
 ]
 CHILD_COLUMNS = [
-    "child_id", "kindergarten_id", "name", "child_no", "gender",
+    "child_id", "kindergarten_id", "name", "child_no",
     "enroll_date", "leave_date", "status", "created_at", "updated_at",
 ]
 GUARDIAN_COLUMNS = [
-    "guardian_id", "kindergarten_id", "user_id", "name", "gender",
+    "guardian_id", "kindergarten_id", "user_id", "name",
     "status", "created_at", "updated_at",
 ]
 # 关系来源表（无 PII）
@@ -243,7 +244,6 @@ TEACHER_NODE_CYPHER = """
         t.user_id = row.user_id,
         t.staff_no = row.staff_no,
         t.name = row.name,
-        t.gender = row.gender,
         t.level = row.level,
         t.start_date = row.start_date,
         t.end_date = row.end_date,
@@ -270,7 +270,6 @@ CHILD_NODE_CYPHER = """
     SET c.kindergarten_id = row.kindergarten_id,
         c.name = row.name,
         c.child_no = row.child_no,
-        c.gender = row.gender,
         c.enroll_date = row.enroll_date,
         c.leave_date = row.leave_date,
         c.status = row.status,
@@ -283,7 +282,6 @@ GUARDIAN_NODE_CYPHER = """
     SET g.kindergarten_id = row.kindergarten_id,
         g.user_id = row.user_id,
         g.name = row.name,
-        g.gender = row.gender,
         g.status = row.status,
         g.created_at = row.created_at,
         g.updated_at = row.updated_at

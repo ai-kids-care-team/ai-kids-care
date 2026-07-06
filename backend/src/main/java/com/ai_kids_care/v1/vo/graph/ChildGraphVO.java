@@ -21,7 +21,6 @@ public class ChildGraphVO {
         private Long childId;
         private String name;
         private String childNo;
-        private String gender;
         private String status;
     }
 
@@ -57,7 +56,6 @@ public class ChildGraphVO {
     public static class GuardianNodeVO {
         private Long guardianId;
         private String name;
-        private String gender;
         private String status;
         private String relationship;
         private Boolean isPrimary;
