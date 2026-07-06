@@ -47,6 +47,17 @@ const PLATFORM_APPROVALS: MenuItem = {
   path: '/admin/platform/approvals',
   sortOrder: 12,
 };
+/**
+ * UX-05 (director-operations-ui, C6): 원장 운영 관리 — 학급/교실/카메라 스트림 CRUD.
+ * `OperationsManagementPage` 가 role===KINDERGARTEN_ADMIN 이 아니면 자체적으로도 안내만
+ * 보여주지만, 다른 역할 메뉴에는 애초에 이 항목을 넣지 않는다(백엔드 `@PreAuthorize` 가 최종 게이트).
+ */
+const KINDERGARTEN_OPERATIONS: MenuItem = {
+  key: 'KINDERGARTEN_OPERATIONS',
+  label: '운영 관리',
+  path: '/admin/kindergarten/operations',
+  sortOrder: 13,
+};
 
 /**
  * 역할별 메뉴 (02_menu.sql 의 role_type 행과 1:1 대응 + UX-04 승인함 신규 추가).
@@ -57,6 +68,7 @@ const PLATFORM_APPROVALS: MenuItem = {
  * - NOTIFICATIONS: GUARDIAN, TEACHER, KINDERGARTEN_ADMIN, SUPERADMIN (수신자 역할; ANONYMOUS 제외)
  * - KINDERGARTEN_APPROVALS: KINDERGARTEN_ADMIN 전용(신규, UX-04)
  * - PLATFORM_APPROVALS: PLATFORM_IT_ADMIN 전용(신규, UX-04)
+ * - KINDERGARTEN_OPERATIONS: KINDERGARTEN_ADMIN 전용(신규, UX-05) — 학급/교실/카메라 스트림 관리
  */
 export const MENU_BY_ROLE: Record<MenuRole, MenuItem[]> = {
   ANONYMOUS: [HOME, ANNOUNCEMENTS],
@@ -67,6 +79,7 @@ export const MENU_BY_ROLE: Record<MenuRole, MenuItem[]> = {
     CCTV_CAMERAS,
     DETECTION_EVENT,
     KINDERGARTEN_APPROVALS,
+    KINDERGARTEN_OPERATIONS,
     APPRECIATION_LETTER,
     ANNOUNCEMENTS,
     NOTIFICATIONS,
