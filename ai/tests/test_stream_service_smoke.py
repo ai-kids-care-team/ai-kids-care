@@ -72,6 +72,11 @@ else:
 
 run_stream_service = _mod.run_stream_service
 
+# ARC-02: the shim re-exports run_stream_service from ai_app.live.alert_service, which is
+# where VideoMAEForVideoClassification / VideoMAEImageProcessor actually live (the shim
+# module itself does not import them) — monkeypatch the real implementation module.
+import ai_app.live.alert_service as _impl  # noqa: E402
+
 
 # ---------------------------------------------------------------------------
 # notification_title removal
@@ -94,8 +99,8 @@ def test_run_stream_service_runs_without_notification_title(tmp_path, monkeypatc
     out_dir = tmp_path / "out"
 
     # model loading goes through the transformers stub; make from_pretrained return a MagicMock.
-    _mod.VideoMAEForVideoClassification.from_pretrained = MagicMock(return_value=MagicMock())
-    _mod.VideoMAEImageProcessor.from_pretrained = MagicMock(return_value=MagicMock())
+    _impl.VideoMAEForVideoClassification.from_pretrained = MagicMock(return_value=MagicMock())
+    _impl.VideoMAEImageProcessor.from_pretrained = MagicMock(return_value=MagicMock())
 
     av_stub = sys.modules["av"]
     av_stub.open = MagicMock(side_effect=RuntimeError("no stream in test"))

@@ -281,24 +281,18 @@ def _load_config_from_env(env: Optional[Dict[str, str]] = None) -> SupervisorCon
 # Production wiring (lazy ML import — only runs in the child process)
 # ---------------------------------------------------------------------------
 
-def _load_run_stream_service() -> Callable[..., None]:
-    """Load ``scripts/stream_live_alert_service.run_stream_service`` by path (lazy, ML-heavy)."""
-    import importlib.util
-    import pathlib
-
-    script_path = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "stream_live_alert_service.py"
-    spec = importlib.util.spec_from_file_location("stream_live_alert_service", script_path)
-    if spec is None or spec.loader is None:  # pragma: no cover — defensive
-        raise ImportError(f"cannot load stream service from {script_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.run_stream_service
-
-
 def _worker_entry(info: StreamInfo) -> None:  # pragma: no cover — runs only in a child process
-    """Child-process entrypoint: fetch credentials for one stream and run its alert service."""
+    """Child-process entrypoint: fetch credentials for one stream and run its alert service.
+
+    ARC-02 (harden-ai-serving, C3): ``run_stream_service`` is loaded via a normal package
+    import (``ai_app.live.alert_service``), not ``importlib`` file-path loading. The import
+    stays function-scoped (not at module level) so importing ``ai_app.supervisor`` never
+    pulls in the ML-heavy alert service module (and its av/torch/transformers deps) — only
+    a spawned child process actually needing it does.
+    """
     import pathlib
 
+    from ai_app.live.alert_service import run_stream_service
     from ai_app.utils.stream_credentials import build_stream_url, fetch_stream_credentials
 
     stream_id = str(info["streamId"])
@@ -320,7 +314,6 @@ def _worker_entry(info: StreamInfo) -> None:  # pragma: no cover — runs only i
     model_dir = project_root / "outputs" / "01_assault_videomae_baseline" / "best_model"
     output_dir = project_root / "outputs" / "predictions" / f"stream_live_service_{stream_id}"
 
-    run_stream_service = _load_run_stream_service()
     run_stream_service(
         stream_url=stream_url,
         model_dir=model_dir.resolve(),

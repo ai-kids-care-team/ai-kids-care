@@ -29,6 +29,13 @@ services:
       JAVA_BACKEND_URL: ${JAVA_BACKEND_URL:-http://backend:8080}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
       STREAM_ID: ${STREAM_ID:-}
+      # SEC-03 (harden-ai-serving, C3): required by the FastAPI serving path itself —
+      # /predict/upload now needs Authorization: Bearer <AI_INFERENCE_TOKEN>. Empty default
+      # here keeps `docker compose config` green with no .env set; the app fails fast at
+      # startup (lifespan) if this resolves to blank, so an operator who wants the
+      # inference container to actually come up must set a real value. Distinct secret from
+      # AI_SERVICE_TOKEN (that one authenticates the opposite direction, AI -> backend).
+      AI_INFERENCE_TOKEN: ${AI_INFERENCE_TOKEN:-}
     expose:
       - "8001"
     volumes:
