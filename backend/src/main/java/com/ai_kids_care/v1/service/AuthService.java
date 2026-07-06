@@ -2,7 +2,6 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.config.RrnHashConfig;
 import com.ai_kids_care.v1.dto.AuthLoginDTO;
-import com.ai_kids_care.v1.dto.AuthPasswordResetDTO;
 import com.ai_kids_care.v1.dto.AuthRegisterDTO;
 import com.ai_kids_care.v1.dto.GuardianChildVerificationRequest;
 import com.ai_kids_care.v1.entity.*;
@@ -143,15 +142,6 @@ public class AuthService {
                 .isPresent();
         return new GuardianChildVerificationResponse(verified);
     }
-
-    @Transactional(readOnly = true)
-    public void passwordResets(AuthPasswordResetDTO request) {
-        String to = request.getTo();
-        boolean exists = userRepository.existsByLoginIdOrEmailOrPhone(to, to, to);
-        // TODO: 메일/인증코드 발송 로직 연동
-        throw new IllegalArgumentException("Not implemented");
-    }
-
 
     private void registerGuardian(User user, AuthRegisterDTO request, Child child) {
         String guardianRrnHash = RrnHashUtil.hash(
