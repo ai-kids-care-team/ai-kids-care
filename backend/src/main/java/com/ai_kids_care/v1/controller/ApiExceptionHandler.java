@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,18 @@ public class ApiExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "Resource not found"));
+    }
+
+    // Global fallback for services that throw ResponseStatusException directly (e.g.
+    // NotificationPreferenceService's 400 on a one-sided quiet-hours window); mirrors
+    // AuthController's controller-local handler of the same shape for controllers with no such
+    // local override — never leaks the exception message verbatim beyond the intended `reason`.
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatusException(
+            ResponseStatusException exception
+    ) {
+        String message = exception.getReason() == null ? "Request rejected" : exception.getReason();
+        return ResponseEntity.status(exception.getStatusCode()).body(Map.of("error", message));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

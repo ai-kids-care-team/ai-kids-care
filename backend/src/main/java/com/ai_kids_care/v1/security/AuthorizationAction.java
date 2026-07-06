@@ -48,5 +48,9 @@ public enum AuthorizationAction {
     // Neo4j 派生关系图只读查询粗门——本园 KINDERGARTEN_ADMIN/TEACHER + 有效 tenant identity
     // （与 detection 看板受众一致）；细粒度租户隔离由 GraphRepository 的 Cypher kindergarten_id 谓词强制
     // （锚点 + 沿途节点约束），kindergartenId 取自 requireActiveKindergartenId()（ThreadLocal，非 URL）。
-    GRAPH_READ
+    GRAPH_READ,
+    // UX-08：通知偏好自助管理粗粒度门——任一已认证用户均可管理自己的 notification_rules canonical 行
+    // （镜像 PUSH_SUBSCRIPTION_MANAGE）；细粒度「只能管自己在本园的偏好」由 NotificationPreferenceService
+    // 用 EffectiveAuthorizationContext.userId() + requireActiveKindergartenId() 在查询内强制。
+    NOTIFICATION_PREFERENCE_MANAGE
 }

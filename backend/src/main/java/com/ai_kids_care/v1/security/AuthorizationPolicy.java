@@ -100,6 +100,10 @@ public class AuthorizationPolicy {
             case EVENT_REVIEW_WRITE, EVENT_REVIEW_READ ->
                     tenantIdentity && (role == UserRoleEnum.KINDERGARTEN_ADMIN
                             || role == UserRoleEnum.TEACHER);
+            // UX-08：通知偏好自助管理——任一已认证用户（context 存在即 true，镜像 PUSH_SUBSCRIPTION_MANAGE）。
+            // 细粒度「只能管自己在本园的 canonical 行」由 NotificationPreferenceService 的
+            // (kindergarten_id, user_id) 双谓词查询强制。
+            case NOTIFICATION_PREFERENCE_MANAGE -> true;
         };
     }
 }

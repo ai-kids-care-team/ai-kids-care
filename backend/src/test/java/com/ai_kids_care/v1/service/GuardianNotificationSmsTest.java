@@ -59,6 +59,9 @@ class GuardianNotificationSmsTest {
     @Mock NotificationService notificationService;
     @Mock UserRepository userRepository;
     @Mock QuietHoursService quietHoursService;
+    // UX-08: unstubbed → findCanonical(...) returns null (no canonical row), matching this test
+    // file's pre-existing "no preference configured" behavior; ESCALATED tests never touch it.
+    @Mock NotificationPreferenceService notificationPreferenceService;
 
     @InjectMocks GuardianNotificationService service;
 
@@ -148,7 +151,10 @@ class GuardianNotificationSmsTest {
         lenient().when(kindergartenRepository.getReferenceById(KG_ID)).thenReturn(mock(Kindergarten.class));
         lenient().when(detectionEventRepository.getReferenceById(EVENT_ID)).thenReturn(mock(DetectionEvent.class));
         lenient().when(userRepository.getReferenceById(anyLong())).thenReturn(mock(User.class));
-        when(quietHoursService.resolveQuietWindow(any(), any())).thenReturn(Optional.empty());
+        // UX-08: RESOLVED now reads the kindergarten-level fallback via kindergartenRepository.findById
+        // (unstubbed → Optional.empty(), i.e. no quiet config) and notificationPreferenceService
+        // (unstubbed mock → findCanonical returns null, i.e. no per-user override); resolveQuietWindow
+        // is no longer on this path.
 
         service.notifyOnReview(EVENT_ID, KG_ID, EventStatusEnum.RESOLVED,
                 ROOM_ID, DETECTED, List.of(99L), true);

@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -40,8 +41,15 @@ import java.util.Set;
  * class_room_assignment → class → active child_class_assignment → children → active
  * child_guardian_relationship → guardian's user), or from explicit affectedChildIds for public-space
  * events. Listens AFTER_COMMIT + @Async so a dispatch failure never rolls back the authoritative
- * review; each recipient is independent and best-effort (mirrors StaffAlertService). All
- * notifications are immediate in this slice — quiet-hours deferral is ③b.
+ * review; each recipient is independent and best-effort (mirrors StaffAlertService).
+ *
+ * UX-08: RESOLVED (non-urgent) quiet-hours/enabled deferral is decided per-recipient — each
+ * guardian's own {@code notification_rules} canonical row (via
+ * {@link NotificationPreferenceService#findCanonical}) overrides the kindergarten-wide default
+ * when present and {@code enabled}; a guardian with {@code enabled=false} is skipped entirely for
+ * RESOLVED. ESCALATED is a safety-critical path and is completely unaffected by this: it never
+ * consults preferences, is never deferred, and always pierces quiet hours (plus the additive SMS
+ * channel) — see notifyOnReview below.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,6 +66,7 @@ public class GuardianNotificationService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final QuietHoursService quietHoursService;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -92,15 +101,14 @@ public class GuardianNotificationService {
                 + "확인되었습니다. 앱에서 자세한 내용을 "
                 + "확인해 주세요.";
 
-        // ③b: a RESOLVED notification falling within the kindergarten's quiet hours is deferred to the
-        // window's end; ESCALATED pierces quiet hours (immediate). Kindergarten-wide → computed once.
         OffsetDateTime now = OffsetDateTime.now();
-        Optional<QuietHoursService.QuietWindow> quietWindow =
-                resultStatus == EventStatusEnum.RESOLVED
-                        ? quietHoursService.resolveQuietWindow(kindergartenId, null)
-                        : Optional.empty();
-        boolean defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
-        OffsetDateTime deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
+        boolean resolved = resultStatus == EventStatusEnum.RESOLVED;
+        // UX-08: the kindergarten-wide fallback window (raw json, not yet parsed) — only needed for
+        // RESOLVED's per-recipient defer decision below; a real query (not getReferenceById), safe on
+        // the AFTER_COMMIT @Async thread with no open session. ESCALATED never reads this.
+        String kindergartenQuietJson = resolved
+                ? kindergartenRepository.findById(kindergartenId).map(Kindergarten::getQuietHoursJson).orElse(null)
+                : null;
 
         // SMS is an additive channel only for ESCALATED (dual-channel PUSH+SMS); RESOLVED stays
         // PUSH-only. To create an SMS row only for guardians who actually have a phone (mirrors the
@@ -117,6 +125,23 @@ public class GuardianNotificationService {
         Map<Long, User> guardianUsers = escalated ? loadUsers(guardianUserIds) : Map.of();
 
         for (Long userId : guardianUserIds) {
+            boolean defer = false;
+            OffsetDateTime deferUntil = null;
+            if (resolved) {
+                // UX-08: RESOLVED only — never consulted for ESCALATED (safety-critical pierce).
+                NotificationPreferenceService.NotificationPreferenceSnapshot canonical =
+                        notificationPreferenceService.findCanonical(kindergartenId, userId);
+                if (canonical != null && !canonical.enabled()) {
+                    continue; // guardian turned off notifications entirely; RESOLVED is non-urgent → skip
+                }
+                boolean useOwnWindow = canonical != null && canonical.enabled()
+                        && StringUtils.hasText(canonical.quietHoursJson());
+                String effectiveJson = useOwnWindow ? canonical.quietHoursJson() : kindergartenQuietJson;
+                Optional<QuietHoursService.QuietWindow> quietWindow = quietHoursService.parse(effectiveJson);
+                defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
+                deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
+            }
+
             User recipient = guardianUsers.get(userId);
             if (recipient == null) {
                 recipient = userRepository.getReferenceById(userId);
