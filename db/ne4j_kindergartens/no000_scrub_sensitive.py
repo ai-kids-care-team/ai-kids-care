@@ -1,73 +1,34 @@
 from neo4j_connect import driver
 
+# 独立 tool 也从 load_graph 复用同一份白名单强制逻辑（NODE_ALLOWED_PROPS 派生自 loader 的
+# 白名单列），因此不再有第二份字段清单需要维护。
+from load_graph import NODE_ALLOWED_PROPS, enforce_node_prop_whitelist
+
 # ============================================================
-# SPEC-0001 §365 민감 속성 제거 스크립트
+# INC-003 敏感属性清除脚本（白名单强制 / whitelist）
 # ------------------------------------------------------------
-# 목적:
-#   기존 Neo4j 데모 그래프에 이미 적재된 S0/PII 속성을
-#   REMOVE하여 그래프를 정결 상태로 만든다.
-#   MERGE+SET 로더는 존재하는 속성을 덮어쓰지만 삭제하지 않으므로
-#   로더 재실행 전에 이 스크립트를 먼저 실행해야 한다.
+# 目的:
+#   把 Neo4j 派生图上任何**未在 loader 白名单内**的节点属性 REMOVE 掉，使图回到洁净状态。
+#   这覆盖历史 loader 版本残留的 S0/PII（如旧版误投的 contact_name、address、rrn_* 等），
+#   MERGE+SET 只覆盖不删除，故清除必须显式做。
 #
-# 실행 예:
-#   python no000_scrub_sensitive.py
+#   从「黑名单」（列举要删的字段）改为「白名单」（保留允许集、strip 其余）——根治黑名单漂移：
+#   旧脚本既漏了真被投的 contact_name，又留着 loader 从不投的死字段 rrn_encrypted
+#   （PG 实列名是 rrn_hash，且三实体白名单根本不投 rrn），证明黑名单必然与投影脱节。
 #
-# 멱등성:
-#   이미 없는 속성을 REMOVE해도 오류 없이 통과된다.
+# 与 load_graph.py 内联 guard 的关系:
+#   load_graph.py 现在在 bootstrap 后 + **每个增量 tick** 都调用 enforce_node_prop_whitelist，
+#   那才是稳态主防线。本脚本保留为**可独立运行的一次性 tool**（run_all.sh 中 loader 启动前先跑
+#   一遍，快速清洗历史脏数据），已不再是唯一防线。
+#
+# 幂等性:
+#   已合规（无越权属性）时 REMOVE 不执行，无副作用，可反复运行。
 # ============================================================
-
-
-def scrub_user(tx):
-    tx.run("""
-        MATCH (u:User)
-        REMOVE u.password_hash, u.email, u.phone
-    """)
-
-
-def scrub_kindergarten(tx):
-    tx.run("""
-        MATCH (k:Kindergarten)
-        REMOVE k.address, k.contact_phone, k.contact_email
-    """)
-
-
-def scrub_teacher(tx):
-    tx.run("""
-        MATCH (t:Teacher)
-        REMOVE t.rrn_encrypted, t.rrn_first6,
-               t.emergency_contact_phone, t.emergency_contact_name
-    """)
-
-
-def scrub_child(tx):
-    tx.run("""
-        MATCH (c:Child)
-        REMOVE c.rrn_first6, c.rrn_encrypted, c.birth_date, c.address
-    """)
-
-
-def scrub_guardian(tx):
-    tx.run("""
-        MATCH (g:Guardian)
-        REMOVE g.rrn_encrypted, g.rrn_first6, g.address
-    """)
 
 
 if __name__ == "__main__":
     with driver.session() as session:
-        session.execute_write(scrub_user)
-        print("User: password_hash, email, phone 제거 완료")
-
-        session.execute_write(scrub_kindergarten)
-        print("Kindergarten: address, contact_phone, contact_email 제거 완료")
-
-        session.execute_write(scrub_teacher)
-        print("Teacher: rrn_encrypted, rrn_first6, emergency_contact_phone, emergency_contact_name 제거 완료")
-
-        session.execute_write(scrub_child)
-        print("Child: rrn_first6, rrn_encrypted, birth_date, address 제거 완료")
-
-        session.execute_write(scrub_guardian)
-        print("Guardian: rrn_encrypted, rrn_first6, address 제거 완료")
-
-    print("SPEC-0001 §365 민감 속성 제거 완료")
+        total = enforce_node_prop_whitelist(session)
+        for label, allowed in NODE_ALLOWED_PROPS.items():
+            print(f"{label}: 保留白名单 {sorted(allowed)}")
+        print(f"INC-003 白名单强制完成（本次清除越权属性 {total} 项，0 表示图已洁净）")

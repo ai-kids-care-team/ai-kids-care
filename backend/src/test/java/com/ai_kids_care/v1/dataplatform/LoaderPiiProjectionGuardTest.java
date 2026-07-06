@@ -42,7 +42,7 @@ class LoaderPiiProjectionGuardTest {
             "password_hash", "rrn_hash", "rrn_first6", "rrn_encrypted",
             "birth_date", "address", "email", "phone",
             "emergency_contact_name", "emergency_contact_phone",
-            "contact_phone", "contact_email",
+            "contact_name", "contact_phone", "contact_email",
             "stream_password_encrypted", "stream_password_ciphertext");
 
     private static final String FORBIDDEN_ALT = String.join("|", FORBIDDEN_FIELDS);
@@ -54,6 +54,18 @@ class LoaderPiiProjectionGuardTest {
     // Cypher map-entry bind: { ... <forbidden>: $param ... }  (covers SET n += {email: $email}).
     private static final Pattern MAP_ENTRY_BIND = Pattern.compile(
             "(?<![A-Za-z_])(" + FORBIDDEN_ALT + ")\\s*:\\s*\\$[A-Za-z_]");
+
+    // PII property-name family matcher (name-based, so a NEW forbidden projection is caught even if
+    // it is not in FORBIDDEN_FIELDS): contact_*, rrn_*, phone, email, address, birth_date, password*
+    // (substring so emergency_contact_phone / password_hash / rrn_hash are all covered).
+    private static final Pattern FORBIDDEN_PROP_NAME = Pattern.compile(
+            "(?i).*(?:contact|rrn|phone|email|address|birth_date|password).*");
+
+    // Node property WRITE in the live UNWIND loader form: alias.<prop> = row.<x>  (also = $param).
+    // RHS is restricted to `row.`/`$` so REMOVE clauses (scrub whitelist) and WHERE equality on
+    // non-PII ids are not the trigger — only an actual projection of a PII-named prop is flagged.
+    private static final Pattern NODE_PROP_WRITE = Pattern.compile(
+            "\\b[A-Za-z_]\\w*\\.([A-Za-z_]\\w*)\\s*=\\s*(?:row\\.|\\$)");
 
     private static Path loaderDir() {
         return Paths.get(System.getProperty("user.dir"))
@@ -103,6 +115,14 @@ class LoaderPiiProjectionGuardTest {
                 Matcher m = pattern.matcher(code);
                 while (m.find()) {
                     violations.add(file.getFileName() + ": " + m.group().trim());
+                }
+            }
+            // Name-based guard: any node property WRITE whose target name matches a PII family
+            // (contact_*/rrn_*/phone/email/address/birth_date/password*) is a projection violation.
+            Matcher w = NODE_PROP_WRITE.matcher(code);
+            while (w.find()) {
+                if (FORBIDDEN_PROP_NAME.matcher(w.group(1)).matches()) {
+                    violations.add(file.getFileName() + ": " + w.group().trim());
                 }
             }
         }

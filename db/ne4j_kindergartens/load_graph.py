@@ -54,7 +54,7 @@ EPOCH_WATERMARK = "1970-01-01T00:00:00+00:00"
 # ------------------------------------------------------------
 # 每个标签只 SELECT 这些列。被刻意排除的 PII 列（不在此即不投影）：
 #   users:        email, phone, password_hash
-#   kindergartens:address, contact_phone, contact_email
+#   kindergartens:address, contact_name, contact_phone, contact_email
 #   teachers:     emergency_contact_name/phone, rrn_hash, rrn_first6
 #   children:     rrn_first6, rrn_hash, birth_date, address
 #   guardians:    rrn_hash, rrn_first6, address
@@ -62,7 +62,7 @@ EPOCH_WATERMARK = "1970-01-01T00:00:00+00:00"
 USER_COLUMNS = ["user_id", "login_id", "status", "last_login_at", "created_at", "updated_at"]
 KINDERGARTEN_COLUMNS = [
     "kindergarten_id", "name", "region_code", "code", "business_registration_no",
-    "contact_name", "status", "created_at", "updated_at",
+    "status", "created_at", "updated_at",
 ]
 TEACHER_COLUMNS = [
     "teacher_id", "kindergarten_id", "user_id", "staff_no", "name", "gender",
@@ -232,7 +232,6 @@ KINDERGARTEN_NODE_CYPHER = """
         k.region_code = row.region_code,
         k.code = row.code,
         k.business_registration_no = row.business_registration_no,
-        k.contact_name = row.contact_name,
         k.status = row.status,
         k.created_at = row.created_at,
         k.updated_at = row.updated_at
@@ -427,6 +426,51 @@ NODE_WATERMARK_EXPR = "updated_at"
 
 
 # ============================================================
+# 节点属性白名单强制（INC-003 纵深防御，每 tick 生效）
+# ------------------------------------------------------------
+# 允许集直接派生自各 label 的白名单列——loader 的 SET 子句就是这些列的显式复制，故
+# 「投影白名单」与「保留白名单」天然单一真源。任何未在允许集内的节点属性——无论是历史
+# loader 版本残留、还是未来某次投影漂移误写——都会在下一 tick 被 strip 掉，从根上杜绝
+# 旧 no000 黑名单漂移（漏字段 / 防不存在的死字段如 rrn_encrypted）。
+# 被 REMOVE 的属性名取自图中 keys(n)（本 schema 自身标识符，非外部输入），backtick
+# 引用后拼接安全。Role / _GraphSyncState 为非 PII 记账节点，不在 6 个 PII 承载 label 内。
+# ============================================================
+NODE_ALLOWED_PROPS: Dict[str, set] = {
+    label: set(columns) for _table, columns, label, _id, _cy in NODE_SPECS
+}
+
+
+def strip_disallowed_props(session, label: str, allowed: set) -> List[str]:
+    """strip 掉 label 节点上任何不在 allowed 白名单内的属性；返回被清理的属性名列表。
+    先用 keys(n) 收集图中实际出现的越权属性名（DISTINCT），再一次 REMOVE 全清（幂等）。"""
+    extra = session.execute_read(
+        lambda tx: tx.run(
+            f"MATCH (n:`{label}`) UNWIND keys(n) AS k WITH DISTINCT k "
+            "WHERE NOT k IN $allowed RETURN collect(k) AS extra",
+            allowed=list(allowed),
+        ).single()["extra"]
+    )
+    if not extra:
+        return []
+    removes = ", ".join(f"n.`{k}`" for k in extra)
+    session.execute_write(lambda tx: tx.run(f"MATCH (n:`{label}`) REMOVE {removes}"))
+    print(f"[scrub][{label}] 越权属性已清除: {', '.join(extra)}", file=sys.stderr)
+    return list(extra)
+
+
+def enforce_node_prop_whitelist(session) -> int:
+    """对 6 个 PII 承载 label 逐一 strip 越权属性（白名单强制）。全量重建后 + 每增量 tick 调用。
+    单 label 隔离：某 label 失败仅记录，不阻断其他 label 与主循环。返回被清理的属性总数。"""
+    stripped = 0
+    for label, allowed in NODE_ALLOWED_PROPS.items():
+        try:
+            stripped += len(strip_disallowed_props(session, label, allowed))
+        except Exception as exc:  # noqa: BLE001 — 单 label 隔离，不阻断其他 label / 主循环
+            print(f"[scrub][{label}] 白名单强制失败: {exc}", file=sys.stderr)
+    return stripped
+
+
+# ============================================================
 # 水位 meta-node 读写 (:_GraphSyncState {table, watermark}) —— 仅非 PII 记账属性
 # ============================================================
 def read_watermark(session, table: str) -> Optional[str]:
@@ -481,6 +525,10 @@ def full_rebuild(session, pg_conn) -> None:
     print("[HAS_TEACHER] derived from Teacher.kindergarten_id")
     for table, _cols, _wm, _tf, cypher, label in REL_SPECS:
         run_batched(session, cypher, rel_rows[table], label)
+
+    # 白名单强制：clean slate 后节点属性理应已合规，此调用是对本 loader 版本自身的兜底
+    # （若图非空重建、或 SET 子句意外漂移，也在此被拦下）。
+    enforce_node_prop_whitelist(session)
 
     init_watermarks(session, pg_conn)
     print("[bootstrap] 全量重建完成")
@@ -549,6 +597,14 @@ def incremental_tick(session, pg_conn) -> int:
                                  transform, cypher, label)
         except Exception as exc:  # noqa: BLE001
             print(f"[tick][{table}] 失败（水位不前进，下 tick 重试）: {exc}", file=sys.stderr)
+
+    # 每 tick 兜底：strip 掉任何越权节点属性（历史残留 / 投影漂移）。MERGE+SET 只覆盖不删除，
+    # 故此白名单强制是让「移除某投影列」在稳态下真正生效、并每 tick 持续保护的关键防线。
+    try:
+        enforce_node_prop_whitelist(session)
+    except Exception as exc:  # noqa: BLE001 — 兜底不阻断 tick
+        print(f"[tick][scrub] 白名单强制失败: {exc}", file=sys.stderr)
+
     return changed
 
 
