@@ -10,7 +10,12 @@ import com.ai_kids_care.v1.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.repository.AiModelRepository;
 import com.ai_kids_care.v1.repository.CameraStreamRepository;
 import com.ai_kids_care.v1.security.AesGcmCryptoUtil;
+import com.ai_kids_care.v1.security.audit.AuditAction;
+import com.ai_kids_care.v1.security.audit.AuditEvent;
+import com.ai_kids_care.v1.security.audit.AuditResult;
+import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.StatusEnum;
+import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,15 +46,31 @@ import java.util.Set;
  * (OQ-3=B: the AI service is trusted platform-wide infrastructure that processes every
  * kindergarten's streams; {@code kindergartenId} in the responses is a projected attribution field
  * derived server-side from the camera→kindergarten relation, not an access filter).
+ *
+ * <p><b>SEC-05 defense-in-depth (harden-claim-lease-internal C2)</b>: because
+ * {@code AI_SERVICE_TOKEN} is a single Bearer token shared by every GPU stack (accepted
+ * blast-radius risk, OQ-3=B), a successful credential read and every newly-won stream claim are
+ * recorded via {@link SecurityAuditWriter} as {@code S1_EVIDENCE_READ} — forensic visibility if
+ * that shared token is ever abused. The audit payload never carries the plaintext credential or
+ * the token itself (invariant #5): it is scoped {@code PLATFORM} (no session/tenant actor exists
+ * to attribute the event to), records the caller's {@code deploymentId} in {@code effectiveRole}
+ * (the closest existing "who acted" column for a non-session actor), and the stream id as
+ * {@code resourceId}. Renewals of an already-held lease are not re-audited on every poll — only a
+ * newly-claimed stream (a lease this deployment did not already hold) triggers a new record, so
+ * steady-state polling (the common case) writes nothing.
  */
 @Service
 @RequiredArgsConstructor
 public class CameraStreamInternalService {
 
+    private static final String RESOURCE_TYPE_CREDENTIAL = "CAMERA_STREAM_CREDENTIAL";
+    private static final String RESOURCE_TYPE_CLAIM = "CAMERA_STREAM_CLAIM";
+
     private final CameraStreamRepository repository;
     private final CameraStreamCryptoConfig cryptoConfig;
     private final AiModelRepository aiModelRepository;
     private final StreamLeaseService leaseService;
+    private final SecurityAuditWriter auditWriter;
 
     // ADR-0026 Phase 2：内部凭据读路径（D2）。供经 Bearer token 认证的 AI 服务解密读取。
     // 鉴权在 HTTP 层强制（AiServiceTokenAuthenticationFilter + hasRole("AI_SERVICE")）；
@@ -75,6 +96,8 @@ public class CameraStreamInternalService {
                     entity.getStreamPasswordIv(),
                     cryptoConfig.keyForVersion(entity.getStreamPasswordKeyVersion()));
         }
+
+        recordEvidenceRead(id, deploymentId, RESOURCE_TYPE_CREDENTIAL);
 
         return new StreamCredentialDTO(
                 entity.getId(),
@@ -105,7 +128,8 @@ public class CameraStreamInternalService {
     //      续租受 capacity 上限约束（capacity=0 即排空），保证 assigned ≤ capacity。
     //   2) 认领补位：spare = capacity - 已续租数；从活跃流全集里（跳过刚续租的）逐个尝试原子 SET NX 认领，
     //      至多 spare 个——已被他栈持有有效租约的流会因 SET NX 失败被自然跳过，无需显式先查 owner。
-    //   3) 返回 assigned = 续租 ∪新认领，逐个组装为与 GET /internal/streams 同型的 ActiveStreamVO。
+    //   3) 新认领（非续租）的每个 streamId 各写一条 S1_EVIDENCE_READ 审计（SEC-05）。
+    //   4) 返回 assigned = 续租 ∪新认领，逐个组装为与 GET /internal/streams 同型的 ActiveStreamVO。
     @Transactional(readOnly = true)
     public StreamClaimResponse claimStreams(StreamClaimRequest request) {
         Long activeModelId = resolveActiveModelId();
@@ -142,6 +166,8 @@ public class CameraStreamInternalService {
             if (leaseService.tryClaim(projection.streamId(), request.deploymentId())) {
                 assigned.add(new ActiveStreamVO(projection.streamId(), activeModelId, projection.kindergartenId()));
                 spare--;
+                // SEC-05：仅新认领（非续租）的流写审计——稳态轮询（全是续租）不产生任何审计写入。
+                recordEvidenceRead(projection.streamId(), request.deploymentId(), RESOURCE_TYPE_CLAIM);
             }
         }
 
@@ -153,5 +179,22 @@ public class CameraStreamInternalService {
     private Long resolveActiveModelId() {
         return aiModelRepository.findModelIdsByStatusOrderById(StatusEnum.ACTIVE)
                 .stream().findFirst().orElse(null);
+    }
+
+    /**
+     * SEC-05：写一条 {@code S1_EVIDENCE_READ} 审计（best-effort，独立 {@code REQUIRES_NEW} 事务，见
+     * {@link SecurityAuditWriter}——不占用调用方任何已开事务/连接）。绝不含明文凭据/token（invariant #5）：
+     * payload 只有 deploymentId（{@code effectiveRole}）、streamId（{@code resourceId}）、resourceType、
+     * 固定 {@code SUCCESS} 结果（方法只在凭据已解密成功 / 流已成功新认领时调用）。
+     */
+    private void recordEvidenceRead(Long streamId, String deploymentId, String resourceType) {
+        auditWriter.record(AuditEvent.builder()
+                .action(AuditAction.S1_EVIDENCE_READ)
+                .result(AuditResult.SUCCESS)
+                .scopeType(UserRoleAssignmentScopeType.PLATFORM)
+                .effectiveRole(deploymentId)
+                .resourceType(resourceType)
+                .resourceId(streamId)
+                .build());
     }
 }
