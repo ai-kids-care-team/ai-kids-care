@@ -1,6 +1,6 @@
 package com.ai_kids_care.v1.internal;
 
-import com.ai_kids_care.v1.service.CameraStreamService;
+import com.ai_kids_care.v1.service.CameraStreamInternalService;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StreamCredentialController {
 
-    private final CameraStreamService service;
+    private final CameraStreamInternalService service;
 
     @GetMapping
     public ResponseEntity<List<ActiveStreamVO>> listActiveStreams() {

@@ -1,7 +1,6 @@
 package com.ai_kids_care.v1.internal;
 
 import com.ai_kids_care.BaseIntegrationTest;
-import com.ai_kids_care.v1.service.CameraStreamService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -53,7 +52,6 @@ class InternalStreamClaimApiTest extends BaseIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private StringRedisTemplate redisTemplate;
-    @Autowired private CameraStreamService cameraStreamService;
 
     private List<Long> allStreamIds;
 

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.internal;
 
 import com.ai_kids_care.BaseIntegrationTest;
-import com.ai_kids_care.v1.service.CameraStreamService;
+import com.ai_kids_care.v1.service.CameraStreamInternalService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class InternalStreamClaimLeaseExpiryApiTest extends BaseIntegrationTest {
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private StringRedisTemplate redisTemplate;
-    @Autowired private CameraStreamService cameraStreamService;
+    @Autowired private CameraStreamInternalService cameraStreamInternalService;
 
     private List<Long> allStreamIds;
 
@@ -58,7 +58,7 @@ class InternalStreamClaimLeaseExpiryApiTest extends BaseIntegrationTest {
     }
 
     private List<Long> claimAssignedIds(String deploymentId, int capacity, List<Long> running) {
-        return cameraStreamService.claimStreams(new StreamClaimRequest(deploymentId, capacity, running))
+        return cameraStreamInternalService.claimStreams(new StreamClaimRequest(deploymentId, capacity, running))
                 .assigned().stream().map(ActiveStreamVO::streamId).toList();
     }
 
