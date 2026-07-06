@@ -15,5 +15,5 @@
 - [x] B3 `npm run lint && npm run build` + `npm run test:run` 全绿；还原 next-env.d.ts
 
 ## 门禁
-- [ ] G1 backend gradlew + frontend test/lint/build 全绿
-- [ ] G2 integration 定向复核：两 GET 不传 kindergartenId 行为不变（本租户）；两 camera enum 三侧一致、前端确从 /enums 取
+- [x] G1 backend gradlew + frontend test/lint/build 全绿
+- [x] G2 integration 定向复核：两 GET 不传 kindergartenId 行为不变（本租户）；两 camera enum 三侧一致、前端确从 /enums 取
