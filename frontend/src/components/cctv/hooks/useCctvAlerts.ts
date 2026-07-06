@@ -41,23 +41,25 @@ export function useCctvAlerts(
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
-      setEvents([]);
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
-    setLoading(true);
-    void getDetectionEvents({ size: DETECTION_EVENTS_RECENT_SIZE })
-      .then((page) => {
+    (async () => {
+      if (!enabled) {
+        if (!cancelled) {
+          setEvents([]);
+          setLoading(false);
+        }
+        return;
+      }
+      setLoading(true);
+      try {
+        const page = await getDetectionEvents({ size: DETECTION_EVENTS_RECENT_SIZE });
         if (!cancelled) setEvents(page.content);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setEvents([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

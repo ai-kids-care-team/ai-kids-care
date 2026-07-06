@@ -16,8 +16,11 @@ export type UseCctvCamerasResult = {
  * :484-514 스트림 부분을 통합). `canView=false`(live-stream 권한 없는 역할) 또는
  * kindergartenId 미확정이면 두 조회 모두 건너뛰고 빈 상태를 유지한다.
  *
- * 원본의 `window.setTimeout(..., 0)` 래핑은 제거했다 — effect 안에서 비동기 함수를 직접
- * 호출하는 것은 React 규칙상 문제 없고, setTimeout 은 굳이 다음 tick으로 미룰 이유가 없었다.
+ * 원본의 `window.setTimeout(..., 0)` 래핑은 제거했다 — 실제로는 데드 코드가 아니라
+ * `react-hooks/set-state-in-effect`(React 19 lint 규칙, effect 본문에서 직접 setState 호출을
+ * 금지)를 우회하던 방편이었다. 여기서는 `DetectionEventsDashboard.tsx`가 쓰는 정석 패턴 —
+ * effect 안에서 async IIFE를 즉시 호출 — 으로 대체했다(동일하게 lint 통과, setTimeout(0) 틱
+ * 지연은 없음).
  */
 export function useCctvCameras(
   kindergartenId: number | null,
@@ -31,25 +34,27 @@ export function useCctvCameras(
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    if (!canView || kindergartenId == null) {
-      setCameras([]);
-      setLoading(false);
-      return;
-    }
-    void getCctvCamerasPage(0, 200, kindergartenId)
-      .then((cameraPage) => {
+    (async () => {
+      if (!canView || kindergartenId == null) {
+        if (!cancelled) {
+          setCameras([]);
+          setLoading(false);
+        }
+        return;
+      }
+      setLoading(true);
+      try {
+        const cameraPage = await getCctvCamerasPage(0, 200, kindergartenId);
         if (!cancelled) setCameras(cameraPage?.content ?? []);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) {
           setCameras([]);
           console.warn('카메라 목록 조회에 실패했습니다.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -57,12 +62,13 @@ export function useCctvCameras(
 
   useEffect(() => {
     let cancelled = false;
-    if (!canView || kindergartenId == null || kindergartenId <= 0) {
-      setStreamMapByCamera(new Map());
-      return;
-    }
-    void getCameraStreamsPage(kindergartenId, 0, 500)
-      .then((page) => {
+    (async () => {
+      if (!canView || kindergartenId == null || kindergartenId <= 0) {
+        if (!cancelled) setStreamMapByCamera(new Map());
+        return;
+      }
+      try {
+        const page = await getCameraStreamsPage(kindergartenId, 0, 500);
         if (cancelled) return;
         const source = page?.content ?? [];
         const m = new Map<number, CameraStreamVO[]>();
@@ -75,11 +81,11 @@ export function useCctvCameras(
           console.warn('camera_streams loaded but empty (streamMapByCamera size=0)');
         }
         setStreamMapByCamera(m);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn('camera_streams 조회 실패: /camera_streams', err);
         if (!cancelled) setStreamMapByCamera(new Map());
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };

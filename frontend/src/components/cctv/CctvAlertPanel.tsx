@@ -6,7 +6,7 @@ import { Button } from '@/components/shared/ui/button';
 import { Card } from '@/components/shared/ui/card';
 import type { CctvCameraVO } from '@/types/cctv.vo';
 import type { DetectionEventListItem } from '@/services/apis/detectionEvents.api';
-import { severityClasses, severityLevel } from '@/lib/severity';
+import { severityLevel } from '@/lib/severity';
 import { displayLocationLine, formatRelativeMinutes } from '@/lib/cctvFormat';
 import { mapEventUiStatus } from '@/components/cctv/hooks/useCctvGridData';
 
