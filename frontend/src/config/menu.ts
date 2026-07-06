@@ -20,7 +20,7 @@ export type MenuItem = {
 export type MenuRole = UserRole | 'ANONYMOUS';
 
 const HOME: MenuItem = { key: 'HOME', label: '홈', path: '/', sortOrder: 5 };
-const CCTV_CAMERAS: MenuItem = { key: 'CCTV_CAMERAS', label: '대시보드', path: '/cctvCameras', sortOrder: 10 };
+const CCTV_CAMERAS: MenuItem = { key: 'CCTV_CAMERAS', label: '대시보드', path: '/cctvCamera', sortOrder: 10 };
 const DETECTION_EVENT: MenuItem = { key: 'DETECTION_EVENT', label: '이상 탐지', path: '/detectionEvents', sortOrder: 15 };
 const APPRECIATION_LETTER: MenuItem = { key: 'APPRECIATION_LETTER', label: '감사편지', path: '/letters', sortOrder: 20 };
 const ANNOUNCEMENTS: MenuItem = { key: 'ANNOUNCEMENTS', label: '공지사항', path: '/announcements', sortOrder: 25 };
