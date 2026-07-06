@@ -113,6 +113,10 @@ wheels/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
+# 上面 Python 打包块的未锚定 lib/ 会误吞前端源码目录 frontend/src/lib/（C5 抽出的
+# severity/cctvFormat 等）。显式豁免，避免新增前端 lib 文件被静默忽略。
+!frontend/src/lib/
+!frontend/src/lib/**
 *.egg
 MANIFEST
 
