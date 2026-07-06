@@ -7,6 +7,8 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from ai_app.inference.predictor import PredictionResult, VideoPredictor
 from ai_app.serving.auth import get_inference_token, require_bearer_token
@@ -81,6 +83,63 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+_UPLOAD_PATH = "/predict/upload"
+
+
+def _content_length_exceeds_limit(content_length_header: str | None, max_upload_mb: int) -> bool:
+    """Pure helper: True iff a declared ``Content-Length`` header exceeds the limit.
+
+    Fails *open* (returns False, deferring to the existing streamed check in
+    ``_read_upload_within_limit``) when the header is absent or not a valid integer —
+    a chunked Transfer-Encoding request never sends ``Content-Length`` at all, so this
+    layer cannot bound it; that is by design the streamed check's job (SEC-04).
+    """
+    if content_length_header is None:
+        return False
+    try:
+        declared_bytes = int(content_length_header)
+    except ValueError:
+        return False
+    return declared_bytes > max_upload_mb * 1024 * 1024
+
+
+@app.middleware("http")
+async def _reject_oversized_content_length(request: Request, call_next):
+    """SEC-C3-01: reject an over-limit ``/predict/upload`` body before it is parsed.
+
+    FastAPI/Starlette resolves ``UploadFile`` (spooling the whole multipart body to a
+    temp file, overflowing to disk past ~1MiB) as part of dependency resolution — i.e.
+    *before* the SEC-04 streamed check (``_read_upload_within_limit``) or even the
+    SEC-03 bearer-token dependency ever run. This ASGI-level HTTP middleware runs ahead
+    of routing/dependency resolution entirely, so it can reject a declared over-limit
+    body without spooling it and without an unauthenticated caller being able to spend
+    bandwidth/disk on a body that would be rejected anyway.
+
+    Deliberately placed *before* authentication (SEC-03): an oversized body should be
+    turned away regardless of whether the caller can authenticate, so a large-body DoS
+    attempt never reaches (and never has to pay for) the auth check.
+
+    Scope: only guards ``/predict/upload`` — ``/health`` and any other route pass
+    through untouched. Only inspects the declared ``Content-Length`` header (never
+    reads the body itself, so this middleware adds no buffering of its own). A request
+    without ``Content-Length`` (chunked transfer) falls through unchanged to the
+    existing streamed per-chunk check inside the route handler.
+
+    Implementation choice: a function-based Starlette/FastAPI HTTP middleware
+    (``@app.middleware("http")``) rather than a raw ASGI middleware class — this layer
+    only needs to inspect a header and short-circuit with a response, which the
+    higher-level ``Request``/``call_next`` API expresses directly; a raw ASGI class
+    would add scope/receive-channel plumbing for no behavioral benefit here.
+    """
+    if request.url.path == _UPLOAD_PATH:
+        max_upload_mb = int(os.getenv("AI_MAX_UPLOAD_MB", "512"))
+        if _content_length_exceeds_limit(request.headers.get("content-length"), max_upload_mb):
+            return JSONResponse(
+                status_code=413,
+                content={"detail": f"Declared Content-Length exceeds {max_upload_mb} MB limit"},
+            )
+    return await call_next(request)
 
 
 # SEC-03 trade-off (harden-ai-serving, C3): /health intentionally stays unauthenticated.

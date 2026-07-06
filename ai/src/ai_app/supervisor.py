@@ -29,6 +29,7 @@ Responsibilities:
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -36,6 +37,13 @@ from typing import Any, Callable, Dict, List, Optional
 
 DEFAULT_MAX_WORKERS = 8
 DEFAULT_RESTART_BACKOFF_SEC = 5.0
+# INT-obs (ai-inference-hardening-followups): the backend's claim endpoint caps
+# `capacity` at @Max(64) (C2, shard-live-detection-deployments). A deployment
+# misconfigured with MAX_WORKERS > 64 would have every claim request rejected
+# (HTTP 400) while it kept retrying with the same over-bound capacity — a
+# silent stall (never crashes, never claims anything). Clamping locally to this
+# bound keeps the supervisor's claims always within what the backend accepts.
+MAX_WORKERS_UPPER_BOUND = 64
 # shard-live-detection-deployments design D2: claim doubles as heartbeat/lease-renewal; TTL
 # (backend-side, default 60s) is sized as a multiple of this poll interval.
 DEFAULT_POLL_INTERVAL_SEC = 20.0
@@ -266,6 +274,15 @@ def _load_config_from_env(env: Optional[Dict[str, str]] = None) -> SupervisorCon
         raise ValueError("DEPLOYMENT_ID must be set for the live-detection supervisor")
 
     max_workers = int(source.get("MAX_WORKERS", str(DEFAULT_MAX_WORKERS)))
+    if max_workers > MAX_WORKERS_UPPER_BOUND:
+        logging.warning(
+            "MAX_WORKERS=%d exceeds the backend claim capacity bound (@Max(%d)); "
+            "clamping to %d so claim requests stay within what the backend accepts.",
+            max_workers,
+            MAX_WORKERS_UPPER_BOUND,
+            MAX_WORKERS_UPPER_BOUND,
+        )
+        max_workers = MAX_WORKERS_UPPER_BOUND
     poll_interval_sec = float(source.get("STREAM_POLL_INTERVAL_SEC", str(DEFAULT_POLL_INTERVAL_SEC)))
 
     return SupervisorConfig(

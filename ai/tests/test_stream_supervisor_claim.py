@@ -32,6 +32,7 @@ import pytest  # noqa: E402
 
 from ai_app.supervisor import (  # noqa: E402
     DEFAULT_POLL_INTERVAL_SEC,
+    MAX_WORKERS_UPPER_BOUND,
     StreamSupervisor,
     _load_config_from_env,
     make_claim_based_lister,
@@ -258,3 +259,49 @@ def test_config_honors_overrides():
     assert config.backend_url == "http://custom:9000"
     assert config.max_workers == 3
     assert config.poll_interval_sec == 15.0
+
+
+# ---------------------------------------------------------------------------
+# INT-obs (ai-inference-hardening-followups): MAX_WORKERS clamped to the
+# backend claim capacity bound (@Max(64), C2) so a misconfigured deployment
+# does not get every claim rejected and silently stall.
+# ---------------------------------------------------------------------------
+
+def test_max_workers_over_bound_is_clamped_with_warning(caplog):
+    with caplog.at_level("WARNING"):
+        config = _load_config_from_env({
+            "AI_SERVICE_TOKEN": "tok",
+            "DEPLOYMENT_ID": "dep-c",
+            "MAX_WORKERS": "100",
+        })
+
+    assert MAX_WORKERS_UPPER_BOUND == 64
+    assert config.max_workers == 64
+    assert any(
+        "MAX_WORKERS=100" in record.message and "64" in record.message
+        for record in caplog.records
+    ), f"expected a clamp warning, got: {[r.message for r in caplog.records]}"
+
+
+def test_max_workers_within_bound_is_unchanged_and_does_not_warn(caplog):
+    with caplog.at_level("WARNING"):
+        config = _load_config_from_env({
+            "AI_SERVICE_TOKEN": "tok",
+            "DEPLOYMENT_ID": "dep-d",
+            "MAX_WORKERS": "2",
+        })
+
+    assert config.max_workers == 2
+    assert caplog.records == []
+
+
+def test_max_workers_exactly_at_bound_is_unchanged_and_does_not_warn(caplog):
+    with caplog.at_level("WARNING"):
+        config = _load_config_from_env({
+            "AI_SERVICE_TOKEN": "tok",
+            "DEPLOYMENT_ID": "dep-e",
+            "MAX_WORKERS": "64",
+        })
+
+    assert config.max_workers == 64
+    assert caplog.records == []
