@@ -83,6 +83,29 @@ class EnumsControllerTest extends BaseIntegrationTest {
     }
 
     @Test
+    void cameraStreamTypeReturnsCameraStreamTypeEnumCodesInDeclarationOrder() throws Exception {
+        mockMvc.perform(get("/api/v1/enums/camera_stream_type"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(5)))
+                .andExpect(jsonPath("$[0].code").value("MAIN"))
+                .andExpect(jsonPath("$[1].code").value("SUB"))
+                .andExpect(jsonPath("$[2].code").value("SNAPSHOT"))
+                .andExpect(jsonPath("$[3].code").value("RECORDING"))
+                .andExpect(jsonPath("$[4].code").value("OTHER"));
+    }
+
+    @Test
+    void protocolReturnsProtocolEnumCodesInDeclarationOrder() throws Exception {
+        mockMvc.perform(get("/api/v1/enums/protocol"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(4)))
+                .andExpect(jsonPath("$[0].code").value("RTSP"))
+                .andExpect(jsonPath("$[1].code").value("ONVIF"))
+                .andExpect(jsonPath("$[2].code").value("HTTP"))
+                .andExpect(jsonPath("$[3].code").value("HTTPS"));
+    }
+
+    @Test
     void unknownNameReturnsNotFound() throws Exception {
         mockMvc.perform(get("/api/v1/enums/this_enum_does_not_exist"))
                 .andExpect(status().isNotFound());

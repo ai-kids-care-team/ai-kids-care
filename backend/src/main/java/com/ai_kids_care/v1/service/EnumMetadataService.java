@@ -1,9 +1,11 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.type.CameraStreamTypeEnum;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import com.ai_kids_care.v1.type.EventTypeEnum;
 import com.ai_kids_care.v1.type.GenderEnum;
 import com.ai_kids_care.v1.type.LevelEnum;
+import com.ai_kids_care.v1.type.ProtocolEnum;
 import com.ai_kids_care.v1.type.RelationshipEnum;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.vo.EnumValueVO;
@@ -33,7 +35,9 @@ public class EnumMetadataService {
             "teacher_level", LevelEnum.class,
             "status", StatusEnum.class,
             "event_type", EventTypeEnum.class,
-            "event_status", EventStatusEnum.class
+            "event_status", EventStatusEnum.class,
+            "camera_stream_type", CameraStreamTypeEnum.class,
+            "protocol", ProtocolEnum.class
     );
 
     /**

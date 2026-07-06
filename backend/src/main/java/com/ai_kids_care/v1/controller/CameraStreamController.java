@@ -25,7 +25,7 @@ public class CameraStreamController {
 
     @GetMapping
     public ResponseEntity<Page<CameraStreamVO>> listCameraStream(
-            @RequestParam Long kindergartenId,
+            @RequestParam(required = false) Long kindergartenId,
             @RequestParam(required = false) Long cameraId,
             @RequestParam(required = false) Boolean enabled,
             @RequestParam(required = false) Boolean isPrimary,
