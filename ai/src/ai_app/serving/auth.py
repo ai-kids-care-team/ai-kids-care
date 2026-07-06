@@ -44,5 +44,8 @@ async def require_bearer_token(
         raise HTTPException(status_code=401, detail="Missing or malformed bearer token")
 
     provided = authorization[len("Bearer ") :]
-    if not hmac.compare_digest(provided, expected):
+    # Compare as bytes: hmac.compare_digest on str raises TypeError for non-ASCII
+    # input (Starlette decodes headers as latin-1), which would surface as a 500
+    # instead of a clean 401. Encoding first keeps the path fail-closed *and* 401.
+    if not hmac.compare_digest(provided.encode("utf-8"), expected.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid bearer token")

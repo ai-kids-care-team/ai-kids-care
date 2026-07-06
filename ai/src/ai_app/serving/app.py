@@ -109,8 +109,14 @@ async def _read_upload_within_limit(file: UploadFile, max_upload_mb: int) -> byt
     only checked the size afterwards, so an oversized upload was fully pulled into memory
     before being rejected (DoS surface, compounded by SEC-03 if the caller is unauthenticated).
     This reads in bounded chunks and checks the running total after each one, aborting with
-    413 as soon as the cumulative size crosses ``max_upload_mb`` — the tail of an oversized
-    payload is never read.
+    413 as soon as the cumulative in-memory total crosses ``max_upload_mb``.
+
+    Scope: this caps the *RAM* peak of the second copy into ``buffer``. It does NOT cap the
+    transport-layer ingress — FastAPI/Starlette resolves ``UploadFile`` (spooling the full
+    multipart body to a temp file, overflowing to disk past ~1MiB) *before* this dependency
+    runs, so a caller can still stream an arbitrarily large body to disk before the 413.
+    Closing that requires an edge/ASGI ``Content-Length``/``request_body`` size guard (e.g.
+    Caddy ``request_body max_size``) ahead of body parsing — tracked as a follow-up.
     """
     max_bytes = max_upload_mb * 1024 * 1024
     buffer = bytearray()
