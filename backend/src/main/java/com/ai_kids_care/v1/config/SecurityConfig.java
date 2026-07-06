@@ -94,7 +94,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
-                                "/api/v1/auth/guardian-child-verifications"
+                                "/api/v1/auth/guardian-child-verifications",
+                                // UX-07 wire-password-management: enumeration-safe SMS reset flow,
+                                // reachable pre-login. Still CSRF-protected (only
+                                // /api/v1/internal/** is CSRF-exempt) — see api-contract.md.
+                                // change-password is intentionally NOT here (authenticated,
+                                // default-deny protects it).
+                                "/api/v1/auth/password-reset/request",
+                                "/api/v1/auth/password-reset/verify",
+                                "/api/v1/auth/password-reset/confirm"
                         ).permitAll()
                         // ADR-0026 Phase 2：内部凭据接口仅限 AI 服务（Bearer token → ROLE_AI_SERVICE）。
                         // 必须在通配 /api/v1/** 规则之前；普通会话用户（SESSION_AUTHENTICATED）→ 403。

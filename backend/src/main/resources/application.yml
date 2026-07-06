@@ -147,6 +147,20 @@ login:
     window-seconds: ${LOGIN_THROTTLE_WINDOW_SECONDS:300}
     lock-seconds: ${LOGIN_THROTTLE_LOCK_SECONDS:900}
 
+# 密码重置(UX-07 wire-password-management)：零 schema，全 Redis TTL 状态。
+password-reset:
+  # 验证码 challenge 存活时长。
+  challenge-ttl-seconds: ${PASSWORD_RESET_CHALLENGE_TTL_SECONDS:300}
+  # resetToken(verify 成功后签发)存活时长，单次性(confirm 用后即删)。
+  token-ttl-seconds: ${PASSWORD_RESET_TOKEN_TTL_SECONDS:600}
+  # 单个 challenge 允许的验证码尝试次数上限，超过即锁定该 challenge。
+  max-verify-attempts: ${PASSWORD_RESET_MAX_VERIFY_ATTEMPTS:5}
+  # request 端点限流(按 SHA-256(loginId)，存在/不存在账号同样受限，防枚举)。
+  throttle:
+    max-attempts: ${PASSWORD_RESET_THROTTLE_MAX_ATTEMPTS:5}
+    window-seconds: ${PASSWORD_RESET_THROTTLE_WINDOW_SECONDS:300}
+    lock-seconds: ${PASSWORD_RESET_THROTTLE_LOCK_SECONDS:900}
+
 # ADR-0026 Phase 2：AI 服务调用内部凭据接口的共享 Bearer token（仅 /api/v1/internal/**）。
 internal:
   ai:

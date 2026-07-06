@@ -11,6 +11,7 @@ import com.ai_kids_care.v1.security.audit.AuditEvent;
 import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.service.AuthService;
+import com.ai_kids_care.v1.service.PasswordManagementService;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
 import com.ai_kids_care.v1.vo.*;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,6 +44,7 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordManagementService passwordManagementService;
     private final EffectiveAuthorizationContextService authorizationContextService;
     private final SecurityContextRepository securityContextRepository;
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
@@ -215,6 +217,36 @@ public class AuthController {
     public ResponseEntity<AuthRegisterVO> registerFieldAvailability(@RequestParam(value = "field") String field,
                                                                     @RequestParam(value = "value") String value) {
         return ResponseEntity.ok(authService.checkRegisterFieldAvailability(field, value));
+    }
+
+    // UX-07 wire-password-management ─────────────────────────────────────────
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        Long userId = EffectiveAuthorizationContextHolder.require().userId();
+        passwordManagementService.changePassword(
+                userId, request.getCurrentPassword(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<VerificationCodeCreateVO> requestPasswordReset(
+            @Valid @RequestBody PasswordResetRequestDTO request) {
+        return ResponseEntity.ok(passwordManagementService.requestReset(request.getLoginId()));
+    }
+
+    @PostMapping("/password-reset/verify")
+    public ResponseEntity<PasswordResetVerifyVO> verifyPasswordReset(
+            @Valid @RequestBody PasswordResetVerifyDTO request) {
+        return ResponseEntity.ok(
+                passwordManagementService.verifyReset(request.getChallengeId(), request.getCode()));
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Void> confirmPasswordReset(
+            @Valid @RequestBody PasswordResetConfirmDTO request) {
+        passwordManagementService.confirmReset(request.getResetToken(), request.getNewPassword());
+        return ResponseEntity.ok().build();
     }
 
     @ExceptionHandler(ResponseStatusException.class)

@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByLoginIdOrEmailOrPhone(String loginId, String email, String phone);
 
+    // UX-07 wire-password-management: password-reset/request looks up by loginId only (not
+    // email/phone) to minimize the enumeration surface (see api-contract.md).
+    User findByLoginId(String loginId);
+
     boolean existsByLoginIdOrEmailOrPhone(String loginId, String email, String phone);
 
     boolean existsByLoginId(String loginId);
