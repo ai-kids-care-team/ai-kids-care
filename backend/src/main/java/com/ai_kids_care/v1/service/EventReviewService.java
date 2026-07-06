@@ -100,12 +100,4 @@ public class EventReviewService {
                 .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
         return mapper.toVO(review);
     }
-
-    // Internal use (step ③ guardian-notify); not published. Resolution of the latest review.
-    @PreAuthorize("denyAll()")
-    @Transactional(readOnly = true)
-    public EventReviewVO getLatestReview(Long eventId) {
-        return repository.findTopByDetectionEvents_IdOrderByIdDesc(eventId).map(mapper::toVO)
-                .orElseThrow(() -> new EntityNotFoundException("EventReview not found"));
-    }
 }
