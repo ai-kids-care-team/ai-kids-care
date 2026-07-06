@@ -48,8 +48,10 @@ export function CctvCameraGrid({
 
   if (categoryFilter !== 'all' && filteredCameras.length === 0) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-4 text-center text-sm text-gray-500">
-        이 구역에 해당하는 카메라가 없습니다.
+      <div className="flex flex-col gap-4">
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-4 text-center text-sm text-gray-500">
+          이 구역에 해당하는 카메라가 없습니다.
+        </div>
       </div>
     );
   }
