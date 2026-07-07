@@ -87,10 +87,10 @@ class EventEvidenceListApiTest extends BaseIntegrationTest {
                 RETURNING event_id
                 """, Long.class, kindergartenId, cameraId, roomId, sessionId, "evidlist-empty-" + System.nanoTime());
 
-        seedTenantUser(ADMIN_LOGIN, "evidlist-admin@test.local", "010-0000-6801", "KINDERGARTEN_ADMIN", kindergartenId);
-        seedTenantUser(TEACHER_LOGIN, "evidlist-teacher@test.local", "010-0000-6802", "TEACHER", kindergartenId);
-        seedTenantUser(GUARDIAN_LOGIN, "evidlist-guardian@test.local", "010-0000-6803", "GUARDIAN", kindergartenId);
-        seedTenantUser(FOREIGN_ADMIN_LOGIN, "evidlist-foreign@test.local", "010-0000-6804", "KINDERGARTEN_ADMIN", foreignKindergartenId);
+        seedTenantUser(ADMIN_LOGIN, "evidlist-admin@test.local", "010-0000-7101", "KINDERGARTEN_ADMIN", kindergartenId);
+        seedTenantUser(TEACHER_LOGIN, "evidlist-teacher@test.local", "010-0000-7102", "TEACHER", kindergartenId);
+        seedTenantUser(GUARDIAN_LOGIN, "evidlist-guardian@test.local", "010-0000-7103", "GUARDIAN", kindergartenId);
+        seedTenantUser(FOREIGN_ADMIN_LOGIN, "evidlist-foreign@test.local", "010-0000-7104", "KINDERGARTEN_ADMIN", foreignKindergartenId);
 
         // Default: every storage_uri is "available" unless a test overrides it — the seeded evidence
         // row's storage_uri is s3://ai-kids-care/evidence/seed-event-001.jpg (scheme-resolvable).

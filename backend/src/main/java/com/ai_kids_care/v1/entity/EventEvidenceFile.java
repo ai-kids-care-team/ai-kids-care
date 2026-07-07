@@ -2,11 +2,13 @@ package com.ai_kids_care.v1.entity;
 
 import com.ai_kids_care.v1.type.EvidenceFileTypeEnum;
 import com.ai_kids_care.v1.type.MimeTypeEnum;
+import com.ai_kids_care.v1.type.MimeTypeEnumJavaType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JavaType;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -43,6 +45,7 @@ public class EventEvidenceFile {
 
     @NotNull
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @JavaType(MimeTypeEnumJavaType.class)
     @Column(name = "mime_type", columnDefinition = "mime_type_enum")
     private MimeTypeEnum mimeType;
 
