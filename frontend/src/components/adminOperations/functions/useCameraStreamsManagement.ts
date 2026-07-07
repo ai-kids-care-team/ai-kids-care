@@ -1,7 +1,5 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import {
   createCameraStream,
   getCameraStreamsPage,
@@ -12,7 +10,7 @@ import {
   type CameraStreamVO,
 } from '@/services/apis/cctv.api';
 import type { CctvCameraVO } from '@/types/cctv.vo';
-import { getApiErrorMessage } from '@/components/letters/api-error-message';
+import { useCrudResource } from './useCrudResource';
 
 const PAGE_SIZE = 20;
 
@@ -26,86 +24,53 @@ const PAGE_SIZE = 20;
  * `OperationsManagementPage`가 이미 `isAuthenticated && role===KINDERGARTEN_ADMIN`로 게이트
  * 하므로 이 훅에서 별도 세션 가드는 두지 않는다(`useClassesManagement`/`useRoomsManagement`와
  * 동일한 패턴). create/update 바디에는 애초에 `kindergartenId` 필드 자체가 없다.
+ *
+ * refactor-cross-cutting-debt (QLT-01 / D3): thin wrapper over the generic `useCrudResource` —
+ * outward return shape is unchanged from before the refactor, so consuming components
+ * (`CameraStreamsSection`) need zero edits. This resource has no keyword search and no delete
+ * action, and its load also fetches the sibling camera catalog (`extra`) in parallel — the
+ * generic hook's `extra` escape hatch carries that through, renamed to `cameras` below.
  */
 export function useCameraStreamsManagement() {
-  const [items, setItems] = useState<CameraStreamVO[]>([]);
-  const [cameras, setCameras] = useState<CctvCameraVO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [streamsPage, camerasPage] = await Promise.all([
-        getCameraStreamsPage(page, PAGE_SIZE),
-        getCctvCamerasPage(0, 200),
-      ]);
-      setItems(streamsPage.content ?? []);
-      setTotalPages(streamsPage.totalPages ?? 1);
-      setCameras(camerasPage.content ?? []);
-    } catch (e) {
-      console.warn('카메라 스트림 목록 조회 실패:', e);
-      setError(getApiErrorMessage(e, '카메라 스트림 목록을 불러오지 못했습니다.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const handleCreate = useCallback(
-    async (payload: CameraStreamCreatePayload) => {
-      setSubmitting(true);
-      try {
-        await createCameraStream(payload);
-        toast.success('카메라 스트림을 추가했습니다.');
-        setPage(0);
-        await load();
-        return true;
-      } catch (e) {
-        toast.error(getApiErrorMessage(e, '카메라 스트림 추가에 실패했습니다.'));
-        return false;
-      } finally {
-        setSubmitting(false);
-      }
+  const resource = useCrudResource<CameraStreamVO, CameraStreamCreatePayload, CameraStreamUpdatePayload, CctvCameraVO[]>(
+    {
+      list: async ({ page, size }) => {
+        const [streamsPage, camerasPage] = await Promise.all([
+          getCameraStreamsPage(page, size),
+          getCctvCamerasPage(0, 200),
+        ]);
+        return {
+          content: streamsPage.content ?? [],
+          totalPages: streamsPage.totalPages ?? 1,
+          extra: camerasPage.content ?? [],
+        };
+      },
+      create: createCameraStream,
+      update: updateCameraStream,
+      pageSize: PAGE_SIZE,
+      hasKeyword: false,
+      hasDelete: false,
+      labels: {
+        loadErrorLog: '카메라 스트림 목록 조회 실패:',
+        loadErrorToast: '카메라 스트림 목록을 불러오지 못했습니다.',
+        createSuccess: '카메라 스트림을 추가했습니다.',
+        createErrorToast: '카메라 스트림 추가에 실패했습니다.',
+        updateSuccess: '카메라 스트림 정보를 수정했습니다.',
+        updateErrorToast: '카메라 스트림 수정에 실패했습니다.',
+      },
     },
-    [load],
-  );
-
-  const handleUpdate = useCallback(
-    async (id: number, payload: CameraStreamUpdatePayload) => {
-      setSubmitting(true);
-      try {
-        await updateCameraStream(id, payload);
-        toast.success('카메라 스트림 정보를 수정했습니다.');
-        await load();
-        return true;
-      } catch (e) {
-        toast.error(getApiErrorMessage(e, '카메라 스트림 수정에 실패했습니다.'));
-        return false;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [load],
   );
 
   return {
-    items,
-    cameras,
-    loading,
-    error,
-    page,
-    totalPages,
-    setPage,
-    submitting,
-    handleCreate,
-    handleUpdate,
+    items: resource.items,
+    cameras: resource.extra ?? [],
+    loading: resource.loading,
+    error: resource.error,
+    page: resource.page,
+    totalPages: resource.totalPages,
+    setPage: resource.setPage,
+    submitting: resource.submitting,
+    handleCreate: resource.handleCreate,
+    handleUpdate: resource.handleUpdate,
   };
 }
