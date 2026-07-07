@@ -22,6 +22,10 @@ export type NotificationReadVO = {
 /**
  * 미읽음(unread) 기준: `readAt == null`. 배송 status 는 더 이상 미읽음 판정에 관여하지 않는다
  * (wire-notification-read-state D1 — 배송 상태와 열람 상태는 정교한 별도 축).
+ *
+ * 느슨한 동치(`== null`)는 의도적이며 load-bearing 이다: 백엔드가 미읽음 행의 `readAt`
+ * 을 JSON 에서 생략하므로 프론트에는 `undefined` 로 도착한다. `=== null` 로 바꾸면 모든
+ * 미읽음 알림이 '읽음'으로 오판정된다(배지 미점등·카드 강조 소실). 그대로 둘 것.
  */
 export function isNotificationUnread(n: NotificationReadVO): boolean {
   return n.readAt == null;

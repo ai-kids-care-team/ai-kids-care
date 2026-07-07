@@ -4,6 +4,7 @@ import type { NotificationReadVO } from '@/services/apis/notifications.api';
 
 const getNotificationsMock = vi.fn();
 const markReadMock = vi.fn();
+const getUnreadCountMock = vi.fn();
 const dispatchMock = vi.fn();
 
 vi.mock('@/services/apis/notifications.api', async () => {
@@ -14,6 +15,7 @@ vi.mock('@/services/apis/notifications.api', async () => {
     ...actual,
     getNotifications: (...args: unknown[]) => getNotificationsMock(...args),
     markRead: (...args: unknown[]) => markReadMock(...args),
+    getUnreadCount: (...args: unknown[]) => getUnreadCountMock(...args),
   };
 });
 
@@ -46,8 +48,10 @@ describe('useNotifications markAsRead', () => {
   beforeEach(() => {
     getNotificationsMock.mockReset();
     markReadMock.mockReset();
+    getUnreadCountMock.mockReset();
     dispatchMock.mockReset();
     markReadMock.mockResolvedValue(undefined);
+    getUnreadCountMock.mockResolvedValue(0);
   });
 
   it('optimistically sets readAt, dispatches one decrement, and calls markRead for an unread notification', async () => {
@@ -80,6 +84,30 @@ describe('useNotifications markAsRead', () => {
 
     expect(dispatchMock).not.toHaveBeenCalled();
     expect(markReadMock).not.toHaveBeenCalled();
+  });
+
+  it('rolls back optimistic readAt and re-syncs the badge from the server when markRead fails', async () => {
+    // ADMIN 이 본인 소유가 아닌 알림을 열면 PATCH 가 숨김 404 → 실패한다.
+    // 롤백이 없으면 배지가 실제보다 낮게 표시된 채 서버와 어긋난다(code-review finding).
+    getNotificationsMock.mockResolvedValue([makeNotification({ notificationId: 7, readAt: null })]);
+    markReadMock.mockRejectedValue(new Error('404'));
+    getUnreadCountMock.mockResolvedValue(3); // 서버 실제 미읽음 수
+    const { setUnreadNotificationCount } = await import('@/store/slices/userSlice');
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.markAsRead(7);
+    });
+
+    // 낙관적 readAt 원복
+    await waitFor(() => expect(result.current.notifications[0].readAt).toBeNull());
+    expect(result.current.unreadCount).toBe(1);
+    // 서버 값으로 배지 재동기화
+    await waitFor(() =>
+      expect(dispatchMock).toHaveBeenCalledWith(setUnreadNotificationCount(3)),
+    );
+    expect(getUnreadCountMock).toHaveBeenCalled();
   });
 
   it('is a no-op for an unknown id', async () => {
