@@ -13,6 +13,11 @@ import {
   type EventStatusEnum,
   type ReviewResultStatus,
 } from '@/services/apis/eventReviews.api';
+import {
+  getEventEvidence,
+  resolveEvidenceContentUrl,
+  type EventEvidenceFileVO,
+} from '@/services/apis/eventEvidenceFiles.api';
 import { useDetectionEventStream, type StreamStatus } from './useDetectionEventStream';
 import { severityClasses, severityLevel } from '@/lib/severity';
 
@@ -74,6 +79,12 @@ export function DetectionEventsDashboard() {
   const [comments, setComments] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState<Set<number>>(new Set());
   const [reviewErrors, setReviewErrors] = useState<Record<number, string>>({});
+
+  // 증거(D-STORE): 카드 확장 시에만 지연 조회. eventId -> 목록/로딩중/오류.
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [evidenceByEvent, setEvidenceByEvent] = useState<Record<number, EventEvidenceFileVO[]>>({});
+  const [evidenceLoading, setEvidenceLoading] = useState<Set<number>>(new Set());
+  const [evidenceErrors, setEvidenceErrors] = useState<Record<number, string>>({});
 
   // collected highlight timers, cleared on unmount to avoid dangling timeouts
   const timersRef = useRef<number[]>([]);
@@ -158,6 +169,48 @@ export function DetectionEventsDashboard() {
     [comments],
   );
 
+  // 카드 확장/축소 토글. 처음 확장할 때만 증거 목록을 지연 조회한다(리스트 화면 일괄 조회 금지).
+  // 모든 setState 는 이 onClick 비동기 콜백 안에서만 호출된다(set-state-in-effect 회피).
+  const handleToggleEvidence = useCallback(
+    async (eventId: number) => {
+      const willExpand = !expanded.has(eventId);
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        if (next.has(eventId)) {
+          next.delete(eventId);
+        } else {
+          next.add(eventId);
+        }
+        return next;
+      });
+
+      if (!willExpand || eventId in evidenceByEvent || evidenceLoading.has(eventId)) {
+        return;
+      }
+
+      setEvidenceLoading((prev) => new Set(prev).add(eventId));
+      setEvidenceErrors((prev) => {
+        if (!(eventId in prev)) return prev;
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+      try {
+        const list = await getEventEvidence(eventId);
+        setEvidenceByEvent((prev) => ({ ...prev, [eventId]: list }));
+      } catch {
+        setEvidenceErrors((prev) => ({ ...prev, [eventId]: '증거를 불러오지 못했습니다.' }));
+      } finally {
+        setEvidenceLoading((prev) => {
+          const next = new Set(prev);
+          next.delete(eventId);
+          return next;
+        });
+      }
+    },
+    [expanded, evidenceByEvent, evidenceLoading],
+  );
+
   // reconnect the SSE stream when the active kindergarten changes
   const streamStatus = useDetectionEventStream(onLive, { reconnectKey: kindergartenId });
   const live = streamLabel(streamStatus);
@@ -227,6 +280,58 @@ export function DetectionEventsDashboard() {
                   <dd className="inline text-slate-700">{e.roomName ?? e.roomId ?? '-'}</dd>
                 </div>
               </dl>
+
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => handleToggleEvidence(e.eventId)}
+                  className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                >
+                  {expanded.has(e.eventId) ? '증거 접기' : '증거 보기'}
+                </button>
+
+                {expanded.has(e.eventId) && (
+                  <div className="mt-2">
+                    {evidenceLoading.has(e.eventId) && (
+                      <p className="text-xs text-slate-500">증거를 불러오는 중…</p>
+                    )}
+                    {evidenceErrors[e.eventId] && (
+                      <p className="text-xs text-red-600">{evidenceErrors[e.eventId]}</p>
+                    )}
+                    {!evidenceLoading.has(e.eventId) &&
+                      !evidenceErrors[e.eventId] &&
+                      evidenceByEvent[e.eventId]?.length === 0 && (
+                        <p className="text-xs text-slate-400">증거가 없습니다.</p>
+                      )}
+                    {!evidenceLoading.has(e.eventId) && (evidenceByEvent[e.eventId]?.length ?? 0) > 0 && (
+                      <ul className="space-y-2">
+                        {evidenceByEvent[e.eventId]!.map((ev) => (
+                          <li key={ev.evidenceId}>
+                            {ev.available && ev.contentPath && ev.type === 'IMAGE' && (
+                              // eslint-disable-next-line @next/next/no-img-element -- 정적 export, 백엔드 스트리밍 반대라 next/image 최적화 대상 아님
+                              <img
+                                src={resolveEvidenceContentUrl(ev.contentPath)}
+                                alt={`증거 이미지 #${ev.evidenceId}`}
+                                className="max-h-64 w-full rounded-md object-contain"
+                              />
+                            )}
+                            {ev.available && ev.contentPath && ev.type === 'VIDEO' && (
+                              <video
+                                controls
+                                src={resolveEvidenceContentUrl(ev.contentPath)}
+                                className="max-h-64 w-full rounded-md"
+                              />
+                            )}
+                            {!ev.available && (
+                              <p className="text-xs text-slate-400">증거를 불러올 수 없습니다</p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {canReview && !TERMINAL_STATUSES.has(e.status ?? '') && (
                 <div className="mt-3 border-t border-slate-100 pt-3">
