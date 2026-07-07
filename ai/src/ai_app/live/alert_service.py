@@ -182,6 +182,100 @@ def update_persistence_state(
     }
 
 
+def submit_alarm_event(
+        session_id,
+        window_frames: list,
+        output_dir: Path,
+        stream_id: str,
+        target_label: str,
+        target_prob: float,
+        alarm_onset: datetime,
+        window_end: datetime,
+        java_backend_url: str,
+        ai_service_token: str,
+) -> None:
+    """Best-effort evidence capture + backend event submission for an ``alarm_on`` transition.
+
+    QLT-04: extracted verbatim from ``run_stream_service``'s ``alarm_on`` block so the
+    evidence-capture-failure downgrade path (capture fails -> ``submit_event`` still runs with
+    ``evidence=None`` rather than dropping the event) can be unit-tested directly, without
+    running the full PyAV/torch decode loop (design D1).
+
+    Pure extraction — the control flow, exception handling, and log messages are byte-for-byte
+    unchanged from the inline block it replaces.
+
+    Args:
+        session_id: backend detection-session id, or ``None`` if no session was created this
+            run (in which case the event is skipped, not queued).
+        window_frames: the current alarm window's RGB frame slice, handed to ``save_and_hash``.
+        output_dir: the stream service's output directory; evidence clips are written under
+            ``output_dir / "evidence"``.
+        stream_id: camera stream id (dedup-key prefix).
+        target_label: the model's target label (e.g. ``"assault"``).
+        target_prob: target-class softmax probability driving this alarm (0..1).
+        alarm_onset: wall-clock instant the alarm window began (``state.alarm_onset_wall``).
+        window_end: wall-clock instant the alarm window ended (the transition instant).
+        java_backend_url: backend base URL for the ingest endpoints.
+        ai_service_token: ``AI_SERVICE_TOKEN`` bearer credential for the ingest endpoints.
+    """
+    if session_id is not None:
+        # Best-effort evidence capture (design D1): encode a short clip
+        # from the current alarm window's frames and hash it. If capture
+        # fails for any reason we submit the event WITHOUT evidence rather
+        # than drop it (downgrade, never lose the event).
+        evidence_descriptor = None
+        try:
+            evidence_dir = output_dir / "evidence"
+            clip_uri, clip_hash = save_and_hash(window_frames, str(evidence_dir))
+            evidence_descriptor = {
+                "uri": clip_uri,
+                "hash": clip_hash,
+                "type": "VIDEO",
+                "mimeType": "video/mp4",
+            }
+        except EvidenceCaptureError as capture_error:
+            print(
+                "[WARN] evidence capture failed; submitting event without it: "
+                f"{safe_log_text(str(capture_error))}"
+            )
+        try:
+            # D4: dedupKey + startTime from the captured onset, endTime
+            # from the transition instant. severity is derived from
+            # target_prob (the target-class softmax probability driving
+            # this alarm), not pred_conf. event_type/severity/dedupKey are
+            # built by the pure helper (unit-tested in isolation).
+            event_params = build_alarm_event_params(
+                stream_id=stream_id,
+                target_label=target_label,
+                target_prob=target_prob,
+                alarm_onset=alarm_onset,
+                window_end=window_end,
+            )
+            result = backend_ingest.submit_event(
+                session_id,
+                event_params["event_type"],
+                event_params["severity"],
+                event_params["confidence"],
+                event_params["start_time"],
+                event_params["end_time"],
+                event_params["dedup_key"],
+                java_backend_url,
+                ai_service_token,
+                evidence=evidence_descriptor,
+            )
+            print(
+                "[INFO] Detection event ingested: "
+                f"eventId={result.get('eventId')}, duplicate={result.get('duplicate')}"
+            )
+        except Exception as ingest_error:
+            print(
+                "[WARN] submit_event failed: "
+                f"{safe_log_text(type(ingest_error).__name__ + ': ' + str(ingest_error))}"
+            )
+    else:
+        print("[WARN] No detection session; skipping event ingest.")
+
+
 def run_stream_service(
         stream_url: str,
         model_dir: Path,
@@ -429,62 +523,18 @@ def run_stream_service(
 
                             now_wall = time.monotonic()
                             if (now_wall - last_notification_wall) >= float(notification_cooldown_sec):
-                                if session_id is not None:
-                                    # Best-effort evidence capture (design D1): encode a short clip
-                                    # from the current alarm window's frames and hash it. If capture
-                                    # fails for any reason we submit the event WITHOUT evidence rather
-                                    # than drop it (downgrade, never lose the event).
-                                    evidence_descriptor = None
-                                    try:
-                                        evidence_dir = output_dir / "evidence"
-                                        clip_uri, clip_hash = save_and_hash(window_frames, str(evidence_dir))
-                                        evidence_descriptor = {
-                                            "uri": clip_uri,
-                                            "hash": clip_hash,
-                                            "type": "VIDEO",
-                                            "mimeType": "video/mp4",
-                                        }
-                                    except EvidenceCaptureError as capture_error:
-                                        print(
-                                            "[WARN] evidence capture failed; submitting event without it: "
-                                            f"{safe_log_text(str(capture_error))}"
-                                        )
-                                    try:
-                                        # D4: dedupKey + startTime from the captured onset, endTime
-                                        # from the transition instant. severity is derived from
-                                        # target_prob (the target-class softmax probability driving
-                                        # this alarm), not pred_conf. event_type/severity/dedupKey are
-                                        # built by the pure helper (unit-tested in isolation).
-                                        event_params = build_alarm_event_params(
-                                            stream_id=stream_id,
-                                            target_label=target_label,
-                                            target_prob=target_prob,
-                                            alarm_onset=state.alarm_onset_wall,
-                                            window_end=transition_wall,
-                                        )
-                                        result = backend_ingest.submit_event(
-                                            session_id,
-                                            event_params["event_type"],
-                                            event_params["severity"],
-                                            event_params["confidence"],
-                                            event_params["start_time"],
-                                            event_params["end_time"],
-                                            event_params["dedup_key"],
-                                            java_backend_url,
-                                            ai_service_token,
-                                            evidence=evidence_descriptor,
-                                        )
-                                        print(
-                                            "[INFO] Detection event ingested: "
-                                            f"eventId={result.get('eventId')}, duplicate={result.get('duplicate')}"
-                                        )
-                                    except Exception as ingest_error:
-                                        print(
-                                            "[WARN] submit_event failed: "
-                                            f"{safe_log_text(type(ingest_error).__name__ + ': ' + str(ingest_error))}"
-                                        )
-                                else:
-                                    print("[WARN] No detection session; skipping event ingest.")
+                                submit_alarm_event(
+                                    session_id,
+                                    window_frames,
+                                    output_dir,
+                                    stream_id,
+                                    target_label,
+                                    target_prob,
+                                    state.alarm_onset_wall,
+                                    transition_wall,
+                                    java_backend_url,
+                                    ai_service_token,
+                                )
 
                                 last_notification_wall = now_wall
                             else:

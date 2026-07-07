@@ -118,31 +118,121 @@ def test_run_stream_service_runs_without_notification_title(tmp_path, monkeypatc
 
 
 # ---------------------------------------------------------------------------
-# evidence capture downgrade (design D1) — verified at the unit boundary
+# evidence capture downgrade (design D1) — verified against the real production code
+# (QLT-04/QLT-05): these tests call ``_impl.submit_alarm_event`` directly — the function
+# extracted from run_stream_service's alarm_on block — rather than reimplementing its
+# try/except logic inline. A regression in the real downgrade path turns these red.
 # ---------------------------------------------------------------------------
 
-def test_evidence_capture_failure_submits_without_evidence():
+def test_evidence_capture_failure_submits_without_evidence(tmp_path, monkeypatch):
     """When save_and_hash raises EvidenceCaptureError, submit_event still runs with evidence=None.
 
-    Replicates the alarm_on best-effort block: capture failure must downgrade, not drop.
+    Uses ``_impl.EvidenceCaptureError`` (the class object already bound in the alert_service
+    module's own globals) rather than a fresh ``from ai_app.utils.evidence_capture import ...``
+    here — some other test module purges ``ai_app.*`` from ``sys.modules`` mid-suite
+    (test_supervisor_lazy_import.py), which would otherwise re-import a distinct class object
+    that fails an identity-based ``except`` match inside the already-loaded ``_impl`` module.
     """
-    from ai_app.utils.evidence_capture import EvidenceCaptureError
+    submitted = {}
 
+    def fake_submit_event(*args, **kwargs):
+        submitted["args"] = args
+        submitted["evidence"] = kwargs.get("evidence", "MISSING")
+        return {"eventId": 1, "duplicate": False}
+
+    def failing_capture(frames, out_dir, **kwargs):
+        raise _impl.EvidenceCaptureError("encoder unavailable")
+
+    monkeypatch.setattr(_impl.backend_ingest, "submit_event", fake_submit_event)
+    monkeypatch.setattr(_impl, "save_and_hash", failing_capture)
+
+    from datetime import datetime, timezone
+
+    alarm_onset = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    window_end = datetime(2026, 1, 1, 12, 0, 5, tzinfo=timezone.utc)
+
+    _impl.submit_alarm_event(
+        1,                      # session_id
+        ["frame"],              # window_frames
+        tmp_path,               # output_dir
+        "cam-1",                # stream_id
+        "assault",              # target_label
+        0.75,                   # target_prob
+        alarm_onset,
+        window_end,
+        "http://backend",       # java_backend_url
+        "test-token",           # ai_service_token
+    )
+
+    assert submitted["evidence"] is None
+
+
+def test_evidence_capture_success_submits_with_evidence(tmp_path, monkeypatch):
+    """When save_and_hash succeeds, submit_event is called with the evidence descriptor."""
     submitted = {}
 
     def fake_submit_event(*args, **kwargs):
         submitted["evidence"] = kwargs.get("evidence", "MISSING")
-        return {"eventId": 1, "duplicate": False}
+        return {"eventId": 2, "duplicate": False}
 
-    def failing_capture(frames, out_dir):
-        raise EvidenceCaptureError("encoder unavailable")
+    def fake_capture(frames, out_dir, **kwargs):
+        return "file:///tmp/ev/evidence_1.mp4", "deadbeef"
 
-    # mirror the alarm_on block logic
-    evidence_descriptor = None
-    try:
-        failing_capture(["frame"], "/tmp/ev")
-    except EvidenceCaptureError:
-        evidence_descriptor = None
-    fake_submit_event(evidence=evidence_descriptor)
+    monkeypatch.setattr(_impl.backend_ingest, "submit_event", fake_submit_event)
+    monkeypatch.setattr(_impl, "save_and_hash", fake_capture)
 
-    assert submitted["evidence"] is None
+    from datetime import datetime, timezone
+
+    alarm_onset = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    window_end = datetime(2026, 1, 1, 12, 0, 5, tzinfo=timezone.utc)
+
+    _impl.submit_alarm_event(
+        1,
+        ["frame"],
+        tmp_path,
+        "cam-1",
+        "assault",
+        0.75,
+        alarm_onset,
+        window_end,
+        "http://backend",
+        "test-token",
+    )
+
+    assert submitted["evidence"] == {
+        "uri": "file:///tmp/ev/evidence_1.mp4",
+        "hash": "deadbeef",
+        "type": "VIDEO",
+        "mimeType": "video/mp4",
+    }
+
+
+def test_no_session_skips_submit_event(monkeypatch):
+    """When session_id is None, submit_event is never called (best-effort skip, not a crash)."""
+    called = {"submit": False}
+
+    def fake_submit_event(*args, **kwargs):
+        called["submit"] = True
+        return {"eventId": 3, "duplicate": False}
+
+    monkeypatch.setattr(_impl.backend_ingest, "submit_event", fake_submit_event)
+
+    from datetime import datetime, timezone
+
+    alarm_onset = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    window_end = datetime(2026, 1, 1, 12, 0, 5, tzinfo=timezone.utc)
+
+    _impl.submit_alarm_event(
+        None,
+        ["frame"],
+        None,
+        "cam-1",
+        "assault",
+        0.75,
+        alarm_onset,
+        window_end,
+        "http://backend",
+        "test-token",
+    )
+
+    assert called["submit"] is False
