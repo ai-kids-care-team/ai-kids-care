@@ -58,6 +58,30 @@ const KINDERGARTEN_OPERATIONS: MenuItem = {
   path: '/admin/kindergarten/operations',
   sortOrder: 13,
 };
+/**
+ * wire-orphan-management-uis (UX-01): AI 모델 관리 대장 — 기존 `/api/v1/ai_models`
+ * (PLATFORM_METADATA_READ/WRITE) 를 처음으로 프론트에 접선한다. READ 는 PLATFORM_IT_ADMIN +
+ * SUPERADMIN 둘 다 허용되므로(`AuthorizationPolicy`), 두 역할 메뉴에 모두 추가한다 — WRITE
+ * 컨트롤 노출 여부는 `AiModelsManagementPage` 가 role 로 자체 게이트.
+ */
+const AI_MODELS: MenuItem = {
+  key: 'AI_MODELS',
+  label: 'AI 모델 관리',
+  path: '/admin/platform/ai-models',
+  sortOrder: 14,
+};
+/**
+ * wire-orphan-management-uis (UX-02): 관계 그래프 조회 — 기존 `graph.api.ts`/`ChildGraphViewer`
+ * (`GET /api/v1/graph/children/{id}`, `GET /api/v1/graph/teachers/{id}`) 는 이미 구현돼 있었으나
+ * 메뉴 진입점이 없어 raw ID 를 아는 사람만 URL 을 직접 쳐야 도달 가능했다(orphan UI). GUARDIAN 은
+ * 추가하지 않는다(design 범위 — 보호자용 그래프 열람 UX 는 별도 논의).
+ */
+const CHILD_GRAPH: MenuItem = {
+  key: 'CHILD_GRAPH',
+  label: '관계 그래프',
+  path: '/graph',
+  sortOrder: 16,
+};
 
 /**
  * 역할별 메뉴 (02_menu.sql 의 role_type 행과 1:1 대응 + UX-04 승인함 신규 추가).
@@ -69,17 +93,20 @@ const KINDERGARTEN_OPERATIONS: MenuItem = {
  * - KINDERGARTEN_APPROVALS: KINDERGARTEN_ADMIN 전용(신규, UX-04)
  * - PLATFORM_APPROVALS: PLATFORM_IT_ADMIN 전용(신규, UX-04)
  * - KINDERGARTEN_OPERATIONS: KINDERGARTEN_ADMIN 전용(신규, UX-05) — 학급/교실/카메라 스트림 관리
+ * - AI_MODELS: PLATFORM_IT_ADMIN(전체 CRUD) + SUPERADMIN(조회 전용) (신규, wire-orphan-management-uis/UX-01)
+ * - CHILD_GRAPH: KINDERGARTEN_ADMIN, TEACHER (신규, wire-orphan-management-uis/UX-02) — GUARDIAN 제외
  */
 export const MENU_BY_ROLE: Record<MenuRole, MenuItem[]> = {
   ANONYMOUS: [HOME, ANNOUNCEMENTS],
-  PLATFORM_IT_ADMIN: [HOME, PLATFORM_APPROVALS, ANNOUNCEMENTS],
-  SUPERADMIN: [HOME, DETECTION_EVENT, ANNOUNCEMENTS, NOTIFICATIONS],
+  PLATFORM_IT_ADMIN: [HOME, PLATFORM_APPROVALS, AI_MODELS, ANNOUNCEMENTS],
+  SUPERADMIN: [HOME, DETECTION_EVENT, AI_MODELS, ANNOUNCEMENTS, NOTIFICATIONS],
   KINDERGARTEN_ADMIN: [
     HOME,
     CCTV_CAMERAS,
     DETECTION_EVENT,
     KINDERGARTEN_APPROVALS,
     KINDERGARTEN_OPERATIONS,
+    CHILD_GRAPH,
     APPRECIATION_LETTER,
     ANNOUNCEMENTS,
     NOTIFICATIONS,
@@ -87,7 +114,7 @@ export const MENU_BY_ROLE: Record<MenuRole, MenuItem[]> = {
   // UX-03: 백엔드가 TEACHER 의 camera/stream/detection 조회를 전부 거부하므로
   // (CctvDashboardPage.tsx canViewLiveStreams === 'KINDERGARTEN_ADMIN' 하드 게이트),
   // CCTV_CAMERAS 진입점을 노출하면 교사가 매번 빈 "접근 권한 없음" 패널에서 막힌다 — 저비용 완화로 메뉴에서 제거.
-  TEACHER: [HOME, DETECTION_EVENT, APPRECIATION_LETTER, ANNOUNCEMENTS, NOTIFICATIONS],
+  TEACHER: [HOME, DETECTION_EVENT, CHILD_GRAPH, APPRECIATION_LETTER, ANNOUNCEMENTS, NOTIFICATIONS],
   GUARDIAN: [HOME, DETECTION_EVENT, APPRECIATION_LETTER, ANNOUNCEMENTS, NOTIFICATIONS],
 };
 
