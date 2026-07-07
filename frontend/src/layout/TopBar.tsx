@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 // FSD 구조에 맞춘 절대 경로 Import
-import { useAppDispatch } from '@/store/hook';
+import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { logout } from '@/store/slices/userSlice';
 import { Button } from '@/components/shared/ui/button';
 import { Badge } from '@/components/shared/ui/badge';
@@ -17,6 +17,7 @@ import { LoginModal } from '@/components/home/LoginModal';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useLogoutMutation } from '@/services/apis/auth.api';
 import { clearCsrf } from '@/services/csrf';
+import { UnreadNotificationBadge } from '@/layout/UnreadNotificationBadge';
 
 interface TopBarProps {
   currentRole: UserRole;
@@ -29,6 +30,7 @@ interface TopBarProps {
 export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopBarProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const unreadNotificationCount = useAppSelector((state) => state.user.unreadNotificationCount);
   const [logoutSession] = useLogoutMutation();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -151,8 +153,15 @@ export function TopBar({ currentRole, username, menuRoleType, hasSession }: TopB
           <div className="flex items-center justify-start text-base">
             <div className="flex items-center gap-8">
               {renderedMenus.map((menu) => (
-                <Link key={menu.key} href={menu.path} className="font-medium transition-colors hover:text-green-300">
+                <Link
+                  key={menu.key}
+                  href={menu.path}
+                  className="relative font-medium transition-colors hover:text-green-300"
+                >
                   {menu.label}
+                  {menu.key === 'NOTIFICATIONS' && (
+                    <UnreadNotificationBadge count={unreadNotificationCount} />
+                  )}
                 </Link>
               ))}
             </div>

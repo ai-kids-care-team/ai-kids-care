@@ -8,6 +8,8 @@ type NotificationsListFormProps = {
   unreadCount: number;
   loading: boolean;
   error: string;
+  /** 알림 1건 열람(카드 클릭) — wire-notification-read-state D5: 읽음 처리 트리거 */
+  onOpenNotification: (id: number) => void;
 };
 
 function formatDate(value: string): string {
@@ -25,6 +27,7 @@ export function NotificationsListForm({
   unreadCount,
   loading,
   error,
+  onOpenNotification,
 }: NotificationsListFormProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -63,11 +66,23 @@ export function NotificationsListForm({
             ) : (
               notifications.map((n) => {
                 const unread = isNotificationUnread(n);
+                // wire-notification-read-state D1/5.4: 전송 실패는 미읽음(readAt)과 정교(orthogonal)한
+                // 별도 시각 — "전송 실패" 라벨은 unread 의 빨간 점(NEW)과 별개로 항상 status 기준으로 표시.
+                const deliveryFailed = n.status === 'FAILED';
                 return (
                   <div
                     key={n.notificationId}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onOpenNotification(n.notificationId)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onOpenNotification(n.notificationId);
+                      }
+                    }}
                     className={[
-                      'rounded-lg border p-5 transition-all',
+                      'cursor-pointer rounded-lg border p-5 transition-all',
                       unread
                         ? 'border-emerald-300 bg-emerald-50'
                         : 'border-gray-200 bg-white',
@@ -84,18 +99,24 @@ export function NotificationsListForm({
                         <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{n.body}</p>
                         <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
                           <span>{formatDate(n.createdAt)}</span>
-                          <span
-                            className={[
-                              'rounded px-1.5 py-0.5 font-medium',
-                              n.status === 'SENT'
-                                ? 'bg-gray-100 text-gray-500'
-                                : n.status === 'PENDING'
-                                  ? 'bg-yellow-100 text-yellow-700'
-                                  : 'bg-red-100 text-red-600',
-                            ].join(' ')}
-                          >
-                            {n.status}
-                          </span>
+                          {deliveryFailed ? (
+                            <span className="rounded bg-red-100 px-1.5 py-0.5 font-medium text-red-600">
+                              전송 실패
+                            </span>
+                          ) : (
+                            <span
+                              className={[
+                                'rounded px-1.5 py-0.5 font-medium',
+                                n.status === 'SENT'
+                                  ? 'bg-gray-100 text-gray-500'
+                                  : n.status === 'PENDING'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-red-100 text-red-600',
+                              ].join(' ')}
+                            >
+                              {n.status}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
