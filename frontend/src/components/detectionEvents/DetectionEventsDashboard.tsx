@@ -85,6 +85,8 @@ export function DetectionEventsDashboard() {
   const [evidenceByEvent, setEvidenceByEvent] = useState<Record<number, EventEvidenceFileVO[]>>({});
   const [evidenceLoading, setEvidenceLoading] = useState<Set<number>>(new Set());
   const [evidenceErrors, setEvidenceErrors] = useState<Record<number, string>>({});
+  // 증거 미디어(<img>/<video>) 로드 실패(404/5xx 등) 시 !available와 동일한 대체 문구로 전환.
+  const [evidenceLoadFailed, setEvidenceLoadFailed] = useState<Set<number>>(new Set());
 
   // collected highlight timers, cleared on unmount to avoid dangling timeouts
   const timersRef = useRef<number[]>([]);
@@ -211,6 +213,13 @@ export function DetectionEventsDashboard() {
     [expanded, evidenceByEvent, evidenceLoading],
   );
 
+  const handleEvidenceMediaError = useCallback((evidenceId: number) => {
+    setEvidenceLoadFailed((prev) => {
+      if (prev.has(evidenceId)) return prev;
+      return new Set(prev).add(evidenceId);
+    });
+  }, []);
+
   // reconnect the SSE stream when the active kindergarten changes
   const streamStatus = useDetectionEventStream(onLive, { reconnectKey: kindergartenId });
   const live = streamLabel(streamStatus);
@@ -307,22 +316,30 @@ export function DetectionEventsDashboard() {
                       <ul className="space-y-2">
                         {evidenceByEvent[e.eventId]!.map((ev) => (
                           <li key={ev.evidenceId}>
-                            {ev.available && ev.contentPath && ev.type === 'IMAGE' && (
-                              // eslint-disable-next-line @next/next/no-img-element -- 정적 export, 백엔드 스트리밍 반대라 next/image 최적화 대상 아님
-                              <img
-                                src={resolveEvidenceContentUrl(ev.contentPath)}
-                                alt={`증거 이미지 #${ev.evidenceId}`}
-                                className="max-h-64 w-full rounded-md object-contain"
-                              />
-                            )}
-                            {ev.available && ev.contentPath && ev.type === 'VIDEO' && (
-                              <video
-                                controls
-                                src={resolveEvidenceContentUrl(ev.contentPath)}
-                                className="max-h-64 w-full rounded-md"
-                              />
-                            )}
-                            {!ev.available && (
+                            {ev.available &&
+                              ev.contentPath &&
+                              ev.type === 'IMAGE' &&
+                              !evidenceLoadFailed.has(ev.evidenceId) && (
+                                // eslint-disable-next-line @next/next/no-img-element -- 정적 export, 백엔드 스트리밍 반대라 next/image 최적화 대상 아님
+                                <img
+                                  src={resolveEvidenceContentUrl(ev.contentPath)}
+                                  alt={`증거 이미지 #${ev.evidenceId}`}
+                                  className="max-h-64 w-full rounded-md object-contain"
+                                  onError={() => handleEvidenceMediaError(ev.evidenceId)}
+                                />
+                              )}
+                            {ev.available &&
+                              ev.contentPath &&
+                              ev.type === 'VIDEO' &&
+                              !evidenceLoadFailed.has(ev.evidenceId) && (
+                                <video
+                                  controls
+                                  src={resolveEvidenceContentUrl(ev.contentPath)}
+                                  className="max-h-64 w-full rounded-md"
+                                  onError={() => handleEvidenceMediaError(ev.evidenceId)}
+                                />
+                              )}
+                            {(!ev.available || evidenceLoadFailed.has(ev.evidenceId)) && (
                               <p className="text-xs text-slate-400">증거를 불러올 수 없습니다</p>
                             )}
                           </li>
