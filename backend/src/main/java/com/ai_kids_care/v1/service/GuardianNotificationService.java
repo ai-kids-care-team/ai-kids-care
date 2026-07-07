@@ -129,17 +129,13 @@ public class GuardianNotificationService {
             OffsetDateTime deferUntil = null;
             if (resolved) {
                 // UX-08: RESOLVED only — never consulted for ESCALATED (safety-critical pierce).
-                NotificationPreferenceService.NotificationPreferenceSnapshot canonical =
-                        notificationPreferenceService.findCanonical(kindergartenId, userId);
-                if (canonical != null && !canonical.enabled()) {
+                DeferralDecision decision =
+                        resolveDeferralForRecipient(userId, kindergartenId, kindergartenQuietJson, now);
+                if (decision.skip()) {
                     continue; // guardian turned off notifications entirely; RESOLVED is non-urgent → skip
                 }
-                boolean useOwnWindow = canonical != null && canonical.enabled()
-                        && StringUtils.hasText(canonical.quietHoursJson());
-                String effectiveJson = useOwnWindow ? canonical.quietHoursJson() : kindergartenQuietJson;
-                Optional<QuietHoursService.QuietWindow> quietWindow = quietHoursService.parse(effectiveJson);
-                defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
-                deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
+                defer = decision.defer();
+                deferUntil = decision.deferUntil();
             }
 
             User recipient = guardianUsers.get(userId);
@@ -162,6 +158,45 @@ public class GuardianNotificationService {
                             false, null);
                 }
             }
+        }
+    }
+
+    /**
+     * UX-08: resolve the RESOLVED-only per-recipient defer decision — whether to skip this guardian
+     * entirely (they disabled notifications) or, if not skipped, whether their own quiet-hours window
+     * (falling back to the kindergarten-wide default) currently defers the PUSH and until when. Only
+     * ever invoked for RESOLVED (see caller); ESCALATED never consults preferences. Exactly one
+     * {@link NotificationPreferenceService#findCanonical} call per invocation — same per-recipient
+     * query count as before this method was extracted.
+     */
+    private DeferralDecision resolveDeferralForRecipient(Long userId, Long kindergartenId,
+                                                         String kindergartenQuietJson, OffsetDateTime now) {
+        NotificationPreferenceService.NotificationPreferenceSnapshot canonical =
+                notificationPreferenceService.findCanonical(kindergartenId, userId);
+        if (canonical != null && !canonical.enabled()) {
+            return DeferralDecision.skipped();
+        }
+        boolean useOwnWindow = canonical != null && canonical.enabled()
+                && StringUtils.hasText(canonical.quietHoursJson());
+        String effectiveJson = useOwnWindow ? canonical.quietHoursJson() : kindergartenQuietJson;
+        Optional<QuietHoursService.QuietWindow> quietWindow = quietHoursService.parse(effectiveJson);
+        boolean defer = quietWindow.isPresent() && quietHoursService.isWithinQuietHours(quietWindow.get(), now);
+        OffsetDateTime deferUntil = defer ? quietHoursService.nextEndInstant(quietWindow.get(), now) : null;
+        return DeferralDecision.proceed(defer, deferUntil);
+    }
+
+    /**
+     * Result of {@link #resolveDeferralForRecipient}: either {@link #skipped} the guardian entirely
+     * (notifications disabled), or {@link #proceed} with a defer flag and (if deferred) the instant
+     * quiet hours end.
+     */
+    private record DeferralDecision(boolean skip, boolean defer, OffsetDateTime deferUntil) {
+        static DeferralDecision skipped() {
+            return new DeferralDecision(true, false, null);
+        }
+
+        static DeferralDecision proceed(boolean defer, OffsetDateTime deferUntil) {
+            return new DeferralDecision(false, defer, deferUntil);
         }
     }
 
