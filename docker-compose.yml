@@ -88,6 +88,51 @@ services:
     # 进程持续把 PG 增量 upsert 进 Neo4j。unless-stopped 保证崩溃/重启后恢复轮询。
     restart: unless-stopped
 
+  # D-STORE: object storage for detection-event evidence (images/clips). Backend reverse-proxies
+  # content reads (GET /api/v1/event_evidence_files/{id}/content) — MinIO itself is never exposed to
+  # the browser; the 9000/9001 host port mappings below are dev/demo convenience only (see
+  # docker-compose.prod.yml, which resets them, mirroring db/neo4j/redis).
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: ai-kids-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+      TZ: Asia/Seoul
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # One-shot idempotent bucket bootstrap (tasks.md "bucket 幂等初始化"). `mc mb --ignore-existing`
+  # is a no-op on a bucket that already exists, so re-running `docker compose up` never errors here.
+  # `restart: "no"` — this container is meant to exit 0 and stay stopped, not to be a long-lived service.
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: ai-kids-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ai-kids-care}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 \"$$MINIO_ACCESS_KEY\" \"$$MINIO_SECRET_KEY\" &&
+      mc mb --ignore-existing local/\"$$MINIO_BUCKET\"
+      "
+    restart: "no"
+
   backend:
     image: ghcr.io/ai-kids-care-team/ai-kids-care/backend:prod
     build:
@@ -110,6 +155,10 @@ services:
       RRN_HASH_PEPPER: ${RRN_HASH_PEPPER:?RRN_HASH_PEPPER must be set}
       CAMERA_STREAM_AES_KEY_V1: ${CAMERA_STREAM_AES_KEY_V1:?CAMERA_STREAM_AES_KEY_V1 must be set}
       AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?AI_SERVICE_TOKEN must be set}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ai-kids-care}
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
     ports:
@@ -120,6 +169,8 @@ services:
       neo4j:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   frontend:
@@ -140,3 +191,4 @@ volumes:
   postgres_data:
   neo4j_data:
   redis_data:
+  minio_data:

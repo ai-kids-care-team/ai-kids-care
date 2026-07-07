@@ -103,6 +103,15 @@ camera-stream:
     keys:
       v1: ${CAMERA_STREAM_AES_KEY_V1}
 
+# D-STORE：证据对象存储（MinIO，内网，后端反代，非 presigned）。ENDPOINT/BUCKET 非密（compose 内网
+# 服务名/固定桶名，与 seed s3://ai-kids-care/... 对齐）；ACCESS_KEY/SECRET_KEY 是凭据，无默认值，
+# 缺失即 fail-fast（MinioProperties 的 @NotBlank）。
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  bucket: ${MINIO_BUCKET:ai-kids-care}
+
 # ⑥ 实时检测看板 SSE 心跳：周期向每个 emitter 发 comment 帧保活链路（击穿代理/NAT 空闲超时），
 # 发送失败即驱逐死连接（无需等 STREAM_TIMEOUT_MS 30min）。默认 25s ≪ nginx proxy_read_timeout 3600s。
 detection:

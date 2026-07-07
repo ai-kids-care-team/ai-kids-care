@@ -3,7 +3,9 @@ package com.ai_kids_care.v1.controller;
 import com.ai_kids_care.v1.security.EffectiveAuthorizationContextHolder;
 import com.ai_kids_care.v1.service.DetectionEventService;
 import com.ai_kids_care.v1.service.DetectionEventSseService;
+import com.ai_kids_care.v1.service.EventEvidenceFileService;
 import com.ai_kids_care.v1.vo.DetectionEventVO;
+import com.ai_kids_care.v1.vo.EventEvidenceFileVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * ⑥ 看板的检测事件读取 API（staff + tenant-scoped；作用域由 {@link DetectionEventService} 经
@@ -33,6 +36,7 @@ public class DetectionEventController {
 
     private final DetectionEventService service;
     private final DetectionEventSseService sseService;
+    private final EventEvidenceFileService evidenceFileService;
 
     @GetMapping
     public ResponseEntity<Page<DetectionEventVO>> listDetectionEvents(
@@ -46,6 +50,16 @@ public class DetectionEventController {
     @GetMapping("/{id}")
     public ResponseEntity<DetectionEventVO> getDetectionEvent(@PathVariable Long id) {
         return ResponseEntity.ok(service.getDetectionEvent(id));
+    }
+
+    /**
+     * D-STORE: this event's evidence metadata (lazy-loaded by the frontend on card
+     * expand/detail-open, not batched with the list). Staff+tenant policy and the hidden-404 gate
+     * live in {@link EventEvidenceFileService#listByEvent} — this controller only dispatches.
+     */
+    @GetMapping("/{id}/evidence")
+    public ResponseEntity<List<EventEvidenceFileVO>> getEvidence(@PathVariable Long id) {
+        return ResponseEntity.ok(evidenceFileService.listByEvent(id));
     }
 
     /**

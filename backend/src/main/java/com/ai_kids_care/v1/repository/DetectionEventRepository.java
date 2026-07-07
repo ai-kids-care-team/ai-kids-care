@@ -93,4 +93,12 @@ public interface DetectionEventRepository extends JpaRepository<DetectionEvent, 
             @Param("keyword") String keyword,
             @Param("eventTypes") Collection<com.ai_kids_care.v1.type.EventTypeEnum> eventTypes,
             Pageable pageable);
+
+    /**
+     * D-STORE: existence check backing the evidence-list endpoint's hidden-404 gate. An event with
+     * zero evidence rows must still 404 for a foreign-tenant or nonexistent event id (not silently
+     * return an empty evidence list), and this check avoids loading a full {@code DetectionEvent}
+     * (with its fetch-joined to-ones) just to confirm ownership.
+     */
+    boolean existsByIdAndKindergarten_Id(Long id, Long kindergartenId);
 }

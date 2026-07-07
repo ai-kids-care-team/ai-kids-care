@@ -38,6 +38,11 @@ services:
     # Do not publish the Redis port to the host in production.
     ports: !reset null
 
+  minio:
+    # D-STORE: MinIO stays off the public network in production (design.md §A — the backend
+    # reverse-proxies all content reads; presigned direct-to-browser was explicitly rejected).
+    ports: !reset null
+
   backend:
     environment:
       # Secure session cookie (ADR-0016/0017). Only delivered over HTTPS, which the

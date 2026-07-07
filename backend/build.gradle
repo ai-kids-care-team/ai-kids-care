@@ -16,6 +16,20 @@ ext {
     set('testcontainers.version', '1.21.4')
 }
 
+dependencyManagement {
+    dependencies {
+        // D-STORE: io.minio:minio pulls commons-compress:1.28.0 (for its internal tar/zip helpers),
+        // which requires commons-lang3 >= 3.18.0 (org.apache.commons.lang3.ArrayFill). Spring Boot's
+        // dependency-management BOM otherwise pins commons-lang3 to 3.13.0 (wanted by
+        // springdoc's swagger-core-jakarta), which is INCOMPATIBLE with commons-compress:1.28.0 and
+        // breaks testcontainers' own copyFileToContainer (also on commons-compress, shared jar on the
+        // classpath) with java.lang.NoClassDefFoundError: org/apache/commons/lang3/ArrayFill at test
+        // context bootstrap. Override the managed version so ONE compatible commons-lang3 satisfies
+        // both consumers (commons-lang3 is backward compatible across these minor versions).
+        dependency 'org.apache.commons:commons-lang3:3.18.0'
+    }
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -39,6 +53,11 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
     implementation 'net.nurigo:sdk:4.3.0'
+    // D-STORE: MinIO SDK for the evidence-content backend reverse-proxy (EvidenceStoragePort).
+    // NOTE: 9.x consolidated getObject/statObject's checked-exception list into a single
+    // io.minio.errors.MinioException (8.x declares 9 separate checked exception types) — the
+    // adapter code is written against the 9.x signature.
+    implementation 'io.minio:minio:9.0.3'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'

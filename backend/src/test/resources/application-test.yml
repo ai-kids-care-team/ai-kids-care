@@ -40,6 +40,14 @@ camera-stream:
       # Base64.getEncoder().encodeToString(new byte[32]) = 43 个 'A' + '=' = 44 chars → 32 bytes
       v1: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 
+# D-STORE：非生产 dev 测试值(MinioProperties fail-fast 需非空)。测试用 @MockBean EvidenceStoragePort
+# 取代真实 MinIO 调用；这些值仅满足 MinioClient bean 构造(不发起真实网络连接)。
+minio:
+  endpoint: http://localhost:9000
+  access-key: test-minio-access-not-secret-2026
+  secret-key: test-minio-secret-not-secret-2026
+  bucket: ai-kids-care-test
+
 # ADR-0026 Phase 2：非生产 dev 测试 token（内部凭据接口 Bearer 认证）
 internal:
   ai:
