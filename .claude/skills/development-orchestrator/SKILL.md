@@ -1,6 +1,6 @@
 ---
 name: development-orchestrator
-description: 编排一条 plan→design→implement(前后端并行 fan-out/fan-in)→gate→archive 的开发流水线,实现一条 OpenSpec change。当用户要求"实现/开发某 change"、"按流水线做前后端实现"、"并行实现前后端"时使用。排除性区分:①"分析/审查工程现状/多角度健康度"→用 component-analysis-orchestrator,不是本 skill;②"只看当前未提交 diff"→用 /code-review;③纯 harness/agent/skill 自身变更→用 harness:harness;④只想生成 change 的 proposal/design/tasks 不实现→用 openspec propose。本 skill 是"把一条已 propose 的 change 实现落地"。
+description: 编排一条 plan→design→implement(前后端并行 fan-out/fan-in)→gate→archive 的开发流水线,实现一条 OpenSpec change。当用户要求"实现/开发某 change"、"按流水线做前后端实现"、"并行实现前后端"时使用。排除性区分:①"分析/审查工程现状/多角度健康度"→用 component-analysis-orchestrator,不是本 skill;②"只看当前未提交 diff"→用 /code-review;③纯 harness/agent/skill/hook/memory 自身变更→不走本 skill,由主循环手工维护(本项目手工维护 harness,无 harness meta-skill 插件);④只想生成 change 的 proposal/design/tasks 不实现→用 openspec propose。本 skill 是"把一条已 propose 的 change 实现落地"。
 ---
 
 # 开发流水线编排器(Development Orchestrator）
@@ -36,13 +36,14 @@ openspec-propose   ──►   ┌─ backend-implementer  (worktree A) ─┐  
 **语言约定**:dev-lead 对用户中文为主、英文术语为辅;对子代理的 `Agent` prompt / `SendMessage` 可用英文保语义精确;产出文件与代码注释按各自既有风格,保留代码标识符/API 路径/enum/DB 名/韩语文案不变。
 
 ## Phase 0:上下文确认(先做)
-- 确认目标 change **已 propose**:存在 `openspec/changes/<change-id>/`,含 design + tasks + **`api-contract.md`**。缺 change → 先走 `/opsx:propose`(不是本 skill 的职责)。
+- 确认目标 change **已 propose**:存在 `openspec/changes/<change-id>/`,含 design + tasks。缺 change → 先走 `/opsx:propose`(不是本 skill 的职责)。
+- 确认 **`api-contract.md`** 存在:注意 **`/opsx:propose` 不产此文件**(OpenSpec schema 无此 artifact),它是 design 阶段**手工冻结**、放进 change 目录的产物(对照 `references/api-contract-template.md`)。缺则须手写补齐,非重跑 propose。
 - 判断 change 类型:**纯后端 / 纯前端 / 全栈** → 决定开几个 lane(全栈 1 BE + 1 FE;纯一侧只开该侧)。
 - change 已部分实现(后续/自修再入)→ 先做 `git status` 时效判定,只重跑未完成/被打回的 lane,复用其余。
 
 ## Phase 1:契约冻结确认(并行前提)
 - 核对 `openspec/changes/<change-id>/api-contract.md` **存在且字段级完整**,对照 `references/api-contract-template.md` 的结构(端点/鉴权/DTO/VO/可空性/enum/分页/错误/前端对齐点)。
-- **契约缺失或含糊 → 回 design 补清**(`/opsx:propose` 补 `api-contract.md`),**不退化成后端先行**。字段级完整的契约是双侧并行的唯一真源。
+- **契约缺失或含糊 → 回 design 补清**(**手写** `api-contract.md`,对照 `references/api-contract-template.md`;非重跑 `/opsx:propose`),**不退化成后端先行**。字段级完整的契约是双侧并行的唯一真源。
 
 ## Phase 2:fan-out 实现(全并行)
 1. dev-lead 用 `Agent` 工具**并行 spawn** `backend-implementer` 与 `frontend-implementer`(各在独立 worktree,`.claude/worktrees/`;各按分配传 `model=sonnet`;可 `run_in_background`)。

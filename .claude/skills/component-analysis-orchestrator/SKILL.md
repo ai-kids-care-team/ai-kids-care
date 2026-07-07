@@ -1,6 +1,6 @@
 ---
 name: component-analysis-orchestrator
-description: 编排六个分析师并行 fan-out 对本工程做架构/质量/安全/集成/性能/用户六角度审查、对抗式验证并综合成报告。当用户要求"分析工程/组件"、"多角度分析"、"代码审查/健康度评估"、"架构/安全/质量/集成/性能/用户体验审查"，或"重新分析/再跑一遍/更新分析/只重看 X 组件/基于上次结果改进"、或指定"快扫/快速体检"(轻量)、"深度/发版前/关键审计"(深度)时，使用本 skill。**审查对象是业务工程组件（backend/frontend/ai/db/infra）的现状**。排除性区分：①审查对象是 harness / agent / skill 自身（点检/审计/同步 harness 配置）→ 用 `harness:harness`，不是本 skill；②只看当前未提交的 diff → 用 `/code-review`，不是本 skill。
+description: 编排六个分析师并行 fan-out 对本工程做架构/质量/安全/集成/性能/用户六角度审查、对抗式验证并综合成报告。当用户要求"分析工程/组件"、"多角度分析"、"代码审查/健康度评估"、"架构/安全/质量/集成/性能/用户体验审查"，或"重新分析/再跑一遍/更新分析/只重看 X 组件/基于上次结果改进"、或指定"快扫/快速体检"(轻量)、"深度/发版前/关键审计"(深度)时，使用本 skill。**审查对象是业务工程组件（backend/frontend/ai/db/infra）的现状**。排除性区分：①审查对象是 harness / agent / skill / hook / memory 自身（点检/审计/同步 harness 配置）→ 不走本 skill，由主循环手工审计（本项目手工维护 harness，无 harness meta-skill 插件）；②只看当前未提交的 diff → 用 `/code-review`，不是本 skill。
 ---
 
 # 组件多角度分析编排器（Orchestrator v3）
@@ -12,8 +12,8 @@ description: 编排六个分析师并行 fan-out 对本工程做架构/质量/�
 ## 角色与模型分配（Agent 调用时按此显式传 `model`）
 | 角色 | 模型 | 立场 |
 |------|------|------|
-| architecture-analyst | sonnet | 纯结构：分层/依赖/耦合/模式 |
-| quality-analyst | sonnet | 可维护性/复杂度/重复/测试质量 |
+| architecture-analyst | opus | 纯结构：分层/依赖/耦合/模式 |
+| quality-analyst | opus | 可维护性/复杂度/重复/测试质量 |
 | security-analyst | opus | 认证授权/多租户/PII·密钥/注入/审计 |
 | integration-analyst | opus | 跨组件契约双侧交叉比对 |
 | performance-analyst | opus | 扩展性/性能：N+1/事务内 IO/线程池/背压/多实例 |

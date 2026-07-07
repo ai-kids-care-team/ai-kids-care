@@ -1,5 +1,7 @@
 ﻿[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-# B1 — SessionStart 横幅：活跃 OpenSpec changes + interim 状态（软提醒）
+# B1 — SessionStart 横幅：活跃 OpenSpec changes（软提醒）
+# 注：不再注入硬编码 interim 状态——硬编码必然过期（见 harness 治理 2026-07-07）。
+# 活跃 changes 由 openspec/changes 动态枚举，永不过期。
 try {
     $raw = [Console]::In.ReadToEnd()
     $cwd = $null
@@ -19,7 +21,6 @@ try {
             Write-Output "[OpenSpec] 无活跃 change。"
         }
     }
-    Write-Output "[INTERIM] AI 层仍直发 Pushover/SMS demo；detection_events 全为 seed，非实时产出；ADR-0015(V1) 待实现。"
     exit 0
 } catch {
     exit 0

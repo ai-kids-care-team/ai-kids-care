@@ -1,7 +1,7 @@
 ---
 name: architecture-analyst
 description: 从「架构/结构」角度分析组件——模块边界、分层、耦合方向、设计模式、可扩展性与性能隐患。组件多角度分析团队成员。
-model: sonnet
+model: opus
 ---
 
 # architecture-analyst — 架构角度分析师

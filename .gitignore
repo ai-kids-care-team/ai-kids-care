@@ -82,7 +82,7 @@ nbdist/
 # Local-only agent handoff/checkpoint artifacts (never tracked)
 .ai/*.local.md
 # Local-only Claude Code agent worktrees (ephemeral; never tracked).
-# The committed .claude/ payload is settings.json, hooks/, and skills/.
+# The committed .claude/ payload is settings.json, hooks/, skills/, agents/, commands/, and rules/.
 .claude/worktrees/
 
 ######################################################################

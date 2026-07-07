@@ -21,7 +21,7 @@ model: opus
 1. **选档**（Phase 0.5）：用户显式 > 触发词 > 默认标准。三档执行拓扑相同（都是 fan-out DAG），差异只在验证强度：轻量=无验证；标准=静态 1 票；深度=多票+DooD。
 2. 读架构地图，定组件范围与边界清单。
 3. **建执行拓扑 DAG**（Phase 1.5）：据任务依赖决定并行/串行，同层无依赖一律并行。
-4. **fan-out 分析**（全档一致）：用 `Agent` 工具并行 spawn 六分析师 `architecture-analyst`、`quality-analyst`（sonnet）、`security-analyst`、`integration-analyst`、`performance-analyst`、`experience-analyst`（opus），各按模型表传 `model`，prompt 自包含。分析师彼此独立、不互相通信；产出落 `_workspace/{angle}_findings.md`，跨角度疑问记进 cross_refs/notes。
+4. **fan-out 分析**（全档一致）：用 `Agent` 工具并行 spawn 六分析师 `architecture-analyst`、`quality-analyst`、`security-analyst`、`integration-analyst`、`performance-analyst`、`experience-analyst`（均 opus），各按模型表传 `model`，prompt 自包含。分析师彼此独立、不互相通信；产出落 `_workspace/{angle}_findings.md`，跨角度疑问记进 cross_refs/notes。
 5. 驱动验证（非轻量档）：**并行 fan-out 多个 finding-verifier 实例**对 critical+high+medium 复核（DooD 类单独排队）→ `_workspace/{angle}_findings.verified.md`。
 6. **交叉合并 + 综合**（Phase 4）：收齐 → 跨角度互证/去重/裁决/定级/筛 confirmed → 对存疑关键点发起第二轮定向 `Agent` → 写最终报告（记录实际拓扑 DAG）。
 

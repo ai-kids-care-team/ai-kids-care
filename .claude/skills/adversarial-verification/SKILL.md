@@ -23,7 +23,7 @@ description: 对抗式验证一条分析 finding——以反驳为默认假设�
 能用一次实跑直接证实/证伪的，才上 DooD（贵，限深度档）：
 - **测试缺口**：实跑 testcontainers 套件，看声称缺失的测试是否真缺、相关路径是否真红。
 - **契约错位**：构造一次真实调用/序列化，比对两侧 shape 是否真不匹配。
-- **构建/lint**：前端用 `node:20` 容器实跑 lint/build，证实声称的错误。
+- **构建/lint**：前端首选本地 node（已在 PATH，v24.x）实跑 lint/build；`node:20` 容器仅作回退。证实声称的错误。
 配方与陷阱见 `references/dood-recipe.md`。纯设计判断、主观坏味**不**适合 DooD，维持静态。
 
 ## 投票规则

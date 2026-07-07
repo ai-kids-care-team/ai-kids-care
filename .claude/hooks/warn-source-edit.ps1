@@ -31,9 +31,9 @@ try {
 
     # C4 安全配置弱化 — 限 SecurityConfig.java
     if (-not $isWhitelisted -and $fp -match '(?i)SecurityConfig\.java$') {
+        # 注：anyRequest().authenticated() 是期望的 default-deny 写法(invariant 3)，非弱化，不列为命中项
         if ($content -match '(?i)csrf\(\)?\s*[^;]*\.disable\(\)' -or
             $content -match '(?i)\bpermitAll\b' -or
-            $content -match '(?i)anyRequest\(\)\s*\.authenticated\(\)' -or
             $content -match '(?i)SessionCreationPolicy\.STATELESS' -or
             $content -match '(?i)\bjwt\b|\bbearer\b') {
             $out += "[SEC-CONFIG] 疑似弱化安全防线，复核 invariant 1/2/3(default-deny/CSRF/会话式认证)"

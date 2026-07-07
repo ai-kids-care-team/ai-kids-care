@@ -32,7 +32,7 @@
 ## ④自修回路
 
 - findings 回给**对应 implementer**(后端问题 → backend-implementer;契约错位 → 错位侧)自修 → 重跑 ①–③ **直到清零**。
-- **high-risk 一律 halt 等维护者批准**(sub-skill:implement-review-loop 的 halt 约定;批准后编辑 run 脚本 halt 块 + 带**同样 args** resume 放行)。破坏性变更(schema/迁移/删除)同样须维护者逐个批准。
+- **high-risk 一律 halt 等维护者批准**:dev-lead 暂停该 lane、汇报风险,经维护者逐项批准后再放行。破坏性变更(schema/迁移/删除)同样须维护者逐个批准。
 - 回路 **exhausted 仍未清零** → dev-lead 自验 + 提交剩余修正(记忆:loop exhausted 末轮 fix 常留工作树**未提交**,Lead 须自验+提交),并在收口报告**如实标注**未清零项,不掩盖。
 
 ## 通过判据

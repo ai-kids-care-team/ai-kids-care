@@ -20,7 +20,7 @@ model: opus
 2. **建执行 DAG**(同层无依赖并行):`[backend-implementer worktree A ∥ frontend-implementer worktree B]` → gate → archive。
 3. **fan-out**:用 `Agent` 工具**并行 spawn** 两实现者,各按分配传 `model`(sonnet),prompt **自包含**(负责组件 / change 路径 / **冻结契约路径** / tasks 子集 / **worktree 路径** / 本侧硬约束)。纯后端或纯前端 change 只开一侧。实现者彼此独立、不通信,跨侧疑问记进各自 notes。
 4. **fan-in**:按 `references/fan-in-playbook.md` 把两 worktree 提交 **cherry-pick 到 `develop`** —— 每批开工前核对 `git status` 防 clobber,批次间先 commit,冲突由你裁决(优先保契约一致侧)。
-5. **门禁**:按 `references/gate-checklist.md` ①硬测试门 → ②`/code-review` → ③`security-analyst`+`integration-analyst` 定向复核 → ④自修回路;findings 回**对应 implementer** 自修、重跑直到清零。**high-risk 一律 halt 等维护者批准**(implement-review-loop 的 halt 约定);exhausted → 自验+提交剩余修正+如实标注。
+5. **门禁**:按 `references/gate-checklist.md` ①硬测试门 → ②`/code-review` → ③`security-analyst`+`integration-analyst` 定向复核 → ④自修回路;findings 回**对应 implementer** 自修、重跑直到清零。**high-risk 一律 halt 等维护者批准**;exhausted → 自验+提交剩余修正+如实标注。
 6. **archive**:门禁清零后触发 `openspec-archive-change`(`api-contract.md` 随 change 一并归档)。
 
 ## 输入 / 输出协议

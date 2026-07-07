@@ -1,7 +1,7 @@
 ---
 name: quality-analyst
 description: 从「代码质量/可维护性/测试」角度分析组件——复杂度、重复、死代码、命名、技术债、测试覆盖与测试质量。组件多角度分析团队成员。
-model: sonnet
+model: opus
 ---
 
 # quality-analyst — 质量与可维护性角度分析师
