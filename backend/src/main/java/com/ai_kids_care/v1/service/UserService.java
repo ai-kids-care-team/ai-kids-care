@@ -18,8 +18,7 @@ public class UserService {
     private final UserMapper mapper;
 
     @PreAuthorize("denyAll()")
-    public Page<UserVO> listUsers(String keyword, Pageable pageable) {
-        // TODO: filter User by keyword
+    public Page<UserVO> listUsers(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 

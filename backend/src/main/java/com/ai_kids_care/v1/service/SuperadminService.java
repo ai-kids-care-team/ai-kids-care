@@ -18,8 +18,7 @@ public class SuperadminService {
     private final SuperadminMapper mapper;
 
     @PreAuthorize("denyAll()")
-    public Page<SuperadminVO> listSuperadmins(String keyword, Pageable pageable) {
-        // TODO: filter Superadmin by keyword
+    public Page<SuperadminVO> listSuperadmins(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 

@@ -18,8 +18,7 @@ public class AuditLogService {
     private final AuditLogMapper mapper;
 
     @PreAuthorize("denyAll()")
-    public Page<AuditLogVO> listAuditLogs(String keyword, Pageable pageable) {
-        // TODO: filter AuditLog by keyword
+    public Page<AuditLogVO> listAuditLogs(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 

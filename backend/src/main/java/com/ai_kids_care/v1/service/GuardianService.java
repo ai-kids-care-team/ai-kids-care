@@ -18,8 +18,7 @@ public class GuardianService {
     private final GuardianMapper mapper;
 
     @PreAuthorize("denyAll()")
-    public Page<GuardianVO> listGuardians(String keyword, Pageable pageable) {
-        // TODO: filter Guardian by keyword
+    public Page<GuardianVO> listGuardians(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 

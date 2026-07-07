@@ -18,8 +18,7 @@ public class NotificationRuleService {
     private final NotificationRuleMapper mapper;
 
     @PreAuthorize("denyAll()")
-    public Page<NotificationRuleVO> listNotificationRules(String keyword, Pageable pageable) {
-        // TODO: filter NotificationRule by keyword
+    public Page<NotificationRuleVO> listNotificationRules(Pageable pageable) {
         return repository.findAll(pageable).map(mapper::toVO);
     }
 
