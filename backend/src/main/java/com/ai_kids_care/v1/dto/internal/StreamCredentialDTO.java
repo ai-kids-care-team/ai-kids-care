@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.internal;
+package com.ai_kids_care.v1.dto.internal;
 
 /**
  * 解密后的摄像头流凭据 — ADR-0026 Phase 2 内部凭据接口响应。

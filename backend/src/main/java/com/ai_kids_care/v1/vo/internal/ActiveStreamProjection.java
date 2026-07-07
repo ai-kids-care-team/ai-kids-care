@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.internal;
+package com.ai_kids_care.v1.vo.internal;
 
 /**
  * JPQL 构造投影：活跃摄像头流的 {@code (streamId, kindergartenId)}。

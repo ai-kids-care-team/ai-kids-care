@@ -1,10 +1,10 @@
 package com.ai_kids_care.v1.service;
 
+import com.ai_kids_care.v1.dto.internal.DetectionEventIngestRequest;
+import com.ai_kids_care.v1.dto.internal.DetectionEventIngestResponse;
+import com.ai_kids_care.v1.dto.internal.DetectionSessionIngestRequest;
+import com.ai_kids_care.v1.dto.internal.DetectionSessionIngestResponse;
 import com.ai_kids_care.v1.event.DetectionEventIngestedEvent;
-import com.ai_kids_care.v1.internal.DetectionEventIngestRequest;
-import com.ai_kids_care.v1.internal.DetectionEventIngestResponse;
-import com.ai_kids_care.v1.internal.DetectionSessionIngestRequest;
-import com.ai_kids_care.v1.internal.DetectionSessionIngestResponse;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.repository;
 
 import com.ai_kids_care.v1.entity.CameraStream;
-import com.ai_kids_care.v1.internal.ActiveStreamProjection;
+import com.ai_kids_care.v1.vo.internal.ActiveStreamProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,7 +21,7 @@ public interface CameraStreamRepository extends JpaRepository<CameraStream, Long
      * 「活跃」谓词 {@code cs.enabled = true} 写进查询；{@code modelId} 由 service 另行解析后组装。
      */
     @Query("""
-            select new com.ai_kids_care.v1.internal.ActiveStreamProjection(
+            select new com.ai_kids_care.v1.vo.internal.ActiveStreamProjection(
                 cs.id, cs.cctvCameras.kindergarten.id)
             from CameraStream cs
             where cs.enabled = true

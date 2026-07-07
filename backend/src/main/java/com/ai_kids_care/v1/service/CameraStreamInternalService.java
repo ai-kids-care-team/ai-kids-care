@@ -1,12 +1,10 @@
 package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.config.CameraStreamCryptoConfig;
+import com.ai_kids_care.v1.dto.internal.StreamClaimRequest;
+import com.ai_kids_care.v1.dto.internal.StreamClaimResponse;
+import com.ai_kids_care.v1.dto.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.entity.CameraStream;
-import com.ai_kids_care.v1.internal.ActiveStreamProjection;
-import com.ai_kids_care.v1.internal.ActiveStreamVO;
-import com.ai_kids_care.v1.internal.StreamClaimRequest;
-import com.ai_kids_care.v1.internal.StreamClaimResponse;
-import com.ai_kids_care.v1.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.repository.AiModelRepository;
 import com.ai_kids_care.v1.repository.CameraStreamRepository;
 import com.ai_kids_care.v1.security.AesGcmCryptoUtil;
@@ -16,6 +14,8 @@ import com.ai_kids_care.v1.security.audit.AuditResult;
 import com.ai_kids_care.v1.security.audit.SecurityAuditWriter;
 import com.ai_kids_care.v1.type.StatusEnum;
 import com.ai_kids_care.v1.type.UserRoleAssignmentScopeType;
+import com.ai_kids_care.v1.vo.internal.ActiveStreamProjection;
+import com.ai_kids_care.v1.vo.internal.ActiveStreamVO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

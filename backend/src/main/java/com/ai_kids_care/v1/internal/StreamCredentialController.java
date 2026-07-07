@@ -1,6 +1,10 @@
 package com.ai_kids_care.v1.internal;
 
+import com.ai_kids_care.v1.dto.internal.StreamClaimRequest;
+import com.ai_kids_care.v1.dto.internal.StreamClaimResponse;
+import com.ai_kids_care.v1.dto.internal.StreamCredentialDTO;
 import com.ai_kids_care.v1.service.CameraStreamInternalService;
+import com.ai_kids_care.v1.vo.internal.ActiveStreamVO;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

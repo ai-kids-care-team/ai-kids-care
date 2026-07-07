@@ -1,4 +1,6 @@
-package com.ai_kids_care.v1.internal;
+package com.ai_kids_care.v1.dto.internal;
+
+import com.ai_kids_care.v1.vo.internal.ActiveStreamVO;
 
 import java.util.List;
 

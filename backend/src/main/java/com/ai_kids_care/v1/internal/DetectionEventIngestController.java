@@ -1,5 +1,7 @@
 package com.ai_kids_care.v1.internal;
 
+import com.ai_kids_care.v1.dto.internal.DetectionEventIngestRequest;
+import com.ai_kids_care.v1.dto.internal.DetectionEventIngestResponse;
 import com.ai_kids_care.v1.service.DetectionIngestService;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;

@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.internal;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.v1.dto.internal.StreamClaimRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;

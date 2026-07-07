@@ -1,4 +1,4 @@
-package com.ai_kids_care.v1.internal;
+package com.ai_kids_care.v1.vo.internal;
 
 /**
  * 内部「活跃流清单」响应元素 — 多摄像头 supervisor 枚举本部署应消费的活跃流（方案 A）。
