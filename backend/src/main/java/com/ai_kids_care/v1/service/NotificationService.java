@@ -87,12 +87,50 @@ public class NotificationService {
         return toReadVO(found.get());
     }
 
+    // wire-notification-read-state / D3: idempotent mark-as-read, own notification only.
+    // Ownership (id + tenant + recipient) is checked FIRST — regardless of current read state — to
+    // decide 404 vs 200 without conflating "already read" with "doesn't exist / not mine". The actual
+    // UPDATE additionally guards on read_at IS NULL so a re-call is a no-op (still 200).
+    @Transactional
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).NOTIFICATION_WRITE)")
+    public void markRead(Long id) {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
+        Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        boolean owned = repository.existsByIdAndKindergarten_IdAndRecipientUser_Id(id, kindergartenId, context.userId());
+        if (!owned) {
+            auditWriter.record(AuditEvent.builder()
+                    .action(AuditAction.AUTHORIZATION_DENIED)
+                    .result(AuditResult.DENIED)
+                    .actorUserId(context.userId())
+                    .scopeType(UserRoleAssignmentScopeType.KINDERGARTEN)
+                    .kindergartenId(kindergartenId)
+                    .effectiveRole(context.role().name())
+                    .resourceType("NOTIFICATION")
+                    .resourceId(id)
+                    .build());
+            throw new EntityNotFoundException("Notification not found");
+        }
+        repository.markRead(id, kindergartenId, context.userId());
+    }
+
+    // wire-notification-read-state / D3: badge count — ALWAYS the caller's own notifications
+    // (recipient_user_id = caller), tenant-scoped. KINDERGARTEN_ADMIN's whole-kindergarten LIST view
+    // does not change this: the badge only counts what was actually addressed to them.
+    @Transactional(readOnly = true)
+    @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).NOTIFICATION_READ)")
+    public long unreadCount() {
+        EffectiveAuthorizationContext context = EffectiveAuthorizationContextHolder.require();
+        Long kindergartenId = EffectiveAuthorizationContextHolder.requireActiveKindergartenId();
+        return repository.countByKindergarten_IdAndRecipientUser_IdAndReadAtIsNull(kindergartenId, context.userId());
+    }
+
     private NotificationReadVO toReadVO(Notification n) {
         return new NotificationReadVO(
                 n.getId(),
                 n.getTitle(),
                 n.getBody(),
                 n.getStatus() == null ? null : n.getStatus().name(),
+                n.getReadAt(),
                 n.getCreatedAt()
         );
     }

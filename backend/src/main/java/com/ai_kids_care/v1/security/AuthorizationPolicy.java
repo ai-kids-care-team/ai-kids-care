@@ -78,6 +78,12 @@ public class AuthorizationPolicy {
                     tenantIdentity && (role == UserRoleEnum.GUARDIAN
                             || role == UserRoleEnum.TEACHER
                             || role == UserRoleEnum.KINDERGARTEN_ADMIN);
+            // wire-notification-read-state / D3：mark-read + unread-count——镜像 NOTIFICATION_READ 的角色集合；
+            // 细粒度「永远本人」由 NotificationRepository 的 recipient_user_id=:me 谓词强制（含 admin）。
+            case NOTIFICATION_WRITE ->
+                    tenantIdentity && (role == UserRoleEnum.GUARDIAN
+                            || role == UserRoleEnum.TEACHER
+                            || role == UserRoleEnum.KINDERGARTEN_ADMIN);
             // ADR-0026 Phase 1：写粗粒度门——仅 KINDERGARTEN_ADMIN + 有效 tenant identity。
             // 细粒度 tenant 隔离由 Service 层 requireActiveKindergartenId() + repository 强制。
             case TENANT_SURVEILLANCE_WRITE ->

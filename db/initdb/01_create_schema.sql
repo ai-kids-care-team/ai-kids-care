@@ -480,7 +480,8 @@ CREATE TABLE "notifications" (
   "fail_reason" varchar,
   "retry_count" int NOT NULL DEFAULT 0,
   "deferred_until" timestamptz,
-  "created_at" timestamptz NOT NULL DEFAULT 'now()'
+  "created_at" timestamptz NOT NULL DEFAULT 'now()',
+  "read_at" timestamptz
 );
 
 CREATE TABLE "notification_delivery_attempts" (
@@ -655,6 +656,8 @@ CREATE INDEX "idx_notif_event" ON "notifications" ("kindergarten_id", "event_id"
 CREATE INDEX "idx_notif_status_time" ON "notifications" ("kindergarten_id", "status", "created_at");
 
 CREATE UNIQUE INDEX "uq_notifications_dedupe" ON "notifications" ("kindergarten_id", "dedupe_key");
+
+CREATE INDEX "idx_notif_unread" ON "notifications" ("kindergarten_id", "recipient_user_id") WHERE "read_at" IS NULL;
 
 CREATE UNIQUE INDEX "uq_notif_delivery_attempt_notification" ON "notification_delivery_attempts" ("notification_id");
 
@@ -1157,6 +1160,8 @@ COMMENT ON COLUMN "notifications"."retry_count" IS '재시도 횟수(V3: DEFAULT
 COMMENT ON COLUMN "notifications"."deferred_until" IS '정숙시간 지연 발송 예정 시각(DEFERRED일 때); 스캐너가 경과 후 dispatch (③b)';
 
 COMMENT ON COLUMN "notifications"."created_at" IS '생성 일시';
+
+COMMENT ON COLUMN "notifications"."read_at" IS '본인 열람 시각; NULL=미읽음(V2)';
 
 COMMENT ON COLUMN "notification_delivery_attempts"."attempt_id" IS '전송 시도 ID';
 

@@ -90,5 +90,9 @@ public class Notification {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    // wire-notification-read-state (V2): per-recipient in-app read timestamp, orthogonal to
+    // delivery `status`. NULL = unread (default for existing + new rows).
+    @Column(name = "read_at")
+    private OffsetDateTime readAt;
 
 }

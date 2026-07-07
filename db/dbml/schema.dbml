@@ -599,12 +599,14 @@ Table notifications {
   retry_count int [not null, default: 0, note: "재시도 횟수(V3: DEFAULT 0)"]
   deferred_until timestamptz [note: "정숙시간 지연 발송 예정 시각(DEFERRED일 때); 스캐너가 경과 후 dispatch (③b)"]
   created_at timestamptz [not null, default: "now()", note: "생성 일시"]
+  read_at timestamptz [note: "본인 열람 시각; NULL=미읽음(V2)"]
 
   Indexes {
     (kindergarten_id, recipient_user_id, created_at) [name: "idx_notif_recipient_time"]
     (kindergarten_id, event_id) [name: "idx_notif_event"]
     (kindergarten_id, status, created_at) [name: "idx_notif_status_time"]
     (kindergarten_id, dedupe_key) [unique, name: "uq_notifications_dedupe"]
+    (kindergarten_id, recipient_user_id) [name: "idx_notif_unread", note: "partial: WHERE read_at IS NULL (V2)"]
   }
 }
 

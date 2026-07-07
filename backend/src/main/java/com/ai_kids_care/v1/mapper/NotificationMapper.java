@@ -20,6 +20,9 @@ public interface NotificationMapper {
     @Mapping(source = "recipientUserId", target = "recipientUser.id")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "deferredUntil", ignore = true)
+    // wire-notification-read-state: read_at is managed exclusively via markRead()'s conditional
+    // UPDATE, never via this generic closed write path.
+    @Mapping(target = "readAt", ignore = true)
     // kindergarten は closed write パスでは不使用
     @Mapping(target = "kindergarten", ignore = true)
     void updateEntity(NotificationUpdateDTO dto, @MappingTarget Notification entity);
