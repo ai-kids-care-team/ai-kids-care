@@ -51,9 +51,17 @@ public class EventEvidenceFileService {
                 .toList();
     }
 
+    /**
+     * refine-evidence-readback-robustness: {@code available} now reflects a real, just-confirmed
+     * object-store presence check ({@link EvidenceStoragePort#exists}), not merely a
+     * {@code storage_uri} scheme guess — a since-deleted object is no longer misreported as
+     * available. {@code exists} itself skips the network call entirely for non-resolvable URIs (e.g.
+     * legacy {@code file://} rows), so this list path still costs at most one {@code statObject} per
+     * row (never per {@code file://} row).
+     */
     private EventEvidenceFileVO toVOWithAvailability(EventEvidenceFile entity) {
         EventEvidenceFileVO base = mapper.toVO(entity);
-        boolean available = storagePort.isAvailable(entity.getStorageUri());
+        boolean available = storagePort.exists(entity.getStorageUri());
         String contentPath = available ? CONTENT_PATH_TEMPLATE.formatted(base.evidenceId()) : null;
         return new EventEvidenceFileVO(
                 base.evidenceId(), base.eventId(), base.kindergartenId(), base.type(), base.mimeType(),

@@ -39,6 +39,25 @@ public class MinioEvidenceStorageAdapter implements EvidenceStoragePort {
     }
 
     @Override
+    public boolean exists(String storageUri) {
+        Optional<String> key = resolveKey(storageUri);
+        if (key.isEmpty()) {
+            return false; // e.g. legacy file:// row — never issue a store request for these
+        }
+        try {
+            minioClient.statObject(StatObjectArgs.builder().bucket(properties.getBucket()).object(key.get()).build());
+            return true;
+        } catch (ErrorResponseException e) {
+            if (NO_SUCH_KEY.equals(e.errorResponse().code())) {
+                return false; // object genuinely absent from the bucket
+            }
+            throw new EvidenceStorageException("MinIO statObject failed", e); // never swallow real store failures
+        } catch (MinioException e) {
+            throw new EvidenceStorageException("MinIO statObject failed", e);
+        }
+    }
+
+    @Override
     public EvidenceObjectStream open(String storageUri, String rangeHeader) {
         String key = resolveKey(storageUri)
                 .orElseThrow(() -> new EntityNotFoundException("Evidence storage_uri is not readable (legacy file:// row)"));
@@ -86,10 +105,16 @@ public class MinioEvidenceStorageAdapter implements EvidenceStoragePort {
 
     /**
      * Parses a single-range {@code Range: bytes=start-end} / {@code bytes=start-} header against a
-     * known total size. Returns {@code null} (full-content fallback) for an absent, malformed,
-     * multi-range, or suffix-range ({@code bytes=-500}) header, or an out-of-bounds start — an
-     * unsupported Range is safe to ignore per HTTP semantics, so callers just serve 200 instead of
-     * rejecting the request.
+     * known total size. Returns {@code null} (full-content fallback, HTTP 200) for an absent,
+     * malformed, multi-range, or suffix-range ({@code bytes=-500}) header — those forms are simply
+     * unsupported, and it's safe to ignore them per HTTP semantics rather than reject the request.
+     *
+     * <p>A header that DOES match the supported single-range grammar but whose bounds cannot be
+     * satisfied against {@code totalSize} (start at/beyond the end of the object, or an inverted
+     * range) is a different case: per RFC 7233 that must yield {@code 416 Range Not Satisfiable}, so
+     * this throws {@link UnsatisfiableRangeException} rather than returning {@code null} — callers
+     * (the content endpoint) must not silently fall back to a full 200 for a range it understood but
+     * couldn't honor.
      */
     static long[] parseRange(String rangeHeader, long totalSize) {
         if (rangeHeader == null || totalSize <= 0) {
@@ -104,7 +129,7 @@ public class MinioEvidenceStorageAdapter implements EvidenceStoragePort {
             String endGroup = matcher.group(2);
             long end = endGroup.isEmpty() ? totalSize - 1 : Long.parseLong(endGroup);
             if (start < 0 || start >= totalSize || end < start) {
-                return null;
+                throw new UnsatisfiableRangeException(totalSize);
             }
             end = Math.min(end, totalSize - 1);
             return new long[]{start, end};

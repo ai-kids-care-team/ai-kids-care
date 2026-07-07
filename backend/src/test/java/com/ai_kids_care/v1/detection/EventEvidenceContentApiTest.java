@@ -3,6 +3,7 @@ package com.ai_kids_care.v1.detection;
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.storage.EvidenceObjectStream;
 import com.ai_kids_care.v1.storage.EvidenceStoragePort;
+import com.ai_kids_care.v1.storage.UnsatisfiableRangeException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
@@ -37,8 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * HTTP contract tests for D-STORE's backend-proxied evidence content endpoint
  * ({@code GET /api/v1/event_evidence_files/{evidenceId}/content}). {@link EvidenceStoragePort} is
  * mocked — this suite exercises the controller/service contract (auth, tenant scoping, the
- * file://-unavailable and missing-object 404 branches, Range/206) against a fixed byte payload, not
- * the real MinIO wire protocol (covered separately by {@code MinioEvidenceStorageAdapterTest}).
+ * file://-unavailable and missing-object 404 branches, Range/206/416) against a fixed byte payload,
+ * not the real MinIO wire protocol (covered separately by {@code MinioEvidenceStorageAdapterTest}).
  *
  * <p>All test rows live under a FRESH detection_event created in {@link #setUp()} (not the shared
  * seed event_id=1) so this suite never contends with {@code EventEvidenceListApiTest} over the same
@@ -128,7 +129,8 @@ class EventEvidenceContentApiTest extends BaseIntegrationTest {
         mockMvc.perform(asyncDispatch(started))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "image/jpeg"))
-                .andExpect(header().string("ETag", "happyhash123"))
+                // RFC 7232 §2.3: ETag validator must be a quoted-string.
+                .andExpect(header().string("ETag", "\"happyhash123\""))
                 .andExpect(header().string("Accept-Ranges", "bytes"))
                 .andExpect(header().string("Content-Length", String.valueOf(HAPPY_BYTES.length)))
                 .andExpect(content().bytes(HAPPY_BYTES));
@@ -151,6 +153,21 @@ class EventEvidenceContentApiTest extends BaseIntegrationTest {
                 .andExpect(header().string("Content-Range", "bytes 0-2/" + HAPPY_BYTES.length))
                 .andExpect(header().string("Content-Length", "3"))
                 .andExpect(content().bytes(partial));
+    }
+
+    @Test
+    void content_rangeOutOfBounds_returns416WithContentRange() throws Exception {
+        // A well-formed single-range header the adapter cannot satisfy (start beyond the object's
+        // end) must 416, not silently fall back to a full 200 — refine-evidence-readback-robustness.
+        when(storagePort.open(eq(HAPPY_URI), eq("bytes=9999-10005")))
+                .thenThrow(new UnsatisfiableRangeException(HAPPY_BYTES.length));
+
+        Cookie admin = login(ADMIN_LOGIN);
+        mockMvc.perform(get("/api/v1/event_evidence_files/{id}/content", evidenceIdHappy)
+                        .header("Range", "bytes=9999-10005")
+                        .cookie(admin))
+                .andExpect(status().isRequestedRangeNotSatisfiable())
+                .andExpect(header().string("Content-Range", "bytes */" + HAPPY_BYTES.length));
     }
 
     @Test

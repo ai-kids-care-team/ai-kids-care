@@ -1,8 +1,10 @@
 package com.ai_kids_care.v1.detection;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.v1.storage.EvidenceStorageException;
 import com.ai_kids_care.v1.storage.EvidenceStoragePort;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,6 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * is mocked (no real MinIO needed) — this suite only exercises auth/tenant scoping and the VO shape
  * (contentPath/available), not the real object-storage round trip (covered by
  * {@code MinioEvidenceStorageAdapterTest} and {@code EventEvidenceContentApiTest}).
+ *
+ * <p>refine-evidence-readback-robustness: the service now derives {@code available} from
+ * {@link EvidenceStoragePort#exists} — a real, just-confirmed presence check — rather than the old
+ * scheme-only {@code isAvailable}; the fixture below mocks {@code exists} accordingly, and a new test
+ * confirms a genuine store failure is never swallowed into {@code available=false}.
  */
 @AutoConfigureMockMvc
 class EventEvidenceListApiTest extends BaseIntegrationTest {
@@ -92,9 +101,9 @@ class EventEvidenceListApiTest extends BaseIntegrationTest {
         seedTenantUser(GUARDIAN_LOGIN, "evidlist-guardian@test.local", "010-0000-7103", "GUARDIAN", kindergartenId);
         seedTenantUser(FOREIGN_ADMIN_LOGIN, "evidlist-foreign@test.local", "010-0000-7104", "KINDERGARTEN_ADMIN", foreignKindergartenId);
 
-        // Default: every storage_uri is "available" unless a test overrides it — the seeded evidence
-        // row's storage_uri is s3://ai-kids-care/evidence/seed-event-001.jpg (scheme-resolvable).
-        when(storagePort.isAvailable(anyString())).thenReturn(true);
+        // Default: every storage_uri "exists" (statObject succeeds) unless a test overrides it — the
+        // seeded evidence row's storage_uri is s3://ai-kids-care/evidence/seed-event-001.jpg.
+        when(storagePort.exists(anyString())).thenReturn(true);
     }
 
     @Test
@@ -119,14 +128,30 @@ class EventEvidenceListApiTest extends BaseIntegrationTest {
 
     @Test
     void list_unavailableEvidence_hasNullContentPath() throws Exception {
-        // A legacy file:// row (or any dangling object) -> isAvailable() false -> contentPath null,
+        // A legacy file:// row (or any dangling/missing object) -> exists() false -> contentPath null,
         // even though the row itself is still listed (metadata, not gated on readability).
-        when(storagePort.isAvailable(seededStorageUri)).thenReturn(false);
+        when(storagePort.exists(seededStorageUri)).thenReturn(false);
         Cookie admin = login(ADMIN_LOGIN);
         mockMvc.perform(get("/api/v1/detection-events/{id}/evidence", eventIdWithEvidence).cookie(admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].available").value(false))
                 .andExpect(jsonPath("$[0].contentPath").doesNotExist());
+    }
+
+    @Test
+    void list_storageFailure_isNotSwallowedIntoAvailableFalse() throws Exception {
+        // A genuine store failure (network/auth/IO — anything that isn't "NoSuchKey") must propagate,
+        // not be misreported as available=false ("MinIO is down" != "the evidence is gone"). There's
+        // no @ExceptionHandler for EvidenceStorageException in ApiExceptionHandler, so it propagates
+        // out of MockMvc's dispatch as a ServletException wrapping the real cause (in a live
+        // deployment this would surface as a 500 via the container's default error handling).
+        when(storagePort.exists(seededStorageUri))
+                .thenThrow(new EvidenceStorageException("MinIO statObject failed", new RuntimeException("boom")));
+        Cookie admin = login(ADMIN_LOGIN);
+
+        ServletException thrown = assertThrows(ServletException.class, () ->
+                mockMvc.perform(get("/api/v1/detection-events/{id}/evidence", eventIdWithEvidence).cookie(admin)));
+        assertThat(thrown.getCause()).isInstanceOf(EvidenceStorageException.class);
     }
 
     @Test
