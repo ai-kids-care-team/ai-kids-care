@@ -8,12 +8,10 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -213,14 +211,7 @@ public class PasswordResetTokenService {
     }
 
     private static String sha256Hex(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashed);
-        } catch (NoSuchAlgorithmException ex) {
-            // SHA-256 is present on every JVM — unreachable.
-            throw new IllegalStateException("SHA-256 not available", ex);
-        }
+        return HashingUtils.sha256Hex(value);
     }
 
     private String challengeKey(String challengeId) {

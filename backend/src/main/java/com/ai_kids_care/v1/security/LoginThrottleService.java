@@ -6,11 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
 
 /**
  * 登录 暴力破解 防护(harden-auth-bootstrap-and-demo D2): Redis 失败计数 + TTL 临时锁定。
@@ -119,14 +115,7 @@ public class LoginThrottleService {
     /** raw identifier(S1 가능)를 키에 직접 넣지 않도록 SHA-256 해시(소문자 정규화 후). */
     private static String hash(String identifier) {
         String normalized = identifier.trim().toLowerCase();
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashed);
-        } catch (NoSuchAlgorithmException ex) {
-            // SHA-256 은 모든 JVM 에 존재 — 도달 불가.
-            throw new IllegalStateException("SHA-256 not available", ex);
-        }
+        return HashingUtils.sha256Hex(normalized);
     }
 
     private static boolean isBlank(String value) {

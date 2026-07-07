@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.service;
 
 import com.ai_kids_care.v1.entity.User;
 import com.ai_kids_care.v1.repository.UserRepository;
+import com.ai_kids_care.v1.security.HashingUtils;
 import com.ai_kids_care.v1.security.PasswordResetTokenService;
 import com.ai_kids_care.v1.security.SessionRevocationService;
 import com.ai_kids_care.v1.type.StatusEnum;
@@ -18,11 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
 
 /**
  * Business logic for UX-07 (wire-password-management): self-service authenticated password
@@ -206,12 +203,6 @@ public class PasswordManagementService {
     /** raw loginId (S1-adjacent) never goes into a Redis key directly — SHA-256 hash only. */
     private static String hash(String identifier) {
         String normalized = identifier.trim().toLowerCase();
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashed);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 not available", ex);
-        }
+        return HashingUtils.sha256Hex(normalized);
     }
 }
