@@ -126,10 +126,19 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
       MINIO_BUCKET: ${MINIO_BUCKET:-ai-kids-care}
+    volumes:
+      # Demo-only evidence sample: a real JPEG mounted read-only so the demo stack renders an actual
+      # frame at the seed row's storage_uri (s3://ai-kids-care/evidence/seed-event-001.jpg, see
+      # db/initdb/44_event_evidence_files_seed.sql) → list available=true → content endpoint streams
+      # bytes → <img> shows a picture. Reuses an existing repo image (arbitrary stand-in). The
+      # prod/cd overlays !reset this (seed-free, mirroring Dockerfile.prod); real evidence frames
+      # arrive later via live-flow (file://→s3://) per the change's Non-goals.
+      - ./frontend/public/home/slide-1.jpg:/seed/seed-event-001.jpg:ro
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 \"$$MINIO_ACCESS_KEY\" \"$$MINIO_SECRET_KEY\" &&
-      mc mb --ignore-existing local/\"$$MINIO_BUCKET\"
+      mc mb --ignore-existing local/\"$$MINIO_BUCKET\" &&
+      { mc cp /seed/seed-event-001.jpg local/\"$$MINIO_BUCKET\"/evidence/seed-event-001.jpg || true; }
       "
     restart: "no"
 

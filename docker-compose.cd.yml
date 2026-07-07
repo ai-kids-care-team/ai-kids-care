@@ -9,12 +9,13 @@
 #      image: 键已在 base docker-compose.yml 中声明，故此处无需重复。
 #   2. 新增 watchtower 服务，轮询 :prod 镜像 digest 变化后自动 pull + 重建容器。
 #
-# ─── D-STORE（MinIO）在本 overlay 下无需改动 ──────────────────────────────────
+# ─── D-STORE（MinIO）─────────────────────────────────────────────────────────
 #   base docker-compose.yml 新增的 minio / minio-init 服务用的都是 vendor 镜像
-#   （quay.io/minio/minio、quay.io/minio/mc），不是本仓库自建的 image，本 override
-#   只清除「本仓库自建镜像」服务（db/data-loader/backend/frontend）的 build 指令 ——
-#   minio/minio-init 没有 build: 键可清，天然原样继承自 base，无需在此重复声明。
+#   （quay.io/minio/minio、quay.io/minio/mc），不是本仓库自建的 image，故不需清 build。
 #   backend 的 MINIO_* env 同样已在 base 声明，随 backend.build: !reset null 一起继承。
+#   唯一需要 override 的是 minio-init：base 的 minio-init 会注入一张 demo 证据样例图（host
+#   bind mount ./frontend/public/...，registry/watchtower 部署机上不存在该 checkout），CD 属
+#   seed-free 部署面，故下方 !reset 掉该注入，只保留幂等建桶（与 prod overlay 一致）。
 #
 # ─── 数据策略（持久卷）────────────────────────────────────────────────────────
 #   db 使用 GHCR 的 db:prod —— 该镜像由 db/Dockerfile.prod 构建（vanilla postgres,
@@ -51,6 +52,15 @@ services:
 
   frontend:
     build: !reset null
+
+  minio-init:
+    # CD 是 seed-free 部署面：丢掉 base 的 demo 证据样例注入 + host bind mount，只保留幂等建桶。
+    volumes: !reset []
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 \"$$MINIO_ACCESS_KEY\" \"$$MINIO_SECRET_KEY\" &&
+      mc mb --ignore-existing local/\"$$MINIO_BUCKET\"
+      "
 
   # ── watchtower：自动拉取并重建 :prod digest 变化的服务容器 ─────────────────
   # 认证（路 A，Windows 友好）：用 REPO_USER/REPO_PASS，从演示机的 .env 注入
