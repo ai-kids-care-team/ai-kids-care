@@ -155,6 +155,10 @@ jobs:
       RRN_HASH_PEPPER: ci-structure-check
       CAMERA_STREAM_AES_KEY_V1: ci-structure-check
       AI_SERVICE_TOKEN: ci-structure-check
+      # D-STORE (wire-detection-evidence-readback): minio 服务与 backend 用 :? 必填语法，
+      # 与上方 6 个变量同为 fail-fast（无弱默认）。ENDPOINT/BUCKET 有 :- 默认，无需在此设。
+      MINIO_ACCESS_KEY: ci-structure-check
+      MINIO_SECRET_KEY: ci-structure-check
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
