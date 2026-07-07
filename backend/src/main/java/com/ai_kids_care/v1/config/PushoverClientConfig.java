@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 /**
- * Provides the Pushover client as an injectable bean so {@code PushoverService} can be
+ * Provides the Pushover client as an injectable bean so {@code PushoverPushAdapter} can be
  * unit-tested with a stubbed client (no real Pushover calls in CI).
  *
  * <p>PRF-03 timeout guard: {@code PushoverRestClient} uses Apache HC {@code DefaultHttpClient}

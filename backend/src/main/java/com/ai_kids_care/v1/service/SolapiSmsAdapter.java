@@ -12,8 +12,9 @@ import org.springframework.util.StringUtils;
  * client ({@code DefaultMessageService}) is an injected bean (see {@code SolapiClientConfig}) so this
  * adapter can be unit-tested with a stubbed client — no real Solapi calls in CI. The sender
  * (발신번호) comes from {@link SolapiConfig}; the per-recipient phone is passed in by the caller
- * (resolved from {@code users.phone}). Mirrors {@code PushoverService}: translate the SDK's failure
- * into an {@link IllegalStateException} the dispatcher records as FAILED.
+ * (resolved from {@code users.phone}). Mirrors {@link PushoverPushAdapter} (the {@link PushPort}
+ * implementation): translate the SDK's failure into an {@link IllegalStateException} the dispatcher
+ * records as FAILED.
  */
 @Service
 public class SolapiSmsAdapter implements SmsPort {

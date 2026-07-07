@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.service.DeferredNotificationScanner;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Step ③b: the scanner dispatches DEFERRED notifications whose deferred_until has passed and leaves
- * not-yet-due ones untouched. PushoverService is mocked so a dispatched row reaches SENT. The test
+ * not-yet-due ones untouched. PushPort is mocked so a dispatched row reaches SENT. The test
  * profile disables the @Scheduled auto-scan (huge interval), so scan() is invoked directly.
  */
 class DeferredNotificationScannerTest extends BaseIntegrationTest {
@@ -26,7 +26,7 @@ class DeferredNotificationScannerTest extends BaseIntegrationTest {
 
     @Autowired private DeferredNotificationScanner scanner;
     @Autowired private JdbcTemplate jdbc;
-    @MockBean private PushoverService pushoverService;
+    @MockBean private PushPort pushPort;
 
     @BeforeEach
     void setUp() {

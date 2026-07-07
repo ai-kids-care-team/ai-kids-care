@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.event.EventReviewedEvent;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
@@ -45,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>Seed demo chain (kg1): event 1 in room 1 (교실) → class 1 → child 1 → guardian (user 121);
  * event 2 in room 3 (놀이터, public space — no active class_room_assignment) resolved via affectedChildIds.
- * PushoverService is mocked so an immediate dispatch reaches SENT in-process. Self-cleaning on the shared
+ * PushPort is mocked so an immediate dispatch reaches SENT in-process. Self-cleaning on the shared
  * container; the kindergarten's quiet config is restored to NULL on teardown.</p>
  */
 @AutoConfigureMockMvc
@@ -69,7 +69,7 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ObjectMapper objectMapper;
-    @MockBean private PushoverService pushoverService; // sendToUser is a no-op → immediate dispatch reaches SENT
+    @MockBean private PushPort pushPort; // sendToUser is a no-op → immediate dispatch reaches SENT
     @MockBean private SmsPort smsPort; // mocked → ESCALATED guardian SMS never hits real Solapi
 
     @BeforeEach
@@ -106,7 +106,7 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
                 .as("EventReviewedEvent published for the confirmed classroom event").isEqualTo(1);
 
         // The async AFTER_COMMIT listener resolves guardian user 121 via the room→class→child→guardian graph
-        // and dispatches; PushoverService is mocked so the row reaches SENT.
+        // and dispatches; PushPort is mocked so the row reaches SENT.
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(guardianStatus(EVENT_CLASSROOM))
                         .as("guardian notification reaches terminal SENT via the async path").isEqualTo("SENT"));

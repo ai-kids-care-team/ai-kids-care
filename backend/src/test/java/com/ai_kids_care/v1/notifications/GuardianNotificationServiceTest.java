@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.service.GuardianNotificationService;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
  * (synchronous notifyOnReview; the AFTER_COMMIT @Async listener is the production trigger).
  *
  * Uses the seed demo chain (kg1): event 1 in room 1 (교실) → class 1 → child 1 → guardian (user 121);
- * event 2 in room 3 (놀이터, public space — no active class_room_assignment). PushoverService is
+ * event 2 in room 3 (놀이터, public space — no active class_room_assignment). PushPort is
  * mocked so dispatch reaches SENT without a real Pushover call. Self-cleaning on the shared container.
  */
 class GuardianNotificationServiceTest extends BaseIntegrationTest {
@@ -42,7 +42,7 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
 
     @Autowired private GuardianNotificationService service;
     @Autowired private JdbcTemplate jdbc;
-    @MockBean private PushoverService pushoverService; // sendToUser is a no-op → dispatch reaches SENT
+    @MockBean private PushPort pushPort; // sendToUser is a no-op → dispatch reaches SENT
     @MockBean private SmsPort smsPort; // mocked → no real Solapi send; dispatchSms reaches SENT on the no-op
 
     private OffsetDateTime detectedClassroom;

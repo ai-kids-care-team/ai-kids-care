@@ -1,7 +1,7 @@
 package com.ai_kids_care.v1.detection;
 
 import com.ai_kids_care.BaseIntegrationTest;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +48,7 @@ class DetectionIngestApiTest extends BaseIntegrationTest {
     // commonPool-blocking amplifier so the async staff-alert completes promptly — the in-app row is
     // still written by real code. Mirrors GuardianNotificationConfirmDispatchE2EIT.
     @MockBean private SmsPort smsPort;
-    @MockBean private PushoverService pushoverService;
+    @MockBean private PushPort pushPort;
 
     private long streamId;
     private long modelId;

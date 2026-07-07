@@ -12,14 +12,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the Pushover delivery seam — no real Pushover calls. Verifies the service
+ * Unit tests for the Pushover delivery seam — no real Pushover calls. Verifies the adapter
  * uses the configured app token path, guards a blank recipient key, and translates the
  * library's checked exception into a runtime failure the dispatcher can record.
  */
-class PushoverServiceTest {
+class PushoverPushAdapterTest {
 
     private final PushoverClient client = mock(PushoverClient.class);
-    private final PushoverService service = new PushoverService(client, config("app-token-xyz"));
+    private final PushoverPushAdapter adapter = new PushoverPushAdapter(client, config("app-token-xyz"));
 
     private static PushoverConfig config(String token) {
         PushoverConfig c = new PushoverConfig();
@@ -29,16 +29,21 @@ class PushoverServiceTest {
 
     @Test
     void sendToUser_success_callsClientOnce() throws Exception {
-        when(client.pushMessage(any())).thenReturn(mock(Status.class));
+        Status status = mock(Status.class);
+        when(status.getStatus()).thenReturn(1);
+        when(status.getRequestId()).thenReturn("req-1");
+        when(client.pushMessage(any())).thenReturn(status);
 
-        service.sendToUser("user-key-1", "Title", "Body");
+        PushPort.PushDeliveryStatus result = adapter.sendToUser("user-key-1", "Title", "Body");
 
         verify(client, times(1)).pushMessage(any());
+        assertThat(result.status()).isEqualTo(1);
+        assertThat(result.requestId()).isEqualTo("req-1");
     }
 
     @Test
     void sendToUser_blankUserKey_throwsAndDoesNotCallClient() throws Exception {
-        assertThatThrownBy(() -> service.sendToUser("  ", "Title", "Body"))
+        assertThatThrownBy(() -> adapter.sendToUser("  ", "Title", "Body"))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(client, never()).pushMessage(any());
     }
@@ -47,7 +52,7 @@ class PushoverServiceTest {
     void sendToUser_pushoverException_translatedToIllegalState() throws Exception {
         when(client.pushMessage(any())).thenThrow(PushoverException.class);
 
-        assertThatThrownBy(() -> service.sendToUser("user-key-1", "Title", "Body"))
+        assertThatThrownBy(() -> adapter.sendToUser("user-key-1", "Title", "Body"))
                 .isInstanceOf(IllegalStateException.class);
     }
 }

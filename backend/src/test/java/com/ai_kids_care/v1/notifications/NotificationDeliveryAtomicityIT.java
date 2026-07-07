@@ -5,7 +5,7 @@ import com.ai_kids_care.v1.entity.Notification;
 import com.ai_kids_care.v1.repository.NotificationRepository;
 import com.ai_kids_care.v1.service.NotificationDeliveryStore;
 import com.ai_kids_care.v1.service.NotificationService;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,7 @@ class NotificationDeliveryAtomicityIT extends BaseIntegrationTest {
     @Autowired private NotificationDeliveryStore deliveryStore;
     @Autowired private JdbcTemplate jdbc;
 
-    @MockBean private PushoverService pushoverService; // no-op success unless a test stubs a failure
+    @MockBean private PushPort pushPort; // no-op success unless a test stubs a failure
     @MockBean private SmsPort smsPort;                 // unused here; mocked so no real Solapi call
 
     @BeforeEach
@@ -70,7 +70,7 @@ class NotificationDeliveryAtomicityIT extends BaseIntegrationTest {
         // Retry the same delivery: the existing attempt must short-circuit -> no second provider call.
         notificationService.dispatch(notificationRepository.findById(id).orElseThrow());
 
-        verify(pushoverService, times(1)).sendToUser(any(), any(), any());
+        verify(pushPort, times(1)).sendToUser(any(), any(), any());
         assertThat(statusOf(id)).isEqualTo("SENT");
     }
 
@@ -87,7 +87,7 @@ class NotificationDeliveryAtomicityIT extends BaseIntegrationTest {
         // A retry MUST NOT re-send (at-most-once); it reconciles the stuck row to a terminal FAILED.
         notificationService.dispatch(notificationRepository.findById(id).orElseThrow());
 
-        verify(pushoverService, never()).sendToUser(any(), any(), any());
+        verify(pushPort, never()).sendToUser(any(), any(), any());
         assertThat(statusOf(id)).isEqualTo("FAILED");
         assertThat(attemptOutcome(id)).isEqualTo("FAILED");
     }
@@ -96,11 +96,11 @@ class NotificationDeliveryAtomicityIT extends BaseIntegrationTest {
     void providerFails_recordsFailedTerminalState() {
         long id = insertPush("atom-fail-" + System.nanoTime());
         doThrow(new IllegalStateException("Pushover delivery error"))
-                .when(pushoverService).sendToUser(any(), any(), any());
+                .when(pushPort).sendToUser(any(), any(), any());
 
         notificationService.dispatch(notificationRepository.findById(id).orElseThrow());
 
-        verify(pushoverService, times(1)).sendToUser(any(), any(), any());
+        verify(pushPort, times(1)).sendToUser(any(), any(), any());
         assertThat(statusOf(id)).isEqualTo("FAILED");
         assertThat(failReasonOf(id)).contains("Pushover delivery failed");
         assertThat(attemptOutcome(id)).isEqualTo("FAILED");

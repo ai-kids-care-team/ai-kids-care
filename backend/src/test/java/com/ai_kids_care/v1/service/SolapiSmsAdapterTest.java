@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
  * Unit tests for the Solapi delivery seam — no real Solapi calls (the SDK's
  * {@code DefaultMessageService} is mocked). Verifies the adapter maps sender/recipient/body onto
  * the SDK request, guards a blank phone, and translates an SDK failure into the
- * {@link IllegalStateException} the dispatcher records as FAILED. Mirrors {@code PushoverServiceTest}.
+ * {@link IllegalStateException} the dispatcher records as FAILED. Mirrors {@code PushoverPushAdapterTest}.
  */
 class SolapiSmsAdapterTest {
 

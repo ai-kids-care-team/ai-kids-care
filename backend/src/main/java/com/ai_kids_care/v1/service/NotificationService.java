@@ -40,7 +40,7 @@ public class NotificationService {
 
     private final NotificationRepository repository;
     private final NotificationMapper mapper;
-    private final PushoverService pushoverService;
+    private final PushPort pushPort;
     private final SmsPort smsPort;
     private final SecurityAuditWriter auditWriter;
     private final PushSubscriptionRepository pushSubscriptionRepository;
@@ -142,7 +142,7 @@ public class NotificationService {
         // enforces a hard per-call timeout at the client level (PushoverClientConfig), so no callsite
         // timeout guard is needed here (unlike SMS / PRF-01).
         try {
-            pushoverService.sendToUser(
+            pushPort.sendToUser(
                     subscription.get().getAddress(),
                     notification.getTitle(),
                     notification.getBody());

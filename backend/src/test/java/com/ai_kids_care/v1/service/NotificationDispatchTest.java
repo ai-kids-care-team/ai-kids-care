@@ -46,7 +46,7 @@ class NotificationDispatchTest {
 
     @Mock NotificationRepository repository;
     @Mock NotificationMapper mapper;
-    @Mock PushoverService pushoverService;
+    @Mock PushPort pushPort;
     @Mock SmsPort smsPort;
     @Mock SecurityAuditWriter auditWriter;
     @Mock PushSubscriptionRepository pushSubscriptionRepository;
@@ -103,7 +103,7 @@ class NotificationDispatchTest {
         service.dispatch(n);
 
         verify(deliveryStore).beginAttempt(n, "PUSHOVER");
-        verify(pushoverService).sendToUser("user-key-1", "Title", "Body");
+        verify(pushPort).sendToUser("user-key-1", "Title", "Body");
         verify(deliveryStore).markSucceeded(n);
         verify(deliveryStore, never()).markFailed(any(), any());
         verify(deliveryStore, never()).reconcile(any(), any());
@@ -115,7 +115,7 @@ class NotificationDispatchTest {
         Notification n = pushNotification();
         when(deliveryStore.beginAttempt(eq(n), eq("PUSHOVER"))).thenReturn(DeliveryDecision.proceed());
         doThrow(new IllegalStateException("Pushover boom"))
-                .when(pushoverService).sendToUser(any(), any(), any());
+                .when(pushPort).sendToUser(any(), any(), any());
 
         service.dispatch(n);
 
@@ -134,7 +134,7 @@ class NotificationDispatchTest {
 
         verify(deliveryStore).markFailed(eq(n), contains("no active Pushover subscription"));
         verify(deliveryStore, never()).beginAttempt(any(), any());
-        verify(pushoverService, never()).sendToUser(any(), any(), any());
+        verify(pushPort, never()).sendToUser(any(), any(), any());
     }
 
     @Test
@@ -147,7 +147,7 @@ class NotificationDispatchTest {
         service.dispatch(n);
 
         verify(deliveryStore).reconcile(n, DeliveryAttemptOutcome.SUCCEEDED);
-        verify(pushoverService, never()).sendToUser(any(), any(), any());
+        verify(pushPort, never()).sendToUser(any(), any(), any());
         verify(deliveryStore, never()).markSucceeded(any());
         verify(deliveryStore, never()).markFailed(any(), any());
     }
@@ -162,7 +162,7 @@ class NotificationDispatchTest {
         service.dispatch(n);
 
         verify(deliveryStore).reconcile(n, DeliveryAttemptOutcome.IN_FLIGHT);
-        verify(pushoverService, never()).sendToUser(any(), any(), any());
+        verify(pushPort, never()).sendToUser(any(), any(), any());
     }
 
     // ── SMS channel ───────────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ class NotificationDispatchTest {
 
         verify(smsPort).send("01012345678", "Body");
         verify(deliveryStore).markSucceeded(n);
-        verifyNoInteractions(pushoverService);
+        verifyNoInteractions(pushPort);
     }
 
     @Test

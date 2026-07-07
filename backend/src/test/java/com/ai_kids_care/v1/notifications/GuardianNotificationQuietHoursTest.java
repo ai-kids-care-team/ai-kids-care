@@ -2,7 +2,7 @@ package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.service.GuardianNotificationService;
-import com.ai_kids_care.v1.service.PushoverService;
+import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import com.ai_kids_care.v1.type.EventStatusEnum;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * deferred (DEFERRED + deferred_until); ESCALATED pierces quiet hours (immediate); outside the
  * window or with no config, RESOLVED is immediate. Uses the seed demo chain (event 1 / room 1 /
  * guardian user 121) and a dynamic quiet window around "now" so the test is time-independent.
- * PushoverService is mocked so an immediate dispatch reaches SENT. Self-cleaning (restores
+ * PushPort is mocked so an immediate dispatch reaches SENT. Self-cleaning (restores
  * kindergarten 1's quiet config to NULL on teardown).
  */
 class GuardianNotificationQuietHoursTest extends BaseIntegrationTest {
@@ -39,7 +39,7 @@ class GuardianNotificationQuietHoursTest extends BaseIntegrationTest {
 
     @Autowired private GuardianNotificationService service;
     @Autowired private JdbcTemplate jdbc;
-    @MockBean private PushoverService pushoverService;
+    @MockBean private PushPort pushPort;
     @MockBean private SmsPort smsPort; // mocked → the ESCALATED case's additive guardian SMS never hits real Solapi
 
     private OffsetDateTime detected;

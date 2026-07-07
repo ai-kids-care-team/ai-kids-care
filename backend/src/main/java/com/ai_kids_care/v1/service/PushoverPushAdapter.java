@@ -10,17 +10,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * PUSH delivery via Pushover. The application API token comes from {@link PushoverConfig}
- * (configured, fail-fast on blank) — never hard-coded. The per-recipient Pushover user key
- * is supplied by the caller (resolved from {@code push_subscriptions.address}).
+ * {@link PushPort} implementation backed by Pushover. The application API token comes from
+ * {@link PushoverConfig} (configured, fail-fast on blank) — never hard-coded. The per-recipient
+ * Pushover user key is supplied by the caller (resolved from {@code push_subscriptions.address}).
  */
 @Service
-public class PushoverService {
+public class PushoverPushAdapter implements PushPort {
 
     private final PushoverClient client;
     private final PushoverConfig config;
 
-    public PushoverService(PushoverClient client, PushoverConfig config) {
+    public PushoverPushAdapter(PushoverClient client, PushoverConfig config) {
         this.client = client;
         this.config = config;
     }
@@ -30,13 +30,14 @@ public class PushoverService {
      *
      * @param userKey recipient's Pushover user key (from {@code push_subscriptions.address})
      */
-    public Status sendToUser(String userKey, String title, String message) {
+    @Override
+    public PushDeliveryStatus sendToUser(String userKey, String title, String message) {
         if (!StringUtils.hasText(userKey)) {
             throw new IllegalArgumentException(
-                    "PushoverService: recipient user key must not be blank");
+                    "PushoverPushAdapter: recipient user key must not be blank");
         }
         try {
-            return client.pushMessage(
+            Status status = client.pushMessage(
                     PushoverMessage.builderWithApiToken(config.getApiToken())
                             .setUserId(userKey)
                             .setMessage(message)
@@ -44,6 +45,7 @@ public class PushoverService {
                             .setTitle(title)
                             .build()
             );
+            return status == null ? null : new PushDeliveryStatus(status.getStatus(), status.getRequestId());
         } catch (PushoverException e) {
             throw new IllegalStateException("Pushover 消息发送失败", e);
         }
