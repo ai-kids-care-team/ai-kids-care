@@ -6,6 +6,7 @@ import {
   useGetTeacherGraphQuery,
 } from '@/services/apis/graph.api';
 import { searchChildrenByName, type GuardianChildVO } from '@/services/apis/children.api';
+import { searchTeachers, type TeacherVO } from '@/services/apis/teachers.api';
 
 type Mode = 'child' | 'teacher';
 
@@ -25,7 +26,11 @@ type Mode = 'child' | 'teacher';
  * GUARDIAN/TEACHER 외 역할은 전부 빈 리스트로 폴백) 목록이 비면 안내 문구만 보이고, 직접 ID
  * 입력(fallback, 기존 동작 유지)으로 계속 조회할 수 있다 — design D2 의 "메뉴 진입점 + 그래프
  * 페이지 명시적 선택기" 퇴행안에 해당(별도 아이 명부 페이지는 없어 그래프 페이지 자체에 선택기를 둠).
- * 'teacher' 모드는 자신의 teacherId 를 세션에서 알 방법이 없어 기존 ID 직접 입력만 유지한다.
+ * 'teacher' 모드 역시 같은 잔여 orphan UX였다(raw teacherId 직접 입력만 가능) — 기존에 있던
+ * `teachers.api.ts`(`GET /api/v1/teachers`, `searchTeachers`, TENANT_S2_READ =
+ * KINDERGARTEN_ADMIN + TEACHER, 활성 유치원으로 세션 스코프)를 재사용해 이름 목록 선택기를
+ * 추가한다(새 백엔드 엔드포인트 없음). 목록이 비는 역할/상황을 대비해 직접 ID 입력은
+ * fallback 으로 계속 유지한다.
  */
 export function ChildGraphViewer() {
   const [mode, setMode] = useState<Mode>('child');
@@ -35,6 +40,10 @@ export function ChildGraphViewer() {
   const [children, setChildren] = useState<GuardianChildVO[]>([]);
   const [childrenLoading, setChildrenLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState('');
+
+  const [teachers, setTeachers] = useState<TeacherVO[]>([]);
+  const [teachersLoading, setTeachersLoading] = useState(true);
+  const [selectedTeacherId, setSelectedTeacherId] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +59,25 @@ export function ChildGraphViewer() {
       })
       .finally(() => {
         if (!cancelled) setChildrenLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Same rationale as the children-roster effect above: `teachersLoading` already starts
+    // `true`, so no synchronous setState is needed in the effect body itself.
+    searchTeachers({ size: 100 })
+      .then((page) => {
+        if (!cancelled) setTeachers(page.content ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTeachers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTeachersLoading(false);
       });
     return () => {
       cancelled = true;
@@ -78,6 +106,13 @@ export function ChildGraphViewer() {
     setQueryId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
   }
 
+  function onSelectTeacher(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    setSelectedTeacherId(value);
+    const parsed = Number(value);
+    setQueryId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+  }
+
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-4 text-xl font-semibold text-gray-800">관계 그래프 조회</h1>
@@ -92,7 +127,7 @@ export function ChildGraphViewer() {
         </button>
         <button
           type="button"
-          onClick={() => { setMode('teacher'); setQueryId(null); }}
+          onClick={() => { setMode('teacher'); setQueryId(null); setSelectedTeacherId(''); setInput(''); }}
           className={`rounded px-3 py-1 text-sm ${mode === 'teacher' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}
         >
           교사 기준
@@ -116,6 +151,30 @@ export function ChildGraphViewer() {
               {children.map((c) => (
                 <option key={c.childId} value={c.childId}>
                   {c.name} (#{c.childId})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
+      {mode === 'teacher' && (
+        <div className="mb-4">
+          <label className="mb-1 block text-sm text-gray-600">교사 목록에서 선택</label>
+          {teachersLoading ? (
+            <p className="text-sm text-gray-500">교사 목록을 불러오는 중입니다.</p>
+          ) : teachers.length === 0 ? (
+            <p className="text-sm text-gray-400">선택 가능한 교사가 없습니다. 아래에서 교사 ID를 직접 입력해 조회하세요.</p>
+          ) : (
+            <select
+              value={selectedTeacherId}
+              onChange={onSelectTeacher}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">교사를 선택하세요</option>
+              {teachers.map((t) => (
+                <option key={t.teacherId} value={t.teacherId}>
+                  {t.name} (#{t.teacherId})
                 </option>
               ))}
             </select>
