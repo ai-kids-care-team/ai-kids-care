@@ -92,14 +92,14 @@ describe('getUnreadCount', () => {
   });
 
   it('GETs the unread-count endpoint and returns the raw count', async () => {
-    getMock.mockResolvedValue({ data: 3 });
+    getMock.mockResolvedValue({ data: { unreadCount: 3 } });
     const result = await getUnreadCount();
     expect(getMock).toHaveBeenCalledWith('/notifications/unread-count');
     expect(result).toBe(3);
   });
 
   it('returns zero as-is when the caller has no unread notifications', async () => {
-    getMock.mockResolvedValue({ data: 0 });
+    getMock.mockResolvedValue({ data: { unreadCount: 0 } });
     const result = await getUnreadCount();
     expect(result).toBe(0);
   });

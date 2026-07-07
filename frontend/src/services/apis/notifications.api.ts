@@ -41,8 +41,8 @@ export async function markRead(id: number): Promise<void> {
  * KINDERGARTEN_ADMIN 도 전원 목록을 볼 수 있지만 이 카운트는 항상 본인 수신분만 집계한다(D4).
  */
 export async function getUnreadCount(): Promise<number> {
-  const response = await apiClient.get<number>('/notifications/unread-count');
-  return response.data;
+  const response = await apiClient.get<{ unreadCount: number }>('/notifications/unread-count');
+  return response.data.unreadCount;
 }
 
 /**
