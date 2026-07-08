@@ -58,7 +58,7 @@ The notification subsystem SHALL resolve recipients and delivery conditions usin
 
 ### Requirement: Pushover as primary delivery channel
 
-The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. The Pushover application credential (API token) MUST be supplied by configuration (`pushover.api-token`, sourced from the `PUSHOVER_API_TOKEN` environment variable) and MUST NOT be hard-coded; a blank credential MUST fail fast rather than be silently sent. Each recipient's Pushover delivery address (Pushover user key) SHALL be stored as an `address` row in `push_subscriptions` with `provider = PUSHOVER`; the FCM/APNS-shaped `device_tokens` table is superseded by `push_subscriptions` (see "Push delivery addressing model"). `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; `PUSH` (Pushover, `PushoverService`) and `SMS` (Solapi, `SolapiSmsAdapter` — see "SMS delivery via Solapi adapter") have implemented backend delivery paths driving the delivery lifecycle status transitions; `EMAIL` does not yet.
+The backend SHALL deliver PUSH channel notifications via the Pushover third-party push service. The Pushover application credential (API token) MUST be supplied by configuration (`pushover.api-token`, sourced from the `PUSHOVER_API_TOKEN` environment variable) and MUST NOT be hard-coded; a blank credential MUST fail fast rather than be silently sent. Each recipient's Pushover delivery address (Pushover user key) SHALL be stored as an `address` row in `push_subscriptions` with `provider = PUSHOVER`; the FCM/APNS-shaped `device_tokens` table is superseded by `push_subscriptions` (see "Push delivery addressing model"). `NotificationChannelEnum` values are `PUSH`, `SMS`, and `EMAIL`; all three now have implemented backend delivery paths driving the delivery lifecycle status transitions — `PUSH` (Pushover, `PushoverService`), `SMS` (Solapi, `SolapiSmsAdapter` — see "SMS delivery via Solapi adapter"), and `EMAIL` (SMTP, `SmtpEmailAdapter` via `EmailPort` — see "EMAIL delivery via SMTP adapter").
 
 #### Scenario: PUSH channel notification dispatched via Pushover
 
@@ -75,10 +75,10 @@ The backend SHALL deliver PUSH channel notifications via the Pushover third-part
 - **WHEN** a notification is created with `channel = SMS`
 - **THEN** the system records it in the `notifications` table and dispatches it to the recipient's `users.phone` through the Solapi adapter (not a `push_subscriptions` row), per the "SMS delivery via Solapi adapter" requirement (SENDING → SENT/`sent_at` on success; FAILED + `fail_reason` on a missing phone or send failure)
 
-#### Scenario: EMAIL channel — not implemented
+#### Scenario: EMAIL channel — delivered via SMTP adapter
 
 - **WHEN** a notification is created with `channel = EMAIL`
-- **THEN** the system records the notification but no email is dispatched; EMAIL is listed as a future option only (gap: no backend email delivery path exists)
+- **THEN** the system records it in the `notifications` table and dispatches it to the recipient's `users.email` through the SMTP `EmailPort` (not a `push_subscriptions` row), per the "EMAIL delivery via SMTP adapter" requirement (SENDING → SENT/`sent_at` on success; FAILED + `fail_reason` on a missing/blank email or send failure)
 
 ### Requirement: Deduplication of notifications per detection event
 
@@ -287,11 +287,14 @@ The backend SHALL notify the guardians of the affected children when a staff rev
 path of the guardian review-gate. Notification is dispatched over the `PUSH` channel via the existing
 `NotificationService.dispatch` (Pushover). For an `ESCALATED` confirmation the backend SHALL
 **additionally** dispatch the notification over the `SMS` channel to each affected guardian whose
-linked `users.phone` is non-blank, via the same `NotificationService.dispatch` (Solapi `SmsPort`); a
-`RESOLVED` confirmation notifies over `PUSH` only. The PUSH dispatch is unchanged — SMS is an
-additive, independent channel, and a guardian whose linked `users.phone` is null/blank still receives
-the `PUSH` notification only. All notifications are dispatched immediately in this capability slice;
-quiet-hours deferral is a separate later capability.
+linked `users.phone` is non-blank (via Solapi `SmsPort`), **and over the `EMAIL` channel to each
+affected guardian whose linked `users.email` is non-blank (via SMTP `EmailPort`)**, all through the
+same `NotificationService.dispatch`; a `RESOLVED` confirmation notifies over `PUSH` only. The PUSH
+dispatch is unchanged — SMS and EMAIL are additive, independent channels, and a guardian whose linked
+`users.phone` or `users.email` is null/blank still receives the other channels they qualify for.
+ESCALATED notifications (PUSH plus any additive SMS and EMAIL) are dispatched immediately and pierce
+quiet hours (safety-critical); RESOLVED's per-recipient quiet-hours deferral is governed by a
+separate requirement and is unaffected by the EMAIL channel (RESOLVED remains PUSH-only).
 
 Recipient resolution SHALL be relationship-graph based (PostgreSQL, not Neo4j): the event's `room_id`
 at its `detected_at` instant resolves to the active `class_room_assignment`(s) (`start_at <=
@@ -307,12 +310,13 @@ The trigger matrix is: `ESCALATED` always notifies; `RESOLVED` notifies only whe
 is true; `ACKNOWLEDGED`, `IN_REVIEW`, and `DISMISSED` never notify guardians. Notification dispatch
 is a side effect of confirm executed after the review transaction commits; a dispatch or resolution
 failure MUST NOT roll back the review. Each guardian PUSH notification uses
-`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian'` and each guardian SMS notification uses
-`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian-sms'` (distinct keys so PUSH and SMS for the
-same guardian and event coexist), so repeated confirms of the same event do not produce duplicate
-notifications (enforced by `UNIQUE(kindergarten_id, dedupe_key)`). SMS dispatch is per-recipient and
-per-channel best-effort: an SMS build or send failure for one guardian MUST NOT affect that guardian's
-PUSH notification or any other guardian's notifications.
+`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian'`, each guardian SMS notification uses
+`dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian-sms'`, and each guardian EMAIL notification
+uses `dedupe_key = 'evt-{eventId}-u-{guardianUserId}-guardian-email'` (distinct keys so PUSH, SMS,
+and EMAIL for the same guardian and event coexist), so repeated confirms of the same event do not
+produce duplicate notifications (enforced by `UNIQUE(kindergarten_id, dedupe_key)`). SMS and EMAIL
+dispatch is per-recipient and per-channel best-effort: a build or send failure for one guardian on
+one channel MUST NOT affect that guardian's other channels or any other guardian's notifications.
 
 #### Scenario: ESCALATED confirm notifies guardians of the room's class children
 
@@ -330,11 +334,20 @@ PUSH notification or any other guardian's notifications.
   keys `-guardian` and `-guardian-sms`), the SMS sent to that `users.phone`; **and WHEN** a notified
   guardian's linked `users.phone` is null/blank, only the `PUSH` row is created (no SMS)
 
+#### Scenario: ESCALATED also sends EMAIL to guardians with an email
+
+- **WHEN** an `ESCALATED` confirm notifies guardians and an affected guardian's linked `users.email`
+  is non-blank
+- **THEN** that guardian additionally receives an `EMAIL` `notifications` row (distinct dedupe key
+  `-guardian-email`), the email sent to that `users.email`; **and WHEN** a notified guardian's linked
+  `users.email` is null/blank, no `EMAIL` row is created (the guardian's PUSH and any SMS are
+  unaffected)
+
 #### Scenario: RESOLVED notifies only when opted in, over PUSH only
 
 - **WHEN** a confirm sets `result_status = RESOLVED` with `notifyGuardians = true`
-- **THEN** guardians are notified over `PUSH` only and no `SMS` notification is created; **and WHEN**
-  `notifyGuardians` is absent or false, no guardian notification is created
+- **THEN** guardians are notified over `PUSH` only and no `SMS` or `EMAIL` notification is created;
+  **and WHEN** `notifyGuardians` is absent or false, no guardian notification is created
 
 #### Scenario: Non-notifying result statuses
 
@@ -372,11 +385,12 @@ PUSH notification or any other guardian's notifications.
 - **THEN** that guardian's `SMS` notification is recorded `FAILED` with a non-null `fail_reason`,
   while that guardian's `PUSH` notification and every other guardian's notifications remain unaffected
 
-#### Scenario: Notification failure does not roll back the review
+#### Scenario: One guardian's EMAIL failure does not affect other channels or recipients
 
-- **WHEN** guardian notification dispatch fails (resolution error or Pushover failure)
-- **THEN** the `event_reviews` row and the `detection_events.status` update remain committed; the
-  confirm response is unaffected
+- **WHEN** the `EMAIL` send for one guardian fails (SMTP failure) or times out
+- **THEN** that guardian's `EMAIL` notification is recorded `FAILED` with a non-null `fail_reason`,
+  while that guardian's `PUSH` and any `SMS` notification and every other guardian's notifications
+  remain unaffected
 
 ### Requirement: Quiet-hours deferral of guardian notifications
 
@@ -608,4 +622,41 @@ Each notification row is per-recipient (`recipient_user_id`). The system SHALL t
 
 - **WHEN** a signed-in recipient (GUARDIAN/TEACHER/KINDERGARTEN_ADMIN) is on any page
 - **THEN** the primary navigation shows an unread indicator derived from `GET /unread-count`, without the user having to open the inbox
+
+### Requirement: EMAIL delivery via SMTP adapter
+
+The backend SHALL deliver `EMAIL` channel notifications via an SMTP adapter, sending to the
+recipient's `users.email` (not a `push_subscriptions` row). This closes the prior gap where `EMAIL`
+notifications were recorded but never dispatched. Delivery goes through an `EmailPort` abstraction so
+the dispatcher does not depend directly on the mail provider (mirroring `SmsPort`/`PushPort`):
+`NotificationService.dispatch` SHALL, for `channel = EMAIL`, read the recipient's email, set
+`status = SENDING`, call the email port with the address, a subject, and the notification body, and
+on success set `status = SENT` and `sent_at`; a send failure or a missing/blank recipient email SHALL
+set `status = FAILED` with a non-null `fail_reason` (and no email is sent to an empty address). The
+provider call SHALL run outside any database transaction and under a bounded wall-clock budget
+(`notifications.email-send-timeout-ms`, default 5000); a timeout SHALL be recorded as `FAILED`, never
+a stuck `SENDING`. The SMTP configuration (`spring.mail.host`, `spring.mail.port`,
+`spring.mail.username`, `spring.mail.password`) MUST be supplied by configuration from environment
+variables and MUST fail fast on a blank value rather than be silently used, consistent with the
+Pushover and Solapi credential posture. SMTP credentials MUST NOT be logged.
+
+#### Scenario: EMAIL notification dispatched to the recipient's email
+
+- **WHEN** a notification with `channel = EMAIL` is dispatched for a recipient whose `users.email` is set
+- **THEN** the backend calls the email port with that address, a subject, and the notification body, and on success sets `status = SENT` and `sent_at`
+
+#### Scenario: EMAIL dispatch with no recipient email
+
+- **WHEN** a notification with `channel = EMAIL` is dispatched for a recipient whose `users.email` is null/blank
+- **THEN** no email is sent and the notification is recorded `FAILED` with a non-null `fail_reason`
+
+#### Scenario: EMAIL send failure or timeout is recorded FAILED
+
+- **WHEN** the SMTP adapter raises a delivery failure, or the provider call exceeds `notifications.email-send-timeout-ms`
+- **THEN** the notification is recorded `FAILED` with a non-null `fail_reason`, never left in `SENDING`, and other recipients' notifications are unaffected
+
+#### Scenario: Blank SMTP configuration fails fast
+
+- **WHEN** the application starts with a blank `spring.mail.host`, `spring.mail.username`, or `spring.mail.password`
+- **THEN** startup fails fast rather than silently attempting to send with a blank credential
 
