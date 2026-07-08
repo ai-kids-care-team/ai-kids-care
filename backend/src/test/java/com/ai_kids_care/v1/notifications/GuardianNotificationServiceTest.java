@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.v1.service.EmailPort;
 import com.ai_kids_care.v1.service.GuardianNotificationService;
 import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
@@ -39,11 +40,13 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
     private static final long CHILD = 1L;
     private static final String SUB_ADDRESS = "pushover-guardian-kg1-key";
     private static final String GUARDIAN_PHONE = "010-1000-0121"; // seed users.phone for user 121
+    private static final String GUARDIAN_EMAIL = "guardian-kg1@example.com"; // seed users.email for user 121
 
     @Autowired private GuardianNotificationService service;
     @Autowired private JdbcTemplate jdbc;
     @MockBean private PushPort pushPort; // sendToUser is a no-op → dispatch reaches SENT
     @MockBean private SmsPort smsPort; // mocked → no real Solapi send; dispatchSms reaches SENT on the no-op
+    @MockBean private EmailPort emailPort; // mocked → no real SMTP send; dispatchEmail reaches SENT on the no-op
 
     private OffsetDateTime detectedClassroom;
     private OffsetDateTime detectedPublic;
@@ -100,32 +103,42 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
 
     @Test
     void escalatedClassroom_guardianWithPhone_alsoGetsSms() {
-        // Guardian user 121 has a seed users.phone → ESCALATED creates both a PUSH and an SMS row.
+        // Guardian user 121 has a seed users.phone AND users.email → ESCALATED creates a PUSH, an
+        // SMS, and an EMAIL row.
         service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
                 ROOM_CLASSROOM, detectedClassroom, null, null);
 
-        assertThat(guardianNotificationCount(EVENT_CLASSROOM)).isEqualTo(2); // PUSH + SMS
+        assertThat(guardianNotificationCount(EVENT_CLASSROOM)).isEqualTo(3); // PUSH + SMS + EMAIL
         assertThat(channelCount(EVENT_CLASSROOM, "PUSH")).isEqualTo(1);
         assertThat(channelCount(EVENT_CLASSROOM, "SMS")).isEqualTo(1);
         assertThat(channelStatus(EVENT_CLASSROOM, "SMS")).isEqualTo("SENT");
-        // SMS dispatched via the mocked port to the guardian's users.phone — never real Solapi.
+        assertThat(channelCount(EVENT_CLASSROOM, "EMAIL")).isEqualTo(1);
+        assertThat(channelStatus(EVENT_CLASSROOM, "EMAIL")).isEqualTo("SENT");
+        // SMS/EMAIL dispatched via the mocked ports to the guardian's users.phone/users.email —
+        // never real Solapi/SMTP.
         verify(smsPort).send(eq(GUARDIAN_PHONE), any());
+        verify(emailPort).send(eq(GUARDIAN_EMAIL), any(), any());
     }
 
     @Test
-    void escalatedClassroom_guardianWithoutPhone_getsPushOnly() {
-        // Blank out the guardian's phone → ESCALATED creates a PUSH row only (no SMS, no port call).
-        String original = jdbc.queryForObject(
+    void escalatedClassroom_guardianWithoutPhoneOrEmail_getsPushOnly() {
+        // Blank out both the guardian's phone and email → ESCALATED creates a PUSH row only (no
+        // SMS/EMAIL, no port call for either).
+        String originalPhone = jdbc.queryForObject(
                 "SELECT phone FROM users WHERE user_id = ?", String.class, GUARDIAN_USER);
-        jdbc.update("UPDATE users SET phone = NULL WHERE user_id = ?", GUARDIAN_USER);
+        String originalEmail = jdbc.queryForObject(
+                "SELECT email FROM users WHERE user_id = ?", String.class, GUARDIAN_USER);
+        jdbc.update("UPDATE users SET phone = NULL, email = NULL WHERE user_id = ?", GUARDIAN_USER);
         try {
             service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
                     ROOM_CLASSROOM, detectedClassroom, null, null);
 
             assertThat(channelCount(EVENT_CLASSROOM, "PUSH")).isEqualTo(1);
             assertThat(channelCount(EVENT_CLASSROOM, "SMS")).isZero();
+            assertThat(channelCount(EVENT_CLASSROOM, "EMAIL")).isZero();
         } finally {
-            jdbc.update("UPDATE users SET phone = ? WHERE user_id = ?", original, GUARDIAN_USER);
+            jdbc.update("UPDATE users SET phone = ?, email = ? WHERE user_id = ?",
+                    originalPhone, originalEmail, GUARDIAN_USER);
         }
     }
 
@@ -136,9 +149,23 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
         service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
                 ROOM_CLASSROOM, detectedClassroom, null, null);
 
-        // SMS row recorded FAILED; the guardian's PUSH row is unaffected (still SENT).
+        // SMS row recorded FAILED; the guardian's PUSH and EMAIL rows are unaffected (still SENT).
         assertThat(channelStatus(EVENT_CLASSROOM, "SMS")).isEqualTo("FAILED");
         assertThat(channelStatus(EVENT_CLASSROOM, "PUSH")).isEqualTo("SENT");
+        assertThat(channelStatus(EVENT_CLASSROOM, "EMAIL")).isEqualTo("SENT");
+    }
+
+    @Test
+    void escalatedClassroom_emailSendFailure_recordsEmailFailedButPushAndSmsUnaffected() {
+        doThrow(new IllegalStateException("SMTP 이메일 발송 실패")).when(emailPort).send(any(), any(), any());
+
+        service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
+                ROOM_CLASSROOM, detectedClassroom, null, null);
+
+        // EMAIL row recorded FAILED; the guardian's PUSH and SMS rows are unaffected (still SENT).
+        assertThat(channelStatus(EVENT_CLASSROOM, "EMAIL")).isEqualTo("FAILED");
+        assertThat(channelStatus(EVENT_CLASSROOM, "PUSH")).isEqualTo("SENT");
+        assertThat(channelStatus(EVENT_CLASSROOM, "SMS")).isEqualTo("SENT");
     }
 
     @Test
@@ -170,10 +197,11 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
         service.notifyOnReview(EVENT_PUBLIC, KG, EventStatusEnum.ESCALATED,
                 ROOM_PUBLIC, detectedPublic, List.of(CHILD), null);
 
-        // ESCALATED + guardian has a phone → PUSH + SMS.
-        assertThat(guardianNotificationCount(EVENT_PUBLIC)).isEqualTo(2);
+        // ESCALATED + guardian has a phone and email → PUSH + SMS + EMAIL.
+        assertThat(guardianNotificationCount(EVENT_PUBLIC)).isEqualTo(3);
         assertThat(channelCount(EVENT_PUBLIC, "PUSH")).isEqualTo(1);
         assertThat(channelCount(EVENT_PUBLIC, "SMS")).isEqualTo(1);
+        assertThat(channelCount(EVENT_PUBLIC, "EMAIL")).isEqualTo(1);
     }
 
     @Test
@@ -192,11 +220,13 @@ class GuardianNotificationServiceTest extends BaseIntegrationTest {
         service.notifyOnReview(EVENT_CLASSROOM, KG, EventStatusEnum.ESCALATED,
                 ROOM_CLASSROOM, detectedClassroom, null, null);
 
-        // The -guardian (PUSH) and -guardian-sms (SMS) keys are each blocked by
-        // UNIQUE(kindergarten_id, dedupe_key) on the second confirm → still exactly one row per channel.
+        // The -guardian (PUSH), -guardian-sms (SMS), and -guardian-email (EMAIL) keys are each
+        // blocked by UNIQUE(kindergarten_id, dedupe_key) on the second confirm → still exactly one
+        // row per channel.
         assertThat(channelCount(EVENT_CLASSROOM, "PUSH")).isEqualTo(1);
         assertThat(channelCount(EVENT_CLASSROOM, "SMS")).isEqualTo(1);
-        assertThat(guardianNotificationCount(EVENT_CLASSROOM)).isEqualTo(2);
+        assertThat(channelCount(EVENT_CLASSROOM, "EMAIL")).isEqualTo(1);
+        assertThat(guardianNotificationCount(EVENT_CLASSROOM)).isEqualTo(3);
     }
 
     @Test

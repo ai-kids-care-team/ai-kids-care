@@ -110,18 +110,19 @@ public class GuardianNotificationService {
                 ? kindergartenRepository.findById(kindergartenId).map(Kindergarten::getQuietHoursJson).orElse(null)
                 : null;
 
-        // SMS is an additive channel only for ESCALATED (dual-channel PUSH+SMS); RESOLVED stays
-        // PUSH-only. To create an SMS row only for guardians who actually have a phone (mirrors the
-        // staff SMS gate, avoiding FAILED noise for phoneless guardians), batch-load the resolved
-        // guardian users once and map user_id → phone. RESOLVED skips the load entirely.
+        // SMS and EMAIL are additive channels only for ESCALATED (PUSH+SMS+EMAIL); RESOLVED stays
+        // PUSH-only. To create an SMS/EMAIL row only for guardians who actually have a phone/email
+        // (mirrors the staff SMS gate, avoiding FAILED noise for phoneless/emailless guardians),
+        // batch-load the resolved guardian users once and map user_id → phone/email. RESOLVED skips
+        // the load entirely.
         boolean escalated = resultStatus == EventStatusEnum.ESCALATED;
-        // For ESCALATED, eagerly load the full guardian User entities up front. The SMS path reads
-        // users.phone in NotificationService.dispatchSms, but this method runs on the @Async
-        // AFTER_COMMIT listener with no open persistence session — a lazy getReferenceById proxy
-        // would throw LazyInitializationException when phone is first touched there (swallowed by
-        // deliver()'s best-effort catch, leaving the SMS row stuck at QUEUED). A loaded entity
-        // carries the phone scalar, so getPhone() is safe on it even once detached. RESOLVED is
-        // PUSH-only and only needs the user id, where a proxy is fine.
+        // For ESCALATED, eagerly load the full guardian User entities up front. The SMS/EMAIL paths
+        // read users.phone/users.email in NotificationService.dispatchSms/dispatchEmail, but this
+        // method runs on the @Async AFTER_COMMIT listener with no open persistence session — a lazy
+        // getReferenceById proxy would throw LazyInitializationException when phone/email is first
+        // touched there (swallowed by deliver()'s best-effort catch, leaving the row stuck at
+        // QUEUED). A loaded entity carries both scalars, so getPhone()/getEmail() are safe on it
+        // even once detached. RESOLVED is PUSH-only and only needs the user id, where a proxy is fine.
         Map<Long, User> guardianUsers = escalated ? loadUsers(guardianUserIds) : Map.of();
 
         for (Long userId : guardianUserIds) {
@@ -155,6 +156,17 @@ public class GuardianNotificationService {
                     deliver(kindergarten, eventId, recipient,
                             NotificationChannelEnum.SMS, title, body,
                             "evt-" + eventId + "-u-" + userId + "-guardian-sms",
+                            false, null);
+                }
+                // EMAIL — wire-email-notification-channel D4: additive, ESCALATED-only, only when
+                // this guardian's users.email is non-blank. Independent of the SMS gate above: a
+                // guardian may have one, both, or neither of phone/email. Always immediate (never
+                // deferred), same as SMS.
+                String email = recipient.getEmail();
+                if (email != null && !email.isBlank()) {
+                    deliver(kindergarten, eventId, recipient,
+                            NotificationChannelEnum.EMAIL, title, body,
+                            "evt-" + eventId + "-u-" + userId + "-guardian-email",
                             false, null);
                 }
             }

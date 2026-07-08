@@ -1,6 +1,7 @@
 package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
+import com.ai_kids_care.v1.service.EmailPort;
 import com.ai_kids_care.v1.service.GuardianNotificationService;
 import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
@@ -41,6 +42,7 @@ class GuardianNotificationPreferenceTest extends BaseIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @MockBean private PushPort pushPort;
     @MockBean private SmsPort smsPort;
+    @MockBean private EmailPort emailPort; // mocked → the ESCALATED case's additive guardian EMAIL never hits real SMTP
 
     private OffsetDateTime detected;
 

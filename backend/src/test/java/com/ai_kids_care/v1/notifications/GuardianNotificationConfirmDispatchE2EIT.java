@@ -2,6 +2,7 @@ package com.ai_kids_care.v1.notifications;
 
 import com.ai_kids_care.BaseIntegrationTest;
 import com.ai_kids_care.v1.event.EventReviewedEvent;
+import com.ai_kids_care.v1.service.EmailPort;
 import com.ai_kids_care.v1.service.PushPort;
 import com.ai_kids_care.v1.service.SmsPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,6 +72,7 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @MockBean private PushPort pushPort; // sendToUser is a no-op → immediate dispatch reaches SENT
     @MockBean private SmsPort smsPort; // mocked → ESCALATED guardian SMS never hits real Solapi
+    @MockBean private EmailPort emailPort; // mocked → ESCALATED guardian EMAIL never hits real SMTP
 
     @BeforeEach
     void setUp() {
@@ -172,9 +174,9 @@ class GuardianNotificationConfirmDispatchE2EIT extends BaseIntegrationTest {
     }
 
     // Helpers are scoped to the PUSH channel: this class verifies the PUSH delivery lifecycle (the
-    // unchanged behavior). An ESCALATED confirm also creates an additive SMS row (guardian 121 has a
-    // phone) dispatched via the mocked SmsPort — covered by GuardianNotificationServiceTest — so PUSH
-    // scoping keeps these single-row queries deterministic.
+    // unchanged behavior). An ESCALATED confirm also creates additive SMS and EMAIL rows (guardian
+    // 121 has both a phone and an email) dispatched via the mocked SmsPort/EmailPort — covered by
+    // GuardianNotificationServiceTest — so PUSH scoping keeps these single-row queries deterministic.
     private int guardianCount(long eventId) {
         return jdbc.queryForObject(
                 "SELECT count(*) FROM notifications WHERE event_id = ? AND recipient_user_id = ? "
