@@ -48,6 +48,7 @@ class NotificationDispatchTest {
     @Mock NotificationMapper mapper;
     @Mock PushPort pushPort;
     @Mock SmsPort smsPort;
+    @Mock EmailPort emailPort;
     @Mock SecurityAuditWriter auditWriter;
     @Mock PushSubscriptionRepository pushSubscriptionRepository;
     @Mock NotificationDeliveryStore deliveryStore;
@@ -72,6 +73,17 @@ class NotificationDispatchTest {
         when(user.getPhone()).thenReturn(phone);
         return Notification.builder()
                 .channel(NotificationChannelEnum.SMS)
+                .recipientUser(user)
+                .title("Title")
+                .body("Body")
+                .build();
+    }
+
+    private Notification emailNotification(String email) {
+        User user = org.mockito.Mockito.mock(User.class);
+        when(user.getEmail()).thenReturn(email);
+        return Notification.builder()
+                .channel(NotificationChannelEnum.EMAIL)
                 .recipientUser(user)
                 .title("Title")
                 .body("Body")
@@ -242,5 +254,86 @@ class NotificationDispatchTest {
 
         verify(deliveryStore).reconcile(n, DeliveryAttemptOutcome.SUCCEEDED);
         verify(smsPort, never()).send(any(), any());
+    }
+
+    // ── EMAIL channel ─────────────────────────────────────────────────────────────
+
+    @Test
+    void email_success_beginsAttemptThenSendsThenMarksSucceeded() {
+        Notification n = emailNotification("guardian@example.com");
+        when(deliveryStore.beginAttempt(eq(n), eq("SMTP"))).thenReturn(DeliveryDecision.proceed());
+
+        service.dispatch(n);
+
+        verify(emailPort).send("guardian@example.com", "Title", "Body");
+        verify(deliveryStore).markSucceeded(n);
+        verifyNoInteractions(pushPort);
+        verifyNoInteractions(smsPort);
+    }
+
+    @Test
+    void email_noRecipientEmail_marksFailedWithoutAttemptOrPortCall() {
+        Notification n = emailNotification(null);
+
+        service.dispatch(n);
+
+        verify(deliveryStore).markFailed(eq(n), contains("no email"));
+        verify(deliveryStore, never()).beginAttempt(any(), any());
+        verify(emailPort, never()).send(any(), any(), any());
+    }
+
+    @Test
+    void email_blankRecipientEmail_marksFailedWithoutPortCall() {
+        Notification n = emailNotification("   ");
+
+        service.dispatch(n);
+
+        verify(deliveryStore).markFailed(eq(n), contains("no email"));
+        verify(emailPort, never()).send(any(), any(), any());
+    }
+
+    @Test
+    void email_deliveryFailure_marksFailed() {
+        Notification n = emailNotification("guardian@example.com");
+        when(deliveryStore.beginAttempt(eq(n), eq("SMTP"))).thenReturn(DeliveryDecision.proceed());
+        doThrow(new IllegalStateException("SMTP boom")).when(emailPort).send(any(), any(), any());
+
+        service.dispatch(n);
+
+        verify(deliveryStore).markFailed(eq(n), contains("EMAIL delivery failed"));
+        verify(deliveryStore, never()).markSucceeded(any());
+    }
+
+    @Test
+    void email_providerTimeout_marksFailedAsTimeout() {
+        // Mirrors PRF-01: an SMTP call that overruns the budget is bounded and recorded FAILED (not
+        // stuck at SENDING).
+        ReflectionTestUtils.setField(service, "emailSendTimeoutMs", 100L);
+        Notification n = emailNotification("guardian@example.com");
+        when(deliveryStore.beginAttempt(eq(n), eq("SMTP"))).thenReturn(DeliveryDecision.proceed());
+        // lenient: the async send runs on the common pool and may not be reached before the 100ms
+        // budget fires on a slow CI runner — the timeout path is what we assert, so the stub being
+        // unused on a given run must not trip strict-stubbing (UnnecessaryStubbingException).
+        lenient().doAnswer(inv -> {
+            Thread.sleep(2000); // overrun the 100ms budget
+            return null;
+        }).when(emailPort).send(any(), any(), any());
+
+        service.dispatch(n);
+
+        verify(deliveryStore).markFailed(eq(n), contains("timed out"));
+        verify(deliveryStore, never()).markSucceeded(any());
+    }
+
+    @Test
+    void email_retryAfterSuccess_doesNotResend_reconcilesOnly() {
+        Notification n = emailNotification("guardian@example.com");
+        when(deliveryStore.beginAttempt(eq(n), eq("SMTP")))
+                .thenReturn(DeliveryDecision.alreadyAttempted(DeliveryAttemptOutcome.SUCCEEDED));
+
+        service.dispatch(n);
+
+        verify(deliveryStore).reconcile(n, DeliveryAttemptOutcome.SUCCEEDED);
+        verify(emailPort, never()).send(any(), any(), any());
     }
 }

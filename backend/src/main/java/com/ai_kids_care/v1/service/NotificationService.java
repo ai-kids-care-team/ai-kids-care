@@ -42,6 +42,7 @@ public class NotificationService {
     private final NotificationMapper mapper;
     private final PushPort pushPort;
     private final SmsPort smsPort;
+    private final EmailPort emailPort;
     private final SecurityAuditWriter auditWriter;
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final NotificationDeliveryStore deliveryStore;
@@ -51,6 +52,13 @@ public class NotificationService {
     // disables the wrapper (call the port directly). Default 5000 ms.
     @Value("${notifications.sms-send-timeout-ms:5000}")
     private long smsSendTimeoutMs = 5000L;
+
+    // EMAIL dispatch-layer timeout budget (ms), mirroring smsSendTimeoutMs (PRF-01 posture): the
+    // JavaMailSender contract exposes no per-send timeout hook at this layer, so the SMTP provider
+    // call is bounded here. A non-positive value disables the wrapper (call the port directly).
+    // Default 5000 ms.
+    @Value("${notifications.email-send-timeout-ms:5000}")
+    private long emailSendTimeoutMs = 5000L;
 
     @Transactional(readOnly = true)
     @PreAuthorize("@authorizationPolicy.isAllowed(T(com.ai_kids_care.v1.security.AuthorizationAction).NOTIFICATION_READ)")
@@ -148,8 +156,12 @@ public class NotificationService {
             dispatchSms(notification);
             return;
         }
+        if (channel == NotificationChannelEnum.EMAIL) {
+            dispatchEmail(notification);
+            return;
+        }
         if (channel != NotificationChannelEnum.PUSH) {
-            return; // EMAIL delivery not implemented
+            return;
         }
         dispatchPush(notification);
     }
@@ -244,6 +256,65 @@ public class NotificationService {
                 throw re; // e.g. IllegalArgumentException (programming error) propagates unchanged
             }
             throw new IllegalStateException("Solapi SMS call failed", cause);
+        }
+    }
+
+    // Deliver an EMAIL via EmailPort to users.email. Missing/blank email -> FAILED without calling the
+    // port. Otherwise SENDING -> SENT on success, or FAILED on a delivery failure or timeout. Mirrors
+    // dispatchSms exactly (D3): same beginAttempt/reconcile at-most-once guard, same provider-call-
+    // outside-transaction posture, same bounded-timeout translation to FAILED.
+    private void dispatchEmail(Notification notification) {
+        String email = notification.getRecipientUser().getEmail();
+        if (email == null || email.isBlank()) {
+            deliveryStore.markFailed(notification, "no email for EMAIL recipient");
+            return;
+        }
+
+        NotificationDeliveryStore.DeliveryDecision decision =
+                deliveryStore.beginAttempt(notification, "SMTP");
+        if (decision.alreadyAttempted()) {
+            deliveryStore.reconcile(notification, decision.existingOutcome());
+            return;
+        }
+
+        // Provider call outside any DB transaction, bounded by a configurable wall-clock budget
+        // (mirrors sendSmsWithinBudget / PRF-01); a timeout is translated to a delivery failure
+        // (FAILED), never a stuck SENDING.
+        try {
+            sendEmailWithinBudget(email, notification.getTitle(), notification.getBody());
+            deliveryStore.markSucceeded(notification);
+        } catch (IllegalStateException e) {
+            deliveryStore.markFailed(notification, "EMAIL delivery failed: " + e.getMessage());
+        }
+    }
+
+    // Invoke EmailPort.send under a bounded wall-clock budget (mirrors sendSmsWithinBudget). A
+    // delivery failure thrown by the adapter (IllegalStateException) propagates unchanged; a timeout
+    // is translated to an IllegalStateException so dispatchEmail records it as FAILED. A non-positive
+    // budget disables the wrapper (direct call).
+    private void sendEmailWithinBudget(String email, String subject, String body) {
+        if (emailSendTimeoutMs <= 0) {
+            emailPort.send(email, subject, body);
+            return;
+        }
+        try {
+            CompletableFuture
+                    .runAsync(() -> emailPort.send(email, subject, body))
+                    .orTimeout(emailSendTimeoutMs, TimeUnit.MILLISECONDS)
+                    .join();
+        } catch (CompletionException | CancellationException e) {
+            Throwable cause = (e instanceof CompletionException) ? e.getCause() : e;
+            if (cause instanceof IllegalStateException ise) {
+                throw ise; // provider delivery failure from the adapter
+            }
+            if (cause instanceof TimeoutException) {
+                throw new IllegalStateException(
+                        "SMTP email call timed out after " + emailSendTimeoutMs + "ms", cause);
+            }
+            if (cause instanceof RuntimeException re) {
+                throw re; // e.g. IllegalArgumentException (programming error) propagates unchanged
+            }
+            throw new IllegalStateException("SMTP email call failed", cause);
         }
     }
 
