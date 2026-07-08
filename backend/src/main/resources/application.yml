@@ -33,6 +33,15 @@ spring:
       username: ${NEO4J_USERNAME:neo4j}
       password: ${NEO4J_PASSWORD}
 
+  # EMAIL 通道：ESCALATED 家长告警叠加渠道（wire-email-notification-channel）。SMTP host/port/账密
+  # 全 ${ENV} 注入，缺失/空白即 fail-fast（SmtpConfig 的 @NotBlank，镜像 pushover/solapi）。
+  # JavaMailSender 由 spring-boot-starter-mail 按同一 spring.mail.* 命名空间自动装配。
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
   # -- PRF-01: @Async bounded executor (Spring Boot TaskExecutionAutoConfiguration) ------
   # DooD measurement 2026-06-25: Boot auto-configures applicationTaskExecutor with
   # core=8 + unbounded LinkedBlockingQueue (Integer.MAX_VALUE). Fix: configure
@@ -197,6 +206,11 @@ solapi:
   api-key: ${SOLAPI_API_KEY}
   api-secret: ${SOLAPI_API_SECRET}
   sender: ${SOLAPI_SENDER}
+
+# EMAIL 通道：dispatchEmail 的 provider 调用有界 wall-clock 超时（镜像 sms-send-timeout-ms，PRF-01
+# 姿态）；超时记 FAILED，不卡 SENDING。JavaMailSender 无 SDK 级超时钩子暴露给这层，故在此兜底。
+notifications:
+  email-send-timeout-ms: 5000
 
 logging:
   level:

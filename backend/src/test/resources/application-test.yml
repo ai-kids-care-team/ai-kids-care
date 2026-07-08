@@ -28,6 +28,14 @@ spring:
         session_factory:
           statement_inspector: com.ai_kids_care.support.ThreadLocalStatementInspector
 
+  # EMAIL 通道：非生产 dev 测试值(SmtpConfig fail-fast 需非空)。测试由 @MockBean EmailPort 取代真实
+  # JavaMailSender 调用；这些值仅满足 SmtpConfig/spring.mail.* 绑定(不发起真实 SMTP 连接)。
+  mail:
+    host: smtp.test.local
+    port: "587"
+    username: test-mail-user-not-secret-2026
+    password: test-mail-password-not-secret-2026
+
 rrn:
   hash:
     pepper: test-pepper-not-secret-2026

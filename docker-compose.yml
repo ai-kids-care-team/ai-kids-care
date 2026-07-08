@@ -168,6 +168,13 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
       MINIO_BUCKET: ${MINIO_BUCKET:-ai-kids-care}
+      # EMAIL 通道（wire-email-notification-channel）：SmtpConfig 的 @NotBlank fail-fast 需要这四项
+      # 非空才能启动；给出无害占位默认值（非真实 SMTP relay，未覆盖时该渠道会 FAILED/超时，PUSH/SMS
+      # 不受影响）使无 SMTP 凭据的本地/CI 仍可 compose up，同 design D2。生产须在 .env 覆盖为真实凭据。
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-noreply@example.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-changeme}
       TZ: Asia/Seoul
       JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Seoul
     ports:

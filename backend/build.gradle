@@ -53,6 +53,7 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     implementation 'com.github.sps.pushover.net:pushover-client:1.0.0'
     implementation 'net.nurigo:sdk:4.3.0'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     // D-STORE: MinIO SDK for the evidence-content backend reverse-proxy (EvidenceStoragePort).
     // NOTE: 9.x consolidated getObject/statObject's checked-exception list into a single
     // io.minio.errors.MinioException (8.x declares 9 separate checked exception types) — the
