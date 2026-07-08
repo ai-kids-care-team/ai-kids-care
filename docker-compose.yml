@@ -168,6 +168,13 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
       MINIO_BUCKET: ${MINIO_BUCKET:-ai-kids-care}
+      # PUSH/SMS 通道 provider 凭据：PushoverConfig/SolapiConfig 的 @NotBlank fail-fast 需要这四项
+      # 非空才能启动；给出无害占位默认值（非真实凭据，未覆盖时 PUSH/SMS 会 FAILED，不影响其它渠道）
+      # 使无 provider 凭据的本地/CI 仍可 compose up，与 MAIL_* 一致。生产须在 .env 覆盖为真实凭据。
+      PUSHOVER_API_TOKEN: ${PUSHOVER_API_TOKEN:-changeme}
+      SOLAPI_API_KEY: ${SOLAPI_API_KEY:-changeme}
+      SOLAPI_API_SECRET: ${SOLAPI_API_SECRET:-changeme}
+      SOLAPI_SENDER: ${SOLAPI_SENDER:-01000000000}
       # EMAIL 通道（wire-email-notification-channel）：SmtpConfig 的 @NotBlank fail-fast 需要这四项
       # 非空才能启动；给出无害占位默认值（非真实 SMTP relay，未覆盖时该渠道会 FAILED/超时，PUSH/SMS
       # 不受影响）使无 SMTP 凭据的本地/CI 仍可 compose up，同 design D2。生产须在 .env 覆盖为真实凭据。
